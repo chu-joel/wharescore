@@ -40,3 +40,13 @@ test_report.html
 
 # Claude Code
 .claude/
+
+# Martin binaries (83MB)
+tools/martin/*.exe
+tools/martin/*.zip
+
+# Server logs
+*.log
+
+# Pip artifacts
+backend/=*
