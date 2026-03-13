@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>WhareScore — Martin Tile Test</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    :root {
+      /* Okabe-Ito derived palette — colorblind-safe */
+      /* Danger / hazard (warm) */
+      --color-flood: #56B4E9;         /* sky blue — water */
+      --color-tsunami: #0072B2;       /* dark blue — deep water */
+      --color-liquefaction: #E69F00;  /* amber — earth/ground */
+      --color-contaminated: #CC79A7;  /* reddish purple — toxic */
+      --color-epb: #D55E00;           /* vermillion — hot danger point */
+      --color-erosion: #D55E00;       /* vermillion — coastal danger */
+
+      /* Negative / caution (warm-neutral) */
+      --color-noise: #E69F00;         /* amber — environmental nuisance */
+      --color-crashes: #D55E00;       /* vermillion — safety */
+      --color-wind: #F0E442;          /* yellow — invisible force */
+      --color-transmission: #E69F00;  /* amber — infrastructure caution */
+
+      /* Positive (cool) */
+      --color-schools: #009E73;       /* bluish green — education */
+      --color-transit: #56B4E9;       /* sky blue — transport */
+      --color-heritage: #CC79A7;      /* reddish purple — culture */
+
+      /* Planning / context (muted) */
+      --color-zones: #7A9A7E;         /* sage — planning */
+      --color-heights: #B8A07E;       /* tan — height/building */
+      --color-school-zones: #88A0C8;  /* steel blue — catchment */
+
+      /* Structural / property (subdued) */
+      --color-parcels: #9CA3AF;       /* grey-400 */
+      --color-buildings: #b8a88a;     /* warm tan — like Google Maps */
+      --color-addresses: #6B7280;     /* grey-500 */
+      --color-valuations: #9CA3AF;    /* grey-400 */
+      --color-titles: #D1D5DB;        /* grey-300 */
+
+      /* Boundaries (neutral) */
+      --color-sa2: #6B7280;           /* grey-500 */
+      --color-meshblocks: #D1D5DB;    /* grey-300 */
+    }
+
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    #map { width: 100%; height: 100vh; }
+
+    /* === CONTROLS PANEL === */
+    #controls {
+      position: absolute; top: 10px; left: 10px; z-index: 1;
+      background: rgba(255,255,255,0.96); padding: 0;
+      border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      max-height: calc(100vh - 20px); overflow-y: auto; font-size: 13px;
+      width: 240px; transition: width 0.2s, opacity 0.2s;
+      scrollbar-width: thin;
+    }
+    #controls.collapsed { width: 40px; overflow: hidden; }
+    #controls.collapsed .panel-body { display: none; }
+
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-bottom: 1px solid #e9ecef;
+      position: sticky; top: 0; background: rgba(255,255,255,0.98);
+      border-radius: 10px 10px 0 0; z-index: 2;
+    }
+    .panel-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: #1a1a2e; }
+    .active-count {
+      font-size: 11px; color: #868e96; font-weight: 400;
+      margin-left: 6px;
+    }
+    #toggle-panel {
+      background: none; border: none; cursor: pointer; font-size: 18px;
+      color: #666; padding: 0 2px; line-height: 1;
+    }
+    #toggle-panel:hover { color: #333; }
+
+    .panel-body { padding: 4px 0 8px; }
+
+    .section { padding: 0 12px; }
+    .section + .section { border-top: 1px solid #f1f3f5; }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; padding: 8px 0 4px; user-select: none;
+    }
+    .section-header:hover .section-title { color: #333; }
+    .section-title {
+      font-weight: 600; font-size: 11px; color: #868e96;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .section-chevron {
+      font-size: 10px; color: #adb5bd; transition: transform 0.15s;
+    }
+    .section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .section.collapsed .section-items { display: none; }
+
+    .section-items { padding-bottom: 4px; }
+
+    /* === LAYER ROW === */
+    label {
+      display: flex; align-items: center; gap: 6px;
+      margin: 0; padding: 3px 0; cursor: pointer; font-size: 12.5px; color: #495057;
+      position: relative;
+    }
+    label:hover { color: #1a1a2e; }
+    label input[type="checkbox"] { display: none; }
+
+    .check-box {
+      width: 16px; height: 16px; border-radius: 4px; border: 2px solid #dee2e6;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s;
+    }
+    .check-box::after {
+      content: ''; width: 8px; height: 8px; border-radius: 2px;
+      background: transparent; transition: background 0.15s;
+    }
+    input:checked + .check-box { border-color: var(--layer-color); }
+    input:checked + .check-box::after { background: var(--layer-color); }
+
+    /* Geometry type icon */
+    .geom-icon {
+      width: 14px; height: 14px; flex-shrink: 0; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .geom-icon svg { width: 12px; height: 12px; }
+
+    .layer-name { flex: 1; }
+    .layer-count { font-size: 10px; color: #adb5bd; }
+
+    /* Tooltip on hover */
+    .layer-tip {
+      display: none; position: absolute; left: 24px; top: 100%;
+      background: #1a1a2e; color: #e5e7eb; font-size: 11px; line-height: 1.4;
+      padding: 5px 8px; border-radius: 6px; z-index: 10;
+      width: 200px; pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .layer-tip::before {
+      content: ''; position: absolute; top: -4px; left: 12px;
+      width: 8px; height: 8px; background: #1a1a2e;
+      transform: rotate(45deg);
+    }
+    label:hover .layer-tip { display: block; }
+
+    /* === BASEMAP === */
+    #basemap-select {
+      width: 100%; margin-top: 2px; padding: 4px 6px; font-size: 12px;
+      border-radius: 6px; border: 1px solid #dee2e6; background: #f8f9fa;
+      color: #495057; outline: none;
+    }
+    #basemap-select:focus { border-color: #74c0fc; }
+
+    /* === INFO BAR === */
+    #info {
+      position: absolute; bottom: 10px; left: 10px; z-index: 1;
+      background: rgba(255,255,255,0.92); padding: 5px 12px;
+      border-radius: 6px; font-size: 11px; color: #666;
+      font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* === FLOATING LEGEND === */
+    #legend {
+      position: absolute; bottom: 40px; left: 10px; z-index: 1;
+      background: rgba(255,255,255,0.94); padding: 8px 10px;
+      border-radius: 8px; font-size: 11px; color: #495057;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      max-width: 200px; transition: opacity 0.2s;
+    }
+    #legend.empty { display: none; }
+    #legend-title {
+      font-weight: 600; font-size: 10px; color: #868e96;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 2px 0; font-size: 11px;
+    }
+    .legend-swatch {
+      width: 14px; height: 10px; border-radius: 2px; flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .legend-swatch.line {
+      width: 14px; height: 3px; border-radius: 1px;
+    }
+    .legend-swatch.circle {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .layer-hint {
+      font-size: 10px; color: #adb5bd; padding: 6px 0 2px;
+      text-align: center; display: none;
+    }
+    .layer-hint.visible { display: block; }
+
+    /* === POPUPS === */
+    .maplibregl-popup-content {
+      padding: 0 !important; border-radius: 8px !important; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important; max-width: 340px;
+    }
+    .popup-stack { max-height: 350px; overflow-y: auto; scrollbar-width: thin; }
+    .popup-section + .popup-section { border-top: 2px solid #e9ecef; }
+    .popup-header {
+      padding: 6px 10px; color: white; font-weight: 600; font-size: 12px;
+      text-transform: capitalize; position: sticky; top: 0; z-index: 1;
+    }
+    .popup-body { padding: 6px 10px; font-size: 12px; color: #333; line-height: 1.5; }
+    .popup-row { display: flex; gap: 6px; padding: 1px 0; }
+    .popup-key { color: #868e96; min-width: 90px; flex-shrink: 0; font-size: 11px; }
+    .popup-val { color: #1a1a2e; font-weight: 500; word-break: break-word; }
+    .popup-val.currency { color: #16a34a; }
+    .popup-val.area { color: #6366f1; }
+    .popup-empty { font-size: 11px; color: #adb5bd; padding: 4px 10px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div class="panel-header">
+      <h3>WhareScore Layers <span class="active-count" id="active-count">(1 active)</span></h3>
+      <button id="toggle-panel" title="Collapse panel">&#x2630;</button>
+    </div>
+    <div class="panel-body">
+
+      <!-- Basemap -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Basemap</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <select id="basemap-select">
+            <option value="positron">Positron (Light)</option>
+            <option value="dark">Dark Matter</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Property (structural — muted greys) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Property</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-parcels)" data-geom="line">
+            <input type="checkbox" data-layer="parcels" checked><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#9CA3AF" stroke-width="2"/></svg></span>
+            <span class="layer-name">Parcels</span><span class="layer-count">4.3M</span>
+            <span class="layer-tip">Property boundary outlines from LINZ</span>
+          </label>
+          <label style="--layer-color:var(--color-buildings)" data-geom="fill">
+            <input type="checkbox" data-layer="building_outlines"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#d4c5a9" opacity="0.5" stroke="#b8a88a" stroke-width="1"/></svg></span>
+            <span class="layer-name">Buildings</span><span class="layer-count">3.2M</span>
+            <span class="layer-tip">Building footprints from LINZ aerial imagery</span>
+          </label>
+          <label style="--layer-color:var(--color-addresses)" data-geom="circle">
+            <input type="checkbox" data-layer="addresses"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#6B7280"/></svg></span>
+            <span class="layer-name">Addresses</span><span class="layer-count">2.4M</span>
+            <span class="layer-tip">All NZ address points from LINZ</span>
+          </label>
+          <label style="--layer-color:var(--color-valuations)" data-geom="fill">
+            <input type="checkbox" data-layer="council_valuations"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#9CA3AF" opacity="0.3" stroke="#9CA3AF" stroke-width="1"/></svg></span>
+            <span class="layer-name">Valuations</span><span class="layer-count">88K</span>
+            <span class="layer-tip">Council capital value, land value, improvements (WCC)</span>
+          </label>
+          <label style="--layer-color:var(--color-titles)" data-geom="line">
+            <input type="checkbox" data-layer="property_titles"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#D1D5DB" stroke-width="2"/></svg></span>
+            <span class="layer-name">Titles</span><span class="layer-count">2.4M</span>
+            <span class="layer-tip">Property title boundaries from LINZ</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Hazards (warm — danger) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Hazards</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-flood)" data-geom="fill">
+            <input type="checkbox" data-layer="flood_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#56B4E9" opacity="0.4" stroke="#56B4E9" stroke-width="1"/></svg></span>
+            <span class="layer-name">Flood Zones</span>
+            <span class="layer-tip">1-in-100 year flood extents from GWRC</span>
+          </label>
+          <label style="--layer-color:var(--color-tsunami)" data-geom="fill">
+            <input type="checkbox" data-layer="tsunami_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#0072B2" opacity="0.4" stroke="#0072B2" stroke-width="1"/></svg></span>
+            <span class="layer-name">Tsunami Zones</span>
+            <span class="layer-tip">Evacuation zones: red (near-source), orange, yellow (distant)</span>
+          </label>
+          <label style="--layer-color:var(--color-liquefaction)" data-geom="fill">
+            <input type="checkbox" data-layer="liquefaction_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#E69F00" opacity="0.4" stroke="#E69F00" stroke-width="1"/></svg></span>
+            <span class="layer-name">Liquefaction</span>
+            <span class="layer-tip">Areas where ground may turn liquid-like during earthquakes</span>
+          </label>
+          <label style="--layer-color:var(--color-contaminated)" data-geom="fill">
+            <input type="checkbox" data-layer="contaminated_land"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#CC79A7" opacity="0.4" stroke="#CC79A7" stroke-width="1"/></svg></span>
+            <span class="layer-name">Contaminated Land</span>
+            <span class="layer-tip">SLUR sites — past or present hazardous activities (GWRC)</span>
+          </label>
+          <label style="--layer-color:var(--color-epb)" data-geom="circle">
+            <input type="checkbox" data-layer="earthquake_prone_buildings"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#D55E00"/></svg></span>
+            <span class="layer-name">EQ-Prone Buildings</span>
+            <span class="layer-tip">Buildings assessed as earthquake-prone by WCC</span>
+          </label>
+          <label style="--layer-color:var(--color-erosion)" data-geom="line">
+            <input type="checkbox" data-layer="coastal_erosion"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#D55E00" stroke-width="2"/></svg></span>
+            <span class="layer-name">Coastal Erosion</span>
+            <span class="layer-tip">Shoreline erosion susceptibility from NIWA</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Planning (muted / contextual) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Planning</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-zones)" data-geom="fill">
+            <input type="checkbox" data-layer="district_plan_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#7A9A7E" opacity="0.3" stroke="#7A9A7E" stroke-width="1"/></svg></span>
+            <span class="layer-name">District Plan Zones</span>
+            <span class="layer-tip">Residential, commercial, industrial zoning (WCC 2024)</span>
+          </label>
+          <label style="--layer-color:var(--color-heights)" data-geom="fill">
+            <input type="checkbox" data-layer="height_controls"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#B8A07E" opacity="0.3" stroke="#B8A07E" stroke-width="1"/></svg></span>
+            <span class="layer-name">Height Controls</span>
+            <span class="layer-tip">Maximum permitted building height in metres (WCC)</span>
+          </label>
+          <label style="--layer-color:var(--color-school-zones)" data-geom="fill">
+            <input type="checkbox" data-layer="school_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#88A0C8" opacity="0.3" stroke="#88A0C8" stroke-width="1"/></svg></span>
+            <span class="layer-name">School Zones</span>
+            <span class="layer-tip">Enrolment catchment boundaries from MoE</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Environment (warm-neutral) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Environment</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-noise)" data-geom="fill">
+            <input type="checkbox" data-layer="noise_contours"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#E69F00" opacity="0.3" stroke="#E69F00" stroke-width="1"/></svg></span>
+            <span class="layer-name">Road Noise</span>
+            <span class="layer-tip">Traffic noise contours 50-70 dB from Waka Kotahi</span>
+          </label>
+          <label style="--layer-color:var(--color-wind)" data-geom="fill">
+            <input type="checkbox" data-layer="wind_zones"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#F0E442" opacity="0.3" stroke="#F0E442" stroke-width="1"/></svg></span>
+            <span class="layer-name">Wind Zones</span>
+            <span class="layer-tip">Wind exposure classification: Low / Medium / High / Very High</span>
+          </label>
+          <label style="--layer-color:var(--color-transmission)" data-geom="line">
+            <input type="checkbox" data-layer="transmission_lines"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#E69F00" stroke-width="2"/></svg></span>
+            <span class="layer-name">Transmission Lines</span>
+            <span class="layer-tip">National grid high-voltage lines from Transpower</span>
+          </label>
+          <label style="--layer-color:#2D6A4F" data-geom="fill">
+            <input type="checkbox" data-layer="conservation_land"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" fill="#2D6A4F" opacity="0.3" stroke="#2D6A4F" stroke-width="1"/></svg></span>
+            <span class="layer-name">Conservation Land</span><span class="layer-count">11K</span>
+            <span class="layer-tip">DOC reserves, national parks, conservation areas</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Points of Interest (cool = positive, warm = negative) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Points of Interest</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-schools)" data-geom="circle">
+            <input type="checkbox" data-layer="schools"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#009E73"/></svg></span>
+            <span class="layer-name">Schools</span>
+            <span class="layer-tip">All NZ schools with Equity Index and roll data</span>
+          </label>
+          <label style="--layer-color:var(--color-transit)" data-geom="circle">
+            <input type="checkbox" data-layer="transit_stops"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#56B4E9"/></svg></span>
+            <span class="layer-name">Transit Stops</span>
+            <span class="layer-tip">Metlink bus and train stops (Wellington region)</span>
+          </label>
+          <label style="--layer-color:var(--color-heritage)" data-geom="circle">
+            <input type="checkbox" data-layer="heritage_sites"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#CC79A7"/></svg></span>
+            <span class="layer-name">Heritage Sites</span>
+            <span class="layer-tip">Heritage NZ listed buildings and places</span>
+          </label>
+          <label style="--layer-color:#009E73" data-geom="circle">
+            <input type="checkbox" data-layer="osm_amenities"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#009E73"/></svg></span>
+            <span class="layer-name">Amenities (OSM)</span><span class="layer-count">95K</span>
+            <span class="layer-tip">Cafes, shops, parks, pharmacies, etc. from OpenStreetMap</span>
+          </label>
+          <label style="--layer-color:var(--color-crashes)" data-geom="circle">
+            <input type="checkbox" data-layer="crashes"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="#D55E00"/></svg></span>
+            <span class="layer-name">Crash Sites</span><span class="layer-count">904K</span>
+            <span class="layer-tip">Serious and fatal traffic crashes from Waka Kotahi CAS</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Boundaries (neutral) -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Boundaries</div><span class="section-chevron">&#9660;</span></div>
+        <div class="section-items">
+          <label style="--layer-color:var(--color-sa2)" data-geom="line">
+            <input type="checkbox" data-layer="sa2_boundaries"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#6B7280" stroke-width="2" stroke-dasharray="3,2"/></svg></span>
+            <span class="layer-name">SA2 Boundaries</span>
+            <span class="layer-tip">Statistical Area 2 — suburb-level census boundaries</span>
+          </label>
+          <label style="--layer-color:var(--color-meshblocks)" data-geom="line">
+            <input type="checkbox" data-layer="meshblocks"><span class="check-box"></span>
+            <span class="geom-icon"><svg viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="#D1D5DB" stroke-width="1.5"/></svg></span>
+            <span class="layer-name">Meshblocks</span><span class="layer-count">57K</span>
+            <span class="layer-tip">Smallest census unit — 50-100 people per block</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Floating legend (shows only active layers) -->
+  <div id="legend" class="empty">
+    <div id="legend-title">Active Layers</div>
+    <div id="legend-items"></div>
+    <div class="layer-hint" id="layer-hint">Tip: fewer layers = clearer map</div>
+  </div>
+
+  <div id="info">Zoom: <span id="zoom">15</span> | <span id="lat"></span>, <span id="lng"></span></div>
+
+  <div id="map"></div>
+
+  <script>
+    const MARTIN = 'http://localhost:3000';
+
+    // === SEMANTIC COLOR MAP ===
+    // Follows Okabe-Ito colorblind-safe palette
+    // Warm = danger/caution, Cool = positive, Grey = structural
+    const layerColors = {
+      // Structural (muted greys — the canvas, not the paint)
+      parcels: '#9CA3AF',
+      building_outlines: '#b8a88a',
+      addresses: '#6B7280',
+      council_valuations: '#9CA3AF',
+      property_titles: '#D1D5DB',
+      // Hazards (warm — danger signals)
+      flood_zones: '#56B4E9',        // sky blue (water)
+      tsunami_zones: '#0072B2',      // dark blue (deep water)
+      liquefaction_zones: '#E69F00', // amber (earth)
+      contaminated_land: '#CC79A7',  // reddish purple (toxic)
+      earthquake_prone_buildings: '#D55E00', // vermillion (hot danger)
+      coastal_erosion: '#D55E00',    // vermillion
+      // Planning (muted contextual)
+      district_plan_zones: '#7A9A7E', // sage
+      height_controls: '#B8A07E',     // tan
+      school_zones: '#88A0C8',        // steel blue
+      // Environment (warm-neutral caution)
+      noise_contours: '#E69F00',      // amber
+      wind_zones: '#F0E442',          // yellow
+      transmission_lines: '#E69F00',  // amber
+      // Positive POI (cool)
+      schools: '#009E73',             // bluish green
+      transit_stops: '#56B4E9',       // sky blue
+      heritage_sites: '#CC79A7',      // reddish purple
+      // Negative POI (warm)
+      crashes: '#D55E00',             // vermillion
+      // Boundaries (neutral)
+      sa2_boundaries: '#6B7280',
+      meshblocks: '#D1D5DB',
+      // Context (cool-neutral)
+      osm_amenities: '#009E73',
+      conservation_land: '#2D6A4F',
+    };
+
+    // Human-readable names
+    const layerLabels = {
+      parcels: 'Parcels', building_outlines: 'Buildings', addresses: 'Addresses',
+      council_valuations: 'Valuations', property_titles: 'Titles',
+      flood_zones: 'Flood Zones', tsunami_zones: 'Tsunami Zones',
+      liquefaction_zones: 'Liquefaction', contaminated_land: 'Contaminated Land',
+      earthquake_prone_buildings: 'EQ-Prone Buildings', coastal_erosion: 'Coastal Erosion',
+      district_plan_zones: 'District Zones', height_controls: 'Height Controls',
+      school_zones: 'School Zones', noise_contours: 'Road Noise',
+      wind_zones: 'Wind Zones', transmission_lines: 'Transmission Lines',
+      schools: 'Schools', transit_stops: 'Transit Stops',
+      heritage_sites: 'Heritage Sites', crashes: 'Crash Sites',
+      sa2_boundaries: 'SA2 Boundaries', meshblocks: 'Meshblocks',
+      osm_amenities: 'Amenities (OSM)', conservation_land: 'Conservation Land',
+    };
+
+    // === LAYER STYLES — semantic opacity system ===
+    // Hazard fills: 0.30-0.35 (stand out)
+    // Planning fills: 0.15-0.20 (context)
+    // Environment fills: 0.20-0.25 (secondary)
+    // Structural: 0.20-0.30 (quiet canvas)
+    // minzoom: prevents requesting enormous tiles at low zoom (critical for performance)
+    const layerStyles = {
+      // --- Structural (muted, the canvas) ---
+      parcels:              { type: 'line',   minzoom: 12, paint: { 'line-color': '#9CA3AF', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.2, 15, 0.7, 18, 1.2], 'line-opacity': 0.5 } },
+      building_outlines:    { type: 'fill',   minzoom: 13, paint: { 'fill-color': '#d4c5a9', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.15, 15, 0.45, 18, 0.6], 'fill-outline-color': '#b8a88a' } },
+      addresses:            { type: 'circle', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 4], 'circle-color': '#6B7280', 'circle-opacity': 0.5, 'circle-stroke-width': 0.5, 'circle-stroke-color': '#fff' } },
+      council_valuations:   { type: 'fill',   minzoom: 12, paint: { 'fill-color': '#9CA3AF', 'fill-opacity': 0.15, 'fill-outline-color': '#6B7280' } },
+      property_titles:      { type: 'line',   minzoom: 12, paint: { 'line-color': '#D1D5DB', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.2, 16, 0.8], 'line-opacity': 0.4 } },
+
+      // --- Hazards (vivid, attention-grabbing) ---
+      flood_zones:          { type: 'fill',   minzoom: 8,  paint: { 'fill-color': '#56B4E9', 'fill-opacity': 0.30, 'fill-outline-color': '#0072B2' } },
+      tsunami_zones:        { type: 'fill',   minzoom: 8,  paint: { 'fill-color': '#0072B2', 'fill-opacity': 0.25, 'fill-outline-color': '#004466' } },
+      liquefaction_zones:   { type: 'fill',   minzoom: 8,  paint: { 'fill-color': '#E69F00', 'fill-opacity': 0.30, 'fill-outline-color': '#B37A00' } },
+      contaminated_land:    { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#CC79A7', 'fill-opacity': 0.35, 'fill-outline-color': '#A0527E' } },
+      earthquake_prone_buildings: { type: 'circle', minzoom: 12, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 9], 'circle-color': '#D55E00', 'circle-opacity': 0.85, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } },
+      coastal_erosion:      { type: 'line',   minzoom: 8,  paint: { 'line-color': '#D55E00', 'line-width': 3, 'line-opacity': 0.7 } },
+
+      // --- Planning (muted context) ---
+      district_plan_zones:  { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#7A9A7E', 'fill-opacity': 0.15, 'fill-outline-color': '#5A7A5E' } },
+      height_controls:      { type: 'fill',   minzoom: 11, paint: { 'fill-color': '#B8A07E', 'fill-opacity': 0.18, 'fill-outline-color': '#8B7A5E' } },
+      school_zones:         { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#88A0C8', 'fill-opacity': 0.15, 'fill-outline-color': '#6080A8' } },
+
+      // --- Environment (secondary emphasis) ---
+      noise_contours:       { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#E69F00', 'fill-opacity': 0.22, 'fill-outline-color': '#B37A00' } },
+      wind_zones:           { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#F0E442', 'fill-opacity': 0.18, 'fill-outline-color': '#C8BC20' } },
+      transmission_lines:   { type: 'line',   minzoom: 8,  paint: { 'line-color': '#E69F00', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1, 14, 3], 'line-opacity': 0.75 } },
+
+      // --- POI: positive (cool) ---
+      schools:              { type: 'circle', minzoom: 8,  paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 16, 7], 'circle-color': '#009E73', 'circle-opacity': 0.85, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' } },
+      transit_stops:        { type: 'circle', minzoom: 12, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2, 16, 5], 'circle-color': '#56B4E9', 'circle-opacity': 0.75, 'circle-stroke-width': 1, 'circle-stroke-color': '#fff' } },
+      heritage_sites:       { type: 'circle', minzoom: 10, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 16, 7], 'circle-color': '#CC79A7', 'circle-opacity': 0.85, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' } },
+
+      // --- POI: negative (warm) ---
+      crashes:              { type: 'circle', minzoom: 13, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 1, 17, 4], 'circle-color': '#D55E00', 'circle-opacity': 0.4 } },
+
+      // --- Context (nature / amenities) ---
+      osm_amenities:        { type: 'circle', minzoom: 13, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 2, 17, 6], 'circle-color': '#009E73', 'circle-opacity': 0.75, 'circle-stroke-width': 1, 'circle-stroke-color': '#fff' } },
+      conservation_land:    { type: 'fill',   minzoom: 10, paint: { 'fill-color': '#2D6A4F', 'fill-opacity': 0.20, 'fill-outline-color': '#1B4332' } },
+
+      // --- Boundaries (neutral) ---
+      sa2_boundaries:       { type: 'line',   minzoom: 8,  paint: { 'line-color': '#6B7280', 'line-width': 2, 'line-opacity': 0.4, 'line-dasharray': [3, 2] } },
+      meshblocks:           { type: 'line',   minzoom: 12, paint: { 'line-color': '#D1D5DB', 'line-width': 0.5, 'line-opacity': 0.35 } },
+    };
+
+    // Per-layer field config: which fields to show and in what order
+    // If a layer isn't listed, all non-skipped fields are shown
+    const layerFields = {
+      building_outlines: ['name', 'use', 'suburb_locality', 'town_city'],
+      council_valuations: ['full_address', 'capital_value', 'land_value', 'improvements_value', 'land_area', 'valuation_date', 'legal_description'],
+      parcels: ['appellation', 'titles', 'survey_area', 'parcel_intent', 'status'],
+      addresses: ['full_address', 'suburb_locality', 'town_city', 'territorial_authority'],
+      property_titles: ['titles', 'appellation', 'survey_area', 'parcel_intent'],
+      schools: ['org_name', 'org_type', 'authority', 'total_roll', 'eqi_index', 'coed_status', 'enrolment_scheme', 'suburb', 'url'],
+      transit_stops: ['stop_name', 'stop_code', 'zone_id'],
+      heritage_sites: ['name', 'list_entry_type', 'list_entry_status', 'address', 'region'],
+      earthquake_prone_buildings: ['address', 'council'],
+      crashes: ['crash_severity', 'crash_year', 'crash_location1', 'crash_location2', 'fatal_count', 'serious_injury_count', 'speed_limit', 'weather_a', 'light'],
+      district_plan_zones: ['zone_name', 'zone_code', 'category', 'status'],
+      height_controls: ['zone_name', 'max_height', 'category', 'status'],
+      flood_zones: ['label', 'description', 'title', 'hectares'],
+      tsunami_zones: ['zone', 'evacuation_zone', 'description'],
+      contaminated_land: ['site_name', 'category', 'status', 'description', 'address'],
+      noise_contours: ['noise_level', 'category', 'description'],
+      wind_zones: ['wind_zone', 'category', 'description'],
+      school_zones: ['school_name', 'zone_type', 'description'],
+      osm_amenities: ['name', 'category', 'subcategory', 'brand', 'opening_hours', 'phone', 'website', 'addr_street', 'addr_housenumber'],
+      conservation_land: ['name', 'land_type', 'land_status', 'legal_name'],
+    };
+
+    // Pretty-print property keys
+    const keyLabels = {
+      org_name: 'School', org_type: 'Type', total_roll: 'Roll', eqi_index: 'Equity Index',
+      coed_status: 'Co-ed', enrolment_scheme: 'Enrolment', full_address: 'Address',
+      capital_value: 'Capital Value', land_value: 'Land Value', improvements_value: 'Improvements',
+      land_area: 'Land Area', valuation_date: 'Valued', legal_description: 'Legal Desc',
+      survey_area: 'Area', parcel_intent: 'Intent', crash_severity: 'Severity',
+      crash_year: 'Year', crash_location1: 'Location', crash_location2: 'Cross St',
+      fatal_count: 'Fatal', serious_injury_count: 'Serious', speed_limit: 'Speed Limit',
+      weather_a: 'Weather', zone_name: 'Zone', zone_code: 'Code', list_entry_type: 'Type',
+      list_entry_status: 'Status', stop_name: 'Stop', stop_code: 'Code', zone_id: 'Zone',
+      suburb_locality: 'Suburb', town_city: 'City', territorial_authority: 'Council',
+      subcategory: 'Type', opening_hours: 'Hours', addr_street: 'Street',
+      addr_housenumber: 'Number', land_type: 'Land Type', land_status: 'Status',
+      legal_name: 'Legal Name',
+    };
+    function formatKey(k) {
+      return keyLabels[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Smart value formatting
+    function formatValue(key, val) {
+      if (val === null || val === undefined || val === '') return ['—', ''];
+      const s = String(val);
+      // Currency: fields with "value" that are numbers
+      if (/_(value|price|cost)$/i.test(key) && !isNaN(val)) {
+        return ['$' + Number(val).toLocaleString('en-NZ'), 'currency'];
+      }
+      // Area: fields with "area" that are numbers
+      if (/area$/i.test(key) && !isNaN(val)) {
+        const n = Number(val);
+        if (n > 10000) return [(n / 10000).toFixed(2) + ' ha', 'area'];
+        return [n.toLocaleString('en-NZ', { maximumFractionDigits: 0 }) + ' m²', 'area'];
+      }
+      // Counts
+      if (/count$/i.test(key) && !isNaN(val)) {
+        return [Number(val).toLocaleString('en-NZ'), ''];
+      }
+      // Dates
+      if (/date$/i.test(key) && /^\d{4}-\d{2}/.test(s)) {
+        return [new Date(s).toLocaleDateString('en-NZ', { year: 'numeric', month: 'short', day: 'numeric' }), ''];
+      }
+      return [s, ''];
+    }
+
+    const skipKeys = new Set([
+      'ogc_fid', 'gid', 'objectid', 'fid', 'id',
+      'shape_length', 'shape_area', 'shape__area', 'shape__length',
+      'geom', 'wkb_geometry',
+      'capture_method', 'capture_source_from', 'capture_source_to',
+      'capture_source_group', 'capture_source_id', 'capture_source_name',
+      'last_modified', 'building_id', 'change_id', 'source_dataset',
+      'gd2000_xcoord', 'gd2000_ycoord', 'x', 'y',
+      'latitude', 'longitude', 'stop_lat', 'stop_lon',
+      'address_id', 'address_lifecycle', 'address_class',
+      'search_vector', 'globalid',
+      'full_address_ascii', 'full_road_name_ascii', 'road_name_ascii',
+      'suburb_locality_ascii', 'town_city_ascii',
+      'water_body_name', 'water_body_name_ascii', 'water_name', 'water_name_ascii',
+      'level_type', 'level_value', 'unit_type', 'unit_value',
+      'address_number_prefix', 'address_number_suffix', 'address_number_high',
+      'road_name_prefix', 'road_suffix', 'road_type_name',
+      'general_electorate', 'maori_electorate', 'regional_council',
+      'postal_address', 'postal_city', 'postal_code', 'postal_suburb',
+      'sa2_code', 'sa2_description', 'takiwa', 'ward',
+      'roll_number', 'assessment_number', 'effective_rating_date',
+      'council', 'postcode',
+    ]);
+
+    const basemaps = {
+      positron: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      osm: {
+        version: 8,
+        sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OpenStreetMap contributors' } },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+      },
+      none: {
+        version: 8, sources: {},
+        layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#e9ecef' } }]
+      }
+    };
+
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: basemaps.positron,
+      center: [174.776, -41.290],
+      zoom: 15,
+      attributionControl: true
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 150 }), 'bottom-right');
+
+    // === LEGEND UPDATE ===
+    function updateLegend() {
+      const items = [];
+      let count = 0;
+      document.querySelectorAll('#controls input[type="checkbox"]').forEach(cb => {
+        if (cb.checked) {
+          count++;
+          const name = cb.dataset.layer;
+          const color = layerColors[name];
+          const label = layerLabels[name] || formatKey(name);
+          const geom = cb.closest('label').dataset.geom || 'fill';
+          const swatchClass = geom === 'circle' ? 'circle' : geom === 'line' ? 'line' : '';
+          items.push(`<div class="legend-item"><span class="legend-swatch ${swatchClass}" style="background:${color}"></span>${label}</div>`);
+        }
+      });
+
+      const legend = document.getElementById('legend');
+      const legendItems = document.getElementById('legend-items');
+      const hint = document.getElementById('layer-hint');
+      const activeCount = document.getElementById('active-count');
+
+      activeCount.textContent = `(${count} active)`;
+
+      if (count === 0) {
+        legend.classList.add('empty');
+      } else {
+        legend.classList.remove('empty');
+        legendItems.innerHTML = items.join('');
+      }
+
+      hint.classList.toggle('visible', count >= 5);
+    }
+
+    // Track which layers have been activated at least once
+    const activatedLayers = new Set();
+
+    // POI layers that get text labels at high zoom
+    const labelConfig = {
+      schools:                    { field: 'org_name',  minzoom: 14, size: 11 },
+      transit_stops:              { field: 'stop_name', minzoom: 15, size: 10 },
+      heritage_sites:             { field: 'name',      minzoom: 14, size: 11 },
+      earthquake_prone_buildings: { field: 'address',   minzoom: 15, size: 10 },
+    };
+
+    // Add a single layer + source to the map (lazy — only when needed)
+    function ensureLayer(name) {
+      if (map.getSource(name)) return;
+      const style = layerStyles[name];
+      if (!style) return;
+
+      map.addSource(name, { type: 'vector', url: `${MARTIN}/${name}` });
+      map.addLayer({
+        id: name,
+        type: style.type,
+        source: name,
+        'source-layer': name,
+        minzoom: style.minzoom || 0,
+        paint: style.paint,
+        layout: { visibility: 'visible' }
+      });
+
+      // Hover highlight for fill layers
+      if (style.type === 'fill') {
+        map.addLayer({
+          id: name + '-hover',
+          type: 'line',
+          source: name,
+          'source-layer': name,
+          minzoom: style.minzoom || 0,
+          paint: { 'line-color': layerColors[name], 'line-width': 3, 'line-opacity': 0.9 },
+          layout: { visibility: 'visible' },
+          filter: ['==', ['get', 'ogc_fid'], '']
+        });
+      }
+
+      // Text labels for POI layers
+      const lbl = labelConfig[name];
+      if (lbl) {
+        map.addLayer({
+          id: name + '-label',
+          type: 'symbol',
+          source: name,
+          'source-layer': name,
+          minzoom: lbl.minzoom,
+          layout: {
+            visibility: 'visible',
+            'text-field': ['get', lbl.field],
+            'text-size': lbl.size,
+            'text-offset': [0, 1.4],
+            'text-anchor': 'top',
+            'text-max-width': 12,
+            'text-allow-overlap': false,
+          },
+          paint: {
+            'text-color': layerColors[name],
+            'text-halo-color': '#fff',
+            'text-halo-width': 1.5,
+          }
+        });
+      }
+
+      activatedLayers.add(name);
+    }
+
+    // Re-add only previously activated layers after a basemap change
+    function restoreActiveLayers() {
+      for (const name of activatedLayers) {
+        const cb = document.querySelector(`input[data-layer="${name}"]`);
+        if (cb && cb.checked) {
+          ensureLayer(name);
+        }
+      }
+    }
+
+    // Persistent handler: restore active layers after any style change (including basemap switch)
+    map.on('style.load', () => {
+      restoreActiveLayers();
+      updateLegend();
+    });
+
+    map.on('load', () => {
+      // Initial load: only add layers that are checked (lazy — skip unchecked)
+      document.querySelectorAll('#controls input[type="checkbox"]:checked').forEach(cb => {
+        ensureLayer(cb.dataset.layer);
+      });
+      updateLegend();
+
+      // Hover effect (throttled to ~30fps to reduce queryRenderedFeatures calls)
+      let hoveredLayer = null;
+      let hoverRAF = null;
+      map.on('mousemove', (e) => {
+        if (hoverRAF) return;
+        hoverRAF = requestAnimationFrame(() => {
+          hoverRAF = null;
+          const layers = [...activatedLayers].filter(n => {
+            const cb = document.querySelector(`input[data-layer="${n}"]`);
+            return cb && cb.checked && map.getLayer(n);
+          });
+          if (layers.length === 0) return;
+          const features = map.queryRenderedFeatures(e.point, { layers });
+          if (features.length > 0) {
+            map.getCanvas().style.cursor = 'pointer';
+            const f = features[0];
+            if (f.layer.type === 'fill' && map.getLayer(f.layer.id + '-hover')) {
+              if (hoveredLayer && hoveredLayer !== f.layer.id) {
+                map.setFilter(hoveredLayer + '-hover', ['==', ['get', 'ogc_fid'], '']);
+              }
+              hoveredLayer = f.layer.id;
+              for (const key of ['ogc_fid', 'objectid', 'gid', 'id']) {
+                if (f.properties[key] !== undefined) {
+                  map.setFilter(f.layer.id + '-hover', ['==', ['get', key], f.properties[key]]);
+                  break;
+                }
+              }
+            }
+          } else {
+            map.getCanvas().style.cursor = '';
+            if (hoveredLayer && map.getLayer(hoveredLayer + '-hover')) {
+              map.setFilter(hoveredLayer + '-hover', ['==', ['get', 'ogc_fid'], '']);
+              hoveredLayer = null;
+            }
+          }
+        });
+      });
+
+      // Click popup — shows ALL features from all active layers at click point
+      map.on('click', (e) => {
+        const layers = [...activatedLayers].filter(n => {
+          const cb = document.querySelector(`input[data-layer="${n}"]`);
+          return cb && cb.checked && map.getLayer(n);
+        });
+        const features = map.queryRenderedFeatures(e.point, { layers });
+        if (features.length === 0) return;
+
+        // Group features by layer, deduplicate by first ID-like field
+        const grouped = new Map();
+        for (const f of features) {
+          const lid = f.layer.id;
+          if (!grouped.has(lid)) grouped.set(lid, []);
+          const arr = grouped.get(lid);
+          if (arr.length < 3) arr.push(f); // max 3 per layer
+        }
+
+        let html = '<div class="popup-stack">';
+        for (const [lid, feats] of grouped) {
+          const color = layerColors[lid] || '#333';
+          const label = layerLabels[lid] || formatKey(lid);
+          html += `<div class="popup-section"><div class="popup-header" style="background:${color}">${label}</div>`;
+
+          for (const f of feats) {
+            const fields = layerFields[lid];
+            let entries;
+            if (fields) {
+              // Show configured fields in order
+              entries = fields
+                .filter(k => f.properties[k] !== undefined && f.properties[k] !== null && f.properties[k] !== '')
+                .map(k => [k, f.properties[k]]);
+            } else {
+              // Fallback: all fields minus skipKeys
+              entries = Object.entries(f.properties)
+                .filter(([k]) => !skipKeys.has(k.toLowerCase()))
+                .slice(0, 10);
+            }
+
+            if (entries.length === 0) {
+              html += '<div class="popup-empty">No details available</div>';
+            } else {
+              html += '<div class="popup-body">';
+              for (const [k, v] of entries) {
+                const [formatted, cls] = formatValue(k, v);
+                html += `<div class="popup-row"><span class="popup-key">${formatKey(k)}</span><span class="popup-val ${cls}">${formatted}</span></div>`;
+              }
+              html += '</div>';
+            }
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+
+        new maplibregl.Popup({ maxWidth: '340px', offset: 12 })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+      });
+    });
+
+    // Layer toggle — lazy: first toggle-on adds source + layer
+    document.querySelectorAll('#controls input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const layer = e.target.dataset.layer;
+        if (e.target.checked) {
+          ensureLayer(layer); // lazy add on first enable
+        }
+        const vis = e.target.checked ? 'visible' : 'none';
+        for (const suffix of ['', '-hover', '-label']) {
+          if (map.getLayer(layer + suffix)) {
+            map.setLayoutProperty(layer + suffix, 'visibility', vis);
+          }
+        }
+        updateLegend();
+      });
+    });
+
+    // Basemap switcher — style.load handler above re-adds data layers automatically
+    document.getElementById('basemap-select').addEventListener('change', (e) => {
+      map.setStyle(basemaps[e.target.value]);
+    });
+
+    // Collapsible sections
+    document.querySelectorAll('.section-header').forEach(header => {
+      header.addEventListener('click', () => {
+        header.closest('.section').classList.toggle('collapsed');
+      });
+    });
+
+    // Panel collapse
+    document.getElementById('toggle-panel').addEventListener('click', () => {
+      document.getElementById('controls').classList.toggle('collapsed');
+    });
+
+    // Info bar
+    map.on('move', () => {
+      const c = map.getCenter();
+      document.getElementById('zoom').textContent = map.getZoom().toFixed(1);
+      document.getElementById('lat').textContent = c.lat.toFixed(4);
+      document.getElementById('lng').textContent = c.lng.toFixed(4);
+    });
+  </script>
+</body>
+</html>

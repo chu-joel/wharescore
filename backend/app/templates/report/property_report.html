@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhareScore Report — {{ full_address }}</title>
+<style>
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --primary:   #0D7377;
+  --warn:      #D55E00;
+  --alert:     #C42D2D;
+  --ok:        #2E7D32;
+  --info:      #1565C0;
+  --none-clr:  #888;
+  --bg-warn:   #FFF3E0;
+  --bg-alert:  #FFEBEE;
+  --bg-ok:     #E8F5E9;
+  --bg-info:   #E3F2FD;
+  --border:    #E0E0E0;
+  --text:      #1A1A1A;
+  --muted:     #666;
+  --light:     #F5F5F5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 13px; line-height: 1.55; color: var(--text);
+  background: #fff; max-width: 860px; margin: 0 auto; padding: 24px 28px;
+}
+h1 { font-size: 1.7em; font-weight: 700; }
+h3 { font-size: 1em; font-weight: 600; margin: 0.9em 0 0.4em; }
+p  { margin-bottom: 0.5em; }
+
+/* ─── Print ─────────────────────────────────────────────────────────────────── */
+@page { margin: 15mm; size: A4; }
+@media print {
+  .no-print { display: none !important; }
+  body { max-width: none; padding: 0; font-size: 11pt; }
+  details.sec { display: block; }
+  details.sec > * { display: block; }
+  details.sec[open] > * { display: block; }
+  .sec-head { border-bottom: 2px solid var(--primary); margin: 1.4em 0 0.8em; padding-bottom: 5px; }
+  .sec-head::marker, .sec-head::-webkit-details-marker { display: none; }
+  .map-img { max-width: 100%; }
+  .persona-cards { display: block; }
+  .persona-card { margin-bottom: 8px; }
+  .invest-grid { display: block; }
+  .cover-grid { display: block; }
+}
+
+/* ─── Print Bar ──────────────────────────────────────────────────────────────── */
+.print-bar {
+  background: var(--primary); color: white;
+  padding: 10px 20px; margin: -24px -28px 24px;
+  display: flex; align-items: center; justify-content: space-between; font-size: 0.9em;
+}
+.print-bar button {
+  background: white; color: var(--primary);
+  border: none; border-radius: 4px; padding: 6px 18px;
+  font-size: 0.95em; font-weight: 600; cursor: pointer;
+}
+
+/* ─── Collapsible Sections ───────────────────────────────────────────────────── */
+details.sec { margin-bottom: 1.2em; }
+details.sec > summary.sec-head {
+  cursor: pointer; list-style: none; display: flex;
+  align-items: baseline; gap: 10px;
+  border-bottom: 2px solid var(--primary);
+  padding: 6px 0 5px; margin-bottom: 0.8em;
+  user-select: none;
+}
+details.sec > summary.sec-head::-webkit-details-marker { display: none; }
+details.sec > summary.sec-head::marker { display: none; }
+.sec-title {
+  font-size: 1.15em; font-weight: 700; color: var(--primary); flex: 1;
+}
+.sec-toggle {
+  font-size: 0.75em; color: var(--muted); margin-left: 4px;
+}
+details.sec[open] .sec-toggle::after  { content: "▲ collapse"; }
+details.sec:not([open]) .sec-toggle::after { content: "▼ expand"; }
+.sec-badge {
+  font-size: 0.72em; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; white-space: nowrap;
+}
+.sec-badge.warn  { background: var(--bg-warn);  color: var(--warn); }
+.sec-badge.alert { background: var(--bg-alert); color: var(--alert); }
+.sec-badge.ok    { background: var(--bg-ok);    color: var(--ok); }
+.sec-badge.info  { background: var(--bg-info);  color: var(--info); }
+
+/* ─── Cover ─────────────────────────────────────────────────────────────────── */
+.cover {
+  border: 2px solid var(--primary); border-radius: 8px;
+  padding: 20px 24px; margin-bottom: 1.2em;
+}
+.cover-meta { color: var(--muted); font-size: 0.9em; margin-top: 4px; }
+.score-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 18px; border-radius: 6px; font-weight: 700;
+  font-size: 1.2em; color: white; margin-top: 10px;
+}
+.cover-grid { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 12px; }
+.cover-stat { font-size: 0.88em; }
+.cover-stat strong { display: block; font-size: 1.1em; }
+.coverage-badge {
+  font-size: 0.82em; color: var(--muted); background: var(--light);
+  border-radius: 4px; padding: 4px 10px; display: inline-block; margin-top: 8px;
+}
+.map-img { width: 100%; border-radius: 6px; margin-top: 14px; display: block; }
+
+/* ─── Red Flags ──────────────────────────────────────────────────────────────── */
+.red-flags {
+  background: var(--bg-alert); border-left: 4px solid var(--alert);
+  border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 1em;
+}
+.red-flags h3 { color: var(--alert); margin: 0 0 8px; }
+.red-flags ul { margin: 0; padding-left: 1.2em; }
+.red-flags li { margin-bottom: 4px; font-size: 0.9em; }
+
+/* ─── AI Narrative ───────────────────────────────────────────────────────────── */
+.ai-narrative {
+  background: #F0F7FF; border-left: 4px solid var(--info);
+  border-radius: 0 6px 6px 0; padding: 12px 16px;
+  font-size: 0.91em; margin: 8px 0; color: #1a1a1a;
+}
+.ai-label { font-size: 0.78em; font-weight: 600; color: var(--info);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.fallback-summary {
+  background: var(--light); border-radius: 6px;
+  padding: 12px 16px; font-size: 0.91em; margin: 8px 0;
+}
+
+/* ─── Bottom Line ────────────────────────────────────────────────────────────── */
+.bottom-line {
+  background: var(--primary); color: white; border-radius: 8px;
+  padding: 12px 20px; font-size: 1.05em; font-weight: 600; margin: 10px 0;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────────────── */
+table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.88em; }
+th { background: var(--light); text-align: left; padding: 6px 10px; font-weight: 600; border-bottom: 2px solid var(--border); }
+td { padding: 5px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+
+/* ─── Hazard Table ───────────────────────────────────────────────────────────── */
+.haz-icon { font-size: 1em; width: 20px; text-align: center; }
+.haz-status { font-weight: 500; }
+.haz-detail { font-size: 0.85em; color: var(--muted); margin-top: 2px; }
+.haz-warn  { color: var(--warn); }
+.haz-ok    { color: var(--ok); }
+.haz-info  { color: var(--info); }
+.haz-none  { color: var(--none-clr); }
+tr.haz-row-warn  { background: #FFFBF5; }
+tr.haz-row-ok    { background: #FAFFFE; }
+
+/* ─── Score Table ────────────────────────────────────────────────────────────── */
+.score-bar { height: 8px; border-radius: 4px; background: var(--light); width: 100px; display: inline-block; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 4px; }
+
+/* ─── Insights ───────────────────────────────────────────────────────────────── */
+.insight { border-left: 4px solid; border-radius: 0 6px 6px 0; padding: 9px 14px; margin: 6px 0; font-size: 0.9em; }
+.insight-warn  { border-color: var(--warn);  background: var(--bg-warn); }
+.insight-ok    { border-color: var(--ok);    background: var(--bg-ok); }
+.insight-info  { border-color: var(--info);  background: var(--bg-info); }
+.insight-text  { margin-bottom: 4px; }
+.insight-action { color: #444; font-size: 0.92em; }
+
+/* ─── In-zone school badge ───────────────────────────────────────────────────── */
+.in-zone  { color: var(--ok); font-weight: 600; }
+.out-zone { color: var(--muted); }
+.school-inzone-header {
+  background: var(--bg-ok); border-left: 4px solid var(--ok);
+  padding: 6px 12px; font-weight: 600; font-size: 0.88em;
+  color: var(--ok); margin-bottom: 4px; border-radius: 0 4px 4px 0;
+}
+
+/* ─── Lifestyle ──────────────────────────────────────────────────────────────── */
+.persona-cards { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+.persona-card { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.persona-card h4 { font-size: 0.92em; margin-bottom: 6px; color: var(--primary); }
+.persona-fits    { color: var(--ok);   font-size: 0.85em; margin-bottom: 4px; }
+.persona-caveats { color: var(--warn); font-size: 0.85em; }
+.tip-box { background: var(--light); border-radius: 6px; padding: 8px 14px; margin: 5px 0; font-size: 0.88em; }
+
+/* ─── Investment Snapshot ────────────────────────────────────────────────────── */
+.invest-box { border: 2px solid var(--primary); border-radius: 8px; padding: 14px 18px; margin: 10px 0; }
+.invest-box h3 { color: var(--primary); margin-bottom: 8px; }
+.invest-grid { display: flex; flex-wrap: wrap; gap: 10px 30px; }
+.invest-stat { font-size: 0.88em; }
+.invest-stat strong { display: block; font-size: 1.1em; }
+
+/* ─── Transparency ───────────────────────────────────────────────────────────── */
+.transparency { font-size: 0.78em; color: var(--muted); background: var(--light); border-radius: 4px; padding: 5px 10px; margin-top: 6px; }
+details.transparency summary { cursor: pointer; color: var(--info); font-size: 0.82em; }
+.freshness { font-size: 0.78em; color: var(--muted); margin-left: 8px; font-weight: normal; }
+
+/* ─── Questions ──────────────────────────────────────────────────────────────── */
+.questions { padding-left: 1.4em; }
+.questions li { margin-bottom: 6px; font-size: 0.92em; }
+
+/* ─── Before You Buy (Action Items) ─────────────────────────────────────────── */
+.action-item {
+  border-left: 5px solid; border-radius: 0 8px 8px 0;
+  padding: 12px 16px; margin: 10px 0;
+}
+.action-critical { border-color: #D55E00; background: #FFF8F0; }
+.action-important { border-color: #E69F00; background: #FFFCF0; }
+.action-advisory { border-color: #1565C0; background: #F0F7FF; }
+.action-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.action-severity {
+  font-size: 0.7em; font-weight: 700; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 3px; letter-spacing: 0.04em; white-space: nowrap;
+}
+.sev-critical { background: #D55E00; color: white; }
+.sev-important { background: #E69F00; color: white; }
+.sev-advisory { background: #1565C0; color: white; }
+.action-title { font-weight: 700; font-size: 0.95em; color: var(--text); }
+.action-steps {
+  margin: 0; padding-left: 1.3em; list-style: disc;
+}
+.action-steps li {
+  font-size: 0.88em; line-height: 1.5; margin-bottom: 5px; color: #333;
+}
+.byb-summary {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.byb-count {
+  font-size: 0.85em; font-weight: 600; padding: 4px 12px;
+  border-radius: 4px;
+}
+.byb-count-critical { background: #FFF3E0; color: #D55E00; }
+.byb-count-important { background: #FFF8E1; color: #E69F00; }
+.byb-count-advisory { background: #E3F2FD; color: #1565C0; }
+@media print {
+  .action-item { break-inside: avoid; }
+}
+
+/* ─── Disclaimer ─────────────────────────────────────────────────────────────── */
+.disclaimer { font-size: 0.78em; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 1.6em; }
+.meta-footer { font-size: 0.78em; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+</style>
+</head>
+<body>
+
+{# ─── Print bar ──────────────────────────────────────────────────────────────── #}
+<div class="print-bar no-print">
+  <span>WhareScore Premium Property Report</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   1. COVER
+   ════════════════════════════════════════════════════════════════════════════ #}
+<div class="cover">
+  <h1>{{ full_address }}</h1>
+  <p class="cover-meta">
+    {{ addr.suburb or '' }}{% if addr.suburb and addr.city %} · {% endif %}{{ addr.city or '' }}{% if addr.sa2_name %} · {{ addr.sa2_name }}{% endif %}
+  </p>
+  {% if composite %}
+  <span class="score-badge" style="background: {{ badge_color }}">
+    {{ rating_label }} Risk — {{ composite | round | int }}/100
+  </span>
+  {% endif %}
+  <div class="cover-grid">
+    <div class="cover-stat"><strong>{{ report_date }}</strong>Report Date</div>
+    <div class="cover-stat"><strong>{{ available_indicators }}/{{ total_indicators }}</strong>Indicators Available</div>
+    {% if addr.sa2_name %}<div class="cover-stat"><strong>{{ addr.sa2_name }}</strong>Statistical Area</div>{% endif %}
+    {% if live.transit_stops_400m is defined and live.transit_stops_400m %}<div class="cover-stat"><strong>{{ live.transit_stops_400m }}</strong>Transit Stops (400m)</div>{% endif %}
+    {% if supermarket_name %}<div class="cover-stat"><strong>{{ supermarket_name }}</strong>Nearest Supermarket{% if supermarket_distance_m %} · {{ (supermarket_distance_m | round | int) }}m{% endif %}</div>{% endif %}
+    {% if live.nearest_train_name and live.nearest_train_distance_m %}<div class="cover-stat"><strong>{{ live.nearest_train_name }}</strong>Train Station · {{ (live.nearest_train_distance_m | round | int) }}m</div>{% endif %}
+    {% if prop_cv %}<div class="cover-stat"><strong>${{ '{:,}'.format(prop_cv) }}</strong>Capital Value</div>{% endif %}
+    {% if yield_pct %}<div class="cover-stat"><strong>{{ yield_pct }}%</strong>Indicative Yield</div>{% endif %}
+  </div>
+  <div class="coverage-badge">{{ coverage_note }}</div>
+
+  {% if map_url %}
+  <img class="map-img" src="{{ map_url }}" alt="Map showing {{ full_address }}" loading="lazy">
+  {% endif %}
+
+  {# ─── Nearby Landmarks (shown on map) ──────────────────────────────── #}
+  {% if in_zone_schools or out_of_zone_schools or supermarket_name %}
+  <div style="margin-top:14px; padding:12px; background:#F5F5F5; border-radius:6px; border-left:4px solid #0D7377;">
+    <p style="font-size:0.85em; color:#666; margin-bottom:8px; margin-top:0;"><strong>Nearby landmarks on map:</strong></p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.9em;">
+      {% if in_zone_schools | length > 0 %}
+      <div>
+        <strong style="color:#0D7377;">📚 In-Zone Schools</strong>
+        <ul style="margin:4px 0; padding-left:18px; list-style:none;">
+          {% for s in in_zone_schools[:3] %}
+          <li>{{ s.name }}{% if s.distance_m %} ({{ (s.distance_m | round | int) }}m){% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if out_of_zone_schools | length > 0 %}
+      <div>
+        <strong style="color:#1565C0;">🏫 Other Schools</strong>
+        <ul style="margin:4px 0; padding-left:18px; list-style:none;">
+          {% for s in out_of_zone_schools[:2] %}
+          <li>{{ s.name }}{% if s.distance_m %} ({{ (s.distance_m | round | int) }}m){% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if supermarket_name %}
+      <div>
+        <strong style="color:#2E7D32;">🛒 Supermarket</strong>
+        <p style="margin:4px 0;">{{ supermarket_name }}{% if supermarket_distance_m %}<br>{{ (supermarket_distance_m | round | int) }}m away{% endif %}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{# ─── Red Flags Summary ─────────────────────────────────────────────────────── #}
+{% set warn_list = [] %}
+{% for sec_name, sec_insights in insights.items() %}
+  {% for i in sec_insights %}
+    {% if i.level == 'warn' %}{% if warn_list.append(i) %}{% endif %}{% endif %}
+  {% endfor %}
+{% endfor %}
+{% if warn_list %}
+<div class="red-flags">
+  <h3>⚠ {{ warn_list | length }} Issue{{ 's' if warn_list | length != 1 else '' }} Flagged Across This Report</h3>
+  <ul>
+    {% for i in warn_list %}
+    <li>{{ i.text | truncate(130) }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   2. EXECUTIVE SUMMARY
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% set exec_text = ai_insights.executive_summary if (ai_insights and ai_insights.executive_summary) else exec_summary_fallback %}
+{% set has_ai_exec = ai_insights and ai_insights.executive_summary %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Executive Summary</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if exec_text %}
+<div class="{{ 'ai-narrative' if has_ai_exec else 'fallback-summary' }}">
+  {% if has_ai_exec %}<div class="ai-label">AI Analysis</div>{% endif %}
+  {{ exec_text }}
+</div>
+{% endif %}
+
+{% if area_profile %}
+<p style="font-size:0.9em; color:#444; margin-top:8px;">{{ area_profile }}</p>
+{% endif %}
+
+{% if ai_insights and ai_insights.bottom_line %}
+<div class="bottom-line">{{ ai_insights.bottom_line }}</div>
+{% endif %}
+
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   3. SCORE OVERVIEW
+   ════════════════════════════════════════════════════════════════════════════ #}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Score Overview</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<details class="transparency">
+  <summary>How we calculated this</summary>
+  Composite score is a weighted average: Hazards 30%, Liveability 25%, Environment 15%, Market 15%, Planning 15%. Higher score = higher risk. 0–20 = Very Low, 21–40 = Low, 41–60 = Moderate, 61–80 = High, 81–100 = Very High.
+</details>
+
+<table style="margin-top:8px;">
+  <thead>
+    <tr><th>Category</th><th>Rating</th><th>Score /100</th><th style="width:110px">Risk Level</th></tr>
+  </thead>
+  <tbody>
+    {% for name, data in categories.items() %}
+    {% set label = name.replace('_',' ').title() %}
+    {% set s = (data.score | default(none)) if data is mapping else (data if data is number else none) %}
+    {% set r = (data.rating | default('—')) if data is mapping else '—' %}
+    {% if s is not none %}
+    {% set bar_color = '#C42D2D' if s >= 70 else ('#D55E00' if s >= 50 else ('#E69F00' if s >= 30 else '#2E7D32')) %}
+    <tr>
+      <td>{{ label }}</td>
+      <td>{{ r }}</td>
+      <td>{{ s | round | int }}</td>
+      <td><span class="score-bar"><span class="score-bar-fill" style="width:{{ s }}%; background:{{ bar_color }};"></span></span></td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    {% if composite %}
+    {% set bar_color = '#C42D2D' if composite >= 70 else ('#D55E00' if composite >= 50 else ('#E69F00' if composite >= 30 else '#2E7D32')) %}
+    <tr style="font-weight:700; border-top: 2px solid var(--border)">
+      <td>Composite</td><td>{{ rating_label }}</td><td>{{ composite | round | int }}</td>
+      <td><span class="score-bar"><span class="score-bar-fill" style="width:{{ composite }}%; background:{{ bar_color }};"></span></span></td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   4. NATURAL HAZARDS
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% set haz_warn_count = insights.hazards | selectattr('level','equalto','warn') | list | length %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Natural Hazards</span>
+  {% if haz_warn_count > 0 %}<span class="sec-badge warn">{{ haz_warn_count }} issue{{ 's' if haz_warn_count != 1 else '' }}</span>{% else %}<span class="sec-badge ok">All clear</span>{% endif %}
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if ai_insights and ai_insights.hazards_narrative %}
+<div class="ai-narrative"><div class="ai-label">AI Analysis</div>{{ ai_insights.hazards_narrative }}</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr><th style="width:26px"></th><th>Hazard</th><th>Finding</th></tr>
+  </thead>
+  <tbody>
+    {% for row in hazard_rows %}
+    {% set icon = '⚠' if row.risk_class == 'warn' else ('✓' if row.risk_class == 'ok' else ('ℹ' if row.risk_class == 'info' else '—')) %}
+    {% set icon_cls = 'haz-' ~ row.risk_class %}
+    <tr class="{{ 'haz-row-warn' if row.risk_class == 'warn' else ('haz-row-ok' if row.risk_class == 'ok' else '') }}">
+      <td class="haz-icon {{ icon_cls }}">{{ icon }}</td>
+      <td><strong>{{ row.label }}</strong></td>
+      <td>
+        <div class="haz-status {{ icon_cls }}">{{ row.status }}</div>
+        {% if row.detail %}<div class="haz-detail">{{ row.detail }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if insights.hazards %}
+<div style="margin-top:10px">
+  {% for i in insights.hazards %}
+  <div class="insight insight-{{ i.level }}">
+    <p class="insight-text">{{ i.text }}</p>
+    {% if i.action %}<p class="insight-action"><strong>→</strong> {{ i.action }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   5. ENVIRONMENT
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% set env_warn_count = insights.environment | selectattr('level','equalto','warn') | list | length %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Environment</span>
+  {% if env_warn_count > 0 %}<span class="sec-badge warn">{{ env_warn_count }} issue{{ 's' if env_warn_count != 1 else '' }}</span>{% endif %}
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if ai_insights and ai_insights.environment_narrative %}
+<div class="ai-narrative"><div class="ai-label">AI Analysis</div>{{ ai_insights.environment_narrative }}</div>
+{% endif %}
+
+{% if env.road_noise_db %}
+<h3>Road Noise</h3>
+<table>
+  <tr><td><strong>Level</strong></td><td><strong>{{ env.road_noise_db }} dB</strong> (LAeq24h) — {{ noise_context }}</td></tr>
+  <tr><td><strong>City median</strong></td><td>~{{ city_median_noise }} dB for Wellington residential streets</td></tr>
+  <tr><td><strong>WHO recommendation</strong></td><td>≤ 53 dB for outdoor residential areas</td></tr>
+</table>
+<details class="transparency"><summary>How noise is measured</summary>
+LAeq24h = 24-hour equivalent continuous noise level from NZTA road noise contour data (National Road Noise Atlas).</details>
+{% endif %}
+
+{% if env.air_pm10_site or env.air_pm25_site %}
+<h3>Air Quality</h3>
+<table>
+  {% set air_site = env.air_pm10_site or env.air_pm25_site %}
+  {% set air_dist = (env.air_pm10_distance_m or env.air_pm25_distance_m) | default(none) %}
+  {% if air_site %}<tr><td><strong>Nearest monitor</strong></td><td>{{ air_site }}{% if air_dist %} ({{ air_dist | round | int }}m){% endif %}</td></tr>{% endif %}
+  {% if env.air_pm10_trend %}<tr><td><strong>PM10 trend</strong></td><td>{{ env.air_pm10_trend }}</td></tr>{% endif %}
+  {% if env.air_pm25_trend %}<tr><td><strong>PM2.5 trend</strong></td><td>{{ env.air_pm25_trend }}</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{% if env.water_site %}
+<h3>Water Quality</h3>
+<table>
+  <tr><td><strong>Nearest site</strong></td><td>{{ env.water_site }}{% if env.water_distance_m %} ({{ env.water_distance_m | round | int }}m){% endif %}</td></tr>
+  {% if env.water_ecoli_band %}<tr><td><strong>E.coli grade</strong></td><td>{{ env.water_ecoli_band }}</td></tr>{% endif %}
+  {% if env.water_tn_band %}<tr><td><strong>Nitrogen grade</strong></td><td>{{ env.water_tn_band }}</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{% if env.contam_nearest_name %}
+<h3>Contaminated Land Register</h3>
+<table>
+  <tr><td><strong>Nearest site</strong></td><td><strong>{{ env.contam_nearest_name }}</strong>{% if env.contam_nearest_distance_m %} — {{ env.contam_nearest_distance_m | round | int }}m away{% endif %}</td></tr>
+  {% if env.contam_nearest_category %}<tr><td><strong>Risk level</strong></td><td>ANZECC Category {{ env.contam_nearest_category }}{% if contam_category_explanation %}: {{ contam_category_explanation }}{% endif %}</td></tr>{% endif %}
+  {% if (env.contam_count_2km | default(none)) is not none %}<tr><td><strong>Sites within 2km</strong></td><td>{{ env.contam_count_2km }} registered sites (Wellington median ~3)</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{% if env.climate_temp_change %}
+<h3>Climate Projections (2041–2060, SSP2-4.5)</h3>
+<table>
+  <tr><td><strong>Temperature change</strong></td><td>+{{ env.climate_temp_change }}°C</td></tr>
+  {% if env.climate_precip_change %}<tr><td><strong>Rainfall change</strong></td><td>{{ env.climate_precip_change }}%</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{% if insights.environment %}
+{% for i in insights.environment %}
+<div class="insight insight-{{ i.level }}">
+  <p class="insight-text">{{ i.text }}</p>
+  {% if i.action %}<p class="insight-action"><strong>→</strong> {{ i.action }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   6. LIVEABILITY
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% set live_warn_count = insights.liveability | selectattr('level','equalto','warn') | list | length %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Liveability</span>
+  {% if live_warn_count > 0 %}<span class="sec-badge warn">{{ live_warn_count }} issue{{ 's' if live_warn_count != 1 else '' }}</span>{% endif %}
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if ai_insights and ai_insights.liveability_narrative %}
+<div class="ai-narrative"><div class="ai-label">AI Analysis</div>{{ ai_insights.liveability_narrative }}</div>
+{% endif %}
+
+{# Nearest Essentials — prominent at top #}
+{% if nearby_supermarkets or gp_name or pharmacy_name or supermarket_name %}
+<h3>Nearest Essentials</h3>
+
+{% if nearby_supermarkets %}
+<table>
+  <thead><tr><th>🛒 Supermarkets & Grocery (within 10km)</th><th>Distance</th></tr></thead>
+  <tbody>
+    {% for sm in nearby_supermarkets %}
+    <tr{% if loop.first %} style="font-weight:600"{% endif %}>
+      <td>{{ sm.name or sm.brand or 'Unnamed' }}{% if sm.subcategory and sm.subcategory != 'supermarket' %} <span style="color:var(--muted); font-size:0.85em">({{ sm.subcategory }})</span>{% endif %}</td>
+      <td>{{ (sm.distance_m | round | int) }}m{% if sm.distance_m <= 600 %} <span style="color:var(--ok); font-size:0.85em">(walkable)</span>{% elif sm.distance_m <= 1200 %} <span style="color:var(--muted); font-size:0.85em">(short drive)</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif supermarket_name %}
+<table>
+  <tr>
+    <td><strong>🛒 Supermarket</strong></td>
+    <td><strong>{{ supermarket_name }}</strong>{% if supermarket_distance_m %} — {{ (supermarket_distance_m | round | int) }}m{% if supermarket_distance_m <= 600 %} (walkable){% elif supermarket_distance_m <= 1200 %} (short drive or bike){% else %} (car recommended){% endif %}{% endif %}</td>
+  </tr>
+</table>
+{% endif %}
+
+<table>
+  {% if gp_name %}
+  <tr>
+    <td><strong>🏥 GP / Medical</strong></td>
+    <td>{{ gp_name }}{% if gp_distance_m %} — {{ (gp_distance_m | round | int) }}m{% endif %}</td>
+  </tr>
+  {% endif %}
+  {% if pharmacy_name %}
+  <tr>
+    <td><strong>💊 Pharmacy</strong></td>
+    <td>{{ pharmacy_name }}{% if pharmacy_distance_m %} — {{ (pharmacy_distance_m | round | int) }}m{% endif %}</td>
+  </tr>
+  {% endif %}
+</table>
+{% endif %}
+
+{# What's Nearby — categorised amenities #}
+{% if highlights_good or highlights_caution or highlights_info %}
+<h3>What's Nearby (within 1.5km)</h3>
+
+{% if highlights_good %}
+<table>
+  <thead><tr><th colspan="2" style="color:#2e7d32">✅ Good to have nearby</th></tr></thead>
+  <tbody>
+    {% for item in highlights_good %}
+    <tr>
+      <td>{{ item.label }}</td>
+      <td><strong>{{ item.name }}</strong> — {{ (item.distance_m | round | int) }}m{% if item.distance_m <= 600 %} <span style="color:var(--ok); font-size:0.85em">(walkable)</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if highlights_caution %}
+<table>
+  <thead><tr><th colspan="2" style="color:#e65100">⚠️ Be aware</th></tr></thead>
+  <tbody>
+    {% for item in highlights_caution %}
+    <tr>
+      <td>{{ item.label }}</td>
+      <td><strong>{{ item.name }}</strong> — {{ (item.distance_m | round | int) }}m</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if highlights_info %}
+<table>
+  <thead><tr><th colspan="2" style="color:#1565c0">ℹ️ Also nearby</th></tr></thead>
+  <tbody>
+    {% for item in highlights_info %}
+    <tr>
+      <td>{{ item.label }}</td>
+      <td><strong>{{ item.name }}</strong> — {{ (item.distance_m | round | int) }}m</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% endif %}
+
+{# In-zone schools — always first and prominent #}
+{% if in_zone_schools %}
+<h3>In-Zone Schools ✓</h3>
+<div class="school-inzone-header">This property is in the enrolment zone for {{ in_zone_schools | length }} school{{ 's' if in_zone_schools | length != 1 else '' }}</div>
+<table>
+  <thead><tr><th>School</th><th>Type</th><th>EQI</th><th>Roll</th><th>Distance</th></tr></thead>
+  <tbody>
+    {% for s in in_zone_schools %}
+    <tr style="background: #F5FBF5">
+      <td><strong>{{ s.name or '—' }}</strong></td>
+      <td>{{ s.school_type or '—' }}</td>
+      <td>{{ s.eqi or '—' }}</td>
+      <td>{{ s.total_roll or '—' }}</td>
+      <td>{{ (s.distance_m | round | int) if s.distance_m else '—' }}m</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# Other nearby schools #}
+{% if other_schools %}
+<h3>Other Nearby Schools{% if not in_zone_schools %} (none in zone){% endif %}</h3>
+<table>
+  <thead><tr><th>School</th><th>Type</th><th>EQI</th><th>Roll</th><th>Distance</th><th>In Zone</th></tr></thead>
+  <tbody>
+    {% for s in other_schools %}
+    <tr>
+      <td>{{ s.name or '—' }}</td>
+      <td>{{ s.school_type or '—' }}</td>
+      <td>{{ s.eqi or '—' }}</td>
+      <td>{{ s.total_roll or '—' }}</td>
+      <td>{{ (s.distance_m | round | int) if s.distance_m else '—' }}m</td>
+      <td><span class="out-zone">✗ No</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if in_zone_schools or other_schools %}
+<details class="transparency"><summary>About EQI scores</summary>
+EQI (Education Quality Index) ranges 400–520. Lower is better — EQI 400 = high quality, EQI 520 = lower quality. This is counterintuitive but standard MoE methodology. In-zone status is based on a spatial analysis of official enrolment zone boundaries.</details>
+{% endif %}
+
+{# NZDep #}
+{% if live.nzdep_decile %}
+<h3>Deprivation Index</h3>
+<table>
+  <tr><td><strong>NZDep decile</strong></td><td>{{ live.nzdep_decile }}/10 (1 = least deprived, 10 = most deprived)</td></tr>
+</table>
+<details class="transparency"><summary>What NZDep measures</summary>
+Stats NZ 2018 Deprivation Index — composite of 9 measures: income, employment, qualifications, owned home, support, living space, communication, transport access, and crime victimisation.</details>
+{% endif %}
+
+{# Crime #}
+{% if (live.crime_victimisations | default(none)) is not none %}
+<h3>Crime</h3>
+<table>
+  <tr><td><strong>Victimisations (area unit)</strong></td><td>{{ live.crime_victimisations }}</td></tr>
+  {% if (live.crime_percentile | default(none)) is not none %}<tr><td><strong>City percentile</strong></td><td>{{ live.crime_percentile }}th — higher than {{ live.crime_percentile }}% of Wellington area units</td></tr>{% endif %}
+  {% if (live.crime_city_median | default(none)) is not none %}<tr><td><strong>City median</strong></td><td>{{ live.crime_city_median }} victimisations/area unit</td></tr>{% endif %}
+  {% if live.crime_area_unit %}<tr><td><strong>Area unit</strong></td><td>{{ live.crime_area_unit }}</td></tr>{% endif %}
+</table>
+<details class="transparency"><summary>How crime is measured</summary>
+Based on victimisations reported in this area unit (2022–2025 NZ Police data), compared against Wellington area units using percentile rank. Higher percentile = more crime relative to city.</details>
+{% endif %}
+
+{# Transit #}
+{% if (live.transit_stops_400m | default(none)) is not none %}
+<h3>Public Transport Access</h3>
+<table>
+  <tr><td><strong>Transit stops within 400m</strong></td><td><strong>{{ live.transit_stops_400m }}</strong> stops (bus, train, ferry)</td></tr>
+  {% if live.nearest_train_name %}<tr><td><strong>Nearest train station</strong></td><td><strong>{{ live.nearest_train_name }}</strong>{% if live.nearest_train_distance_m %} — {{ live.nearest_train_distance_m | round | int }}m away{% endif %}</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{# Road crashes #}
+{% if (live.crashes_300m_total | default(none)) is not none or (live.crashes_300m_serious | default(none)) is not none %}
+<h3>Road Safety (300m, 5 years)</h3>
+<table>
+  {% if (live.crashes_300m_total | default(none)) is not none %}<tr><td><strong>Total crashes</strong></td><td>{{ live.crashes_300m_total }}</td></tr>{% endif %}
+  {% if (live.crashes_300m_serious | default(none)) is not none %}<tr><td><strong>Serious/fatal</strong></td><td>{{ live.crashes_300m_serious }}</td></tr>{% endif %}
+  {% if (live.crashes_300m_fatal | default(none)) is not none %}<tr><td><strong>Fatal</strong></td><td>{{ live.crashes_300m_fatal }}</td></tr>{% endif %}
+</table>
+{% endif %}
+
+{# Amenities #}
+{% if live.amenities_500m %}
+<h3>Amenities within 500m</h3>
+<table>
+  <thead><tr><th>Category</th><th>Count</th></tr></thead>
+  <tbody>
+    {% for cat, cnt in live.amenities_500m.items() %}
+    {% if cnt and cnt > 0 %}
+    <tr><td>{{ cat | replace('_',' ') | title }}</td><td>{{ cnt }}</td></tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if insights.liveability %}
+{% for i in insights.liveability %}
+<div class="insight insight-{{ i.level }}">
+  <p class="insight-text">{{ i.text }}</p>
+  {% if i.action %}<p class="insight-action"><strong>→</strong> {{ i.action }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   7. LIFESTYLE FIT
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if lifestyle_fit %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Lifestyle Fit</span>
+  <span class="sec-toggle"></span>
+</summary>
+<div class="persona-cards">
+  {% for card in lifestyle_fit %}
+  <div class="persona-card">
+    <h4>{{ card.persona }}</h4>
+    {% if card.fits %}<div class="persona-fits">✓ {{ card.fits | join(' · ') }}</div>{% endif %}
+    {% if card.caveats %}<div class="persona-caveats">⚠ {{ card.caveats | join(' · ') }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% if lifestyle_tips %}
+<h3>Practical Living Tips</h3>
+{% for tip in lifestyle_tips %}
+<div class="tip-box">{{ tip }}</div>
+{% endfor %}
+{% endif %}
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   8. MARKET INTELLIGENCE
+   ════════════════════════════════════════════════════════════════════════════ #}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Market Intelligence — Local Area Market Data</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if ai_insights and ai_insights.market_narrative %}
+<div class="ai-narrative"><div class="ai-label">AI Analysis</div>{{ ai_insights.market_narrative }}</div>
+{% endif %}
+
+{% if prop_cv or yield_pct or cagr_5yr %}
+<div class="invest-box">
+  <h3>Investment Snapshot</h3>
+  <div class="invest-grid">
+    {% if prop_cv %}<div class="invest-stat"><strong>${{ '{:,}'.format(prop_cv) }}</strong>Capital Value (CV)</div>{% endif %}
+    {% if yield_pct %}<div class="invest-stat"><strong>{{ yield_pct }}%</strong>Indicative Gross Yield</div>{% endif %}
+    {% if cagr_1yr %}<div class="invest-stat"><strong>{{ cagr_1yr }}%</strong>1yr Rent CAGR</div>{% endif %}
+    {% if cagr_5yr %}<div class="invest-stat"><strong>{{ cagr_5yr }}%</strong>5yr Rent CAGR</div>{% endif %}
+    {% if planning.zone_name %}<div class="invest-stat"><strong>{{ planning.zone_name }}</strong>Zoning</div>{% endif %}
+    {% if consents_count is not none %}<div class="invest-stat"><strong>{{ consents_count }}</strong>Consents (500m, 2yr)</div>{% endif %}
+  </div>
+  {% if yield_pct %}
+  <details class="transparency" style="margin-top:8px;"><summary>Yield calculation</summary>
+  Median weekly rent × 52 ÷ capital value = annualised gross yield. Does not account for vacancy, rates, insurance, or body corporate fees.</details>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if rental_list %}
+<h3>Rental Market <span class="freshness">Source: MBIE / Tenancy Services</span></h3>
+<table>
+  <thead><tr><th>Type</th><th>Beds</th><th>Median $/wk</th><th>Lower Q</th><th>Upper Q</th><th>Bonds</th><th>YoY%</th></tr></thead>
+  <tbody>
+    {% for row in rental_list %}
+    {% set r_med = row.get('median') if row is mapping else none %}
+    {% if r_med %}
+    {% set r_yoy = row.get('yoy_pct') if row is mapping else none %}
+    <tr>
+      <td>{{ (row.get('dwelling_type') or '—') if row is mapping else '—' }}</td>
+      <td>{{ (row.get('beds') or '—') if row is mapping else '—' }}</td>
+      <td>${{ r_med }}</td>
+      <td>{% set lq = row.get('lower_quartile') if row is mapping else none %}{{ ('$' ~ lq) if lq else '—' }}</td>
+      <td>{% set uq = row.get('upper_quartile') if row is mapping else none %}{{ ('$' ~ uq) if uq else '—' }}</td>
+      <td>{{ (row.get('bonds') or '—') if row is mapping else '—' }}</td>
+      <td>{% if r_yoy is not none %}<span style="color:{{ 'var(--ok)' if r_yoy < 0 else 'var(--warn)' }}">{{ '{:+.1f}'.format(r_yoy) }}%</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if trends_list %}
+<h3>Rent Growth (CAGR)</h3>
+<table>
+  <thead><tr><th>Type</th><th>Beds</th><th>1yr</th><th>3yr</th><th>5yr</th><th>10yr</th></tr></thead>
+  <tbody>
+    {% for row in trends_list[:8] %}
+    {% set c1  = row.get('cagr_1yr')  if row is mapping else none %}
+    {% set c3  = row.get('cagr_3yr')  if row is mapping else none %}
+    {% set c5  = row.get('cagr_5yr')  if row is mapping else none %}
+    {% set c10 = row.get('cagr_10yr') if row is mapping else none %}
+    <tr>
+      <td>{{ row.get('dwelling_type') or '—' }}</td>
+      <td>{{ row.get('beds') or '—' }}</td>
+      <td>{{ ('{:+.1f}%'.format(c1))  if c1  is not none else '—' }}</td>
+      <td>{{ ('{:+.1f}%'.format(c3))  if c3  is not none else '—' }}</td>
+      <td>{{ ('{:+.1f}%'.format(c5))  if c5  is not none else '—' }}</td>
+      <td>{{ ('{:+.1f}%'.format(c10)) if c10 is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if insights.market %}
+{% for i in insights.market %}
+<div class="insight insight-{{ i.level }}">
+  <p class="insight-text">{{ i.text }}</p>
+  {% if i.action %}<p class="insight-action"><strong>→</strong> {{ i.action }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   9. PROPERTY & VALUATION
+   ════════════════════════════════════════════════════════════════════════════ #}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Property &amp; Valuation</span>
+  <span class="sec-toggle"></span>
+</summary>
+<table>
+  {% if prop.capital_value %}<tr><td><strong>Capital Value (CV)</strong></td><td>${{ '{:,}'.format(prop.capital_value) }}{% if prop.is_unit_valuation %} <em style="color:var(--muted)">(unit valuation)</em>{% endif %}</td></tr>{% endif %}
+  {% if prop.land_value %}<tr><td><strong>Land Value (LV)</strong></td><td>${{ '{:,}'.format(prop.land_value) }}</td></tr>{% endif %}
+  {% if prop.improvements_value %}<tr><td><strong>Improvements Value</strong></td><td>${{ '{:,}'.format(prop.improvements_value) }}</td></tr>{% endif %}
+  {% if prop.title_no %}<tr><td><strong>Title No.</strong></td><td>{{ prop.title_no }}</td></tr>{% endif %}
+  {% if prop.title_type %}<tr><td><strong>Title Type</strong></td><td>{{ prop.title_type }}</td></tr>{% endif %}
+  {% if prop.land_area_sqm %}<tr><td><strong>Land Area</strong></td><td>{{ prop.land_area_sqm | round | int }} m²</td></tr>{% endif %}
+  {% if prop.building_footprint_sqm %}<tr><td><strong>Building Footprint</strong></td><td>{{ prop.building_footprint_sqm | round | int }} m²</td></tr>{% endif %}
+  {% if prop.unit_count and prop.unit_count > 1 %}<tr><td><strong>Multi-unit Building</strong></td><td>{{ prop.unit_count }} units</td></tr>{% endif %}
+</table>
+{% if prop.unit_count and prop.unit_count > 1 %}
+<div class="insight insight-info">
+  <p class="insight-text">This is one unit in a {{ prop.unit_count }}-unit building. CV shown is for this unit only.</p>
+  <p class="insight-action"><strong>→</strong> Request body corporate minutes (last 3 years) and financial statements. Check levies for any pending capital works.</p>
+</div>
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   10. PLANNING & FUTURE
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% set plan_warn_count = insights.planning | selectattr('level','equalto','warn') | list | length %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Planning &amp; Future Development</span>
+  {% if plan_warn_count > 0 %}<span class="sec-badge warn">{{ plan_warn_count }} issue{{ 's' if plan_warn_count != 1 else '' }}</span>{% endif %}
+  <span class="sec-toggle"></span>
+</summary>
+
+{% if ai_insights and ai_insights.planning_narrative %}
+<div class="ai-narrative"><div class="ai-label">AI Analysis</div>{{ ai_insights.planning_narrative }}</div>
+{% endif %}
+
+<h3>Zoning & Key Constraints</h3>
+<table>
+  {% if planning.zone_name %}<tr><td><strong>Zone</strong></td><td><strong>{{ planning.zone_name }}</strong></td></tr>{% endif %}
+  {% if planning.max_height_m %}<tr><td><strong>Max building height</strong></td><td>{{ planning.max_height_m }}m</td></tr>{% endif %}
+  {% if (planning.resource_consents_500m_2yr | default(none)) is not none %}<tr><td><strong>Development activity</strong></td><td>{{ planning.resource_consents_500m_2yr }} resource consents granted within 500m in last 2 years</td></tr>{% endif %}
+</table>
+
+<h3>Critical Planning Flags</h3>
+<table>
+  {% if (planning.is_epb_listed | default(none)) is not none %}
+  <tr><td style="color: {% if planning.is_epb_listed %}#C42D2D{% else %}#2E7D32{% endif %}">
+    <strong>{% if planning.is_epb_listed %}⚠ Earthquake-Prone Building (EPB){% else %}✓ Not earthquake-prone{% endif %}</strong></td>
+    <td>{% if planning.is_epb_listed %}On MBIE register — seismic work may be required{% else %}Not on MBIE earthquake-prone register{% endif %}</td>
+  </tr>
+  {% endif %}
+  {% if (planning.is_heritage_listed | default(none)) is not none %}
+  <tr><td style="color: {% if planning.is_heritage_listed %}#1565C0{% else %}#999{% endif %}">
+    <strong>{% if planning.is_heritage_listed %}Heritage Listed{% else %}Not heritage listed{% endif %}</strong></td>
+    <td>{% if planning.is_heritage_listed %}External alterations may require consent{% else %}No heritage restrictions{% endif %}</td>
+  </tr>
+  {% endif %}
+  {% if (planning.is_contaminated | default(none)) is not none %}
+  <tr><td style="color: {% if planning.is_contaminated %}#D55E00{% else %}#2E7D32{% endif %}">
+    <strong>{% if planning.is_contaminated %}⚠ Contaminated Land Register{% else %}✓ Not on contaminated register{% endif %}</strong></td>
+    <td>{% if planning.is_contaminated %}Listed on District Plan — phase 1 Environmental Site Assessment recommended{% else %}Not listed on District Plan contaminated land schedule{% endif %}</td>
+  </tr>
+  {% endif %}
+  {% if (planning.transmission_distance_m | default(none)) is not none and planning.transmission_distance_m <= 100 %}
+  <tr><td style="color: #D55E00">
+    <strong>⚠ Transmission Line</strong></td>
+    <td>High-voltage line {{ planning.transmission_distance_m | round | int }}m away — easement may restrict development</td>
+  </tr>
+  {% endif %}
+</table>
+
+{% if planning.infrastructure_projects %}
+{% set important_projects = planning.infrastructure_projects | selectattr('sector', 'in', ['Transport', 'Water', 'Healthcare', 'Education']) | list %}
+{% if important_projects | length == 0 %}
+{% set important_projects = planning.infrastructure_projects[:3] %}
+{% else %}
+{% set important_projects = important_projects[:5] %}
+{% endif %}
+{% if important_projects %}
+<h3>Major Infrastructure Projects Nearby (5km)</h3>
+<table>
+  <thead><tr><th>Project</th><th>Type</th><th>Status</th><th>Distance</th></tr></thead>
+  <tbody>
+    {% for p in important_projects %}
+    <tr>
+      <td><strong>{{ p.name or '—' }}</strong></td>
+      <td>{{ p.sector or '—' }}</td>
+      <td>{{ p.status or '—' }}</td>
+      <td>{% if p.distance_km %}{{ (p.distance_km | round(1)) }}km{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="font-size:0.9em; color:#666; margin-top:6px;">Data: Te Waihanga (Infrastructure Commission) — shows active and planned projects that may affect property value or development potential.</p>
+{% endif %}
+{% endif %}
+
+{% if insights.planning %}
+{% for i in insights.planning %}
+<div class="insight insight-{{ i.level }}">
+  <p class="insight-text">{{ i.text }}</p>
+  {% if i.action %}<p class="insight-action"><strong>→</strong> {{ i.action }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   11. KEY QUESTIONS TO ASK
+   ════════════════════════════════════════════════════════════════════════════ #}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Key Questions to Ask</span>
+  <span class="sec-toggle"></span>
+</summary>
+{% if ai_insights and ai_insights.key_questions %}
+<ol class="questions">
+  {% for q in ai_insights.key_questions %}<li>{{ q }}</li>{% endfor %}
+</ol>
+{% else %}
+<ul class="questions">
+  <li>Has a LIM (Land Information Memorandum) been obtained, and is it recent (within 6 months)?</li>
+  <li>Has a registered builder's report been completed? If not, make it a condition of sale.</li>
+  <li>Are there any known defects, leaks, weather-tightness issues, or remediation works?</li>
+  {% if prop.unit_count and prop.unit_count > 1 %}
+  <li>What are the current body corporate levies, and are any special assessments or capital works pending?</li>
+  <li>What does the body corporate's long-term maintenance plan cover, and is the sinking fund adequately funded?</li>
+  {% endif %}
+  {% if planning.is_epb_listed %}
+  <li>What is the EPB assessment outcome and the statutory remediation deadline?</li>
+  {% endif %}
+  {% if hazard_rows | selectattr('risk_class','equalto','warn') | list | length > 0 %}
+  <li>Has the vendor obtained any specialist reports (geotechnical, structural) relating to the hazards flagged in this report?</li>
+  {% endif %}
+</ul>
+{% endif %}
+</details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   12. BEFORE YOU BUY — Comprehensive Action Items
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if recommendations %}
+<details class="sec" open>
+<summary class="sec-head">
+  <span class="sec-title">Before You Buy — Action Items</span>
+  {% if recs_critical %}<span class="sec-badge warn">{{ recs_critical | length }} critical</span>{% endif %}
+  <span class="sec-toggle"></span>
+</summary>
+
+<p style="font-size:0.9em; color:#444; margin-bottom:10px;">
+  Actionable recommendations based on this property's data. Work through these before committing to purchase.
+</p>
+
+<div class="byb-summary">
+  {% if recs_critical %}<span class="byb-count byb-count-critical">{{ recs_critical | length }} Critical</span>{% endif %}
+  {% if recs_important %}<span class="byb-count byb-count-important">{{ recs_important | length }} Important</span>{% endif %}
+  {% if recs_advisory %}<span class="byb-count byb-count-advisory">{{ recs_advisory | length }} Advisory</span>{% endif %}
+</div>
+
+{% for rec in recommendations %}
+<div class="action-item action-{{ rec.severity }}">
+  <div class="action-header">
+    <span class="action-severity sev-{{ rec.severity }}">{{ rec.severity }}</span>
+    <span class="action-title">{{ rec.title }}</span>
+  </div>
+  {% if rec.actions %}
+  <ul class="action-steps">
+    {% for step in rec.actions %}
+    <li>{{ step }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endfor %}
+
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   13. DISCLAIMER
+   ════════════════════════════════════════════════════════════════════════════ #}
+<div class="disclaimer">
+  <p><strong>Disclaimer:</strong> This report is generated from publicly available New Zealand government open data and does not constitute a registered valuation, legal advice, or a recommendation to buy or sell. Risk scores and insights are computed using automated rules and AI analysis — they are indicative only. Property values depend on specific features, condition, negotiation, and market timing. Always obtain a registered valuation, LIM, builder's report, and legal advice before purchasing.</p>
+  <div class="meta-footer">
+    <span>Generated by WhareScore · {{ report_date }}</span>
+    <span>Data from 12+ NZ government open data sources</span>
+    <span>{{ full_address }}</span>
+  </div>
+</div>
+
+</body>
+</html>

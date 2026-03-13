@@ -1,0 +1,33 @@
+# Dev overrides — hot reload, volume mounts, no nginx
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Access:
+#   Frontend:  http://localhost:3000  (with API/tile rewrites via next.config.ts)
+#   API:       http://localhost:8000
+#   Martin:    http://localhost:3001
+#
+# This skips nginx — the frontend's built-in rewrites handle /api and /tiles proxying.
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend/app:/app/app:ro
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+    environment:
+      NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
+
+  nginx:
+    profiles: ["production"]  # disabled in dev — frontend handles rewrites

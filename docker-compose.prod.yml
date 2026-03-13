@@ -1,0 +1,122 @@
+# WhareScore — Docker Compose (Production)
+#
+# All services run on a single Azure VM.
+# PostgreSQL data lives on a mounted data disk (/data/postgres).
+#
+# First deploy:
+#   1. Copy this file + .env.prod + nginx/ + backend/ + frontend/ to the VM
+#   2. Create .env.prod with production secrets
+#   3. docker compose -f docker-compose.prod.yml up -d --build
+#   4. Restore pg_dump (see AZURE-HOSTING-PLAN.md §6)
+#
+# Updates:
+#   docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
+      POSTGRES_DB: wharescore
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/custom.conf:ro
+    command: postgres -c config_file=/etc/postgresql/custom.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d wharescore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # No ports exposed — only accessible via Docker network
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 3
+    networks:
+      - internal
+
+  martin:
+    image: ghcr.io/maplibre/martin:v0.15.0
+    command: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore
+      REDIS_URL: redis://redis:6379/0
+      MBIE_API_KEY: ${MBIE_API_KEY:-}
+      LINZ_API_KEY: ${LINZ_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5-mini}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost"]}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-["*"]}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      ENVIRONMENT: production
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+      - martin
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

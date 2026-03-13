@@ -1,0 +1,109 @@
+# WhareScore — Docker Compose (local development)
+#
+# Connects to your EXISTING PostgreSQL on the host machine.
+# All 18.7M+ records in wharescore DB are used directly — no data import needed.
+#
+# Usage:
+#   docker compose up --build
+#   Open http://localhost in your browser
+#
+# To use a containerized PostgreSQL instead (e.g. fresh machine):
+#   1. Uncomment the 'postgres' service below
+#   2. Change DB_HOST to 'postgres'
+#   3. Run: docker compose up --build
+#   4. Restore your pg_dump into the container
+
+services:
+  # --- Uncomment for containerized PostgreSQL ---
+  # postgres:
+  #   image: postgis/postgis:17-3.5
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: wharescore
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5433:5432"  # 5433 to avoid conflict with host PG
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # 6380 to avoid conflict with host Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 3
+
+  martin:
+    image: ghcr.io/maplibre/martin:v0.15.0
+    command: --config /config/martin.yaml
+    volumes:
+      - ./martin.yaml:/config/martin.yaml:ro
+    ports:
+      - "3001:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@${DB_HOST:-host.docker.internal}:5432/wharescore
+      REDIS_URL: redis://redis:6379/0
+      MBIE_API_KEY: ${MBIE_API_KEY:-}
+      LINZ_API_KEY: ${LINZ_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5-mini}
+      CORS_ORIGINS: '["http://localhost","http://localhost:3000"]'
+      ALLOWED_HOSTS: '["localhost","127.0.0.1","nginx","api"]'
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - web
+      - martin
+
+# volumes:
+#   pgdata:  # Uncomment if using containerized PostgreSQL

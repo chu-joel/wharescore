@@ -1,0 +1,42 @@
+# Environment & secrets
+.env
+.env.prod
+.env.local
+backend/.env
+
+# Data files (22GB+ of downloaded GeoJSON/CSV/shapefiles)
+data/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+frontend/.next/
+frontend/out/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Screenshots (not needed in repo)
+*.png
+
+# Build artifacts
+*.tsbuildinfo
+
+# Test outputs
+test_report.html
+
+# Downloaded CSVs
+*.csv
+
+# Claude Code
+.claude/

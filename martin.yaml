@@ -1,0 +1,62 @@
+# Martin tile server config — serves vector tiles from PostGIS
+# DB_HOST is replaced at runtime; default connects to host PostgreSQL
+postgres:
+  connection_string: postgresql://postgres:postgres@host.docker.internal:5432/wharescore
+  auto_publish:
+    tables:
+      from_schemas: public
+  tables:
+    parcels:
+      minzoom: 12
+    building_outlines:
+      minzoom: 13
+    addresses:
+      minzoom: 14
+    flood_zones:
+      minzoom: 8
+    tsunami_zones:
+      minzoom: 8
+    liquefaction_zones:
+      minzoom: 10
+    slope_failure_zones:
+      minzoom: 10
+    district_plan_zones:
+      minzoom: 10
+    height_controls:
+      minzoom: 12
+    noise_contours:
+      minzoom: 11
+    school_zones:
+      minzoom: 10
+    transmission_lines:
+      minzoom: 8
+    contaminated_land:
+      minzoom: 12
+    coastal_erosion:
+      minzoom: 8
+    wind_zones:
+      minzoom: 8
+    earthquakes:
+      minzoom: 6
+    transit_stops:
+      minzoom: 12
+    heritage_sites:
+      minzoom: 12
+    crashes:
+      minzoom: 13
+    resource_consents:
+      minzoom: 13
+    infrastructure_projects:
+      minzoom: 10
+    council_valuations:
+      minzoom: 14
+    air_quality_sites:
+      minzoom: 8
+    water_quality_sites:
+      minzoom: 8
+    osm_amenities:
+      minzoom: 13
+    conservation_land:
+      minzoom: 10
+    sa2_boundaries:
+      minzoom: 8
