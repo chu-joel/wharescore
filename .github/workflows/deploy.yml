@@ -28,11 +28,21 @@ jobs:
             git reset --hard origin/main
 
             echo "==> Building and restarting services"
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --force-recreate --remove-orphans --no-deps postgres redis martin api web
+
+            echo "==> Waiting for API to be healthy before starting nginx"
+            for i in $(seq 1 12); do
+              if docker compose -f docker-compose.prod.yml --env-file .env.prod ps api | grep -q healthy; then
+                break
+              fi
+              sleep 5
+            done
+
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate nginx
 
             echo "==> Waiting for API health check"
             for i in $(seq 1 18); do
-              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              if curl -sf http://localhost/health > /dev/null 2>&1; then
                 echo "==> Health check passed (attempt $i)"
                 exit 0
               fi
@@ -42,5 +52,5 @@ jobs:
 
             echo "==> Health check FAILED after 90s"
             echo "==> Last 50 lines of API logs:"
-            docker compose -f docker-compose.prod.yml --env-file .env.prod logs --tail 50 api
+            docker compose -f docker-compose.prod.yml --env-file .env.prod logs --tail 100 api web nginx
             exit 1
