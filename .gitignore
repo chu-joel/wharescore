@@ -50,3 +50,7 @@ tools/martin/*.zip
 
 # Pip artifacts
 backend/=*
+
+
+*.pem
+_bmad/*

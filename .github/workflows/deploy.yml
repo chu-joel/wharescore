@@ -1,0 +1,46 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: wharescore
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /home/wharescore/app
+
+            echo "==> Pulling latest code"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "==> Building and restarting services"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+
+            echo "==> Waiting for API health check"
+            for i in $(seq 1 18); do
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+                echo "==> Health check passed (attempt $i)"
+                exit 0
+              fi
+              echo "    attempt $i/18 — waiting 5s..."
+              sleep 5
+            done
+
+            echo "==> Health check FAILED after 90s"
+            echo "==> Last 50 lines of API logs:"
+            docker compose -f docker-compose.prod.yml --env-file .env.prod logs --tail 50 api
+            exit 1

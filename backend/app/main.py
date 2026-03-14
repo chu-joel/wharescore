@@ -18,6 +18,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .config import settings
 from . import db
+from .migrate import run_migrations
 from . import redis as app_redis
 from .deps import limiter
 
@@ -26,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: open DB pool + Redis. Shutdown: close both."""
+    """Startup: run migrations, open DB pool + Redis. Shutdown: close both."""
+    run_migrations(settings.DATABASE_URL)
     await db.init_pool(settings.DATABASE_URL)
     await app_redis.init_redis(settings.REDIS_URL)
     yield
