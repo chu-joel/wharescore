@@ -1,7 +1,7 @@
 # WhareScore — Deployment & Operations Guide
 
 **Created:** 2026-03-11
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-13
 
 ---
 
@@ -11,6 +11,7 @@
 2. [Architecture](#2-architecture)
 3. [SSH Access](#3-ssh-access)
 4. [Deploying New Changes](#4-deploying-new-changes)
+4a. [Database Migrations](#4a-database-migrations)
 5. [Database Operations](#5-database-operations)
 6. [SSL Certificate](#6-ssl-certificate)
 7. [Nginx Configuration](#7-nginx-configuration)
@@ -77,68 +78,77 @@ SSH key is on local machine. All Docker commands run as the `wharescore` user (i
 
 ## 4. Deploying New Changes
 
-> **IMPORTANT: SCP gotcha on Windows.** `scp -r src/ dest/src/` does NOT overwrite
-> existing files reliably — it can nest directories (`dest/src/src/`) or leave stale files.
-> Always **delete the remote directory first**, then copy. See the patterns below.
+Deploys are **automatic via GitHub Actions** — push to `main` and the CI/CD pipeline SSHs into the VM, pulls the latest code, and rebuilds Docker containers.
 
-### Full deploy (backend + frontend)
+### Automatic deploy (CI/CD)
 
-From your **local machine**, run:
+Every push to `main` triggers `.github/workflows/deploy.yml`:
 
-```bash
-# 1. Delete old source on server, then copy fresh
-ssh wharescore@20.5.86.126 "rm -rf /home/wharescore/app/backend/app /home/wharescore/app/frontend/src"
-scp -r D:/Projects/Experiments/propertyiq-poc/backend/app wharescore@20.5.86.126:/home/wharescore/app/backend/
-scp -r D:/Projects/Experiments/propertyiq-poc/frontend/src wharescore@20.5.86.126:/home/wharescore/app/frontend/
+1. SSHs into the Azure VM
+2. `git fetch origin main && git reset --hard origin/main`
+3. `docker compose up -d --build --remove-orphans`
+4. Polls `/health` for up to 90 seconds
+5. Fails the workflow (with API logs) if the health check doesn't pass
 
-# 2. Rebuild and restart
-ssh wharescore@20.5.86.126 "cd /home/wharescore/app && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans"
-```
+**GitHub Secrets required:**
 
-### Backend-only deploy
+| Secret | Value |
+|---|---|
+| `AZURE_VM_IP` | `20.5.86.126` |
+| `SSH_PRIVATE_KEY` | SSH private key for `wharescore` user |
 
-```bash
-# Delete old, copy fresh, rebuild
-ssh wharescore@20.5.86.126 "rm -rf /home/wharescore/app/backend/app"
-scp -r D:/Projects/Experiments/propertyiq-poc/backend/app wharescore@20.5.86.126:/home/wharescore/app/backend/
-ssh wharescore@20.5.86.126 "cd /home/wharescore/app && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build api"
-```
+### Manual deploy (fallback)
 
-### Frontend-only deploy
+If CI/CD is broken or you need to deploy from the VM directly:
 
 ```bash
-# Delete old, copy fresh, rebuild
-ssh wharescore@20.5.86.126 "rm -rf /home/wharescore/app/frontend/src"
-scp -r D:/Projects/Experiments/propertyiq-poc/frontend/src wharescore@20.5.86.126:/home/wharescore/app/frontend/
-ssh wharescore@20.5.86.126 "cd /home/wharescore/app && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build web"
+ssh wharescore@20.5.86.126
+cd /home/wharescore/app
+git fetch origin main && git reset --hard origin/main
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+curl -sf http://localhost:8000/health
 ```
+
+### Rollback
+
+```bash
+# Option A: revert the last commit and push (triggers CI/CD)
+git revert HEAD
+git push origin main
+
+# Option B: reset to a known-good commit and push
+git reset --hard <commit-sha>
+git push origin main --force
+
+# Option C: manual rollback on the VM
+ssh wharescore@20.5.86.126
+cd /home/wharescore/app
+git reset --hard <commit-sha>
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
+```
+
+**Database rollbacks:** There is no automatic down-migration. Write a new forward migration to undo schema changes.
 
 ### Verify deployment
 
-After deploying, confirm the new code is live:
-
 ```bash
-# Check build output has no stale code (example: verify Google embed removed)
-ssh wharescore@20.5.86.126 "docker exec app-web-1 grep -rl 'SOME_OLD_STRING' /app/.next/ 2>/dev/null || echo 'CLEAN'"
-
-# Check API is healthy
 curl -s https://wharescore.australiaeast.cloudapp.azure.com/health
+# Expected: {"status":"ok","db":true,"redis":true}
 ```
 
 ### Nginx config changes
 
-```bash
-# Copy new config (no rebuild needed — volume mounted)
-scp D:/Projects/Experiments/propertyiq-poc/nginx/nginx.prod.conf wharescore@20.5.86.126:/home/wharescore/app/nginx/nginx.prod.conf
+Nginx config is volume-mounted — no Docker rebuild needed:
 
-# Test and reload
+```bash
+# After pushing config changes via git, reload nginx on the VM
 ssh wharescore@20.5.86.126 "docker exec app-nginx-1 nginx -t && docker exec app-nginx-1 nginx -s reload"
 ```
 
 ### Environment variable changes
 
 ```bash
-# Edit .env.prod on the server
+# Edit .env.prod on the server (not in git)
 ssh wharescore@20.5.86.126 "nano /home/wharescore/app/.env.prod"
 
 # Restart affected services
@@ -147,11 +157,47 @@ ssh wharescore@20.5.86.126 "cd /home/wharescore/app && docker compose -f docker-
 
 ### Clear Redis cache (if needed)
 
-After deploying changes that affect cached data:
-
 ```bash
 ssh wharescore@20.5.86.126 "docker exec app-redis-1 redis-cli FLUSHALL"
 ```
+
+---
+
+## 4a. Database Migrations
+
+Schema changes are managed by a lightweight SQL migration runner (`backend/app/migrate.py`). Migrations run automatically at app startup, before the connection pool is created.
+
+### How it works
+
+1. On startup, each Uvicorn worker tries to acquire a PostgreSQL advisory lock
+2. The first worker to get the lock runs pending migrations; the other 3 skip
+3. Each `.sql` file in `backend/migrations/` runs in its own transaction
+4. Applied versions are tracked in the `schema_migrations` table
+5. If a migration fails, the transaction rolls back and the worker crashes (correct — don't serve traffic on broken schema)
+
+### Creating a new migration
+
+```bash
+# Naming convention: NNNN_description.sql
+# Example:
+touch backend/migrations/0001_add_saved_properties.sql
+```
+
+Write standard SQL in the file. Each file runs inside a single transaction — no need for explicit `BEGIN`/`COMMIT`.
+
+### Checking migration status
+
+```bash
+# See which migrations have been applied
+ssh wharescore@20.5.86.126 "docker exec app-postgres-1 psql -U postgres -d wharescore -c 'SELECT * FROM schema_migrations ORDER BY version;'"
+```
+
+### Migration tips
+
+- **One concern per file** — don't mix unrelated schema changes
+- **Idempotent when possible** — use `IF NOT EXISTS`, `IF EXISTS` where applicable
+- **No down migrations** — to undo a change, write a new forward migration
+- **Test locally first** — `docker compose up --build api` will run the migration on startup
 
 ---
 
@@ -383,7 +429,7 @@ ssh wharescore@20.5.86.126 "docker stats --no-stream"
 | DB not connecting | Wrong password in .env.prod | Check `.env.prod` matches what postgres was initialized with |
 | Bot detection 429 on all requests | All traffic shows same Docker internal IP | Ensure `bot_detection.py` uses `X-Forwarded-For`/`X-Real-IP` headers |
 | Bot detection 429 after fix | Old counter still in Redis | `docker exec app-redis-1 redis-cli KEYS 'scrape_detect:*'` then DEL them |
-| Frontend deploy shows old code | SCP didn't overwrite (Windows line endings) | Delete remote `src/` first, then `scp -r src` (no trailing slash) |
+| Migration fails on startup | Bad SQL in migration file | Check API logs: `docker compose logs --tail 50 api`. Fix the SQL, push again. The failed migration was rolled back. |
 | PDF status flips 200/404 | In-memory job store + 4 Uvicorn workers | Known issue — job created in worker 1, polled in worker 2. Fix: move job store to Redis |
 
 ### Known issues
@@ -449,17 +495,42 @@ This section documents what was done on 2026-03-11 for reference.
 
 Port 443 was initially unreachable despite having a dedicated Allow rule at priority 300. Fixed by adding `443` to the existing `open-port-80` rule at priority 100 (destination ports: `80,443`).
 
+### Git-based deploy transition (session 34)
+
+Replaced manual SCP deploys with git-based deploys via GitHub Actions. One-time VM transition steps:
+
+```bash
+# 1. Backup .env.prod
+cp /home/wharescore/app/.env.prod /home/wharescore/.env.prod.backup
+
+# 2. Stop services
+cd /home/wharescore/app && docker compose -f docker-compose.prod.yml --env-file .env.prod down
+
+# 3. Move old app, clone repo
+cd /home/wharescore && mv app app.old
+git clone https://github.com/chu-joel/wharescore.git app
+
+# 4. Restore .env.prod
+cp /home/wharescore/.env.prod.backup /home/wharescore/app/.env.prod
+
+# 5. Start services
+cd /home/wharescore/app
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+# 6. Verify, then cleanup
+curl -sf http://localhost:8000/health
+rm -rf /home/wharescore/app.old /home/wharescore/.env.prod.backup
+```
+
+Volume mounts (`/data/postgres`, `/etc/letsencrypt`) use absolute paths — unaffected by the transition.
+
 ### Post-deploy fixes (session 33)
 
-1. **Bot detection 429 blocking all users** — `bot_detection.py` used `request.client.host` which returns the Docker internal IP (same for all users behind nginx). Fixed: added `_get_client_ip()` that reads `X-Forwarded-For`/`X-Real-IP` headers. Had to clear stale Redis counter: `docker exec app-redis-1 redis-cli DEL scrape_detect:60.234.152.185`.
+1. **Bot detection 429 blocking all users** — Fixed: added `_get_client_ip()` that reads `X-Forwarded-For`/`X-Real-IP` headers.
 
-2. **Frontend not updating after SCP** — `scp -r src/ dest/src/` on Windows doesn't reliably overwrite files (line ending differences cause md5 mismatches but SCP skips same-named files). Fix: always `rm -rf` the remote directory first, then `scp -r src dest/` (no trailing slash on source).
+2. **PDF export broken (multi-worker)** — PDF job store is in-memory but Uvicorn runs 4 workers. **TODO: migrate to Redis-backed job store.**
 
-3. **Google Maps embed error** — `PropertySummaryCard.tsx` on server had old version with `google.com/maps/embed/v1/streetview` iframe requiring API key. Local version had already been updated to `StreetViewLink` (free URL, no API key). Root cause: SCP didn't overwrite the file (see #2 above).
-
-4. **PDF export broken (multi-worker)** — PDF job store is in-memory (`pdf_jobs.py`) but Uvicorn runs 4 workers. Job created in worker 1 returns 404 when polled by worker 2/3/4. **TODO: migrate to Redis-backed job store.**
-
-5. **CORS_ORIGINS missing HTTPS** — `.env.prod` only had HTTP URLs. Added `https://wharescore.australiaeast.cloudapp.azure.com` to CORS_ORIGINS.
+3. **CORS_ORIGINS missing HTTPS** — Added `https://wharescore.australiaeast.cloudapp.azure.com` to CORS_ORIGINS.
 
 ---
 
@@ -471,10 +542,13 @@ Port 443 was initially unreachable despite having a dedicated Allow rule at prio
 │   ├── docker-compose.prod.yml
 │   ├── .env.prod                    # secrets — DO NOT commit
 │   ├── martin.prod.yaml
+│   ├── .github/workflows/
+│   │   └── deploy.yml               # CI/CD — auto-deploy on push to main
 │   ├── backend/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
-│   │   └── app/                     # FastAPI application
+│   │   ├── app/                     # FastAPI application
+│   │   └── migrations/              # SQL migration files (NNNN_desc.sql)
 │   ├── frontend/
 │   │   ├── Dockerfile
 │   │   ├── package.json

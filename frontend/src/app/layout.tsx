@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   title: "WhareScore — Everything the listing doesn't tell you",
   description:
     "Free NZ property intelligence. Enter any address for hazard exposure, crime data, school zones, fair rent analysis, and more — powered by 12+ government data sources.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

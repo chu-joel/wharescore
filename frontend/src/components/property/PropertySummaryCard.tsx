@@ -1,6 +1,6 @@
 'use client';
 
-import { Bookmark, MapPin, Download, Loader2, Eye } from 'lucide-react';
+import { Bookmark, MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +32,21 @@ function StreetViewLink({ lat, lng }: { lat: number; lng: number }) {
     >
       <Eye className="h-4 w-4" />
       View on Street View
+    </a>
+  );
+}
+
+function TradeMeLink({ address }: { address: string }) {
+  const url = `https://www.trademe.co.nz/a/property/search?search_string=${encodeURIComponent(address)}`;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 text-sm text-piq-primary hover:underline"
+    >
+      <ExternalLink className="h-4 w-4" />
+      View on Trade Me
     </a>
   );
 }
@@ -79,10 +94,13 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
           </div>
         </div>
 
-        {/* Street View */}
-        {address.lat && address.lng && (
-          <StreetViewLink lat={address.lat} lng={address.lng} />
-        )}
+        {/* External links */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {address.lat && address.lng && (
+            <StreetViewLink lat={address.lat} lng={address.lng} />
+          )}
+          <TradeMeLink address={address.full_address} />
+        </div>
 
         {/* Score + metadata */}
         <div className="flex items-center gap-4">
