@@ -6,6 +6,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
   ReferenceDot,
   ResponsiveContainer,
 } from 'recharts';
@@ -48,10 +49,11 @@ export function HPITrendChart() {
         <AreaChart data={data.data} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
           <defs>
             <linearGradient id="hpiFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_THEME.colors.primary} stopOpacity={0.2} />
+              <stop offset="0%" stopColor={CHART_THEME.colors.primary} stopOpacity={0.3} />
               <stop offset="100%" stopColor={CHART_THEME.colors.primary} stopOpacity={0.02} />
             </linearGradient>
           </defs>
+          <CartesianGrid strokeDasharray="3 6" opacity={0.4} vertical={false} />
           <XAxis
             dataKey="period"
             tick={{ fill: '#6B7280', fontSize: 11 }}
@@ -75,16 +77,28 @@ export function HPITrendChart() {
             stroke={CHART_THEME.colors.primary}
             strokeWidth={2}
             fill="url(#hpiFill)"
+            animationDuration={1200}
           />
           {data.peak && (
-            <ReferenceDot
-              x={data.peak.period}
-              y={data.peak.hpi}
-              r={4}
-              fill={CHART_THEME.colors.primary}
-              stroke="white"
-              strokeWidth={2}
-            />
+            <>
+              <ReferenceDot
+                x={data.peak.period}
+                y={data.peak.hpi}
+                r={8}
+                fill="none"
+                stroke={CHART_THEME.colors.primary}
+                strokeOpacity={0.3}
+                strokeWidth={1}
+              />
+              <ReferenceDot
+                x={data.peak.period}
+                y={data.peak.hpi}
+                r={5}
+                fill={CHART_THEME.colors.primary}
+                stroke={CHART_THEME.colors.primary}
+                strokeWidth={2}
+              />
+            </>
           )}
         </AreaChart>
       </ResponsiveContainer>

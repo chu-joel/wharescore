@@ -83,7 +83,7 @@ function ExpandableCard({
     : text.slice(0, PREVIEW_LENGTH).replace(/\s+\S*$/, '') + '…';
 
   return (
-    <div className="rounded-xl bg-piq-primary/5 p-4">
+    <div className="rounded-xl border border-piq-primary/15 bg-piq-primary/5 dark:bg-piq-primary/10 p-4">
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
         <span className="text-xs font-medium text-muted-foreground">{label}</span>

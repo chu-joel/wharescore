@@ -24,6 +24,7 @@ export interface PropertyReport {
   planning: PlanningData;
   market: MarketData;
   scores: CompositeScore;
+  comparisons?: ComparisonData;
   ai_summary: string | null;
   area_profile: string | null;
   property_detection: PropertyDetection | null;
@@ -164,6 +165,25 @@ export interface HazardData {
   epb_count: number | null;
   slope_failure: string | null;
   contamination_count: number | null;
+  // Wellington-specific
+  earthquake_hazard_index: number | null;
+  earthquake_hazard_grade: number | null;
+  ground_shaking_zone: string | null;
+  ground_shaking_severity: string | null;
+  gwrc_liquefaction: string | null;
+  gwrc_liquefaction_geology: string | null;
+  gwrc_slope_severity: string | null;
+  fault_zone_name: string | null;
+  fault_zone_ranking: string | null;
+  wcc_flood_type: string | null;
+  wcc_flood_ranking: string | null;
+  wcc_tsunami_return_period: string | null;
+  wcc_tsunami_ranking: string | null;
+  epb_rating: string | null;
+  epb_construction_type: string | null;
+  epb_deadline: string | null;
+  solar_mean_kwh: number | null;
+  solar_max_kwh: number | null;
 }
 
 // --- Environment ---
@@ -179,11 +199,28 @@ export interface EnvironmentData {
 export interface LiveabilityData {
   nzdep_score: number | null;
   crime_rate: number | null;
+  crime_victimisations: number | null;
+  crime_city_median: number | null;
   school_count: number | null;
   transit_count: number | null;
   amenity_count: number | null;
   cbd_distance_m: number | null;
   nearest_train_m: number | null;
+  // Metlink mode breakdown
+  bus_stops_800m: number | null;
+  rail_stops_800m: number | null;
+  ferry_stops_800m: number | null;
+  cable_car_stops_800m: number | null;
+  // Transit travel times
+  transit_travel_times: TransitTravelTime[] | null;
+  peak_trips_per_hour: number | null;
+  nearest_stop_name: string | null;
+}
+
+export interface TransitTravelTime {
+  destination: string;
+  minutes: number;
+  routes: string[];
 }
 
 // --- Planning ---
@@ -198,12 +235,65 @@ export interface PlanningData {
   epb_listed: boolean | null;
 }
 
+// --- Comparisons (suburb + city averages) ---
+export interface ComparisonAverages {
+  label: string;
+  avg_nzdep: number | null;
+  school_count_1500m: number | null;
+  transit_count_400m: number | null;
+  max_noise_db: number | null;
+  epb_count_300m: number | null;
+}
+
+export interface ComparisonData {
+  suburb: ComparisonAverages | null;
+  city: ComparisonAverages | null;
+}
+
 // --- Coverage ---
 export interface CoverageInfo {
   available: number;
   total: number;
   percentage: number;
   per_category: Record<string, number>;
+}
+
+// --- Suburb ---
+export interface SuburbSearchResult {
+  sa2_code: string;
+  sa2_name: string;
+  ta_name: string;
+}
+
+export interface SuburbSummary {
+  sa2_code: string;
+  sa2_name: string;
+  ta_name: string;
+  area_hectares: number | null;
+  property_count: number;
+  comparisons: ComparisonAverages | null;
+  city_averages: ComparisonAverages | null;
+  rental_overview: SuburbRental[];
+  rental_trends: SuburbRentalTrend[];
+  crime: { ta_name: string; total_offences: number; offence_rate_per_10k: number } | null;
+  area_profile: string | null;
+}
+
+export interface SuburbRental {
+  dwelling_type: string;
+  bedrooms: string;
+  median_rent: number;
+  bond_count: number;
+  lower_quartile: number;
+  upper_quartile: number;
+}
+
+export interface SuburbRentalTrend {
+  dwelling_type: string;
+  bedrooms: string;
+  cagr_1yr: number | null;
+  cagr_5yr: number | null;
+  cagr_10yr: number | null;
 }
 
 // --- Feedback ---

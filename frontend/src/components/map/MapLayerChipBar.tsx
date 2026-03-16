@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { useMapStore } from '@/stores/mapStore';
+import { MAX_ACTIVE_LAYERS } from '@/lib/constants';
 import {
   Droplets,
   GraduationCap,
@@ -10,6 +11,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { MapLayerPicker } from './MapLayerPicker';
+import { toast } from 'sonner';
 
 // Quick-toggle preset chips — the most commonly used layer groups.
 // Each toggles a group on/off. Individual control is in the Layers picker.
@@ -54,8 +56,26 @@ export function MapLayerChipBar() {
     (presetLayers: readonly string[]) => {
       const allActive = presetLayers.every((id) => layers[id]);
       const updated = { ...layers };
-      for (const id of presetLayers) {
-        updated[id] = !allActive;
+      if (allActive) {
+        // Turn all off
+        for (const id of presetLayers) updated[id] = false;
+      } else {
+        // Turn on up to the cap
+        const currentActive = Object.values(updated).filter(Boolean).length;
+        let added = 0;
+        let skipped = 0;
+        for (const id of presetLayers) {
+          if (updated[id]) continue;
+          if (currentActive + added < MAX_ACTIVE_LAYERS) {
+            updated[id] = true;
+            added++;
+          } else {
+            skipped++;
+          }
+        }
+        if (skipped > 0) {
+          toast.info(`Layer limit reached (${MAX_ACTIVE_LAYERS} max). Disable some layers first.`);
+        }
       }
       setLayers(updated);
     },

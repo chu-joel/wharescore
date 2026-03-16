@@ -28,6 +28,27 @@ const LAYER_COLORS: Record<string, string> = {
   sa2_boundaries: '#6B7280',
 };
 
+/** Layers with category-based coloring — show multi-dot or multi-fill swatches */
+const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: string }[] }> = {
+  building_outlines: {
+    items: [
+      { color: '#14B8A6', label: 'Residential' },
+      { color: '#D97706', label: 'Commercial' },
+      { color: '#7C3AED', label: 'Industrial' },
+      { color: '#64748B', label: 'Other' },
+    ],
+  },
+  osm_amenities: {
+    items: [
+      { color: '#2563EB', label: 'Shop' },
+      { color: '#DC2626', label: 'Health' },
+      { color: '#D97706', label: 'Amenity' },
+      { color: '#16A34A', label: 'Leisure' },
+      { color: '#9333EA', label: 'Tourism' },
+    ],
+  },
+};
+
 /** Layers with data-driven severity gradients — show a gradient swatch in legend */
 const SEVERITY_GRADIENT_LAYERS: Record<string, { colors: string[]; labels: [string, string] }> = {
   slope_failure_zones: {
@@ -78,7 +99,28 @@ function GradientSwatch({ colors }: { colors: string[] }) {
   );
 }
 
+function CategorySwatch({ items, geom }: { items: { color: string; label: string }[]; geom: 'fill' | 'circle' }) {
+  return (
+    <div className="w-5 h-3.5 flex items-center justify-center gap-px">
+      {items.slice(0, 4).map((item, i) =>
+        geom === 'circle' ? (
+          <div key={i} className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+        ) : (
+          <div key={i} className="w-1 h-3 rounded-[1px]" style={{ backgroundColor: item.color, opacity: 0.7 }} />
+        )
+      )}
+    </div>
+  );
+}
+
 function LegendSwatch({ layerId }: { layerId: string }) {
+  // Category-colored layers get a multi-color swatch
+  const catInfo = CATEGORY_COLOR_LAYERS[layerId];
+  if (catInfo) {
+    const geom = LAYER_GEOM[layerId] ?? 'fill';
+    return <CategorySwatch items={catInfo.items} geom={geom as 'fill' | 'circle'} />;
+  }
+
   // Severity-driven layers get a gradient swatch
   const severityInfo = SEVERITY_GRADIENT_LAYERS[layerId];
   if (severityInfo) {
@@ -164,6 +206,8 @@ export function MapLegend() {
                 </p>
                 {items.map((layer) => {
                   const severity = SEVERITY_GRADIENT_LAYERS[layer.id];
+                  const catInfo = CATEGORY_COLOR_LAYERS[layer.id];
+                  const geom = LAYER_GEOM[layer.id] ?? 'fill';
                   return (
                     <div key={layer.id}>
                       <div
@@ -178,6 +222,20 @@ export function MapLegend() {
                         <div className="flex justify-between px-0.5 ml-7 -mt-0.5 mb-0.5">
                           <span className="text-[9px] text-muted-foreground">{severity.labels[0]}</span>
                           <span className="text-[9px] text-muted-foreground">{severity.labels[1]}</span>
+                        </div>
+                      )}
+                      {catInfo && (
+                        <div className="flex flex-wrap gap-x-2 gap-y-0 ml-7 -mt-0.5 mb-0.5">
+                          {catInfo.items.map((item) => (
+                            <span key={item.label} className="flex items-center gap-1">
+                              {geom === 'circle' ? (
+                                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                              ) : (
+                                <span className="inline-block w-1.5 h-2 rounded-[1px]" style={{ backgroundColor: item.color, opacity: 0.7 }} />
+                              )}
+                              <span className="text-[9px] text-muted-foreground">{item.label}</span>
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>

@@ -15,9 +15,11 @@ interface MapPopupProps {
   addressId: number;
   onViewReport: (addressId: number) => void;
   onClose: () => void;
+  /** Overlay layer info collected at the tap/click point (flood zone, school zone, etc.) */
+  overlayLines?: string[];
 }
 
-export function MapPopup({ addressId, onViewReport, onClose }: MapPopupProps) {
+export function MapPopup({ addressId, onViewReport, onClose, overlayLines }: MapPopupProps) {
   const { data: summary, isLoading } = useQuery({
     queryKey: ['property-summary', addressId],
     queryFn: () => apiFetch<PropertySummary>(`/api/v1/property/${addressId}/summary`),
@@ -131,6 +133,20 @@ export function MapPopup({ addressId, onViewReport, onClose }: MapPopupProps) {
               <li key={i} className="flex items-start gap-1.5">
                 <span className="text-piq-accent-warm mt-0.5">&#8226;</span>
                 <span>{finding}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Overlay context — visible layers at this location (replaces hover tooltip on touch) */}
+      {overlayLines && overlayLines.length > 0 && (
+        <div className="px-4 pb-3">
+          <ul className="text-[11px] text-muted-foreground space-y-0.5 bg-muted/40 rounded-md px-2.5 py-1.5">
+            {overlayLines.slice(0, 5).map((line, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="text-piq-primary mt-0.5">&#9679;</span>
+                <span>{line}</span>
               </li>
             ))}
           </ul>

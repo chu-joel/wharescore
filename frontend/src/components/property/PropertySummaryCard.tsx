@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
-import { PdfReadyModal } from './PdfReadyModal';
+
 import type { PropertyReport, RatingBin } from '@/lib/types';
 
 function ratingVariant(rating: RatingBin) {
@@ -59,14 +59,14 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
   const pdf = usePdfExport(address.address_id);
 
   return (
-    <Card className="rounded-xl">
-      <CardContent className="p-4 space-y-3">
+    <Card className="rounded-xl card-elevated overflow-hidden">
+      <CardContent className="p-5 space-y-4">
         {/* Address + actions */}
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4 shrink-0 text-piq-primary" />
-              <h2 className="text-lg font-semibold leading-tight">
+              <h2 className="text-lg font-bold leading-tight tracking-tight">
                 {address.full_address}
               </h2>
             </div>
@@ -103,21 +103,22 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
         </div>
 
         {/* Score + metadata */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 pt-1">
           {hasScore && bin ? (
             <>
               <div
-                className="flex items-center justify-center w-14 h-14 rounded-full text-white font-bold text-lg"
-                style={{ backgroundColor: bin.color }}
+                className="flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-xl ring-4 ring-opacity-20"
+                style={{ backgroundColor: bin.color, '--tw-ring-color': bin.color } as React.CSSProperties}
               >
                 {Math.round(scores.overall)}
               </div>
               <div className="flex-1">
-                <Badge variant={ratingVariant(scores.rating)}>
-                  {bin.label}
+                <p className="text-base font-semibold">{bin.label} Risk</p>
+                <Badge variant={ratingVariant(scores.rating)} className="mt-1">
+                  Score: {Math.round(scores.overall)}/100
                 </Badge>
                 {coverage && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1.5">
                     {coverage.available} of {coverage.total} data layers available
                   </p>
                 )}
@@ -128,27 +129,28 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
           )}
         </div>
 
-        {/* Property info */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          {property.capital_value && (
-            <span>CV: {formatCurrency(property.capital_value)}</span>
-          )}
-          {property.land_area_sqm && (
-            <span>Land: {property.land_area_sqm.toLocaleString()}m²</span>
-          )}
-          {property.building_area_sqm && (
-            <span>Building: {property.building_area_sqm.toLocaleString()}m²</span>
-          )}
-        </div>
+        {/* Property info — key-value pills */}
+        {(property.capital_value || property.land_area_sqm || property.building_area_sqm) && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {property.capital_value && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                CV {formatCurrency(property.capital_value)}
+              </span>
+            )}
+            {property.land_area_sqm && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                Land {property.land_area_sqm.toLocaleString()}m²
+              </span>
+            )}
+            {property.building_area_sqm && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                Building {property.building_area_sqm.toLocaleString()}m²
+              </span>
+            )}
+          </div>
+        )}
       </CardContent>
 
-      <PdfReadyModal
-        show={pdf.showModal}
-        isGenerating={pdf.isGenerating}
-        downloadUrl={pdf.downloadUrl}
-        error={pdf.error}
-        onClose={pdf.closeModal}
-      />
     </Card>
   );
 }

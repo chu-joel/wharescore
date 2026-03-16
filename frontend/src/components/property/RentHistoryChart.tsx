@@ -8,6 +8,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 import { CHART_THEME } from '@/lib/constants';
@@ -82,10 +84,11 @@ export function RentHistoryChart({ addressId }: RentHistoryChartProps) {
         <ComposedChart data={data.data} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
           <defs>
             <linearGradient id="rentBand" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_THEME.colors.primaryLight} stopOpacity={0.4} />
-              <stop offset="100%" stopColor={CHART_THEME.colors.primaryLight} stopOpacity={0.1} />
+              <stop offset="0%" stopColor={CHART_THEME.colors.primaryLight} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={CHART_THEME.colors.primaryLight} stopOpacity={0.05} />
             </linearGradient>
           </defs>
+          <CartesianGrid strokeDasharray="3 6" opacity={0.5} vertical={false} />
           <XAxis
             dataKey="period"
             tick={{ fill: '#6B7280', fontSize: 11 }}
@@ -119,12 +122,20 @@ export function RentHistoryChart({ addressId }: RentHistoryChartProps) {
             stroke="none"
             fill="white"
           />
+          <ReferenceLine
+            y={data.data[data.data.length - 1]?.median}
+            stroke={CHART_THEME.colors.primary}
+            strokeDasharray="4 4"
+            strokeOpacity={0.5}
+          />
           <Line
             type="monotone"
             dataKey="median"
             stroke={CHART_THEME.colors.primary}
             strokeWidth={2}
             dot={false}
+            animationDuration={1200}
+            activeDot={{ r: 5, strokeWidth: 2, stroke: CHART_THEME.colors.primary, fill: 'white' }}
           />
         </ComposedChart>
       </ResponsiveContainer>

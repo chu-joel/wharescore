@@ -130,6 +130,16 @@ SEVERITY_SLOPE_FAILURE = {
     None: 0, "Very Low": 5, "Low": 20, "Medium": 45, "High": 75, "Very High": 90,
 }
 
+# Wellington-specific: GWRC slope failure severity (format: "1 Low" → "5 High")
+SEVERITY_GWRC_SLOPE = {
+    None: None, "1 Low": 10, "2": 25, "3 Moderate": 45, "4": 70, "5 High": 90,
+}
+
+# Wellington-specific: GWRC ground shaking (format: "1 Low" → "5 High")
+SEVERITY_GWRC_GROUND_SHAKING = {
+    None: None, "1 Low": 10, "2": 25, "3 Moderate": 45, "4": 70, "5 High": 90,
+}
+
 
 def severity_wind(zone_name: str | None) -> float:
     """Actual DB values: 'M', 'H', 'VH', 'EH', 'SED', 'Low Risk', 'High Risk'."""
@@ -197,10 +207,12 @@ SEVERITY_WILDFIRE_TREND = {
 # Within-Category Weights (RISK-SCORE-METHODOLOGY.md §3)
 # =============================================================================
 
-WEIGHTS_HAZARDS = {          # Sum = 1.0, softmax aggregation
+WEIGHTS_HAZARDS = {          # Sum = 1.0 (base), softmax aggregation
     "flood": 0.16, "tsunami": 0.13, "liquefaction": 0.13,
     "slope_failure": 0.13, "earthquake": 0.11, "coastal_erosion": 0.10,
     "wind": 0.09, "wildfire": 0.09, "epb": 0.06,
+    # Wellington-specific (only present when GWRC/WCC data available)
+    "ground_shaking": 0.12, "fault_zone": 0.10,
 }
 
 WEIGHTS_ENVIRONMENT = {      # Sum = 1.0, WAM
@@ -266,7 +278,7 @@ def composite_score(categories: dict[str, float], weights: dict[str, float]) -> 
 # =============================================================================
 
 CATEGORY_INDICATOR_COUNTS = {
-    "hazards": 9, "environment": 5, "liveability": 6, "market": 3, "planning": 5,
+    "hazards": 11, "environment": 5, "liveability": 6, "market": 3, "planning": 5,
 }
 
 
@@ -328,6 +340,66 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["wildfire"] = normalize_min_max(haz.get("wildfire_vhe_days"), 0, 30)
     indicators["epb"] = normalize_min_max(haz.get("epb_count_300m"), 0, 15)
     indicators["slope_failure"] = SEVERITY_SLOPE_FAILURE.get(haz.get("slope_failure"), 0)
+
+    # Wellington-specific: refine indicators with higher-resolution regional data
+    # GWRC ground shaking amplification → new indicator
+    gwrc_gs = SEVERITY_GWRC_GROUND_SHAKING.get(haz.get("ground_shaking_severity"))
+    if gwrc_gs is not None:
+        indicators["ground_shaking"] = gwrc_gs
+
+    # GWRC combined earthquake hazard grade (1-5) → supplements earthquake count
+    eq_grade = haz.get("earthquake_hazard_grade")
+    if eq_grade is not None:
+        try:
+            grade_score = normalize_min_max(float(eq_grade), 1, 5)
+            # Take the worse of national earthquake count score and regional grade
+            if indicators.get("earthquake") is not None and grade_score is not None:
+                indicators["earthquake"] = max(indicators["earthquake"], grade_score)
+            elif grade_score is not None:
+                indicators["earthquake"] = grade_score
+        except (TypeError, ValueError):
+            pass
+
+    # GWRC liquefaction → refine national liquefaction with geology detail
+    gwrc_liq = haz.get("gwrc_liquefaction")
+    gwrc_geo = haz.get("gwrc_liquefaction_geology")
+    if gwrc_liq:
+        regional_score = SEVERITY_LIQUEFACTION.get(gwrc_liq, 0)
+        # Reclaimed land gets a boost — especially vulnerable
+        if gwrc_geo and "fill" in str(gwrc_geo).lower():
+            regional_score = max(regional_score, 85)
+        if regional_score > (indicators.get("liquefaction") or 0):
+            indicators["liquefaction"] = regional_score
+
+    # GWRC slope failure → refine national with regional
+    gwrc_sf = SEVERITY_GWRC_SLOPE.get(haz.get("gwrc_slope_severity"))
+    if gwrc_sf is not None and gwrc_sf > (indicators.get("slope_failure") or 0):
+        indicators["slope_failure"] = gwrc_sf
+
+    # WCC fault zone → new indicator
+    fault_name = haz.get("fault_zone_name")
+    if fault_name:
+        ranking = str(haz.get("fault_zone_ranking") or "").lower()
+        if "high" in ranking:
+            indicators["fault_zone"] = 85
+        elif "medium" in ranking:
+            indicators["fault_zone"] = 60
+        else:
+            indicators["fault_zone"] = 45  # any mapped fault zone is notable
+
+    # WCC flood hazard → refine national flood score
+    wcc_flood = haz.get("wcc_flood_ranking")
+    if wcc_flood:
+        wcc_flood_score = {"High": 80, "Medium": 55, "Low": 30}.get(wcc_flood, 40)
+        if wcc_flood_score > (indicators.get("flood") or 0):
+            indicators["flood"] = wcc_flood_score
+
+    # WCC tsunami return period → refine national tsunami score
+    wcc_tsunami = haz.get("wcc_tsunami_return_period")
+    if wcc_tsunami:
+        tsunami_score = {"1:100yr": 80, "1:500yr": 55, "1:1000yr": 25}.get(wcc_tsunami, 30)
+        if tsunami_score > (indicators.get("tsunami") or 0):
+            indicators["tsunami"] = tsunami_score
 
     # Environment
     indicators["noise"] = normalize_min_max(env.get("road_noise_db"), 40, 75)

@@ -8,10 +8,13 @@ import { ScoreGauge } from './ScoreGauge';
 import { ScoreStrip } from './ScoreStrip';
 import { AISummaryCard } from './AISummaryCard';
 import { ReportAccordion } from './ReportAccordion';
+import { scoreSectionRelevance } from '@/lib/sectionRelevance';
 import { BuildingInfoBanner } from './BuildingInfoBanner';
 import { KeyTakeaways } from './KeyTakeaways';
 import { BetaBanner } from './BetaBanner';
 import { ReportCTABanner } from './ReportCTABanner';
+import { ReportUpsell } from './ReportUpsell';
+import { FloatingReportButton } from './FloatingReportButton';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ReportDisclaimer } from '@/components/common/ReportDisclaimer';
 import { AppFooter } from '@/components/layout/AppFooter';
@@ -21,8 +24,18 @@ import { NotFoundError, RateLimitError } from '@/lib/api';
 import { Info, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { NearbyHighlights } from './NearbyHighlights';
+import { SolarPotentialCard } from './SolarPotentialCard';
+import { CommutePreviewCard } from './CommutePreviewCard';
+import { KeyFindings } from './KeyFindings';
+import { CategoryRadar } from './CategoryRadar';
+import { NoiseLevelGauge } from './NoiseLevelGauge';
+import { ClimateForecastCard } from './ClimateForecastCard';
+import { CoverageRing } from './CoverageRing';
 import { useSearchStore } from '@/stores/searchStore';
 import { useRouter } from 'next/navigation';
+
+/** How many findings to show for free before gating */
+const FREE_FINDINGS = 2;
 
 export function PropertyReport({ addressId }: { addressId: number }) {
   const { data: report, isLoading, error, refetch } = usePropertyReport(addressId);
@@ -63,6 +76,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   if (!report) return null;
 
+  const sectionRelevance = scoreSectionRelevance(report);
+
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
   const percentileText = hasScores && report.scores.percentile
@@ -72,14 +87,14 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   return (
     <div className="flex flex-col min-h-full" key={addressId}>
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 px-4 py-5 space-y-5">
         {/* Beta Banner */}
         <BetaBanner />
 
         {/* Summary Card */}
         <PropertySummaryCard report={report} />
 
-        {/* Earthquake-Prone Building Warning */}
+        {/* Earthquake-Prone Building Warning — always show (safety) */}
         {report.planning?.epb_listed && (
           <div className="flex items-start gap-3 rounded-lg border-2 border-red-500 bg-red-50 p-3 dark:bg-red-950/30">
             <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
@@ -103,7 +118,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Multi-unit banner */}
+        {/* Multi-unit banner — always show (informational) */}
         {report.property_detection?.is_multi_unit && report.property_detection.unit_count && (
           <BuildingInfoBanner
             unitCount={report.property_detection.unit_count}
@@ -112,7 +127,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         )}
 
-        {/* Score Gauge — only when scores are computed */}
+        {/* Score Gauge — the visual hook */}
         {hasScores && bin ? (
           <ScoreGauge
             score={report.scores.overall}
@@ -127,34 +142,19 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Score Strip — 5 category circles */}
+        {/* Score Strip — 5 circles, intriguing without detail */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
-        {/* CTA Banner — sell the report mid-page */}
-        <ReportCTABanner addressId={addressId} />
-
-        {/* AI Summary + Area Profile — loads after report */}
-        <AISummaryCard
-          summary={aiData?.ai_summary ?? null}
-          areaProfile={aiData?.area_profile ?? null}
-          suburbName={report.address.suburb}
-          loading={aiLoading}
-        />
-
-        {/* Nearby Highlights — supermarket, schools, transit */}
-        <NearbyHighlights
-          addressId={addressId}
-          schoolCount={report.liveability.school_count}
-          transitCount={report.liveability.transit_count}
-        />
-
-        {/* Coverage Badge */}
+        {/* Coverage Ring */}
         {report.coverage && (
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <span>{formatCoverage(report.coverage.available, report.coverage.total)} indicators</span>
+          <div className="flex items-center justify-center gap-1.5">
             <Tooltip>
               <TooltipTrigger className="cursor-help">
-                <Info className="h-3.5 w-3.5" />
+                <CoverageRing
+                  available={report.coverage.available}
+                  total={report.coverage.total}
+                  percentage={report.coverage.percentage}
+                />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">
@@ -166,16 +166,72 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Accordion Sections */}
-        <ReportAccordion report={report} />
+        {/* Category Radar — visual profile */}
+        {hasCategories && <CategoryRadar categories={report.scores.categories} />}
 
-        {/* Key Takeaways + CTAs */}
-        <KeyTakeaways report={report} onSearchAnother={handleSearchAnother} />
+        {/* === KEY FINDINGS (first 2 free, rest gated) === */}
+        <div className="section-divider">
+          <KeyFindings report={report} maxFree={FREE_FINDINGS} />
+        </div>
+
+        {/* === GATED: AI Summary === */}
+        <ReportUpsell addressId={addressId} feature="ai-summary" />
+
+        {/* === GATED: Comparisons === */}
+        <ReportUpsell addressId={addressId} feature="comparisons" />
+
+        {/* CTA Banner — primary conversion point */}
+        <ReportCTABanner addressId={addressId} />
+
+        {/* Nearby highlights — free (basic counts, builds trust) */}
+        <div className="section-divider space-y-5">
+          <p className="section-heading">Nearby essentials</p>
+          <NearbyHighlights
+            addressId={addressId}
+            schoolCount={report.liveability.school_count}
+            transitCount={report.liveability.transit_count}
+          />
+          <CommutePreviewCard
+            travelTimes={report.liveability.transit_travel_times}
+            peakTripsPerHour={report.liveability.peak_trips_per_hour}
+            nearestStopName={report.liveability.nearest_stop_name}
+          />
+          <SolarPotentialCard
+            meanKwh={report.hazards.solar_mean_kwh ?? null}
+            maxKwh={report.hazards.solar_max_kwh ?? null}
+          />
+          <NoiseLevelGauge noiseDb={report.environment.noise_db} />
+          <ClimateForecastCard projection={report.environment.climate_projection} />
+        </div>
+
+        {/* === GATED: Accordion Sections (headers visible, content locked) === */}
+        <div className="section-divider space-y-5">
+          <p className="section-heading">Detailed breakdown</p>
+          <ReportAccordion
+            report={report}
+            orderedSections={sectionRelevance}
+            defaultOpenSection={sectionRelevance[0]?.section}
+            locked
+          />
+        </div>
+
+        {/* === GATED: Checklist === */}
+        <div className="section-divider">
+          <ReportUpsell addressId={addressId} feature="checklist" />
+        </div>
+
+        {/* Key Takeaways — simplified (just CTA buttons) */}
+        <div className="section-divider">
+          <KeyTakeaways report={report} onSearchAnother={handleSearchAnother} />
+        </div>
 
         {/* Disclaimer */}
         <ReportDisclaimer />
       </div>
       <AppFooter />
+
+      {/* Floating download button — always visible */}
+      <FloatingReportButton addressId={addressId} />
     </div>
   );
 }

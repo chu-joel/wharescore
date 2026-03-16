@@ -18,6 +18,8 @@ export interface BasemapStyle {
 
 const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const CARTO_ATTRIBUTION = '&copy; <a href="https://carto.com/">CARTO</a>, ' + OSM_ATTRIBUTION;
+const LINZ_ATTRIBUTION = '&copy; <a href="https://www.linz.govt.nz/">LINZ</a> CC-BY 4.0';
+const ESRI_ATTRIBUTION = '&copy; Esri, Maxar, Earthstar Geographics';
 
 function rasterStyle(
   tiles: string[],
@@ -25,7 +27,6 @@ function rasterStyle(
 ): maplibregl.StyleSpecification {
   return {
     version: 8,
-    // Public glyph source — needed for symbol text labels on overlay layers
     glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
     sources: {
       basemap: {
@@ -39,6 +40,7 @@ function rasterStyle(
     layers: [{ id: 'basemap-tiles', type: 'raster', source: 'basemap' }],
   };
 }
+
 
 // Wellington CBD tile at z=10, x=1008, y=642
 const WLG = { z: 10, x: 1008, y: 642 };
@@ -82,24 +84,30 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
       CARTO_ATTRIBUTION,
     ),
   },
+  // Esri World Imagery + CARTO labels — hybrid satellite mode
   {
     id: 'satellite',
-    label: 'Hybrid (Satellite)',
+    label: 'Satellite',
     color: '#1a3a1a',
-    // Hybrid: Satellite with street labels via Mapbox Streets style as fallback
-    previewUrl: `https://a.basemaps.cartocdn.com/rastertiles/voyager/${WLG.z}/${WLG.x}/${WLG.y}.png`,
+    previewUrl: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${WLG.z}/${WLG.y}/${WLG.x}`,
     style: rasterStyle(
-      [
-        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-      ],
-      CARTO_ATTRIBUTION,
+      ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      ESRI_ATTRIBUTION,
     ),
   },
-  // LINZ Topo — only available when API key is configured
+  // LINZ styles — only available when API key is configured
   ...(LINZ_KEY
     ? [
+        {
+          id: 'satellite-hd',
+          label: 'Satellite HD',
+          color: '#1a3a1a',
+          previewUrl: `https://basemaps.linz.govt.nz/v1/tiles/aerial/WebMercatorQuad/${WLG.z}/${WLG.x}/${WLG.y}.webp?api=${LINZ_KEY}`,
+          style: rasterStyle(
+            [`https://basemaps.linz.govt.nz/v1/tiles/aerial/WebMercatorQuad/{z}/{x}/{y}.webp?api=${LINZ_KEY}`],
+            LINZ_ATTRIBUTION,
+          ),
+        } satisfies BasemapStyle,
         {
           id: 'topo',
           label: 'NZ Topo',
@@ -110,6 +118,8 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
       ]
     : []),
 ];
+
+export const SATELLITE_STYLE_IDS = new Set(['satellite', 'satellite-hd']);
 
 export const DEFAULT_BASEMAP_ID = 'satellite';
 

@@ -1,16 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Search, X, MapPin } from 'lucide-react';
+import { Search, X, MapPin, Map } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useSearch } from '@/hooks/useSearch';
+import { useSuburbSearch } from '@/hooks/useSuburbReport';
+import { useRouter } from 'next/navigation';
 
 const MAX_QUERY_LENGTH = 200;
 
 interface SearchBarProps {
-  /** Compact mode for header — shorter height */
   compact?: boolean;
 }
 
@@ -19,14 +20,19 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const setQuery = useSearchStore((s) => s.setQuery);
   const selectAddress = useSearchStore((s) => s.selectAddress);
   const selectProperty = useMapStore((s) => s.selectProperty);
+  const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { results, isLoading } = useSearch(query);
+  const { results: addressResults, isLoading: addressLoading } = useSearch(query);
+  const { results: suburbResults, isLoading: suburbLoading } = useSuburbSearch(query);
 
-  const handleSelect = useCallback(
+  const isLoading = addressLoading || suburbLoading;
+  const totalResults = suburbResults.length + addressResults.length;
+
+  const handleSelectAddress = useCallback(
     (result: { address_id: number; full_address: string; lng: number; lat: number }) => {
       selectAddress({
         addressId: result.address_id,
@@ -41,12 +47,20 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     [selectAddress, selectProperty]
   );
 
-  useEffect(() => {
-    setIsOpen(query.length >= 3 && results.length > 0);
-    setActiveIndex(-1);
-  }, [query, results]);
+  const handleSelectSuburb = useCallback(
+    (sa2Code: string) => {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      router.push(`/suburb/${sa2Code}`);
+    },
+    [router]
+  );
 
-  // Close dropdown on outside click
+  useEffect(() => {
+    setIsOpen(query.length >= 2 && totalResults > 0);
+    setActiveIndex(-1);
+  }, [query, totalResults]);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -59,7 +73,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   }, []);
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (!isOpen || results.length === 0) {
+    if (!isOpen || totalResults === 0) {
       if (e.key === 'Escape') {
         setQuery('');
         setIsOpen(false);
@@ -71,16 +85,20 @@ export function SearchBar({ compact = false }: SearchBarProps) {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        setActiveIndex((prev) => (prev < totalResults - 1 ? prev + 1 : 0));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        setActiveIndex((prev) => (prev > 0 ? prev - 1 : totalResults - 1));
         break;
       case 'Enter':
         e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < results.length) {
-          handleSelect(results[activeIndex]);
+        if (activeIndex >= 0 && activeIndex < totalResults) {
+          if (activeIndex < suburbResults.length) {
+            handleSelectSuburb(suburbResults[activeIndex].sa2_code);
+          } else {
+            handleSelectAddress(addressResults[activeIndex - suburbResults.length]);
+          }
         }
         break;
       case 'Escape':
@@ -105,11 +123,11 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search any NZ address..."
+          placeholder="Search address or suburb..."
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 3 && results.length > 0 && setIsOpen(true)}
+          onFocus={() => query.length >= 2 && totalResults > 0 && setIsOpen(true)}
           className={`pl-10 pr-10 rounded-lg bg-background shadow-sm ${
             compact ? 'h-9 text-sm' : 'h-12'
           }`}
@@ -140,28 +158,70 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           {isLoading && (
             <li className="px-4 py-3 text-sm text-muted-foreground" role="option" aria-selected={false}>Searching...</li>
           )}
-          {results.map((r, i) => (
-            <li
-              key={r.address_id}
-              id={`search-result-${i}`}
-              role="option"
-              aria-selected={i === activeIndex}
-              onClick={() => handleSelect(r)}
-              className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
-                i === activeIndex ? 'bg-muted' : 'hover:bg-muted'
-              }`}
-            >
-              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="min-w-0">
-                <div className="font-medium">{r.full_address}</div>
-                {(r.suburb || r.city) && (
-                  <div className="text-xs text-muted-foreground">{[r.suburb, r.city].filter(Boolean).join(', ')}</div>
-                )}
-              </div>
-            </li>
-          ))}
-          {!isLoading && results.length === 0 && query.length >= 3 && (
-            <li className="px-4 py-3 text-sm text-muted-foreground" role="option" aria-selected={false}>No addresses found</li>
+
+          {/* Suburb results */}
+          {suburbResults.length > 0 && (
+            <>
+              <li className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
+                Suburbs
+              </li>
+              {suburbResults.map((r, i) => (
+                <li
+                  key={`suburb-${r.sa2_code}`}
+                  id={`search-result-${i}`}
+                  role="option"
+                  aria-selected={i === activeIndex}
+                  onClick={() => handleSelectSuburb(r.sa2_code)}
+                  className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
+                    i === activeIndex ? 'bg-muted' : 'hover:bg-muted'
+                  }`}
+                >
+                  <Map className="h-4 w-4 text-piq-primary shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-medium">{r.sa2_name}</div>
+                    <div className="text-xs text-muted-foreground">{r.ta_name}</div>
+                  </div>
+                </li>
+              ))}
+            </>
+          )}
+
+          {/* Address results */}
+          {addressResults.length > 0 && (
+            <>
+              {suburbResults.length > 0 && (
+                <li className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
+                  Addresses
+                </li>
+              )}
+              {addressResults.map((r, i) => {
+                const idx = suburbResults.length + i;
+                return (
+                  <li
+                    key={r.address_id}
+                    id={`search-result-${idx}`}
+                    role="option"
+                    aria-selected={idx === activeIndex}
+                    onClick={() => handleSelectAddress(r)}
+                    className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
+                      idx === activeIndex ? 'bg-muted' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium">{r.full_address}</div>
+                      {(r.suburb || r.city) && (
+                        <div className="text-xs text-muted-foreground">{[r.suburb, r.city].filter(Boolean).join(', ')}</div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </>
+          )}
+
+          {!isLoading && totalResults === 0 && query.length >= 3 && (
+            <li className="px-4 py-3 text-sm text-muted-foreground" role="option" aria-selected={false}>No results found</li>
           )}
         </ul>
       )}

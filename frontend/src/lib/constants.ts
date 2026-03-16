@@ -4,11 +4,11 @@ import type { RatingBin } from './types';
 
 // --- Rating bins (score -> label + color) ---
 export const RATING_BINS = [
-  { min: 0, max: 20, rating: 'very-low' as const, label: 'Very Low', color: '#0D7377' },
-  { min: 21, max: 40, rating: 'low' as const, label: 'Low', color: '#56B4E9' },
-  { min: 41, max: 60, rating: 'moderate' as const, label: 'Moderate', color: '#E69F00' },
-  { min: 61, max: 80, rating: 'high' as const, label: 'High', color: '#D55E00' },
-  { min: 81, max: 100, rating: 'very-high' as const, label: 'Very High', color: '#C42D2D' },
+  { min: 0, max: 20, rating: 'very-low' as const, label: 'Very Low', color: '#22C55E' },
+  { min: 21, max: 40, rating: 'low' as const, label: 'Low', color: '#84CC16' },
+  { min: 41, max: 60, rating: 'moderate' as const, label: 'Moderate', color: '#EAB308' },
+  { min: 61, max: 80, rating: 'high' as const, label: 'High', color: '#F97316' },
+  { min: 81, max: 100, rating: 'very-high' as const, label: 'Very High', color: '#EF4444' },
 ] as const;
 
 export function getRatingBin(score: number) {
@@ -39,7 +39,7 @@ export const TILE_LAYERS = [
   { id: 'coastal_erosion', group: 'Hazards', label: 'Coastal Erosion', minzoom: 8 },
   { id: 'wind_zones', group: 'Hazards', label: 'Wind Zones', minzoom: 8 },
   // Property — users want to see their parcel/building
-  { id: 'parcels', group: 'Property', label: 'Parcels', minzoom: 12 },
+  { id: 'parcels', group: 'Property', label: 'Parcels', minzoom: 15 },
   { id: 'building_outlines', group: 'Property', label: 'Buildings', minzoom: 13 },
   // Schools — key for families
   { id: 'school_zones', group: 'Schools', label: 'School Zones', minzoom: 10 },
@@ -81,6 +81,11 @@ export const CHART_THEME = {
   },
   animation: { duration: 800, easing: 'ease-out' as const },
 } as const;
+
+// --- Map layer defaults ---
+export const DEFAULT_LAYERS: Record<string, boolean> = { building_outlines: true, flood_zones: true, parcels: true };
+export const PROPERTY_CONTEXT_LAYERS: Record<string, boolean> = { building_outlines: true, flood_zones: true, parcels: true };
+export const MAX_ACTIVE_LAYERS = 5;
 
 // --- Misc ---
 export const MAX_RECENT_SEARCHES = 10;

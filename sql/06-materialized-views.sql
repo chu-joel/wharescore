@@ -133,6 +133,80 @@ CREATE INDEX idx_mv_trends_sa2 ON mv_rental_trends(sa2_code);
 CREATE INDEX idx_mv_trends_combo ON mv_rental_trends(sa2_code, dwelling_type, number_of_beds);
 
 ----------------------------------------------------------------------
+-- SA2-LEVEL COMPARISON AVERAGES (suburb-level comparisons)
+-- Centroid approximation for spatial metrics (schools, transit, EPBs)
+----------------------------------------------------------------------
+DROP MATERIALIZED VIEW IF EXISTS mv_ta_comparisons CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS mv_sa2_comparisons CASCADE;
+
+CREATE MATERIALIZED VIEW mv_sa2_comparisons AS
+SELECT
+  sa2.sa2_code,
+  sa2.sa2_name,
+  sa2.ta_name,
+  -- NZDep: average of meshblock scores within SA2
+  dep.avg_nzdep,
+  -- Schools within 1.5km of SA2 centroid
+  sch.school_count_1500m,
+  -- Transit stops within 400m of SA2 centroid
+  tr.transit_count_400m,
+  -- Max noise dB at SA2 centroid
+  ns.max_noise_db,
+  -- EPBs within 300m of SA2 centroid
+  epb.epb_count_300m
+FROM sa2_boundaries sa2
+LEFT JOIN LATERAL (
+  SELECT round(AVG(nd.nzdep2023)::numeric, 1) AS avg_nzdep
+  FROM meshblocks mb
+  JOIN nzdep nd ON nd.mb2023_code = mb.mb2023_code
+  WHERE ST_Within(ST_Centroid(mb.geom), sa2.geom)
+) dep ON true
+LEFT JOIN LATERAL (
+  SELECT COUNT(*)::int AS school_count_1500m
+  FROM schools s
+  WHERE s.geom && ST_Expand(ST_Centroid(sa2.geom), 0.015)
+    AND ST_DWithin(s.geom::geography, ST_Centroid(sa2.geom)::geography, 1500)
+) sch ON true
+LEFT JOIN LATERAL (
+  SELECT COUNT(*)::int AS transit_count_400m
+  FROM transit_stops ts
+  WHERE ts.geom && ST_Expand(ST_Centroid(sa2.geom), 0.005)
+    AND ST_DWithin(ts.geom::geography, ST_Centroid(sa2.geom)::geography, 400)
+) tr ON true
+LEFT JOIN LATERAL (
+  SELECT MAX(nc.laeq24h) AS max_noise_db
+  FROM noise_contours nc
+  WHERE ST_Intersects(nc.geom, ST_Centroid(sa2.geom))
+) ns ON true
+LEFT JOIN LATERAL (
+  SELECT COUNT(*)::int AS epb_count_300m
+  FROM earthquake_prone_buildings e
+  WHERE e.geom && ST_Expand(ST_Centroid(sa2.geom), 0.005)
+    AND ST_DWithin(e.geom::geography, ST_Centroid(sa2.geom)::geography, 300)
+) epb ON true;
+
+CREATE UNIQUE INDEX idx_mv_sa2_comp_code ON mv_sa2_comparisons(sa2_code);
+CREATE INDEX idx_mv_sa2_comp_ta ON mv_sa2_comparisons(ta_name);
+
+----------------------------------------------------------------------
+-- TA-LEVEL COMPARISON AVERAGES (city-level comparisons)
+-- Aggregated from SA2 comparisons
+----------------------------------------------------------------------
+CREATE MATERIALIZED VIEW mv_ta_comparisons AS
+SELECT
+  ta_name,
+  round(AVG(avg_nzdep)::numeric, 1) AS avg_nzdep,
+  round(AVG(school_count_1500m)::numeric, 1) AS avg_school_count_1500m,
+  round(AVG(transit_count_400m)::numeric, 1) AS avg_transit_count_400m,
+  round(AVG(max_noise_db)::numeric, 1) AS avg_noise_db,
+  round(AVG(epb_count_300m)::numeric, 1) AS avg_epb_count_300m
+FROM mv_sa2_comparisons
+WHERE ta_name IS NOT NULL
+GROUP BY ta_name;
+
+CREATE UNIQUE INDEX idx_mv_ta_comp_name ON mv_ta_comparisons(ta_name);
+
+----------------------------------------------------------------------
 -- AREA PROFILES table (populated by AI script later)
 ----------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS area_profiles (

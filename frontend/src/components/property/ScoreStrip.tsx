@@ -12,33 +12,45 @@ interface ScoreStripProps {
 
 export function ScoreStrip({ categories }: ScoreStripProps) {
   return (
-      <div className="flex justify-center gap-4">
-        {CATEGORIES.map((meta) => {
-          const cat = Array.isArray(categories) ? categories.find((c) => c.name === meta.name) : undefined;
-          if (!cat) return null;
-          const color = getRatingColor(cat.rating);
+    <div className="relative flex justify-center gap-3 sm:gap-5">
+      {/* Connecting line behind circles */}
+      <div className="absolute left-[22px] right-[22px] top-[22px] h-[2px] bg-border z-0" />
+      {CATEGORIES.map((meta) => {
+        const cat = Array.isArray(categories) ? categories.find((c) => c.name === meta.name) : undefined;
+        if (!cat) return null;
+        const color = getRatingColor(cat.rating);
+        const score = formatScore(cat.score);
 
-          return (
-            <Tooltip key={meta.name}>
-              <TooltipTrigger className="flex flex-col items-center gap-1 cursor-default">
-                <div
-                  className="flex items-center justify-center w-9 h-9 rounded-full text-white text-xs font-bold"
-                  style={{ backgroundColor: color }}
-                >
-                  {formatScore(cat.score)}
-                </div>
-                <span className="text-[10px] text-muted-foreground leading-tight text-center max-w-[56px]">
-                  {meta.label.split(' & ')[0]}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {meta.label}: {formatScore(cat.score)}/100
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
+        return (
+          <Tooltip key={meta.name}>
+            <TooltipTrigger className="flex flex-col items-center gap-1.5 cursor-default group z-10">
+              <div
+                className="relative flex items-center justify-center w-11 h-11 rounded-full text-white text-sm font-bold transition-all duration-200 ring-2 ring-white dark:ring-gray-900 shadow-md group-hover:scale-110 group-hover:ring-4"
+                style={{
+                  backgroundColor: color,
+                  '--tw-ring-color': undefined,
+                } as React.CSSProperties}
+                onMouseEnter={(e) => {
+                  (e.currentTarget.style as any).setProperty('--tw-ring-color', `${color}40`);
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget.style as any).setProperty('--tw-ring-color', '');
+                }}
+              >
+                {score}
+              </div>
+              <span className="text-[10px] text-muted-foreground leading-tight text-center max-w-[60px] font-medium">
+                {meta.label.split(' & ')[0]}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs font-medium">
+                {meta.label}: {score}/100
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
   );
 }

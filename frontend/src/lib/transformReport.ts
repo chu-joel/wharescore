@@ -7,6 +7,7 @@ import type {
   PropertyReport,
   CategoryScore,
   CoverageInfo,
+  ComparisonData,
   RatingBin,
   LiveabilityData,
   PlanningData,
@@ -75,6 +76,20 @@ function buildCategories(
     }
   }
 
+  // Synthesize 'transport' category from transport indicators if backend didn't provide it
+  if (!merged['transport'] && indicatorsByCategory['transport']?.length) {
+    const transportInds = indicatorsByCategory['transport'];
+    const avg = transportInds.reduce((sum, i) => sum + i.score, 0) / transportInds.length;
+    merged['transport'] = avg;
+  }
+
+  // Synthesize 'market' category from market indicators if backend didn't provide it
+  if (!merged['market'] && indicatorsByCategory['market']?.length) {
+    const marketInds = indicatorsByCategory['market'];
+    const avg = marketInds.reduce((sum, i) => sum + i.score, 0) / marketInds.length;
+    merged['market'] = avg;
+  }
+
   return Object.entries(merged).map(([name, score]) => ({
     name: name as CategoryScore['name'],
     score,
@@ -98,6 +113,8 @@ function transformLiveability(raw: any): LiveabilityData {
   return {
     nzdep_score: raw.nzdep_decile ?? null,
     crime_rate: raw.crime_percentile ?? null,
+    crime_victimisations: raw.crime_victimisations ?? null,
+    crime_city_median: raw.crime_city_median ?? null,
     school_count: Array.isArray(raw.schools_1500m) ? raw.schools_1500m.length : null,
     transit_count: raw.transit_stops_400m ?? null,
     amenity_count: raw.amenities_500m
@@ -105,6 +122,15 @@ function transformLiveability(raw: any): LiveabilityData {
       : null,
     cbd_distance_m: raw.cbd_distance_m ?? null,
     nearest_train_m: raw.nearest_train_distance_m ?? null,
+    // Metlink mode breakdown
+    bus_stops_800m: raw.bus_stops_800m ?? null,
+    rail_stops_800m: raw.rail_stops_800m ?? null,
+    ferry_stops_800m: raw.ferry_stops_800m ?? null,
+    cable_car_stops_800m: raw.cable_car_stops_800m ?? null,
+    // Transit travel times
+    transit_travel_times: Array.isArray(raw.transit_travel_times) ? raw.transit_travel_times : null,
+    peak_trips_per_hour: raw.peak_trips_per_hour ?? null,
+    nearest_stop_name: raw.nearest_stop_name ?? null,
   };
 }
 
@@ -124,6 +150,10 @@ function transformPlanning(raw: any, liveabilityRaw: any, environmentRaw: any): 
 
 function transformHazards(raw: any): HazardData {
   if (!raw) return {} as HazardData;
+
+  // Extract MBIE EPB detail if present
+  const epbNearest = raw.epb_nearest;
+
   return {
     flood_zone: raw.flood ?? null,
     tsunami_zone: raw.tsunami_evac_zone ?? raw.tsunami_zone_class?.toString() ?? null,
@@ -135,6 +165,25 @@ function transformHazards(raw: any): HazardData {
     epb_count: raw.epb_count_300m ?? null,
     slope_failure: raw.slope_failure ?? null,
     contamination_count: null, // moved to planning
+    // Wellington-specific
+    earthquake_hazard_index: raw.earthquake_hazard_index ?? null,
+    earthquake_hazard_grade: raw.earthquake_hazard_grade ?? null,
+    ground_shaking_zone: raw.ground_shaking_zone ?? null,
+    ground_shaking_severity: raw.ground_shaking_severity ?? null,
+    gwrc_liquefaction: raw.gwrc_liquefaction ?? null,
+    gwrc_liquefaction_geology: raw.gwrc_liquefaction_geology ?? null,
+    gwrc_slope_severity: raw.gwrc_slope_severity ?? null,
+    fault_zone_name: raw.fault_zone_name ?? null,
+    fault_zone_ranking: raw.fault_zone_ranking ?? null,
+    wcc_flood_type: raw.wcc_flood_type ?? null,
+    wcc_flood_ranking: raw.wcc_flood_ranking ?? null,
+    wcc_tsunami_return_period: raw.wcc_tsunami_return_period ?? null,
+    wcc_tsunami_ranking: raw.wcc_tsunami_ranking ?? null,
+    epb_rating: epbNearest?.rating ?? null,
+    epb_construction_type: epbNearest?.construction_type ?? null,
+    epb_deadline: epbNearest?.deadline ?? null,
+    solar_mean_kwh: raw.solar_mean_kwh ?? null,
+    solar_max_kwh: raw.solar_max_kwh ?? null,
   };
 }
 
@@ -197,6 +246,22 @@ function transformMarket(raw: any): MarketData {
   };
 }
 
+function transformComparisons(raw: any): ComparisonData | undefined {
+  if (!raw) return undefined;
+  const mapAvgs = (s: any) => s ? {
+    label: s.label ?? '',
+    avg_nzdep: s.avg_nzdep ?? null,
+    school_count_1500m: s.school_count_1500m ?? s.avg_school_count_1500m ?? null,
+    transit_count_400m: s.transit_count_400m ?? s.avg_transit_count_400m ?? null,
+    max_noise_db: s.max_noise_db ?? s.avg_noise_db ?? null,
+    epb_count_300m: s.epb_count_300m ?? s.avg_epb_count_300m ?? null,
+  } : null;
+  return {
+    suburb: mapAvgs(raw.suburb),
+    city: mapAvgs(raw.city),
+  };
+}
+
 /**
  * Transform the raw API response into the shape the frontend components expect.
  */
@@ -256,6 +321,7 @@ export function transformReport(raw: any): PropertyReport {
     liveability: transformLiveability(raw.liveability),
     planning: transformPlanning(raw.planning, raw.liveability, raw.environment),
     market: transformMarket(raw.market),
+    comparisons: transformComparisons(raw.comparisons),
     scores: {
       overall,
       rating: ratingBin,

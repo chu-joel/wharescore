@@ -32,33 +32,34 @@ interface LayerStyleConfig {
 
 const LAYER_STYLES: Record<string, LayerStyleConfig> = {
   // --- Hazards (polygons) — severity-driven colors applied via getLayerStyles() ---
-  flood_zones:        { type: 'fill', color: '#56B4E9', outlineColor: '#3A8FBF', fillOpacity: 0.22 },
-  tsunami_zones:      { type: 'fill', color: '#0D7377', outlineColor: '#0A5C5F', fillOpacity: 0.22 },
-  liquefaction_zones: { type: 'fill', color: '#E69F00', outlineColor: '#C48700', fillOpacity: 0.20 },
-  slope_failure_zones: { type: 'fill', color: '#CC79A7', outlineColor: '#A8628A', fillOpacity: 0.20 },
-  coastal_erosion:    { type: 'fill', color: '#D55E00', outlineColor: '#B04D00', fillOpacity: 0.20 },
-  wind_zones:         { type: 'fill', color: '#9CA3AF', outlineColor: '#6B7280', fillOpacity: 0.15 },
+  flood_zones:        { type: 'fill', color: '#56B4E9', outlineColor: '#3A8FBF', fillOpacity: 0.35 },
+  tsunami_zones:      { type: 'fill', color: '#0D7377', outlineColor: '#0A5C5F', fillOpacity: 0.32 },
+  liquefaction_zones: { type: 'fill', color: '#E69F00', outlineColor: '#C48700', fillOpacity: 0.30 },
+  slope_failure_zones: { type: 'fill', color: '#CC79A7', outlineColor: '#A8628A', fillOpacity: 0.30 },
+  coastal_erosion:    { type: 'fill', color: '#D55E00', outlineColor: '#B04D00', fillOpacity: 0.30 },
+  wind_zones:         { type: 'fill', color: '#9CA3AF', outlineColor: '#6B7280', fillOpacity: 0.25 },
 
   // --- Transport (points) — icons at zoom 13+ ---
-  transit_stops:      { type: 'circle', color: '#0D7377', radius: 4, strokeWidth: 1.5, iconImage: 'icon-transit' },
-  crashes:            { type: 'circle', color: '#C42D2D', radius: 3, strokeWidth: 1,   iconImage: 'icon-crash' },
+  transit_stops:      { type: 'circle', color: '#0D7377', radius: 5, strokeWidth: 2, iconImage: 'icon-transit' },
+  crashes:            { type: 'circle', color: '#C42D2D', radius: 4, strokeWidth: 1.5, iconImage: 'icon-crash' },
 
   // --- Planning ---
-  district_plan_zones:     { type: 'fill', color: '#D4863B', outlineColor: '#B06E2D', fillOpacity: 0.12 },
-  heritage_sites:          { type: 'circle', color: '#8B5CF6', radius: 5, strokeWidth: 1.5, iconImage: 'icon-heritage' },
-  contaminated_land:       { type: 'fill', color: '#C42D2D', outlineColor: '#9E2424', fillOpacity: 0.18 },
-  infrastructure_projects: { type: 'circle', color: '#0D7377', radius: 6, strokeWidth: 2, iconImage: 'icon-infrastructure' },
-  transmission_lines:      { type: 'line', color: '#D55E00', lineWidth: 2.5, dashArray: [4, 2] },
+  district_plan_zones:     { type: 'fill', color: '#D4863B', outlineColor: '#B06E2D', fillOpacity: 0.20 },
+  heritage_sites:          { type: 'circle', color: '#8B5CF6', radius: 6, strokeWidth: 2, iconImage: 'icon-heritage' },
+  contaminated_land:       { type: 'fill', color: '#C42D2D', outlineColor: '#9E2424', fillOpacity: 0.28 },
+  infrastructure_projects: { type: 'circle', color: '#0D7377', radius: 7, strokeWidth: 2.5, iconImage: 'icon-infrastructure' },
+  transmission_lines:      { type: 'line', color: '#F97316', lineWidth: 3, dashArray: [4, 2] },
 
-  // --- Property — teal building outlines signal interactivity ---
-  parcels:           { type: 'line', color: '#9CA3AF', lineWidth: 0.8 },
+  // --- Property ---
+  parcels:           { type: 'line', color: '#CBD5E1', lineWidth: 0.5 },
   building_outlines: { type: 'fill', color: '#14B8A6', outlineColor: '#0D9488', fillOpacity: 0.08 },
 
   // --- More ---
-  noise_contours:    { type: 'fill', color: '#E69F00', outlineColor: '#C48700', fillOpacity: 0.15 },
-  conservation_land: { type: 'fill', color: '#2D6A4F', outlineColor: '#1B4D3A', fillOpacity: 0.18 },
-  osm_amenities:     { type: 'circle', color: '#D4863B', radius: 3.5, strokeWidth: 1, iconImage: 'icon-amenity' },
-  sa2_boundaries:    { type: 'line', color: '#6B7280', lineWidth: 1.5, dashArray: [6, 3] },
+  noise_contours:    { type: 'fill', color: '#E69F00', outlineColor: '#C48700', fillOpacity: 0.25 },
+  conservation_land: { type: 'fill', color: '#2D6A4F', outlineColor: '#1B4D3A', fillOpacity: 0.28 },
+  // osm_amenities uses custom color-by-category logic in getLayerStyles()
+  osm_amenities:     { type: 'circle', color: '#D4863B', radius: 4.5, strokeWidth: 1.5 },
+  sa2_boundaries:    { type: 'line', color: '#94A3B8', lineWidth: 1.5, dashArray: [6, 3] },
 };
 
 // ---------------------------------------------------------------------------
@@ -360,9 +361,23 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: building outlines — subtle teal fill + visible teal line outline at high zoom
-  // The teal color distinguishes clickable buildings from the neutral basemap
+  // Special: building outlines — color-coded by use type
+  // Residential = teal, Commercial = amber, Other = slate
   if (layerId === 'building_outlines') {
+    const fillColor: SeverityExpr = [
+      'match', ['get', 'use'],
+      'Residential',  '#14B8A6',  // teal
+      'Commercial',   '#D97706',  // amber
+      'Industrial',   '#7C3AED',  // purple
+      '#64748B',                  // slate fallback
+    ];
+    const outlineColor: SeverityExpr = [
+      'match', ['get', 'use'],
+      'Residential',  '#0D9488',
+      'Commercial',   '#B45309',
+      'Industrial',   '#6D28D9',
+      '#475569',
+    ];
     return [
       {
         id: 'layer-building_outlines',
@@ -370,8 +385,13 @@ export function getLayerStyles(layerId: string): LayerProps[] {
         'source-layer': 'building_outlines',
         type: 'fill' as const,
         paint: {
-          'fill-color': '#14B8A6',
-          'fill-opacity': 0.08,
+          'fill-color': fillColor,
+          'fill-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            13, 0.30,
+            15, 0.20,
+            17, 0.12,
+          ],
           'fill-outline-color': 'transparent',
         },
       },
@@ -382,11 +402,82 @@ export function getLayerStyles(layerId: string): LayerProps[] {
         type: 'line' as const,
         minzoom: 14,
         paint: {
-          'line-color': '#0D9488',
-          'line-width': 1.5,
-          'line-opacity': 0.65,
+          'line-color': outlineColor,
+          'line-width': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0.5,
+            16, 1.5,
+            18, 2.5,
+          ],
+          'line-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0.3,
+            16, 0.7,
+            18, 0.85,
+          ],
         },
       },
+    ];
+  }
+
+  // Special: OSM amenities — color-coded circles by category
+  if (layerId === 'osm_amenities') {
+    const colorExpr: SeverityExpr = [
+      'match', ['get', 'category'],
+      'shop',       '#2563EB',  // blue — retail (supermarket, pharmacy, etc.)
+      'healthcare', '#DC2626',  // red — health
+      'amenity',    '#D97706',  // amber — general amenities (cafe, restaurant, etc.)
+      'leisure',    '#16A34A',  // green — parks, sports
+      'tourism',    '#9333EA',  // purple — attractions
+      '#78716C',                // stone fallback
+    ];
+    return [
+      {
+        id: 'layer-osm_amenities',
+        source: 'source-osm_amenities',
+        'source-layer': 'osm_amenities',
+        type: 'circle' as const,
+        paint: {
+          'circle-color': colorExpr,
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            13, 2.5,
+            15, 4,
+            18, 6,
+          ],
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+        },
+      } as LayerProps,
+    ];
+  }
+
+  // Special: parcels — fade in at high zoom, invisible when zoomed out
+  if (layerId === 'parcels') {
+    return [
+      {
+        id: 'layer-parcels',
+        source: 'source-parcels',
+        'source-layer': 'parcels',
+        type: 'line' as const,
+        minzoom: 15,
+        paint: {
+          'line-color': '#FFFFFF',
+          'line-width': [
+            'interpolate', ['linear'], ['zoom'],
+            15, 0.3,
+            17, 0.5,
+            18, 0.8,
+          ],
+          'line-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            15, 0.3,
+            17, 0.6,
+            18, 0.8,
+          ],
+        },
+      } as LayerProps,
     ];
   }
 

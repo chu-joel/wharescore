@@ -20,7 +20,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
     <div className="space-y-3">
       {/* Zone info */}
       {planning.zone_name && (
-        <div className="rounded-lg border border-border p-3">
+        <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
           <span className="text-sm font-semibold">District Plan Zone</span>
           <div className="mt-2 space-y-1.5">
             <div className="flex items-center justify-between text-sm">
@@ -38,7 +38,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
       )}
 
       {/* Heritage / Contamination / EPB checklist */}
-      <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="rounded-xl border border-border bg-card p-3.5 card-elevated space-y-2">
         <span className="text-sm font-semibold">Checklist</span>
         {/* EPB listed — critical flag */}
         <EpbListedItem listed={planning.epb_listed} />
@@ -68,7 +68,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
 
       {/* Indicator cards */}
       {available.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {available.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
           ))}
@@ -76,7 +76,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
       )}
 
       {unavailable.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
           ))}
@@ -100,7 +100,7 @@ function EpbListedItem({ listed }: { listed: boolean | null }) {
   if (listed === null || listed === undefined) return null;
 
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2.5 text-sm">
       {listed ? (
         <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
       ) : (
@@ -129,7 +129,7 @@ function ChecklistItem({
 }) {
   if (count === null || count === undefined) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
         <span className="h-4 w-4 rounded-full bg-muted" />
         <span>{label}</span>
         <span className="ml-auto text-xs">No data</span>
@@ -142,7 +142,7 @@ function ChecklistItem({
   const isGood = positive ? hasSome : !hasSome;
 
   return (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2.5 text-sm">
       {isGood ? (
         <CheckCircle2 className="h-4 w-4 text-piq-success shrink-0" />
       ) : (

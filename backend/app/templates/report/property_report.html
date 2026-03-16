@@ -6,34 +6,54 @@
 <title>WhareScore Report — {{ full_address }}</title>
 <style>
 /* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+/* Color system: intentional palette matching the web app's Okabe-Ito colorblind-safe risk scale.
+   Every color has ONE purpose:
+   --primary (#0D7377 teal)    = brand, low-risk, "good"
+   --ok (#2D6A4F deep green)   = positive findings, safe indicators
+   --warn (#D55E00 orange)     = moderate risk, things to watch
+   --alert (#C42D2D red)       = critical risk, action required
+   --info (#1565C0 blue)       = neutral information, context, notes
+   --muted (#666 gray)         = secondary text, captions, sources
+*/
 :root {
   --primary:   #0D7377;
+  --primary-light: #B2DFDB;
+  --primary-bg: #F0F9F9;
   --warn:      #D55E00;
   --alert:     #C42D2D;
-  --ok:        #2E7D32;
+  --ok:        #2D6A4F;
   --info:      #1565C0;
-  --none-clr:  #888;
-  --bg-warn:   #FFF3E0;
-  --bg-alert:  #FFEBEE;
-  --bg-ok:     #E8F5E9;
-  --bg-info:   #E3F2FD;
-  --border:    #E0E0E0;
-  --text:      #1A1A1A;
-  --muted:     #666;
-  --light:     #F5F5F5;
+  --none-clr:  #9CA3AF;
+  --bg-warn:   #FFF7ED;
+  --bg-alert:  #FEF2F2;
+  --bg-ok:     #F0FDF4;
+  --bg-info:   #EFF6FF;
+  --border:    #E5E7EB;
+  --text:      #111827;
+  --text-secondary: #374151;
+  --muted:     #6B7280;
+  --light:     #F9FAFB;
+  /* Risk scale (matches web ScoreGauge gradient) */
+  --risk-vlow: #0D7377;
+  --risk-low:  #56B4E9;
+  --risk-mod:  #E69F00;
+  --risk-high: #D55E00;
+  --risk-vhigh:#C42D2D;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  font-size: 13px; line-height: 1.55; color: var(--text);
+  font-size: 13px; line-height: 1.6; color: var(--text);
   background: #fff; max-width: 860px; margin: 0 auto; padding: 24px 28px;
 }
-h1 { font-size: 1.7em; font-weight: 700; }
-h3 { font-size: 1em; font-weight: 600; margin: 0.9em 0 0.4em; }
+h1 { font-size: 1.7em; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+h3 { font-size: 1em; font-weight: 600; margin: 0.9em 0 0.4em; color: var(--text-secondary); }
 p  { margin-bottom: 0.5em; }
 
 /* ─── Print ─────────────────────────────────────────────────────────────────── */
-@page { margin: 15mm; size: A4; }
+@page { margin: 15mm; size: A4;
+  @bottom-center { content: "WhareScore Property Report — Page " counter(page) " of " counter(pages); font-size: 8pt; color: #999; }
+}
 @media print {
   .no-print { display: none !important; }
   body { max-width: none; padding: 0; font-size: 11pt; }
@@ -44,9 +64,14 @@ p  { margin-bottom: 0.5em; }
   .sec-head::marker, .sec-head::-webkit-details-marker { display: none; }
   .map-img { max-width: 100%; }
   .persona-cards { display: block; }
-  .persona-card { margin-bottom: 8px; }
+  .persona-card { margin-bottom: 8px; break-inside: avoid; }
   .invest-grid { display: block; }
   .cover-grid { display: block; }
+  .insight { break-inside: avoid; }
+  .action-item { break-inside: avoid; }
+  table { break-inside: avoid; }
+  .exec-dashboard { page-break-after: always; }
+  .page-break-before { page-break-before: always; }
 }
 
 /* ─── Print Bar ──────────────────────────────────────────────────────────────── */
@@ -73,7 +98,7 @@ details.sec > summary.sec-head {
 details.sec > summary.sec-head::-webkit-details-marker { display: none; }
 details.sec > summary.sec-head::marker { display: none; }
 .sec-title {
-  font-size: 1.15em; font-weight: 700; color: var(--primary); flex: 1;
+  font-size: 1.1em; font-weight: 700; color: var(--primary); flex: 1; letter-spacing: -0.01em;
 }
 .sec-toggle {
   font-size: 0.75em; color: var(--muted); margin-left: 4px;
@@ -91,10 +116,10 @@ details.sec:not([open]) .sec-toggle::after { content: "▼ expand"; }
 
 /* ─── Cover ─────────────────────────────────────────────────────────────────── */
 .cover {
-  border: 2px solid var(--primary); border-radius: 8px;
+  border: 2px solid var(--primary); border-radius: 10px;
   padding: 20px 24px; margin-bottom: 1.2em;
 }
-.cover-meta { color: var(--muted); font-size: 0.9em; margin-top: 4px; }
+.cover-meta { color: var(--muted); font-size: 0.9em; margin-top: 4px; letter-spacing: 0.01em; }
 .score-badge {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 18px; border-radius: 6px; font-weight: 700;
@@ -102,46 +127,52 @@ details.sec:not([open]) .sec-toggle::after { content: "▼ expand"; }
 }
 .cover-grid { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 12px; }
 .cover-stat { font-size: 0.88em; }
-.cover-stat strong { display: block; font-size: 1.1em; }
+.cover-stat strong { display: block; font-size: 1.1em; color: var(--text); }
 .coverage-badge {
   font-size: 0.82em; color: var(--muted); background: var(--light);
-  border-radius: 4px; padding: 4px 10px; display: inline-block; margin-top: 8px;
+  border-radius: 20px; padding: 4px 12px; display: inline-block; margin-top: 8px;
+  border: 1px solid var(--border);
 }
-.map-img { width: 100%; border-radius: 6px; margin-top: 14px; display: block; }
+.map-img { width: 100%; border-radius: 8px; margin-top: 14px; display: block; border: 1px solid var(--border); }
 
 /* ─── Red Flags ──────────────────────────────────────────────────────────────── */
 .red-flags {
-  background: var(--bg-alert); border-left: 4px solid var(--alert);
-  border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 1em;
+  background: var(--bg-alert); border-left: 5px solid var(--alert);
+  border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 1em;
+  border: 1px solid #FECACA; border-left: 5px solid var(--alert);
 }
-.red-flags h3 { color: var(--alert); margin: 0 0 8px; }
+.red-flags h3 { color: var(--alert); margin: 0 0 8px; font-size: 0.95em; }
 .red-flags ul { margin: 0; padding-left: 1.2em; }
-.red-flags li { margin-bottom: 4px; font-size: 0.9em; }
+.red-flags li { margin-bottom: 4px; font-size: 0.9em; color: var(--text-secondary); }
 
 /* ─── AI Narrative ───────────────────────────────────────────────────────────── */
 .ai-narrative {
-  background: #F0F7FF; border-left: 4px solid var(--info);
-  border-radius: 0 6px 6px 0; padding: 12px 16px;
-  font-size: 0.91em; margin: 8px 0; color: #1a1a1a;
+  background: var(--bg-info); border-left: 4px solid var(--info);
+  border-radius: 0 8px 8px 0; padding: 14px 18px;
+  font-size: 0.91em; margin: 10px 0; color: var(--text-secondary);
+  border: 1px solid #BFDBFE; border-left: 4px solid var(--info);
 }
-.ai-label { font-size: 0.78em; font-weight: 600; color: var(--info);
-  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.ai-label { font-size: 0.72em; font-weight: 700; color: var(--info);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .fallback-summary {
-  background: var(--light); border-radius: 6px;
-  padding: 12px 16px; font-size: 0.91em; margin: 8px 0;
+  background: var(--light); border-radius: 8px;
+  padding: 14px 18px; font-size: 0.91em; margin: 10px 0;
+  border: 1px solid var(--border);
 }
 
 /* ─── Bottom Line ────────────────────────────────────────────────────────────── */
 .bottom-line {
-  background: var(--primary); color: white; border-radius: 8px;
-  padding: 12px 20px; font-size: 1.05em; font-weight: 600; margin: 10px 0;
+  background: linear-gradient(135deg, var(--primary) 0%, #0A5C5F 100%); color: white; border-radius: 10px;
+  padding: 14px 22px; font-size: 1.05em; font-weight: 600; margin: 12px 0;
+  letter-spacing: -0.01em;
 }
 
 /* ─── Tables ─────────────────────────────────────────────────────────────────── */
 table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 0.88em; }
-th { background: var(--light); text-align: left; padding: 6px 10px; font-weight: 600; border-bottom: 2px solid var(--border); }
-td { padding: 5px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--light); text-align: left; padding: 8px 12px; font-weight: 600; border-bottom: 2px solid var(--border); color: var(--text-secondary); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.03em; }
+td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-secondary); }
 tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--light); }
 
 /* ─── Hazard Table ───────────────────────────────────────────────────────────── */
 .haz-icon { font-size: 1em; width: 20px; text-align: center; }
@@ -155,16 +186,16 @@ tr.haz-row-warn  { background: #FFFBF5; }
 tr.haz-row-ok    { background: #FAFFFE; }
 
 /* ─── Score Table ────────────────────────────────────────────────────────────── */
-.score-bar { height: 8px; border-radius: 4px; background: var(--light); width: 100px; display: inline-block; overflow: hidden; }
-.score-bar-fill { height: 100%; border-radius: 4px; }
+.score-bar { height: 8px; border-radius: 4px; background: var(--light); width: 100px; display: inline-block; overflow: hidden; border: 1px solid var(--border); }
+.score-bar-fill { height: 100%; border-radius: 3px; }
 
 /* ─── Insights ───────────────────────────────────────────────────────────────── */
-.insight { border-left: 4px solid; border-radius: 0 6px 6px 0; padding: 9px 14px; margin: 6px 0; font-size: 0.9em; }
-.insight-warn  { border-color: var(--warn);  background: var(--bg-warn); }
-.insight-ok    { border-color: var(--ok);    background: var(--bg-ok); }
-.insight-info  { border-color: var(--info);  background: var(--bg-info); }
-.insight-text  { margin-bottom: 4px; }
-.insight-action { color: #444; font-size: 0.92em; }
+.insight { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 10px 16px; margin: 8px 0; font-size: 0.9em; }
+.insight-warn  { border-color: var(--warn);  background: var(--bg-warn); border: 1px solid #FED7AA; border-left: 4px solid var(--warn); }
+.insight-ok    { border-color: var(--ok);    background: var(--bg-ok); border: 1px solid #BBF7D0; border-left: 4px solid var(--ok); }
+.insight-info  { border-color: var(--info);  background: var(--bg-info); border: 1px solid #BFDBFE; border-left: 4px solid var(--info); }
+.insight-text  { margin-bottom: 4px; color: var(--text-secondary); }
+.insight-action { color: var(--muted); font-size: 0.92em; font-style: italic; }
 
 /* ─── In-zone school badge ───────────────────────────────────────────────────── */
 .in-zone  { color: var(--ok); font-weight: 600; }
@@ -184,11 +215,11 @@ tr.haz-row-ok    { background: #FAFFFE; }
 .tip-box { background: var(--light); border-radius: 6px; padding: 8px 14px; margin: 5px 0; font-size: 0.88em; }
 
 /* ─── Investment Snapshot ────────────────────────────────────────────────────── */
-.invest-box { border: 2px solid var(--primary); border-radius: 8px; padding: 14px 18px; margin: 10px 0; }
-.invest-box h3 { color: var(--primary); margin-bottom: 8px; }
-.invest-grid { display: flex; flex-wrap: wrap; gap: 10px 30px; }
+.invest-box { border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 0 10px 10px 0; padding: 16px 20px; margin: 12px 0; background: var(--light); }
+.invest-box h3 { color: var(--primary); margin-bottom: 10px; }
+.invest-grid { display: flex; flex-wrap: wrap; gap: 12px 30px; }
 .invest-stat { font-size: 0.88em; }
-.invest-stat strong { display: block; font-size: 1.1em; }
+.invest-stat strong { display: block; font-size: 1.1em; color: var(--text); }
 
 /* ─── Transparency ───────────────────────────────────────────────────────────── */
 .transparency { font-size: 0.78em; color: var(--muted); background: var(--light); border-radius: 4px; padding: 5px 10px; margin-top: 6px; }
@@ -241,6 +272,112 @@ details.transparency summary { cursor: pointer; color: var(--info); font-size: 0
 /* ─── Disclaimer ─────────────────────────────────────────────────────────────── */
 .disclaimer { font-size: 0.78em; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 1.6em; }
 .meta-footer { font-size: 0.78em; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+
+/* ─── Executive Dashboard (Phase 4) ────────────────────────────────────────── */
+.exec-dashboard { border: 2px solid var(--primary); border-radius: 10px; padding: 24px 28px; margin-bottom: 1.2em; background: linear-gradient(180deg, var(--primary-bg) 0%, white 40%); }
+.exec-dash-header { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+.exec-dash-left { flex: 1 1 340px; }
+.exec-dash-right { flex: 1 1 300px; }
+.score-circle {
+  width: 120px; height: 120px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; flex-direction: column;
+  font-weight: 700; color: white; margin: 0 auto 12px;
+}
+.score-circle-num { font-size: 2em; line-height: 1; }
+.score-circle-label { font-size: 0.7em; opacity: 0.9; }
+.mini-scores { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+.mini-score {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; font-weight: 700; color: white; font-size: 0.7em;
+}
+.mini-score-num { font-size: 1.2em; line-height: 1; }
+.mini-score-label { font-size: 0.55em; text-align: center; line-height: 1.1; margin-top: 1px; }
+.key-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 0.88em; margin-top: 10px; }
+.key-stat-label { color: var(--muted); font-size: 0.85em; }
+.key-stat-value { font-weight: 600; }
+.exec-alerts {
+  background: var(--bg-alert); border-left: 4px solid var(--alert);
+  border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 10px; font-size: 0.85em;
+}
+.exec-alerts strong { color: var(--alert); }
+.exec-findings { margin-top: 10px; font-size: 0.85em; }
+.exec-findings li { margin-bottom: 3px; }
+
+/* ─── Comparison Bars (Phase 4) ─────────────────────────────────────────────── */
+.comp-section { margin: 10px 0; }
+.comp-row { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.comp-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.comp-label { font-weight: 600; font-size: 0.9em; margin-bottom: 2px; color: var(--text-secondary); }
+.comp-bar-track { background: var(--light); border-radius: 5px; height: 10px; position: relative; margin-bottom: 3px; border: 1px solid var(--border); }
+.comp-bar-fill { height: 100%; border-radius: 4px; position: absolute; left: 0; top: 0; }
+.comp-bar-property .comp-bar-fill { background: var(--primary); }
+.comp-bar-suburb .comp-bar-fill { background: var(--risk-mod); }
+.comp-bar-city .comp-bar-fill { background: var(--none-clr); }
+.comp-bar-val { font-size: 0.78em; color: var(--muted); display: inline-block; min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
+.comp-legend { display: flex; gap: 16px; font-size: 0.8em; color: var(--muted); margin-bottom: 14px; padding: 6px 10px; background: var(--light); border-radius: 6px; }
+.comp-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.comp-lower-better { font-size: 0.72em; color: var(--info); font-style: italic; margin-left: 4px; }
+.comp-insight { font-size: 0.78em; margin: 2px 0 6px 0; }
+.comp-insight-positive { color: var(--ok); }
+.comp-insight-negative { color: var(--warn); }
+.comp-insight-neutral { color: var(--muted); }
+.comp-insight-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.comp-insight-dot-positive { background: var(--ok); }
+.comp-insight-dot-negative { background: var(--warn); }
+.comp-insight-dot-neutral { background: var(--muted); }
+
+/* ─── Checklist (Phase 4) ───────────────────────────────────────────────────── */
+.checklist-section { margin: 10px 0; }
+.checklist-group { margin-bottom: 16px; }
+.checklist-header { font-weight: 700; font-size: 0.9em; padding: 6px 12px; border-radius: 6px; margin-bottom: 8px; letter-spacing: 0.02em; }
+.checklist-header-essential { background: var(--bg-alert); color: var(--alert); border: 1px solid #FECACA; }
+.checklist-header-recommended { background: var(--bg-warn); color: var(--warn); border: 1px solid #FED7AA; }
+.checklist-header-optional { background: var(--bg-info); color: var(--info); border: 1px solid #BFDBFE; }
+.checklist-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 0.88em; color: var(--text-secondary); }
+.checklist-box {
+  width: 16px; height: 16px; min-width: 16px; border: 2px solid var(--none-clr);
+  border-radius: 3px; margin-top: 1px;
+}
+
+/* ─── Rent Bars (Phase 4) ───────────────────────────────────────────────────── */
+.rent-bars { margin: 10px 0; }
+.rent-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rent-bar-period { font-size: 0.82em; color: var(--muted); min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+.rent-bar-track { flex: 1; background: var(--light); border-radius: 5px; height: 20px; position: relative; border: 1px solid var(--border); }
+.rent-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary-light), var(--primary)); border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+.rent-bar-val { font-size: 0.75em; color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+/* ─── Methodology & Data Quality (Phase 4) ──────────────────────────────────── */
+.methodology-section { margin: 10px 0; font-size: 0.88em; line-height: 1.65; color: var(--text-secondary); }
+.dq-table { font-size: 0.82em; }
+.dq-table td { padding: 6px 10px; }
+.dq-coverage { display: inline-block; width: 60px; height: 6px; background: var(--light); border-radius: 3px; overflow: hidden; vertical-align: middle; margin-right: 6px; border: 1px solid var(--border); }
+.dq-coverage-fill { height: 100%; border-radius: 2px; background: var(--primary); }
+
+/* ─── Section Headers with Gradient (Phase 4) ──────────────────────────────── */
+.sec-head-premium {
+  border-left: 4px solid var(--primary); padding-left: 14px;
+  background: linear-gradient(90deg, var(--primary-bg) 0%, transparent 60%);
+  border-bottom: 2px solid var(--primary); padding: 10px 0 8px 14px;
+  margin: 1.4em 0 0.8em;
+}
+
+/* ─── Radar Chart ──────────────────────────────────────────────────────────── */
+.radar-section { margin: 16px 0; text-align: center; break-inside: avoid; }
+.radar-section h3 { text-align: left; }
+.radar-section p { text-align: left; }
+.radar-svg { max-width: 340px; margin: 0 auto; }
+
+/* ─── Hazard Indicator Bars ────────────────────────────────────────────────── */
+.hazard-bars { margin: 10px 0; }
+.hazard-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; }
+.hazard-bar-row:hover { background: var(--light); border-radius: 4px; }
+.hazard-bar-name { font-size: 0.84em; min-width: 130px; text-align: right; color: var(--text-secondary); font-weight: 500; }
+.hazard-bar-track { flex: 1; background: var(--light); border-radius: 5px; height: 12px; position: relative; overflow: hidden; border: 1px solid var(--border); }
+.hazard-bar-fill { height: 100%; border-radius: 4px; }
+.hazard-bar-score { font-size: 0.82em; font-weight: 700; min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; }
+.hazard-bar-value { font-size: 0.78em; color: var(--muted); min-width: 80px; }
 </style>
 </head>
 <body>
@@ -252,69 +389,193 @@ details.transparency summary { cursor: pointer; color: var(--info); font-size: 0
 </div>
 
 {# ═══════════════════════════════════════════════════════════════════════════════
-   1. COVER
+   1. EXECUTIVE DASHBOARD (Phase 4 — single-page overview)
    ════════════════════════════════════════════════════════════════════════════ #}
-<div class="cover">
+<div class="exec-dashboard">
   <h1>{{ full_address }}</h1>
   <p class="cover-meta">
     {{ addr.suburb or '' }}{% if addr.suburb and addr.city %} · {% endif %}{{ addr.city or '' }}{% if addr.sa2_name %} · {{ addr.sa2_name }}{% endif %}
+    · Report Date: {{ report_date }}
   </p>
-  {% if composite %}
-  <span class="score-badge" style="background: {{ badge_color }}">
-    {{ rating_label }} Risk — {{ composite | round | int }}/100
-  </span>
-  {% endif %}
-  <div class="cover-grid">
-    <div class="cover-stat"><strong>{{ report_date }}</strong>Report Date</div>
-    <div class="cover-stat"><strong>{{ available_indicators }}/{{ total_indicators }}</strong>Indicators Available</div>
-    {% if addr.sa2_name %}<div class="cover-stat"><strong>{{ addr.sa2_name }}</strong>Statistical Area</div>{% endif %}
-    {% if live.transit_stops_400m is defined and live.transit_stops_400m %}<div class="cover-stat"><strong>{{ live.transit_stops_400m }}</strong>Transit Stops (400m)</div>{% endif %}
-    {% if supermarket_name %}<div class="cover-stat"><strong>{{ supermarket_name }}</strong>Nearest Supermarket{% if supermarket_distance_m %} · {{ (supermarket_distance_m | round | int) }}m{% endif %}</div>{% endif %}
-    {% if live.nearest_train_name and live.nearest_train_distance_m %}<div class="cover-stat"><strong>{{ live.nearest_train_name }}</strong>Train Station · {{ (live.nearest_train_distance_m | round | int) }}m</div>{% endif %}
-    {% if prop_cv %}<div class="cover-stat"><strong>${{ '{:,}'.format(prop_cv) }}</strong>Capital Value</div>{% endif %}
-    {% if yield_pct %}<div class="cover-stat"><strong>{{ yield_pct }}%</strong>Indicative Yield</div>{% endif %}
-  </div>
-  <div class="coverage-badge">{{ coverage_note }}</div>
 
-  {% if map_url %}
-  <img class="map-img" src="{{ map_url }}" alt="Map showing {{ full_address }}" loading="lazy">
-  {% endif %}
-
-  {# ─── Nearby Landmarks (shown on map) ──────────────────────────────── #}
-  {% if in_zone_schools or out_of_zone_schools or supermarket_name %}
-  <div style="margin-top:14px; padding:12px; background:#F5F5F5; border-radius:6px; border-left:4px solid #0D7377;">
-    <p style="font-size:0.85em; color:#666; margin-bottom:8px; margin-top:0;"><strong>Nearby landmarks on map:</strong></p>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.9em;">
-      {% if in_zone_schools | length > 0 %}
-      <div>
-        <strong style="color:#0D7377;">📚 In-Zone Schools</strong>
-        <ul style="margin:4px 0; padding-left:18px; list-style:none;">
-          {% for s in in_zone_schools[:3] %}
-          <li>{{ s.name }}{% if s.distance_m %} ({{ (s.distance_m | round | int) }}m){% endif %}</li>
-          {% endfor %}
-        </ul>
+  <div class="exec-dash-header">
+    {# ─── Left column: scores + stats ─── #}
+    <div class="exec-dash-left">
+      {% if composite %}
+      {# Conic-gradient score circle #}
+      {% set score_deg = (composite / 100 * 360) | round | int %}
+      <div class="score-circle" style="background: conic-gradient({{ badge_color }} 0deg, {{ badge_color }} {{ score_deg }}deg, #E0E0E0 {{ score_deg }}deg, #E0E0E0 360deg);">
+        <div style="width:96px; height:96px; border-radius:50%; background:white; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+          <span class="score-circle-num" style="color:{{ badge_color }}">{{ composite | round | int }}</span>
+          <span class="score-circle-label" style="color:{{ badge_color }}">{{ rating_label }}</span>
+        </div>
       </div>
       {% endif %}
-      {% if out_of_zone_schools | length > 0 %}
-      <div>
-        <strong style="color:#1565C0;">🏫 Other Schools</strong>
-        <ul style="margin:4px 0; padding-left:18px; list-style:none;">
-          {% for s in out_of_zone_schools[:2] %}
-          <li>{{ s.name }}{% if s.distance_m %} ({{ (s.distance_m | round | int) }}m){% endif %}</li>
-          {% endfor %}
-        </ul>
+
+      {# Mini category score circles #}
+      {% if categories %}
+      <div class="mini-scores">
+        {% for name, data in categories.items() %}
+        {% if data is mapping and data.score is defined and data.score is not none %}
+        {% set cat_score = data.score | round | int %}
+        {% set cat_color = data.color | default('#999') %}
+        <div class="mini-score" style="background: {{ cat_color }};">
+          <span class="mini-score-num">{{ cat_score }}</span>
+          <span class="mini-score-label">{{ name | replace('_',' ') | title }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
       </div>
       {% endif %}
-      {% if supermarket_name %}
-      <div>
-        <strong style="color:#2E7D32;">🛒 Supermarket</strong>
-        <p style="margin:4px 0;">{{ supermarket_name }}{% if supermarket_distance_m %}<br>{{ (supermarket_distance_m | round | int) }}m away{% endif %}</p>
+
+      {# Key stats grid #}
+      <div class="key-stats-grid">
+        {% if prop_cv %}
+        <div><span class="key-stat-label">Capital Value</span><br><span class="key-stat-value">${{ '{:,}'.format(prop_cv) }}</span></div>
+        {% endif %}
+        {% if prop.land_area_sqm %}
+        <div><span class="key-stat-label">Land Area</span><br><span class="key-stat-value">{{ prop.land_area_sqm | round | int }} m²</span></div>
+        {% endif %}
+        {% if planning.zone_name %}
+        <div><span class="key-stat-label">Zone</span><br><span class="key-stat-value">{{ planning.zone_name }}</span></div>
+        {% endif %}
+        {% if live.transit_stops_400m is defined and live.transit_stops_400m %}
+        <div><span class="key-stat-label">Transit (400m)</span><br><span class="key-stat-value">{{ live.transit_stops_400m }} stops</span></div>
+        {% endif %}
+        {% if yield_pct %}
+        <div><span class="key-stat-label">Gross Yield</span><br><span class="key-stat-value">{{ yield_pct }}%</span></div>
+        {% endif %}
+        <div><span class="key-stat-label">Indicators</span><br><span class="key-stat-value">{{ available_indicators }}/{{ total_indicators }}</span></div>
       </div>
+    </div>
+
+    {# ─── Right column: map ─── #}
+    <div class="exec-dash-right">
+      {% if map_url %}
+      <img class="map-img" src="{{ map_url }}" alt="Map showing {{ full_address }}" loading="lazy">
       {% endif %}
     </div>
   </div>
+
+  {# ─── Red flags compact alert ─── #}
+  {% set warn_list_dash = [] %}
+  {% for sec_name, sec_insights in insights.items() %}
+    {% for i in sec_insights %}
+      {% if i.level == 'warn' %}{% if warn_list_dash.append(i) %}{% endif %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% if warn_list_dash %}
+  <div class="exec-alerts">
+    <strong>{{ warn_list_dash | length }} Issue{{ 's' if warn_list_dash | length != 1 else '' }} Flagged</strong>
+    <ul style="margin:4px 0 0; padding-left:1.2em; font-size:0.92em;">
+      {% for i in warn_list_dash[:5] %}
+      <li>{{ i.text | truncate(100) }}</li>
+      {% endfor %}
+      {% if warn_list_dash | length > 5 %}
+      <li style="color:var(--muted)">...and {{ warn_list_dash | length - 5 }} more — see details below</li>
+      {% endif %}
+    </ul>
+  </div>
   {% endif %}
+
+  {# ─── Top 3 findings ─── #}
+  {% set all_insights_flat = [] %}
+  {% for sec_name, sec_insights in insights.items() %}
+    {% for i in sec_insights %}
+      {% if all_insights_flat.append(i) %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% if all_insights_flat %}
+  <div class="exec-findings">
+    <strong>Key Findings:</strong>
+    <ul style="margin:4px 0 0; padding-left:1.2em;">
+      {% for i in all_insights_flat[:3] %}
+      <li>{{ i.text | truncate(120) }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="coverage-badge" style="margin-top:10px;">{{ coverage_note }}</div>
 </div>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   1b. RADAR CHART — Category Score Profile
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if radar_chart %}
+<div class="radar-section">
+  <h3>Property Score Profile</h3>
+  <p style="font-size:0.88em; color:var(--muted); margin-bottom:8px;">
+    How this property performs across five assessment categories. Scores closer to the outer edge indicate higher risk or greater significance.
+  </p>
+  <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" class="radar-svg">
+    {# Grid rings #}
+    {% for ring in radar_chart.grid_rings %}
+    <polygon points="{{ ring.points }}" fill="none" stroke="#E0E0E0" stroke-width="{% if ring.value == 100 %}1.5{% else %}0.8{% endif %}" />
+    {% endfor %}
+
+    {# Grid spokes #}
+    {% for spoke in radar_chart.spokes %}
+    <line x1="{{ radar_chart.cx }}" y1="{{ radar_chart.cy }}" x2="{{ spoke.x }}" y2="{{ spoke.y }}" stroke="#E0E0E0" stroke-width="0.8" />
+    {% endfor %}
+
+    {# Score polygon — filled area #}
+    <polygon points="{{ radar_chart.polygon_points }}" fill="rgba(13,115,119,0.15)" stroke="#0D7377" stroke-width="2" />
+
+    {# Score dots on vertices #}
+    {% for dot in radar_chart.score_dots %}
+    <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="5" fill="{{ dot.color }}" stroke="white" stroke-width="2" />
+    <text x="{{ dot.x }}" y="{{ dot.y - 10 }}" text-anchor="middle" font-size="9" font-weight="600" fill="{{ dot.color }}">{{ dot.score }}</text>
+    {% endfor %}
+
+    {# Axis labels #}
+    {% for ax in radar_chart.axes %}
+    <text x="{{ ax.x_label }}" y="{{ ax.y_label }}" text-anchor="{{ ax.anchor }}" dominant-baseline="middle" font-size="10.5" font-weight="600" fill="#333">{{ ax.label }}</text>
+    {% endfor %}
+
+    {# Ring value labels (right side only, for the 50 and 100 marks) #}
+    {% for ring in radar_chart.grid_rings %}
+    {% if ring.value == 50 or ring.value == 100 %}
+    <text x="{{ radar_chart.cx + 4 }}" y="{{ radar_chart.cy - (ring.value / 100 * 120) + 3 }}" font-size="8" fill="#999">{{ ring.value }}</text>
+    {% endif %}
+    {% endfor %}
+  </svg>
+
+  {# Legend row showing category name + score + color #}
+  <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-top:8px;">
+    {% for ax in radar_chart.axes %}
+    <span style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ ax.color }};"></span>
+      {{ ax.label }}: <strong>{{ ax.score | round | int }}</strong>/100
+    </span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   1c. HAZARD RISK BARS — Individual Indicator Breakdown
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if hazard_bars %}
+<div style="break-inside: avoid; margin: 1em 0;">
+  <h3 style="border-left:4px solid #C42D2D; padding-left:10px;">Risk Indicator Breakdown</h3>
+  <p style="font-size:0.85em; color:var(--muted); margin-bottom:10px;">
+    Individual hazard and risk scores. Longer bars = higher risk. Scores above 60 are flagged for attention.
+  </p>
+  <div class="hazard-bars">
+    {% for bar in hazard_bars %}
+    <div class="hazard-bar-row">
+      <span class="hazard-bar-name">{{ bar.name }}</span>
+      <div class="hazard-bar-track">
+        <div class="hazard-bar-fill" style="width:{{ bar.pct }}%; background:{{ bar.color }};"></div>
+      </div>
+      <span class="hazard-bar-score" style="color:{{ bar.color }};">{{ bar.score }}</span>
+      <span class="hazard-bar-value">{{ bar.value }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 {# ─── Red Flags Summary ─────────────────────────────────────────────────────── #}
 {% set warn_list = [] %}
@@ -376,42 +637,41 @@ details.transparency summary { cursor: pointer; color: var(--info); font-size: 0
   Composite score is a weighted average: Hazards 30%, Liveability 25%, Environment 15%, Market 15%, Planning 15%. Higher score = higher risk. 0–20 = Very Low, 21–40 = Low, 41–60 = Moderate, 61–80 = High, 81–100 = Very High.
 </details>
 
-<table style="margin-top:8px;">
-  <thead>
-    <tr><th>Category</th><th>Rating</th><th>Score /100</th><th style="width:110px">Risk Level</th></tr>
-  </thead>
-  <tbody>
-    {% for name, data in categories.items() %}
-    {% set label = name.replace('_',' ').title() %}
-    {% set s = (data.score | default(none)) if data is mapping else (data if data is number else none) %}
-    {% set r = (data.rating | default('—')) if data is mapping else '—' %}
-    {% if s is not none %}
-    {% set bar_color = '#C42D2D' if s >= 70 else ('#D55E00' if s >= 50 else ('#E69F00' if s >= 30 else '#2E7D32')) %}
-    <tr>
-      <td>{{ label }}</td>
-      <td>{{ r }}</td>
-      <td>{{ s | round | int }}</td>
-      <td><span class="score-bar"><span class="score-bar-fill" style="width:{{ s }}%; background:{{ bar_color }};"></span></span></td>
-    </tr>
-    {% endif %}
-    {% endfor %}
-    {% if composite %}
-    {% set bar_color = '#C42D2D' if composite >= 70 else ('#D55E00' if composite >= 50 else ('#E69F00' if composite >= 30 else '#2E7D32')) %}
-    <tr style="font-weight:700; border-top: 2px solid var(--border)">
-      <td>Composite</td><td>{{ rating_label }}</td><td>{{ composite | round | int }}</td>
-      <td><span class="score-bar"><span class="score-bar-fill" style="width:{{ composite }}%; background:{{ bar_color }};"></span></span></td>
-    </tr>
-    {% endif %}
-  </tbody>
-</table>
+<div style="margin-top:10px;">
+  {% for name, data in categories.items() %}
+  {% set label = name.replace('_',' ').title() %}
+  {% set s = (data.score | default(none)) if data is mapping else (data if data is number else none) %}
+  {% if s is not none %}
+  {% set bar_color = '#C42D2D' if s >= 70 else ('#D55E00' if s >= 50 else ('#E69F00' if s >= 30 else '#0D7377')) %}
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; break-inside:avoid;">
+    <span style="min-width:90px; font-size:0.88em; font-weight:500; color:var(--text-secondary);">{{ label }}</span>
+    <div style="flex:1; height:14px; background:var(--light); border-radius:7px; border:1px solid var(--border); overflow:hidden; position:relative;">
+      <div style="height:100%; width:{{ s | round | int }}%; background:{{ bar_color }}; border-radius:6px;"></div>
+    </div>
+    <span style="min-width:36px; font-size:0.92em; font-weight:700; color:{{ bar_color }}; text-align:right; font-variant-numeric:tabular-nums;">{{ s | round | int }}</span>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% if composite %}
+  {% set bar_color = '#C42D2D' if composite >= 70 else ('#D55E00' if composite >= 50 else ('#E69F00' if composite >= 30 else '#0D7377')) %}
+  <div style="display:flex; align-items:center; gap:10px; padding-top:10px; border-top:2px solid var(--border); break-inside:avoid;">
+    <span style="min-width:90px; font-size:0.92em; font-weight:700;">Composite</span>
+    <div style="flex:1; height:16px; background:var(--light); border-radius:8px; border:1px solid var(--border); overflow:hidden;">
+      <div style="height:100%; width:{{ composite | round | int }}%; background:{{ bar_color }}; border-radius:7px;"></div>
+    </div>
+    <span style="min-width:36px; font-size:1em; font-weight:700; color:{{ bar_color }}; text-align:right; font-variant-numeric:tabular-nums;">{{ composite | round | int }}</span>
+  </div>
+  {% endif %}
+</div>
 </details>
 
 {# ═══════════════════════════════════════════════════════════════════════════════
    4. NATURAL HAZARDS
    ════════════════════════════════════════════════════════════════════════════ #}
 {% set haz_warn_count = insights.hazards | selectattr('level','equalto','warn') | list | length %}
-<details class="sec" open>
-<summary class="sec-head">
+<details class="sec page-break-before" open>
+<summary class="sec-head sec-head-premium">
   <span class="sec-title">Natural Hazards</span>
   {% if haz_warn_count > 0 %}<span class="sec-badge warn">{{ haz_warn_count }} issue{{ 's' if haz_warn_count != 1 else '' }}</span>{% else %}<span class="sec-badge ok">All clear</span>{% endif %}
   <span class="sec-toggle"></span>
@@ -458,7 +718,7 @@ details.transparency summary { cursor: pointer; color: var(--info); font-size: 0
    ════════════════════════════════════════════════════════════════════════════ #}
 {% set env_warn_count = insights.environment | selectattr('level','equalto','warn') | list | length %}
 <details class="sec" open>
-<summary class="sec-head">
+<summary class="sec-head sec-head-premium">
   <span class="sec-title">Environment</span>
   {% if env_warn_count > 0 %}<span class="sec-badge warn">{{ env_warn_count }} issue{{ 's' if env_warn_count != 1 else '' }}</span>{% endif %}
   <span class="sec-toggle"></span>
@@ -470,13 +730,46 @@ details.transparency summary { cursor: pointer; color: var(--info); font-size: 0
 
 {% if env.road_noise_db %}
 <h3>Road Noise</h3>
-<table>
-  <tr><td><strong>Level</strong></td><td><strong>{{ env.road_noise_db }} dB</strong> (LAeq24h) — {{ noise_context }}</td></tr>
-  <tr><td><strong>City median</strong></td><td>~{{ city_median_noise }} dB for Wellington residential streets</td></tr>
-  <tr><td><strong>WHO recommendation</strong></td><td>≤ 53 dB for outdoor residential areas</td></tr>
-</table>
-<details class="transparency"><summary>How noise is measured</summary>
-LAeq24h = 24-hour equivalent continuous noise level from NZTA road noise contour data (National Road Noise Atlas).</details>
+<div style="break-inside:avoid; margin:8px 0;">
+  {% set db = env.road_noise_db %}
+  {% set noise_color = '#2D6A4F' if db < 45 else ('#0D7377' if db < 55 else ('#E69F00' if db < 65 else ('#D55E00' if db < 75 else '#C42D2D'))) %}
+  {% set noise_label = 'Quiet' if db < 45 else ('Moderate' if db < 55 else ('Noticeable' if db < 65 else ('Loud' if db < 75 else 'Very Loud'))) %}
+
+  <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:8px;">
+    <span style="font-size:1.6em; font-weight:700; color:{{ noise_color }};">{{ db }} dB</span>
+    <span style="font-size:0.9em; font-weight:600; color:{{ noise_color }};">{{ noise_label }}</span>
+  </div>
+
+  {# 5-zone noise bar #}
+  <svg viewBox="0 0 300 18" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:18px;">
+    <rect x="0" y="3" width="60" height="12" rx="2" fill="#2D6A4F" opacity="0.8"/>
+    <rect x="62" y="3" width="60" height="12" rx="2" fill="#0D7377" opacity="0.8"/>
+    <rect x="124" y="3" width="60" height="12" rx="2" fill="#E69F00" opacity="0.8"/>
+    <rect x="186" y="3" width="60" height="12" rx="2" fill="#D55E00" opacity="0.8"/>
+    <rect x="248" y="3" width="52" height="12" rx="2" fill="#C42D2D" opacity="0.8"/>
+    {# Marker position: map 30-80dB to 0-300px #}
+    {% set marker_x = ((db - 30) / 50 * 300) | round | int %}
+    {% set marker_x = [0, [marker_x, 296] | min] | max %}
+    <polygon points="{{ marker_x }},0 {{ marker_x - 4 }},3 {{ marker_x + 4 }},3" fill="{{ noise_color }}"/>
+    <line x1="{{ marker_x }}" y1="3" x2="{{ marker_x }}" y2="15" stroke="{{ noise_color }}" stroke-width="2"/>
+  </svg>
+  <div style="display:flex; justify-content:space-between; font-size:0.68em; color:var(--muted); margin-top:2px;">
+    <span>Quiet</span>
+    <span>Moderate</span>
+    <span>Noticeable</span>
+    <span>Loud</span>
+    <span>Very Loud</span>
+  </div>
+
+  <p style="font-size:0.85em; color:var(--text-secondary); margin-top:8px;">
+    {{ noise_context }}
+    {% if db >= 65 %} Consider acoustic glazing and ventilation that doesn't require opening windows.{% endif %}
+  </p>
+  <table style="margin-top:6px;">
+    <tr><td style="font-size:0.85em"><strong>City median</strong></td><td style="font-size:0.85em">~{{ city_median_noise }} dB for Wellington residential streets</td></tr>
+    <tr><td style="font-size:0.85em"><strong>WHO guideline</strong></td><td style="font-size:0.85em">≤ 53 dB for outdoor residential areas</td></tr>
+  </table>
+</div>
 {% endif %}
 
 {% if env.air_pm10_site or env.air_pm25_site %}
@@ -530,8 +823,8 @@ LAeq24h = 24-hour equivalent continuous noise level from NZTA road noise contour
    6. LIVEABILITY
    ════════════════════════════════════════════════════════════════════════════ #}
 {% set live_warn_count = insights.liveability | selectattr('level','equalto','warn') | list | length %}
-<details class="sec" open>
-<summary class="sec-head">
+<details class="sec page-break-before" open>
+<summary class="sec-head sec-head-premium">
   <span class="sec-title">Liveability</span>
   {% if live_warn_count > 0 %}<span class="sec-badge warn">{{ live_warn_count }} issue{{ 's' if live_warn_count != 1 else '' }}</span>{% endif %}
   <span class="sec-toggle"></span>
@@ -678,9 +971,27 @@ EQI (Education Quality Index) ranges 400–520. Lower is better — EQI 400 = hi
 {# NZDep #}
 {% if live.nzdep_decile %}
 <h3>Deprivation Index</h3>
-<table>
-  <tr><td><strong>NZDep decile</strong></td><td>{{ live.nzdep_decile }}/10 (1 = least deprived, 10 = most deprived)</td></tr>
-</table>
+<div style="break-inside:avoid; margin:8px 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+    <span style="font-size:0.9em; font-weight:600;">NZDep Score</span>
+    <span style="font-size:1.1em; font-weight:700; color:{% if live.nzdep_decile <= 3 %}var(--ok){% elif live.nzdep_decile <= 7 %}var(--risk-mod){% else %}var(--risk-high){% endif %};">{{ live.nzdep_decile }}/10</span>
+  </div>
+  <svg viewBox="0 0 300 16" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:16px;">
+    {% for i in range(10) %}
+    {% set x = i * 30 %}
+    {% if i < live.nzdep_decile %}
+      {% set fill = '#2D6A4F' if i < 3 else ('#E69F00' if i < 7 else '#D55E00') %}
+    {% else %}
+      {% set fill = '#E5E7EB' %}
+    {% endif %}
+    <rect x="{{ x }}" y="2" width="27" height="12" rx="2" fill="{{ fill }}" />
+    {% endfor %}
+  </svg>
+  <div style="display:flex; justify-content:space-between; font-size:0.72em; color:var(--muted); margin-top:2px;">
+    <span>Least deprived</span>
+    <span>Most deprived</span>
+  </div>
+</div>
 <details class="transparency"><summary>What NZDep measures</summary>
 Stats NZ 2018 Deprivation Index — composite of 9 measures: income, employment, qualifications, owned home, support, living space, communication, transport access, and crime victimisation.</details>
 {% endif %}
@@ -688,12 +999,53 @@ Stats NZ 2018 Deprivation Index — composite of 9 measures: income, employment,
 {# Crime #}
 {% if (live.crime_victimisations | default(none)) is not none %}
 <h3>Crime</h3>
-<table>
-  <tr><td><strong>Victimisations (area unit)</strong></td><td>{{ live.crime_victimisations }}</td></tr>
-  {% if (live.crime_percentile | default(none)) is not none %}<tr><td><strong>City percentile</strong></td><td>{{ live.crime_percentile }}th — higher than {{ live.crime_percentile }}% of Wellington area units</td></tr>{% endif %}
-  {% if (live.crime_city_median | default(none)) is not none %}<tr><td><strong>City median</strong></td><td>{{ live.crime_city_median }} victimisations/area unit</td></tr>{% endif %}
-  {% if live.crime_area_unit %}<tr><td><strong>Area unit</strong></td><td>{{ live.crime_area_unit }}</td></tr>{% endif %}
-</table>
+<div style="break-inside:avoid; margin:8px 0;">
+  {% set crime_pct = live.crime_percentile | default(0) %}
+  {% set crime_color = '#2D6A4F' if crime_pct <= 25 else ('#0D7377' if crime_pct <= 50 else ('#E69F00' if crime_pct <= 75 else '#C42D2D')) %}
+  {% set crime_label = 'Low Crime Area' if crime_pct <= 25 else ('Below Average' if crime_pct <= 50 else ('Above Average' if crime_pct <= 75 else 'High Crime Area')) %}
+
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+    <span style="font-size:1.3em; font-weight:700; color:{{ crime_color }};">{{ crime_pct | round | int }}th</span>
+    <div>
+      <span style="font-size:0.9em; font-weight:600; color:{{ crime_color }};">{{ crime_label }}</span>
+      <br><span style="font-size:0.78em; color:var(--muted);">percentile across Wellington area units</span>
+    </div>
+  </div>
+
+  {# Gradient percentile bar #}
+  <svg viewBox="0 0 300 14" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:14px;">
+    <defs>
+      <linearGradient id="crimeGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#2D6A4F"/>
+        <stop offset="50%" stop-color="#E69F00"/>
+        <stop offset="100%" stop-color="#C42D2D"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="2" width="300" height="10" rx="5" fill="url(#crimeGrad)" opacity="0.25"/>
+    <rect x="0" y="2" width="{{ (crime_pct / 100 * 300) | round | int }}" height="10" rx="5" fill="url(#crimeGrad)"/>
+    {# Marker #}
+    <rect x="{{ (crime_pct / 100 * 296) | round | int }}" y="0" width="4" height="14" rx="2" fill="{{ crime_color }}" stroke="white" stroke-width="1"/>
+  </svg>
+  <div style="display:flex; justify-content:space-between; font-size:0.72em; color:var(--muted); margin-top:2px;">
+    <span>Safest</span>
+    <span>50th</span>
+    <span>Most crime</span>
+  </div>
+
+  {# Stats row #}
+  <div style="display:flex; gap:10px; margin-top:10px;">
+    <div style="flex:1; background:var(--light); border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center;">
+      <div style="font-size:1.2em; font-weight:700;">{{ live.crime_victimisations }}</div>
+      <div style="font-size:0.72em; color:var(--muted);">victimisations reported</div>
+    </div>
+    {% if (live.crime_city_median | default(none)) is not none %}
+    <div style="flex:1; background:var(--light); border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center;">
+      <div style="font-size:1.2em; font-weight:700;">{{ live.crime_city_median }}</div>
+      <div style="font-size:0.72em; color:var(--muted);">city median</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
 <details class="transparency"><summary>How crime is measured</summary>
 Based on victimisations reported in this area unit (2022–2025 NZ Police data), compared against Wellington area units using percentile rank. Higher percentile = more crime relative to city.</details>
 {% endif %}
@@ -702,9 +1054,41 @@ Based on victimisations reported in this area unit (2022–2025 NZ Police data),
 {% if (live.transit_stops_400m | default(none)) is not none %}
 <h3>Public Transport Access</h3>
 <table>
-  <tr><td><strong>Transit stops within 400m</strong></td><td><strong>{{ live.transit_stops_400m }}</strong> stops (bus, train, ferry)</td></tr>
+  <tr><td><strong>Transit stops within 400m</strong></td><td><strong>{{ live.transit_stops_400m }}</strong> stops</td></tr>
   {% if live.nearest_train_name %}<tr><td><strong>Nearest train station</strong></td><td><strong>{{ live.nearest_train_name }}</strong>{% if live.nearest_train_distance_m %} — {{ live.nearest_train_distance_m | round | int }}m away{% endif %}</td></tr>{% endif %}
+  {% if live.peak_trips_per_hour %}<tr><td><strong>Peak frequency (7–9am)</strong></td><td>~{{ live.peak_trips_per_hour | round | int }} services/hour at busiest nearby stop{% if live.nearest_stop_name %} ({{ live.nearest_stop_name }}){% endif %}</td></tr>{% endif %}
 </table>
+
+{# Mode breakdown #}
+{% if live.bus_stops_800m is defined or live.rail_stops_800m is defined %}
+<p style="margin-top:6px"><strong>Transit modes within 800m:</strong>
+{% set modes = [] %}
+{% if live.bus_stops_800m %}{% set _ = modes.append(live.bus_stops_800m ~ ' bus') %}{% endif %}
+{% if live.rail_stops_800m %}{% set _ = modes.append(live.rail_stops_800m ~ ' rail') %}{% endif %}
+{% if live.ferry_stops_800m %}{% set _ = modes.append(live.ferry_stops_800m ~ ' ferry') %}{% endif %}
+{% if live.cable_car_stops_800m %}{% set _ = modes.append(live.cable_car_stops_800m ~ ' cable car') %}{% endif %}
+{{ modes | join(', ') }} stops
+</p>
+{% endif %}
+
+{# Travel times to key destinations #}
+{% if live.transit_travel_times is defined and live.transit_travel_times %}
+<h4 style="margin-top:12px">Commute Times by Public Transport</h4>
+<table>
+  <thead><tr><th>Destination</th><th>Time</th><th>Route</th></tr></thead>
+  <tbody>
+    {% for tt in live.transit_travel_times %}
+    <tr>
+      <td>{{ tt.destination }}</td>
+      <td><strong>{{ tt.minutes | round | int }} min</strong></td>
+      <td>{{ tt.routes | join(', ') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="font-size:11px;color:#777;margin-top:4px">Scheduled travel times from nearest stops (within 400m). Direct routes only — transfers may offer faster alternatives for some destinations.</p>
+{% endif %}
+
 {% endif %}
 
 {# Road crashes #}
@@ -772,8 +1156,8 @@ Based on victimisations reported in this area unit (2022–2025 NZ Police data),
 {# ═══════════════════════════════════════════════════════════════════════════════
    8. MARKET INTELLIGENCE
    ════════════════════════════════════════════════════════════════════════════ #}
-<details class="sec" open>
-<summary class="sec-head">
+<details class="sec page-break-before" open>
+<summary class="sec-head sec-head-premium">
   <span class="sec-title">Market Intelligence — Local Area Market Data</span>
   <span class="sec-toggle"></span>
 </summary>
@@ -856,6 +1240,104 @@ Based on victimisations reported in this area unit (2022–2025 NZ Police data),
 {% endfor %}
 {% endif %}
 </details>
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   8b. COMPARISON DATA (Phase 4 — PDF only)
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if comparison_bars %}
+<details class="sec" open>
+<summary class="sec-head sec-head-premium">
+  <span class="sec-title">How This Property Compares</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<p style="font-size:0.88em; color:var(--muted); margin-bottom:10px;">
+  Key liveability and risk metrics for this property compared against
+  {% if addr and addr.suburb %}{{ addr.suburb }}{% else %}suburb{% endif %} and
+  {% if addr and addr.city %}{{ addr.city }}{% else %}city{% endif %} averages.
+</p>
+
+<div class="comp-section">
+  <div class="comp-legend">
+    <span><span class="comp-legend-dot" style="background:var(--primary)"></span> This Property</span>
+    <span><span class="comp-legend-dot" style="background:#E69F00"></span> {% if addr and addr.suburb %}{{ addr.suburb }}{% else %}Suburb{% endif %} Average</span>
+    <span><span class="comp-legend-dot" style="background:#999"></span> {% if addr and addr.city %}{{ addr.city }}{% else %}City{% endif %} Average</span>
+  </div>
+
+  {% for bar in comparison_bars %}
+  <div class="comp-row">
+    <div class="comp-label">
+      {{ bar.label }}
+      {% if bar.lower_is_better %}<span class="comp-lower-better">(lower is better)</span>{% endif %}
+    </div>
+    {% if bar.insight %}
+    <div class="comp-insight comp-insight-{{ bar.sentiment }}">
+      <span class="comp-insight-dot comp-insight-dot-{{ bar.sentiment }}"></span>
+      {{ bar.insight }}
+    </div>
+    {% endif %}
+    {# Property bar #}
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+      <span style="font-size:0.72em; color:var(--primary); width:55px;">Property</span>
+      <div class="comp-bar-track comp-bar-property" style="flex:1">
+        <div class="comp-bar-fill" style="width:{{ bar.property_pct }}%;"></div>
+      </div>
+      <span class="comp-bar-val">{{ bar.property_value | round(1) }}{{ bar.unit }}</span>
+    </div>
+    {# Suburb bar #}
+    {% if bar.suburb_pct is not none %}
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+      <span style="font-size:0.72em; color:#E69F00; width:55px;">Suburb</span>
+      <div class="comp-bar-track comp-bar-suburb" style="flex:1">
+        <div class="comp-bar-fill" style="width:{{ bar.suburb_pct }}%;"></div>
+      </div>
+      <span class="comp-bar-val">{{ bar.suburb_avg | round(1) }}{{ bar.unit }}</span>
+    </div>
+    {% endif %}
+    {# City bar #}
+    {% if bar.city_pct is not none %}
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="font-size:0.72em; color:#999; width:55px;">City</span>
+      <div class="comp-bar-track comp-bar-city" style="flex:1">
+        <div class="comp-bar-fill" style="width:{{ bar.city_pct }}%;"></div>
+      </div>
+      <span class="comp-bar-val">{{ bar.city_avg | round(1) }}{{ bar.unit }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   8c. MARKET TREND CHART — Rent History Bars (Phase 4 — PDF only)
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if rent_bars %}
+<details class="sec" open>
+<summary class="sec-head sec-head-premium">
+  <span class="sec-title">Rent Trend — Last 5 Periods</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<div class="rent-bars">
+  {# Inline SVG bar chart #}
+  <svg viewBox="0 0 500 {{ rent_bars | length * 32 + 10 }}" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:500px; height:auto;">
+    {% for bar in rent_bars %}
+    {% set y = loop.index0 * 32 + 5 %}
+    {# Period label #}
+    <text x="68" y="{{ y + 15 }}" text-anchor="end" font-size="10" fill="#666">{{ bar.period }}</text>
+    {# Background track #}
+    <rect x="75" y="{{ y + 2 }}" width="360" height="18" rx="3" fill="#F0F0F0"/>
+    {# Filled bar #}
+    <rect x="75" y="{{ y + 2 }}" width="{{ (bar.pct * 3.6) | round | int }}" height="18" rx="3" fill="#0D7377"/>
+    {# Value label #}
+    <text x="{{ 75 + (bar.pct * 3.6) | round | int + 6 }}" y="{{ y + 15 }}" font-size="10" fill="#333" font-weight="600">${{ bar.median | round | int }}/wk</text>
+    {% endfor %}
+  </svg>
+</div>
+</details>
+{% endif %}
 
 {# ═══════════════════════════════════════════════════════════════════════════════
    9. PROPERTY & VALUATION
@@ -1041,7 +1523,142 @@ Based on victimisations reported in this area unit (2022–2025 NZ Police data),
 {% endif %}
 
 {# ═══════════════════════════════════════════════════════════════════════════════
-   13. DISCLAIMER
+   13. BEFORE YOU BUY CHECKLIST (Phase 4 — printable, PDF only)
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if checklist %}
+<details class="sec page-break-before" open>
+<summary class="sec-head sec-head-premium">
+  <span class="sec-title">Pre-Purchase Checklist</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<p style="font-size:0.88em; color:#444; margin-bottom:10px;">
+  Print this page and work through each item before going unconditional. Tick off as you complete.
+</p>
+
+<div class="checklist-section">
+  {# Essential #}
+  {% if checklist.essential %}
+  <div class="checklist-group">
+    <div class="checklist-header checklist-header-essential">Essential — Do Not Skip</div>
+    {% for item in checklist.essential %}
+    <div class="checklist-item">
+      <div class="checklist-box"></div>
+      <span>{{ item.text }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Recommended #}
+  {% if checklist.recommended %}
+  <div class="checklist-group">
+    <div class="checklist-header checklist-header-recommended">Recommended</div>
+    {% for item in checklist.recommended %}
+    <div class="checklist-item">
+      <div class="checklist-box"></div>
+      <span>{{ item.text }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Optional #}
+  {% if checklist.optional %}
+  <div class="checklist-group">
+    <div class="checklist-header checklist-header-optional">Optional — Nice to Have</div>
+    {% for item in checklist.optional %}
+    <div class="checklist-item">
+      <div class="checklist-box"></div>
+      <span>{{ item.text }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   14. METHODOLOGY NOTES (Phase 4 — premium PDF only, not on web)
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if methodology_notes %}
+<details class="sec page-break-before" open>
+<summary class="sec-head sec-head-premium">
+  <span class="sec-title">Methodology</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<div class="methodology-section">
+  <h3>How WhareScore Computes Risk Scores</h3>
+  <p>{{ methodology_notes }}</p>
+
+  <h3 style="margin-top:14px;">Score Interpretation</h3>
+  <table style="width:auto; margin:8px 0;">
+    <thead><tr><th>Score Range</th><th>Rating</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>0 – 20</td><td style="color:#0D7377; font-weight:700">Very Low</td><td>Minimal identifiable risk</td></tr>
+      <tr><td>21 – 40</td><td style="color:#56B4E9; font-weight:700">Low</td><td>Low risk — standard due diligence sufficient</td></tr>
+      <tr><td>41 – 60</td><td style="color:#E69F00; font-weight:700">Moderate</td><td>Some issues warrant further investigation</td></tr>
+      <tr><td>61 – 80</td><td style="color:#D55E00; font-weight:700">High</td><td>Multiple issues require careful review</td></tr>
+      <tr><td>81 – 100</td><td style="color:#C42D2D; font-weight:700">Very High</td><td>Significant risk — expert advice essential</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:14px;">Category Weights</h3>
+  <table style="width:auto; margin:8px 0;">
+    <thead><tr><th>Category</th><th>Weight</th><th>Key Inputs</th></tr></thead>
+    <tbody>
+      <tr><td>Hazards</td><td>30%</td><td>Flood, liquefaction, seismic, wind, tsunami, wildfire, erosion, EPB, slope</td></tr>
+      <tr><td>Liveability</td><td>25%</td><td>Deprivation, crime, transit, schools, road safety, amenities</td></tr>
+      <tr><td>Environment</td><td>15%</td><td>Noise, air quality, water quality, contamination, climate</td></tr>
+      <tr><td>Market</td><td>15%</td><td>Rental median, yield, growth trends</td></tr>
+      <tr><td>Planning</td><td>15%</td><td>EPB status, heritage, contamination, transmission lines, consents</td></tr>
+    </tbody>
+  </table>
+</div>
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   15. DATA QUALITY INDICATORS (Phase 4 — premium PDF only, not on web)
+   ════════════════════════════════════════════════════════════════════════════ #}
+{% if data_quality %}
+<details class="sec" open>
+<summary class="sec-head sec-head-premium">
+  <span class="sec-title">Data Sources &amp; Quality</span>
+  <span class="sec-toggle"></span>
+</summary>
+
+<p style="font-size:0.85em; color:#444; margin-bottom:8px;">
+  This report draws on {{ data_quality | length }} government and public data sources. Coverage and freshness vary.
+</p>
+
+<table class="dq-table">
+  <thead><tr><th>Data Source</th><th>Last Updated</th><th>Coverage</th></tr></thead>
+  <tbody>
+    {% for dq in data_quality %}
+    <tr>
+      <td>{{ dq.source }}</td>
+      <td>{{ dq.last_updated }}</td>
+      <td>
+        <span class="dq-coverage"><span class="dq-coverage-fill" style="width:{{ dq.coverage_pct }}%"></span></span>
+        {{ dq.coverage_pct }}%
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p style="font-size:0.78em; color:var(--muted); margin-top:8px;">
+  Coverage % indicates how many Wellington region properties have data from this source.
+  Missing data for a specific property is noted as "No data" in the relevant section.
+</p>
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════════
+   16. DISCLAIMER
    ════════════════════════════════════════════════════════════════════════════ #}
 <div class="disclaimer">
   <p><strong>Disclaimer:</strong> This report is generated from publicly available New Zealand government open data and does not constitute a registered valuation, legal advice, or a recommendation to buy or sell. Risk scores and insights are computed using automated rules and AI analysis — they are indicative only. Property values depend on specific features, condition, negotiation, and market timing. Always obtain a registered valuation, LIM, builder's report, and legal advice before purchasing.</p>

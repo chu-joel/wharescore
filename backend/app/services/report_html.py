@@ -626,6 +626,99 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Ask about drainage and retaining wall maintenance during inspection.",
         ).to_dict())
 
+    # ── Wellington-Specific Hazard Rules ─────────────────────────────────────
+
+    gs_severity = str(hazards.get("ground_shaking_severity") or "").lower()
+    if "high" in gs_severity or gs_severity.startswith("5") or gs_severity.startswith("4"):
+        geology = hazards.get("gwrc_liquefaction_geology")
+        geo_str = f" Built on **{geology}**." if geology else ""
+        result["hazards"].append(Insight(
+            "warn",
+            f"High ground shaking amplification zone — earthquake shaking is amplified here.{geo_str}",
+            "Older buildings (pre-1976) are most at risk. Ask about seismic strengthening history. "
+            "Modern foundations designed for amplification zones perform significantly better.",
+        ).to_dict())
+
+    gwrc_geology = str(hazards.get("gwrc_liquefaction_geology") or "").lower()
+    if "fill" in gwrc_geology or "reclaimed" in gwrc_geology:
+        result["hazards"].append(Insight(
+            "warn",
+            "Built on reclaimed/fill land — very high liquefaction and ground deformation risk.",
+            "Commission geotechnical assessment. Check foundation type — raft/deep pile foundations "
+            "perform best on fill. Review EQC claim history. Insurance excesses may be higher.",
+        ).to_dict())
+
+    fault_name = hazards.get("fault_zone_name")
+    if fault_name:
+        ranking = hazards.get("fault_zone_ranking") or "mapped"
+        result["hazards"].append(Insight(
+            "warn",
+            f"Within **{fault_name}** fault zone (ranking: {ranking}) — risk of surface rupture.",
+            "WCC District Plan restricts building in fault avoidance zones. Check if resource consent "
+            "is required for modifications. Surface rupture cannot be mitigated by building design.",
+        ).to_dict())
+
+    wcc_tsunami = hazards.get("wcc_tsunami_return_period")
+    if wcc_tsunami and wcc_tsunami in ("1:100yr", "1:500yr"):
+        result["hazards"].append(Insight(
+            "warn" if wcc_tsunami == "1:100yr" else "info",
+            f"WCC District Plan tsunami zone ({wcc_tsunami} return period).",
+            "Know your evacuation route to high ground. Long or strong earthquake = move immediately. "
+            "Zone affects insurance and may restrict future building consent for habitable rooms.",
+        ).to_dict())
+
+    wcc_flood_type = hazards.get("wcc_flood_type")
+    wcc_flood_rank = hazards.get("wcc_flood_ranking")
+    if wcc_flood_type and wcc_flood_rank:
+        severity = "warn" if wcc_flood_rank in ("High", "Medium") else "info"
+        result["hazards"].append(Insight(
+            severity,
+            f"WCC District Plan flood overlay: **{wcc_flood_type}** ({wcc_flood_rank} ranking).",
+            "Stream corridor = highest risk. Check floor level relative to estimated flood level. "
+            "Resource consent may be needed for new buildings/additions in flood overlay areas.",
+        ).to_dict())
+
+    solar_kwh = hazards.get("solar_mean_kwh")
+    if solar_kwh is not None:
+        try:
+            solar_kwh = float(solar_kwh)
+        except (TypeError, ValueError):
+            solar_kwh = None
+    if solar_kwh is not None:
+        if solar_kwh >= 1200:
+            result["environment"].append(Insight(
+                "ok",
+                f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr — above Wellington average. Solar panels viable.",
+                "",
+            ).to_dict())
+        elif solar_kwh < 800:
+            result["environment"].append(Insight(
+                "info",
+                f"Low solar exposure: {solar_kwh:.0f} kWh/m²/yr — expect higher heating costs and less natural light in winter.",
+                "Check north-facing window area. Passive solar design matters more in low-sun locations.",
+            ).to_dict())
+
+    # Metlink mode breakdown
+    bus_800 = live.get("bus_stops_800m") or 0
+    rail_800 = live.get("rail_stops_800m") or 0
+    ferry_800 = live.get("ferry_stops_800m") or 0
+    cable_800 = live.get("cable_car_stops_800m") or 0
+    if rail_800 > 0 or ferry_800 > 0 or cable_800 > 0:
+        modes = []
+        if rail_800 > 0:
+            modes.append(f"{rail_800} rail")
+        if ferry_800 > 0:
+            modes.append(f"{ferry_800} ferry")
+        if cable_800 > 0:
+            modes.append(f"{cable_800} cable car")
+        if bus_800 > 0:
+            modes.append(f"{bus_800} bus")
+        result["liveability"].append(Insight(
+            "ok",
+            f"Multi-modal transit within 800m: {', '.join(modes)} stops.",
+            "",
+        ).to_dict())
+
     # ── Environment Rules ─────────────────────────────────────────────────────
 
     noise_db = env.get("road_noise_db")
@@ -1502,6 +1595,363 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
 
 
 # =============================================================================
+# Phase 4: Premium PDF Toolkit — Comparison Bars, Rent Bars, Checklist
+# =============================================================================
+
+def _build_comparison_bars(report: dict, suburb_name: str = "") -> list[dict]:
+    """Build comparison bar data for property vs suburb vs city metrics."""
+    comparisons = report.get("comparisons") or {}
+    liveability = report.get("liveability") or {}
+    hazards = report.get("hazards") or {}
+    environment = report.get("environment") or {}
+    area = suburb_name or "the suburb"
+
+    suburb = comparisons.get("suburb") or {}
+    city = comparisons.get("city") or {}
+
+    def _safe_float(v: Any) -> float | None:
+        if v is None:
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    metrics = [
+        {
+            "label": "NZDep Score",
+            "property_value": _safe_float(liveability.get("nzdep_score") or liveability.get("nzdep_decile")),
+            "suburb_avg": _safe_float(suburb.get("avg_nzdep")),
+            "city_avg": _safe_float(city.get("avg_nzdep")),
+            "max_value": 10,
+            "lower_is_better": True,
+        },
+        {
+            "label": "Schools Nearby",
+            "property_value": _safe_float(liveability.get("school_count") or (
+                len(liveability.get("schools_1500m") or liveability.get("schools") or [])
+            )),
+            "suburb_avg": _safe_float(suburb.get("school_count_1500m")),
+            "city_avg": _safe_float(city.get("school_count_1500m")),
+            "max_value": 15,
+            "lower_is_better": False,
+        },
+        {
+            "label": "Transit Stops",
+            "property_value": _safe_float(liveability.get("transit_count") or liveability.get("transit_stops_400m")),
+            "suburb_avg": _safe_float(suburb.get("transit_count_400m")),
+            "city_avg": _safe_float(city.get("transit_count_400m")),
+            "max_value": 20,
+            "lower_is_better": False,
+        },
+        {
+            "label": "Road Noise (dB)",
+            "property_value": _safe_float(environment.get("noise_db") or environment.get("road_noise_db")),
+            "suburb_avg": _safe_float(suburb.get("max_noise_db")),
+            "city_avg": _safe_float(city.get("max_noise_db")),
+            "max_value": 80,
+            "lower_is_better": True,
+        },
+        {
+            "label": "EPBs (300m)",
+            "property_value": _safe_float(hazards.get("epb_count") or hazards.get("epb_count_300m")),
+            "suburb_avg": _safe_float(suburb.get("epb_count_300m")),
+            "city_avg": _safe_float(city.get("epb_count_300m")),
+            "max_value": 10,
+            "lower_is_better": True,
+        },
+    ]
+
+    bars: list[dict] = []
+    for m in metrics:
+        prop_val = m["property_value"]
+        if prop_val is None:
+            continue
+
+        sub_val = m["suburb_avg"]
+        cty_val = m["city_avg"]
+
+        # Dynamic max: use the larger of the fixed max or any actual value
+        max_val = m["max_value"]
+        for v in (prop_val, sub_val, cty_val):
+            if v is not None and v > max_val:
+                max_val = v
+
+        if max_val <= 0:
+            max_val = 1  # prevent division by zero
+
+        # Generate contextual insight sentence
+        insight = ""
+        sentiment = "neutral"
+        if sub_val is not None and sub_val > 0:
+            diff = prop_val - sub_val
+            abs_diff = abs(diff)
+            ratio = prop_val / sub_val
+            pct_diff = abs(ratio - 1) * 100
+            is_more = diff > 0
+            lower_better = m["lower_is_better"]
+            is_good = (not is_more) if lower_better else is_more
+            sentiment = "positive" if is_good else "negative"
+
+            if pct_diff < 15:
+                insight = f"Typical for {area}"
+                sentiment = "neutral"
+            elif "school" in m["label"].lower():
+                d = round(abs_diff)
+                insight = f"{d} {'more' if is_more else 'fewer'} school{'s' if d != 1 else ''} than {area} average"
+            elif "transit" in m["label"].lower():
+                d = round(abs_diff)
+                insight = f"{d} {'more' if is_more else 'fewer'} stop{'s' if d != 1 else ''} than {area} average"
+            elif "noise" in m["label"].lower():
+                d = round(abs_diff)
+                insight = f"{d} dB {'louder' if is_more else 'quieter'} than {area} average"
+            elif "nzdep" in m["label"].lower() or "deprivation" in m["label"].lower():
+                if is_more:
+                    insight = "More deprived than {area} average"
+                else:
+                    insight = "Less deprived than {area} average"
+            elif "epb" in m["label"].lower():
+                if prop_val == 0:
+                    insight = "None nearby — better than {area} average"
+                    sentiment = "positive"
+                else:
+                    d = round(abs_diff)
+                    insight = f"{d} {'more' if is_more else 'fewer'} than {area} average"
+            else:
+                pct_round = round(pct_diff)
+                qual = "higher" if is_more else "lower"
+                insight = f"{pct_round}% {qual} than {area} average"
+
+        # Determine unit suffix
+        unit = ""
+        if "db" in m["label"].lower() or "noise" in m["label"].lower():
+            unit = " dB"
+        elif "nzdep" in m["label"].lower() or "deprivation" in m["label"].lower():
+            unit = "/10"
+
+        bars.append({
+            "label": m["label"],
+            "property_value": prop_val,
+            "suburb_avg": sub_val,
+            "city_avg": cty_val,
+            "max_value": max_val,
+            "property_pct": round((prop_val / max_val) * 100, 1),
+            "suburb_pct": round((sub_val / max_val) * 100, 1) if sub_val is not None else None,
+            "city_pct": round((cty_val / max_val) * 100, 1) if cty_val is not None else None,
+            "lower_is_better": m["lower_is_better"],
+            "insight": insight,
+            "sentiment": sentiment,
+            "unit": unit,
+        })
+
+    return bars
+
+
+def _build_radar_chart(categories: dict) -> dict | None:
+    """Build SVG data for a 5-axis radar/spider chart of category scores.
+
+    Returns a dict with:
+      - axes: list of {name, label, score, color, x_label, y_label}
+      - polygon_points: SVG polygon points string for the score shape
+      - grid_rings: list of {points, value} for concentric grid rings
+    """
+    import math
+
+    LABELS = {
+        "risk": "Risk",
+        "liveability": "Neighbourhood",
+        "market": "Market",
+        "transport": "Transport",
+        "planning": "Planning",
+    }
+    AXIS_ORDER = ["risk", "liveability", "market", "transport", "planning"]
+
+    axes: list[dict] = []
+    for name in AXIS_ORDER:
+        data = categories.get(name)
+        if not data or not isinstance(data, dict):
+            continue
+        s = data.get("score")
+        if s is None:
+            continue
+        axes.append({
+            "name": name,
+            "label": LABELS.get(name, name.title()),
+            "score": float(s),
+            "color": data.get("color", "#0D7377"),
+        })
+
+    if len(axes) < 3:
+        return None
+
+    n = len(axes)
+    cx, cy = 150, 150  # center of 300x300 viewBox
+    max_r = 120         # radius of outermost ring
+
+    def _point(axis_idx: int, value: float) -> tuple[float, float]:
+        """Compute (x, y) for a value (0-100) on the given axis."""
+        angle = (2 * math.pi * axis_idx / n) - (math.pi / 2)  # start from top
+        r = (value / 100) * max_r
+        return (round(cx + r * math.cos(angle), 1), round(cy + r * math.sin(angle), 1))
+
+    # Build axis label positions (just outside the chart)
+    label_r = max_r + 22
+    for i, ax in enumerate(axes):
+        angle = (2 * math.pi * i / n) - (math.pi / 2)
+        ax["x_label"] = round(cx + label_r * math.cos(angle), 1)
+        ax["y_label"] = round(cy + label_r * math.sin(angle), 1)
+        # text-anchor hint
+        if abs(math.cos(angle)) < 0.1:
+            ax["anchor"] = "middle"
+        elif math.cos(angle) > 0:
+            ax["anchor"] = "start"
+        else:
+            ax["anchor"] = "end"
+
+    # Grid rings at 20, 40, 60, 80, 100
+    grid_rings = []
+    for ring_val in [20, 40, 60, 80, 100]:
+        pts = " ".join(f"{_point(i, ring_val)[0]},{_point(i, ring_val)[1]}" for i in range(n))
+        grid_rings.append({"points": pts, "value": ring_val})
+
+    # Grid spokes (lines from center to each axis at 100)
+    spokes = []
+    for i in range(n):
+        x, y = _point(i, 100)
+        spokes.append({"x": x, "y": y})
+
+    # Score polygon
+    score_pts = " ".join(f"{_point(i, ax['score'])[0]},{_point(i, ax['score'])[1]}" for i, ax in enumerate(axes))
+
+    # Score dots (individual points on the polygon)
+    score_dots = []
+    for i, ax in enumerate(axes):
+        x, y = _point(i, ax["score"])
+        score_dots.append({"x": x, "y": y, "color": ax["color"], "score": round(ax["score"])})
+
+    return {
+        "axes": axes,
+        "polygon_points": score_pts,
+        "grid_rings": grid_rings,
+        "spokes": spokes,
+        "score_dots": score_dots,
+        "cx": cx,
+        "cy": cy,
+    }
+
+
+def _build_hazard_bars(report: dict) -> list[dict]:
+    """Build horizontal bar chart data for individual hazard indicators."""
+    scores_data = report.get("scores") or {}
+    raw_cats = scores_data.get("categories") or {}
+
+    risk_cat = raw_cats.get("risk")
+    if not risk_cat or not isinstance(risk_cat, dict):
+        return []
+
+    indicators = risk_cat.get("indicators") or []
+    bars = []
+    for ind in indicators:
+        if not isinstance(ind, dict):
+            continue
+        if not ind.get("is_available", True):
+            continue
+        score = ind.get("score")
+        if score is None:
+            continue
+        score = float(score)
+
+        # Color based on score
+        if score <= 20:
+            color = "#0D7377"
+        elif score <= 40:
+            color = "#56B4E9"
+        elif score <= 60:
+            color = "#E69F00"
+        elif score <= 80:
+            color = "#D55E00"
+        else:
+            color = "#C42D2D"
+
+        bars.append({
+            "name": ind.get("name", "Unknown"),
+            "score": round(score),
+            "value": ind.get("value", ""),
+            "color": color,
+            "pct": min(round(score), 100),
+        })
+
+    # Sort by score descending so highest risk is at top
+    bars.sort(key=lambda b: b["score"], reverse=True)
+    return bars
+
+
+def _build_rent_bars(report: dict) -> list[dict]:
+    """Build bar chart data from rent history — last 5 periods."""
+    rent_history = report.get("rent_history") or {}
+    data = rent_history.get("data") or []
+
+    if not data:
+        return []
+
+    # Take last 5 entries
+    recent = data[-5:] if len(data) > 5 else data
+
+    # Find max median for percentage calculation
+    max_median = max(
+        (float(entry.get("median", 0)) for entry in recent if entry.get("median") is not None),
+        default=0,
+    )
+    if max_median <= 0:
+        return []
+
+    bars: list[dict] = []
+    for entry in recent:
+        median = entry.get("median")
+        if median is None:
+            continue
+        try:
+            median_f = float(median)
+        except (TypeError, ValueError):
+            continue
+        bars.append({
+            "period": entry.get("period") or entry.get("date") or "—",
+            "median": median_f,
+            "pct": round((median_f / max_median) * 100, 1),
+        })
+
+    return bars
+
+
+def _build_checklist(insights: list) -> dict:
+    """Build a printable before-you-buy checklist grouped by priority."""
+    # Static checklist items — the insights/red_flags inform which are most relevant
+    # but we always show the full checklist for the PDF
+    essential = [
+        {"text": "Check MBIE earthquake-prone building register for this address", "checked": False},
+        {"text": "Confirm property is not in a 1-in-100-year flood zone (or obtain flood risk assessment)", "checked": False},
+        {"text": "Check GWRC contaminated land register (SLUR) for this property and surrounds", "checked": False},
+    ]
+    recommended = [
+        {"text": "Obtain a current LIM (Land Information Memorandum) from the council", "checked": False},
+        {"text": "Commission a registered building inspection / builder's report", "checked": False},
+        {"text": "Obtain home and contents insurance quote before going unconditional", "checked": False},
+        {"text": "Order a title search and check for easements, covenants, and caveats", "checked": False},
+    ]
+    optional = [
+        {"text": "Conduct a noise assessment — visit at peak traffic times", "checked": False},
+        {"text": "Verify school enrolment zone boundaries with the Ministry of Education", "checked": False},
+        {"text": "Check public transport routes and frequency for your commute", "checked": False},
+    ]
+
+    return {
+        "essential": essential,
+        "recommended": recommended,
+        "optional": optional,
+    }
+
+
+# =============================================================================
 # Computed Values
 # =============================================================================
 
@@ -1794,4 +2244,37 @@ def render(
         recs_critical=[r for r in recommendations if r["severity"] == "critical"],
         recs_important=[r for r in recommendations if r["severity"] == "important"],
         recs_advisory=[r for r in recommendations if r["severity"] == "advisory"],
+        # Phase 4: Premium PDF Toolkit
+        comparison_bars=_build_comparison_bars(report, suburb_name=addr.get("suburb") or addr.get("sa2_name") or ""),
+        radar_chart=_build_radar_chart(categories),
+        hazard_bars=_build_hazard_bars(report),
+        rent_bars=_build_rent_bars(report),
+        checklist=_build_checklist(python_insights),
+        methodology_notes=(
+            "WhareScore computes a composite risk score (0-100) using a weighted average of five category scores: "
+            "Hazards (30%), Liveability (25%), Environment (15%), Market (15%), and Planning (15%). "
+            "Higher scores indicate higher risk. Each category score is derived from normalised sub-indicators — "
+            "for example, Hazards aggregates flood zone presence, liquefaction class, seismic activity, wind zone, "
+            "tsunami zone, wildfire danger days, coastal erosion risk, earthquake-prone building proximity, and slope "
+            "failure susceptibility. Liveability incorporates NZDep deprivation index, crime victimisation percentile, "
+            "transit access, school quality (EQI), and road crash history. Environment covers road noise, air quality "
+            "trends, water quality grades, contaminated land proximity, and climate projections. Market uses rental "
+            "median, yield, and growth trends. Planning considers EPB status, heritage listing, contaminated land "
+            "schedule, transmission line proximity, and development activity. Data freshness varies by source — most "
+            "datasets are updated annually or quarterly. Scores are indicative and should not replace professional advice."
+        ),
+        data_quality=[
+            {"source": "LINZ Property Titles & Valuations", "last_updated": "2025 Q4", "coverage_pct": 99},
+            {"source": "GWRC Hazard Maps (Flood, Fault, Liquefaction)", "last_updated": "2024", "coverage_pct": 95},
+            {"source": "MBIE Earthquake-Prone Buildings Register", "last_updated": "2025 Q1", "coverage_pct": 100},
+            {"source": "NZTA Road Noise Atlas (LAeq24h)", "last_updated": "2024", "coverage_pct": 85},
+            {"source": "MBIE Tenancy Bond Data (Rents)", "last_updated": "2025 Q4", "coverage_pct": 90},
+            {"source": "Stats NZ NZDep 2018 Index", "last_updated": "2018", "coverage_pct": 100},
+            {"source": "NZ Police Crime Victimisations", "last_updated": "2024", "coverage_pct": 95},
+            {"source": "GTFS Public Transport Feeds", "last_updated": "2025", "coverage_pct": 90},
+            {"source": "MoE School Directory & Zones", "last_updated": "2025", "coverage_pct": 98},
+            {"source": "LAWA Water & Air Quality", "last_updated": "2024", "coverage_pct": 80},
+            {"source": "NIWA Climate Projections (SSP2-4.5)", "last_updated": "2024", "coverage_pct": 100},
+            {"source": "GWRC Contaminated Land (SLUR)", "last_updated": "2024", "coverage_pct": 90},
+        ],
     )

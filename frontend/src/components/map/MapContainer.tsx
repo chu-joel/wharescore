@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, {
   Source,
   Layer,
@@ -16,7 +16,7 @@ import { useSearchStore } from '@/stores/searchStore';
 import { TILE_LAYERS } from '@/lib/constants';
 import { getLayerStyles, getTileUrl } from '@/lib/layerStyles';
 import { addRiskPatterns, addLayerIcons } from '@/lib/mapStyles';
-import { getBasemapStyle } from '@/lib/basemapStyles';
+import { getBasemapStyle, SATELLITE_STYLE_IDS } from '@/lib/basemapStyles';
 import { TIMING } from '@/lib/animations';
 import { MapLayerChipBar } from './MapLayerChipBar';
 import { MapLegend } from './MapLegend';
@@ -117,6 +117,14 @@ const ADDRESSES_MINZOOM = 14;
 // IDs for the clickable layers we listen to
 const INTERACTIVE_LAYER_IDS = ['layer-addresses-click', 'layer-parcels', 'layer-building_outlines'];
 
+// Pre-compute all possible query layer IDs (static — avoids flatMap on every mouse move)
+const ALL_OVERLAY_LAYER_IDS = TILE_LAYERS.flatMap((l) => [
+  `layer-${l.id}`,
+  `layer-${l.id}-icon`,
+  `layer-${l.id}-outline`,
+]);
+const ALL_QUERY_LAYER_IDS = [...INTERACTIVE_LAYER_IDS, ...ALL_OVERLAY_LAYER_IDS];
+
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -142,6 +150,7 @@ export function MapContainer() {
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [hoveredAddress, setHoveredAddress] = useState<{ id: number; label: string; lng: number; lat: number } | null>(null);
   const [hoveredBuilding, setHoveredBuilding] = useState<maplibregl.GeoJSONFeature | null>(null);
+  const [popupOverlayLines, setPopupOverlayLines] = useState<string[]>([]);
   const prevAddressRef = useRef<number | null>(null);
 
   // flyTo when a new address is selected
@@ -211,6 +220,24 @@ export function MapContainer() {
     setShowPopup(false);
   }, []);
 
+  /** Collect overlay layer labels at a screen point (for popup context on tap/click). */
+  const getOverlayLinesAtPoint = useCallback((map: maplibregl.Map, point: maplibregl.PointLike): string[] => {
+    const overlayLayers = ALL_OVERLAY_LAYER_IDS.filter((id) => map.getLayer(id));
+    if (overlayLayers.length === 0) return [];
+    const features = map.queryRenderedFeatures(point, { layers: overlayLayers });
+    const seen = new Set<string>();
+    const lines: string[] = [];
+    for (const f of features) {
+      const info = getFeatureLabel(f);
+      if (!info) continue;
+      const key = info.label + (info.sublabel ?? '');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      lines.push(info.sublabel ? `${info.label}: ${info.sublabel}` : info.label);
+    }
+    return lines;
+  }, []);
+
   // Handle map click — select a property from the addresses tile layer
   const handleMapClick = useCallback(
     (e: MapLayerMouseEvent) => {
@@ -233,7 +260,6 @@ export function MapContainer() {
           const geom = addressFeature.geometry;
           let lng = e.lngLat.lng;
           let lat = e.lngLat.lat;
-          // Use the feature's actual point geometry if available
           if (geom.type === 'Point') {
             lng = geom.coordinates[0];
             lat = geom.coordinates[1];
@@ -245,6 +271,7 @@ export function MapContainer() {
           selectAddress({ addressId, fullAddress, lng, lat });
           selectProperty(addressId, lng, lat);
           prevAddressRef.current = addressId;
+          setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
           setPinVisible(true);
           setShowPopup(true);
           return;
@@ -253,7 +280,7 @@ export function MapContainer() {
         // No address at exact point — did we hit a building?
         const buildingHit = features.find(f => f.layer.id === 'layer-building_outlines');
         if (buildingHit && map.getLayer('layer-addresses-click')) {
-          const R = 30; // pixel search radius
+          const R = 30;
           const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [
             [e.point.x - R, e.point.y - R],
             [e.point.x + R, e.point.y + R],
@@ -263,7 +290,6 @@ export function MapContainer() {
             .filter(f => f.properties?.address_id);
 
           if (candidates.length > 0) {
-            // Pick the candidate whose address point is closest to the click in screen space
             const closest = candidates.reduce((best, f) => {
               if (f.geometry.type !== 'Point') return best;
               const px = map.project(f.geometry.coordinates as [number, number]);
@@ -284,6 +310,7 @@ export function MapContainer() {
             selectAddress({ addressId, fullAddress, lng, lat });
             selectProperty(addressId, lng, lat);
             prevAddressRef.current = addressId;
+            setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
             setPinVisible(true);
             setShowPopup(true);
             return;
@@ -296,8 +323,15 @@ export function MapContainer() {
         setShowPopup(false);
       }
     },
-    [selectAddress, selectProperty, showPopup],
+    [selectAddress, selectProperty, showPopup, getOverlayLinesAtPoint],
   );
+
+  // Cache which layer IDs actually exist on the map to avoid per-move getLayer() calls
+  const validLayerIdsRef = useRef<string[]>([]);
+  const layerCacheDirtyRef = useRef(true);
+
+  // Invalidate cache when active layers or map style changes
+  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId]);
 
   // Cursor + hover tooltip
   const handleMouseMove = useCallback(
@@ -305,111 +339,85 @@ export function MapContainer() {
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // Query all visible layers including active overlays and icon sub-layers
-      const allQueryLayers = [
-        ...INTERACTIVE_LAYER_IDS,
-        ...TILE_LAYERS.flatMap((l) => [
-          `layer-${l.id}`,
-          `layer-${l.id}-icon`,
-          `layer-${l.id}-outline`,
-        ]),
-      ].filter((id) => map.getLayer(id));
-
-      const features = map.queryRenderedFeatures(e.point, { layers: allQueryLayers });
-
-      if (features && features.length > 0) {
-        map.getCanvas().style.cursor = 'pointer';
-
-        // Always query for addresses at this location, even if hovering something else
-        let addressFeature: maplibregl.MapGeoJSONFeature | undefined;
-        const addressFeatures = map.queryRenderedFeatures(e.point, { layers: ['layer-addresses-click'] });
-        if (addressFeatures.length > 0) {
-          addressFeature = addressFeatures.find(f => f.properties?.address_id);
-        }
-
-        // Check for school zones and show with address if available
-        const schoolZoneFeatures = features.filter(
-          f => f.layer.id === 'layer-school_zones' || f.layer.id === 'layer-school_zones-outline'
-        );
-        if (schoolZoneFeatures.length > 0) {
-          const names = schoolZoneFeatures
-            .map(f => (f.properties?.school_name ?? f.properties?.name) as string | undefined)
-            .filter((n): n is string => Boolean(n))
-            .filter((n, i, arr) => arr.indexOf(n) === i);
-          if (names.length > 0 && addressFeature && addressFeature.geometry.type === 'Point') {
-            const props = addressFeature.properties!;
-            const coords = addressFeature.geometry.coordinates as [number, number];
-            const addressId = Number(props.address_id);
-            const fullAddress = String(props.full_address || `Address #${addressId}`);
-            setHoveredAddress({ id: addressId, label: fullAddress, lng: coords[0], lat: coords[1] });
-            const buildingFeatures = map.queryRenderedFeatures(e.point, { layers: ['layer-building_outlines'] });
-            const building = buildingFeatures.length > 0 ? buildingFeatures[0] : null;
-            setHoveredBuilding(building || null);
-            setHoverInfo({
-              x: e.point.x, y: e.point.y,
-              label: fullAddress,
-              lines: names,
-            });
-            return;
-          } else if (names.length > 0) {
-            setHoveredAddress(null);
-            setHoveredBuilding(null);
-            setHoverInfo({
-              x: e.point.x, y: e.point.y,
-              label: names.length === 1 ? 'School zone' : `${names.length} school zones`,
-              lines: names,
-            });
-            return;
-          }
-        }
-
-        // Priority: address > building > active overlays
-        const sorted = features.sort((a) =>
-          a.layer.id === 'layer-addresses-click' ? -1 : 0
-        );
-
-        // Get the primary hovered feature (non-address)
-        const primaryFeature = sorted.find(f => f.layer.id !== 'layer-addresses-click' && getFeatureLabel(f));
-        const primaryInfo = primaryFeature ? getFeatureLabel(primaryFeature) : null;
-
-        // If we have an address, show it as the main label with the hovered feature as sublabel
-        if (addressFeature && addressFeature.geometry.type === 'Point') {
-          const props = addressFeature.properties!;
-          const coords = addressFeature.geometry.coordinates as [number, number];
-          const addressId = Number(props.address_id);
-          const fullAddress = String(props.full_address || `Address #${addressId}`);
-
-          // Store hovered address info
-          setHoveredAddress({ id: addressId, label: fullAddress, lng: coords[0], lat: coords[1] });
-
-          // Query for building at this location
-          const buildingFeatures = map.queryRenderedFeatures(e.point, { layers: ['layer-building_outlines'] });
-          const building = buildingFeatures.length > 0 ? buildingFeatures[0] : null;
-          setHoveredBuilding(building || null);
-
-          // Show address as main label, primary feature info as sublabel
-          setHoverInfo({
-            x: e.point.x, y: e.point.y,
-            label: fullAddress,
-            sublabel: primaryInfo?.label || building?.properties?.name || (building?.properties?.use as string) || undefined,
-          });
-          return;
-        }
-
-        // No address at this location, show the primary feature
-        setHoveredAddress(null);
-        setHoveredBuilding(null);
-
-        if (primaryInfo) {
-          setHoverInfo({ x: e.point.x, y: e.point.y, ...primaryInfo });
-          return;
-        }
+      // Rebuild cached layer list only when layers change (not on every move)
+      if (layerCacheDirtyRef.current) {
+        validLayerIdsRef.current = ALL_QUERY_LAYER_IDS.filter((id) => map.getLayer(id));
+        layerCacheDirtyRef.current = false;
       }
 
-      map.getCanvas().style.cursor = '';
-      setHoverInfo(null);
+      // Single queryRenderedFeatures call — extracts address, building, and overlay info
+      const features = map.queryRenderedFeatures(e.point, { layers: validLayerIdsRef.current });
+
+      if (!features || features.length === 0) {
+        map.getCanvas().style.cursor = '';
+        setHoverInfo(null);
+        setHoveredAddress(null);
+        setHoveredBuilding(null);
+        return;
+      }
+
+      map.getCanvas().style.cursor = 'pointer';
+
+      // Single pass: classify features from the one query
+      let addressFeature: maplibregl.MapGeoJSONFeature | undefined;
+      let building: maplibregl.MapGeoJSONFeature | null = null;
+      const seen = new Set<string>();
+      const overlayLines: string[] = [];
+
+      for (const f of features) {
+        const lid = f.layer.id;
+        if (lid === 'layer-addresses-click') {
+          if (!addressFeature && f.properties?.address_id) addressFeature = f;
+          continue;
+        }
+        if (lid === 'layer-building_outlines' || lid === 'layer-building_outlines-outline') {
+          if (!building) building = f;
+          // Still get its label for overlay lines below
+        }
+        const info = getFeatureLabel(f);
+        if (!info) continue;
+        const key = info.label + (info.sublabel ?? '');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        overlayLines.push(info.sublabel ? `${info.label}: ${info.sublabel}` : info.label);
+      }
+
+      // Address present: show as main label with overlay lines stacked
+      if (addressFeature && addressFeature.geometry.type === 'Point') {
+        const props = addressFeature.properties!;
+        const coords = addressFeature.geometry.coordinates as [number, number];
+        const addressId = Number(props.address_id);
+        const fullAddress = String(props.full_address || `Address #${addressId}`);
+
+        setHoveredAddress({ id: addressId, label: fullAddress, lng: coords[0], lat: coords[1] });
+        setHoveredBuilding(building);
+
+        setHoverInfo({
+          x: e.point.x, y: e.point.y,
+          label: fullAddress,
+          lines: overlayLines.length > 0 ? overlayLines : undefined,
+          sublabel: overlayLines.length === 0
+            ? (building?.properties?.name || (building?.properties?.use as string) || undefined)
+            : undefined,
+        });
+        return;
+      }
+
+      // No address — show overlay features
       setHoveredAddress(null);
       setHoveredBuilding(null);
+
+      if (overlayLines.length > 0) {
+        setHoverInfo({
+          x: e.point.x, y: e.point.y,
+          label: overlayLines[0],
+          lines: overlayLines.length > 1 ? overlayLines.slice(1) : undefined,
+        });
+        return;
+      }
+
+      // Fallback — nothing useful
+      setHoverInfo(null);
     },
     [],
   );
@@ -450,7 +458,7 @@ export function MapContainer() {
       >
         <AttributionControl compact position="bottom-right" />
 
-        {/* Invisible addresses layer — always loaded for click selection */}
+        {/* Addresses layer — invisible hit target + visible dots at high zoom */}
         {mapLoaded && (
           <Source
             id="source-addresses-click"
@@ -459,6 +467,7 @@ export function MapContainer() {
             minzoom={ADDRESSES_MINZOOM}
             maxzoom={14}
           >
+            {/* Invisible hit target — large radius for easy tap/click */}
             <Layer
               id="layer-addresses-click"
               source="source-addresses-click"
@@ -469,6 +478,38 @@ export function MapContainer() {
                 'circle-radius': 24,
                 'circle-color': 'transparent',
                 'circle-opacity': 0,
+              }}
+            />
+            {/* Visible dots — subtle hints that show "tap here" at close zoom */}
+            <Layer
+              id="layer-addresses-dots"
+              source="source-addresses-click"
+              source-layer="addresses"
+              type="circle"
+              minzoom={15}
+              paint={{
+                'circle-radius': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 1.5,
+                  16, 2.5,
+                  17, 3.5,
+                  18, 4.5,
+                ],
+                'circle-color': '#14B8A6',
+                'circle-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0.25,
+                  16, 0.4,
+                  18, 0.65,
+                ],
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0.2,
+                  16, 0.5,
+                  18, 0.75,
+                ],
               }}
             />
           </Source>
@@ -530,61 +571,6 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Always-visible suburb/locality labels (SA2 boundaries) */}
-        {mapLoaded && (
-          <Source
-            id="source-sa2-labels"
-            type="vector"
-            tiles={[getTileUrl('sa2_boundaries')]}
-            minzoom={8}
-            maxzoom={14}
-          >
-            <Layer
-              id="layer-sa2-labels"
-              source="source-sa2-labels"
-              source-layer="sa2_boundaries"
-              type="symbol"
-              minzoom={8}
-              maxzoom={15}
-              layout={{
-                'text-field': ['coalesce', ['get', 'name'], ''],
-                'text-size': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  8,
-                  10,
-                  12,
-                  13,
-                  15,
-                  12,
-                ],
-                'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
-                'text-anchor': 'center',
-                'text-max-width': 10,
-                'symbol-placement': 'point',
-                'text-allow-overlap': false,
-              }}
-              paint={{
-                'text-color': '#4B5563',
-                'text-halo-color': '#FFFFFF',
-                'text-halo-width': 1.5,
-                'text-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  8,
-                  0.5,
-                  12,
-                  0.8,
-                  15,
-                  0,
-                ],
-              }}
-            />
-          </Source>
-        )}
-
         {/* User-toggled vector tile layers from Martin */}
         {mapLoaded &&
           activeLayerIds.map((layerId) => {
@@ -606,6 +592,68 @@ export function MapContainer() {
               </Source>
             );
           })}
+
+        {/* Always-visible suburb/locality labels — rendered on top of all layers */}
+        {mapLoaded && (
+          <Source
+            id="source-sa2-labels"
+            type="vector"
+            tiles={[getTileUrl('sa2_boundaries')]}
+            minzoom={8}
+            maxzoom={14}
+          >
+            <Layer
+              id="layer-sa2-labels"
+              source="source-sa2-labels"
+              source-layer="sa2_boundaries"
+              type="symbol"
+              minzoom={8}
+              maxzoom={15}
+              layout={{
+                'text-field': ['coalesce', ['get', 'name'], ''],
+                'text-size': [
+                  'interpolate', ['linear'], ['zoom'],
+                  8, 10,
+                  12, 13,
+                  15, 12,
+                ],
+                'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+                'text-anchor': 'center',
+                'text-max-width': 10,
+                'symbol-placement': 'point',
+                'text-allow-overlap': false,
+              }}
+              paint={{
+                'text-color': '#FFFFFF',
+                'text-halo-color': 'rgba(0, 0, 0, 0.6)',
+                'text-halo-width': 1.5,
+                'text-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  8, 0.6,
+                  12, 0.9,
+                  15, 0,
+                ],
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Street/place labels on satellite basemaps — CARTO dark labels overlay */}
+        {mapLoaded && SATELLITE_STYLE_IDS.has(baseStyleId) && (
+          <Source
+            id="source-carto-labels"
+            type="raster"
+            tiles={[
+              'https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
+              'https://b.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
+              'https://c.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
+            ]}
+            tileSize={256}
+            maxzoom={18}
+          >
+            <Layer id="layer-carto-labels" type="raster" />
+          </Source>
+        )}
 
         {/* Selected property marker */}
         {selectedAddress && pinVisible && (
@@ -649,6 +697,7 @@ export function MapContainer() {
                 addressId={selectedAddress.addressId}
                 onViewReport={handleViewReport}
                 onClose={handlePopupClose}
+                overlayLines={popupOverlayLines}
               />
             </div>
           </Popup>

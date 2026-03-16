@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Share2, Printer, Loader2 } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { formatCoverage } from '@/lib/format';
 import { usePdfExport } from '@/hooks/usePdfExport';
-import { PdfReadyModal } from './PdfReadyModal';
+
 import type { PropertyReport } from '@/lib/types';
 
 interface KeyTakeawaysProps {
@@ -135,13 +135,6 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
         </Button>
       </div>
 
-      <PdfReadyModal
-        show={pdf.showModal}
-        isGenerating={pdf.isGenerating}
-        downloadUrl={pdf.downloadUrl}
-        error={pdf.error}
-        onClose={pdf.closeModal}
-      />
     </div>
   );
 }

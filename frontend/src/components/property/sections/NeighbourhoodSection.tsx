@@ -4,6 +4,7 @@ import { IndicatorCard } from '@/components/common/IndicatorCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
 import { NearbyAmenities } from '@/components/property/NearbyAmenities';
+import { CrimeCard } from '@/components/property/CrimeCard';
 import type { CategoryScore, LiveabilityData } from '@/lib/types';
 
 interface NeighbourhoodSectionProps {
@@ -30,7 +31,7 @@ export function NeighbourhoodSection({ category, liveability, addressId }: Neigh
     <div className="space-y-3">
       {/* NZDep highlight */}
       {liveability.nzdep_score !== null && (
-        <div className="rounded-lg border border-border p-3">
+        <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Deprivation Index</span>
             <span className="text-sm font-semibold tabular-nums">
@@ -56,15 +57,22 @@ export function NeighbourhoodSection({ category, liveability, addressId }: Neigh
         </div>
       )}
 
+      {/* Crime card */}
+      <CrimeCard
+        percentile={liveability.crime_rate}
+        victimisations={liveability.crime_victimisations}
+        cityMedian={liveability.crime_city_median}
+      />
+
       {/* Indicator cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         {available.map((indicator) => (
           <IndicatorCard key={indicator.name} indicator={indicator} />
         ))}
       </div>
 
       {unavailable.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
           ))}
@@ -72,7 +80,7 @@ export function NeighbourhoodSection({ category, liveability, addressId }: Neigh
       )}
 
       {/* What's Nearby — good / caution / info amenities */}
-      <div className="rounded-lg border border-border p-3">
+      <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
         <NearbyAmenities addressId={addressId} />
       </div>
 

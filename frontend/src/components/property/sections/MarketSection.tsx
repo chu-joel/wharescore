@@ -8,6 +8,7 @@ import { RentComparisonFlow } from '@/components/property/RentComparisonFlow';
 import { RentHistoryChart } from '@/components/property/RentHistoryChart';
 import { HPITrendChart } from '@/components/property/HPITrendChart';
 import { UnitComparisonTable } from '@/components/property/UnitComparisonTable';
+import { MarketHeatBadge } from '@/components/property/MarketHeatBadge';
 import { formatCurrency, formatPercentChange } from '@/lib/format';
 import type { CategoryScore, MarketData, PropertyInfo, PropertyDetection } from '@/lib/types';
 
@@ -25,10 +26,13 @@ export function MarketSection({ addressId, category, market, property, detection
 
   return (
     <div className="space-y-4">
+      {/* Market Heat Badge */}
+      {market.market_heat && <MarketHeatBadge heat={market.market_heat} />}
+
       {/* Council Valuation */}
       {property.capital_value && (
-        <div className="rounded-lg border border-border p-3">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
+          <div className="flex items-center gap-2.5 mb-2">
             <span className="text-sm font-semibold">Council Valuation</span>
             {isMultiUnit && (
               <Badge variant="secondary" className="text-[10px]">Unit valuation</Badge>
@@ -81,7 +85,7 @@ export function MarketSection({ addressId, category, market, property, detection
 
       {/* Trend data */}
       {market.trend && (
-        <div className="rounded-lg border border-border p-3">
+        <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
           <span className="text-sm font-semibold">Rent Trends</span>
           <div className="flex gap-4 mt-2">
             {market.trend.cagr_1yr !== null && (
@@ -119,7 +123,7 @@ export function MarketSection({ addressId, category, market, property, detection
 
       {/* Indicator cards */}
       {category.indicators.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {category.indicators.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
           ))}

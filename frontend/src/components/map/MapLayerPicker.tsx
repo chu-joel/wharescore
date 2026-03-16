@@ -1,7 +1,8 @@
 'use client';
 
 import { useMapStore } from '@/stores/mapStore';
-import { TILE_LAYERS } from '@/lib/constants';
+import { TILE_LAYERS, MAX_ACTIVE_LAYERS } from '@/lib/constants';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -73,12 +74,36 @@ export function MapLayerPicker() {
   const setLayers = useMapStore((s) => s.setLayers);
 
   const activeCount = TILE_LAYERS.filter((l) => layers[l.id]).length;
+  const atCap = activeCount >= MAX_ACTIVE_LAYERS;
+
+  const handleToggleLayer = (id: string) => {
+    const success = toggleLayer(id);
+    if (!success) {
+      toast.info(`Layer limit reached (${MAX_ACTIVE_LAYERS} max). Disable some layers first.`);
+    }
+  };
 
   const toggleGroup = (ids: string[]) => {
     const allActive = ids.every((id) => layers[id]);
     const updated = { ...layers };
-    for (const id of ids) {
-      updated[id] = !allActive;
+    if (allActive) {
+      for (const id of ids) updated[id] = false;
+    } else {
+      const currentActive = Object.values(updated).filter(Boolean).length;
+      let added = 0;
+      let skipped = 0;
+      for (const id of ids) {
+        if (updated[id]) continue;
+        if (currentActive + added < MAX_ACTIVE_LAYERS) {
+          updated[id] = true;
+          added++;
+        } else {
+          skipped++;
+        }
+      }
+      if (skipped > 0) {
+        toast.info(`Layer limit reached (${MAX_ACTIVE_LAYERS} max). Disable some layers first.`);
+      }
     }
     setLayers(updated);
   };
@@ -111,7 +136,7 @@ export function MapLayerPicker() {
 
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs text-muted-foreground">
-            {activeCount} of {TILE_LAYERS.length} layers active
+            {activeCount}/{MAX_ACTIVE_LAYERS} layers active
           </p>
           {activeCount > 0 && (
             <button
@@ -145,14 +170,19 @@ export function MapLayerPicker() {
                   const Icon = meta.icon;
                   const active = !!layers[id];
 
+                  const disabled = !active && atCap;
+
                   return (
                     <button
                       key={id}
-                      onClick={() => toggleLayer(id)}
+                      onClick={() => handleToggleLayer(id)}
+                      disabled={disabled}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-all ${
                         active
                           ? 'bg-piq-primary/8 ring-1 ring-piq-primary/20'
-                          : 'hover:bg-muted'
+                          : disabled
+                            ? 'opacity-40 cursor-not-allowed'
+                            : 'hover:bg-muted'
                       }`}
                     >
                       <div

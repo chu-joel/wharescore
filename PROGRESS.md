@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-12 (session 34 — Severity gradient map styling + Azure deployment)
+**Last Updated:** 2026-03-16 (session 35 — UX key features + report styling overhaul)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -14,6 +14,78 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 ---
 
 ## Current Status
+
+**Session 35 (2026-03-16) — UX key features (FindingCards, ActionCards, ComparisonBars) + report styling overhaul.**
+
+**(A) Three new UX feature components implemented (from UX spec priorities):**
+
+1. **FindingCard + KeyFindings** (`FindingCard.tsx`, `KeyFindings.tsx`) — The "holy shit moment" component. `generateFindings()` analyses the property report and produces plain English findings covering: flood zones, tsunami, liquefaction, slope failure, coastal erosion, EPBs, contamination, noise, NZDep + positive findings (no hazards, good schools, transit, low deprivation). Each finding has: headline, interpretation, severity (critical/warning/info/positive), source attribution. Cards use colour-coded borders/icons. Sorted critical-first, max 5 shown. **Moved UP in report order** — now appears immediately after Score Strip, before AI Summary.
+
+2. **ActionCard + DueDiligenceChecklist** (`ActionCard.tsx`) — Personalised "what to do" checklist. `generateActions()` builds actions based on specific risks: LIM report (always), flood insurance, tsunami evacuation, foundation inspection, geotech assessment, retaining walls, EPB review, SLUR check, noise glazing, heritage restrictions, zone info. Each action has title, description, priority (essential/recommended/optional), optional external link. Sorted by priority with coloured dots.
+
+3. **ComparisonBar + ComparisonSection** (`ComparisonBar.tsx`) — Horizontal bar chart comparing property value vs suburb avg vs city avg. Contextual labels ("Higher than average", "Typical for the area"). Respects `lowerIsBetter` flag. Wired for: NZDep, schools, transit stops, road noise, EPBs. **User updated PropertyReport.tsx to wire comparison data from `report.comparisons?.suburb` and `report.comparisons?.city` — needs `comparisons` field added to types.ts and backend.**
+
+**(B) Report information hierarchy restructured (matching UX spec):**
+```
+1. Summary Card (address, CV, links)
+2. Score Gauge + Score Strip + Coverage Badge
+3. KEY FINDINGS (NEW — moved UP)  ← "holy shit" moment
+4. AI Summary
+5. DUE DILIGENCE CHECKLIST (NEW)  ← "what to do"
+6. COMPARISON BARS (NEW)          ← "vs suburb/city"
+7. CTA Banner
+8. Nearby Highlights
+9. Accordion Sections (detail)
+10. Key Takeaways (Share/PDF/Search)
+11. Disclaimer
+```
+Section dividers with uppercase headings ("What to do next", "Nearby essentials", "Detailed breakdown") added between major groups for scanability.
+
+**(C) Report styling overhaul across 16 files:**
+- **Global CSS:** 3-tier card elevation system (`.card-elevated` with shadows + hover), `.section-divider`, `.section-heading` uppercase labels
+- **PropertySummaryCard:** Shadow + overflow-hidden, score circle `rounded-2xl` with `ring-4` glow, property info as pill badges, bold tracking-tight address
+- **ScoreStrip:** Larger `w-11 h-11 rounded-xl` circles, hover scale micro-interaction
+- **IndicatorCard:** `rounded-xl card-elevated`, smoother `duration-700` score bar animation, subtler source text
+- **NearbyHighlights:** Replaced hardcoded pink/green/orange with design system (rose/emerald/amber), added icon container circles, `card-elevated`
+- **ReportAccordion:** Each item `rounded-xl card-elevated`, icon background circles per category (red/emerald/teal), wider padding
+- **AISummaryCard:** Added `border-piq-primary/15` + `dark:bg-piq-primary/10` for dark mode visibility
+- **BetaBanner:** Subtle border, icon container, split bold/muted text
+- **ReportCTABanner:** Stronger gradient, primary border, `text-base font-bold`, `size="lg"` button
+- **TransportSection:** Side-by-side distance cards with icon containers instead of flat list
+- **RiskHazardsSection:** Critical findings get `bg-red-50/50 dark:bg-red-950/20` tinted background
+- **All section components** (Neighbourhood, Market, Planning): `rounded-xl bg-card card-elevated` + `gap-2.5`
+- **ActionCard, ComparisonBar:** `card-elevated`, icon containers, better spacing
+
+**(D) TypeScript verified:** `tsc --noEmit` clean after all changes.
+
+**(E) INCOMPLETE — needs follow-up:**
+- `report.comparisons` field referenced in PropertyReport.tsx but not yet in `types.ts` or backend — **TypeScript may error until this is added**
+- Need to add `comparisons` interface to `types.ts` with `suburb` and `city` sub-objects containing `avg_nzdep`, `school_count_1500m`, `transit_count_400m`, `max_noise_db`, `epb_count_300m`
+- Need backend SQL/endpoint to compute suburb and city averages for comparison bars
+- Real suburb averages not yet wired (comparison bars will show "This place" vs "City" only until backend is done)
+
+**New files (4):**
+- `frontend/src/components/property/FindingCard.tsx` — Finding card component + `generateFindings()` logic
+- `frontend/src/components/property/KeyFindings.tsx` — Wrapper that renders top 5 findings
+- `frontend/src/components/property/ActionCard.tsx` — Action item component + `DueDiligenceChecklist` + `generateActions()` logic
+- `frontend/src/components/common/ComparisonBar.tsx` — Horizontal comparison bar + `ComparisonSection` wrapper
+
+**Modified files (16):**
+- `frontend/src/app/globals.css` — card-elevated, section-divider, section-heading CSS
+- `frontend/src/components/property/PropertyReport.tsx` — New report order + section dividers + imports
+- `frontend/src/components/property/PropertySummaryCard.tsx` — Score circle, pill badges, shadow
+- `frontend/src/components/property/ScoreStrip.tsx` — Larger rounded-xl circles, hover
+- `frontend/src/components/property/ReportAccordion.tsx` — Icon backgrounds, card-elevated
+- `frontend/src/components/property/AISummaryCard.tsx` — Border + dark mode bg
+- `frontend/src/components/property/BetaBanner.tsx` — Icon container, border
+- `frontend/src/components/property/ReportCTABanner.tsx` — Stronger CTA styling
+- `frontend/src/components/property/NearbyHighlights.tsx` — Design system colors, icon containers
+- `frontend/src/components/property/sections/RiskHazardsSection.tsx` — Tinted critical bg
+- `frontend/src/components/property/sections/NeighbourhoodSection.tsx` — rounded-xl, card-elevated
+- `frontend/src/components/property/sections/MarketSection.tsx` — rounded-xl, card-elevated
+- `frontend/src/components/property/sections/TransportSection.tsx` — Side-by-side distance cards
+- `frontend/src/components/property/sections/PlanningSection.tsx` — rounded-xl, card-elevated
+- `frontend/src/components/common/IndicatorCard.tsx` — rounded-xl, card-elevated, smoother animation
 
 **Session 34 (2026-03-12) — Severity gradient map styling + Azure deployment + rainfall landslide research.**
 
@@ -89,15 +161,31 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Next Steps (Resume in Fresh Context)
 
-1. ~~**Resolve backend 500 error blocker**~~ ✅ DONE (session 32)
+1. **FIX: Add `comparisons` field to types + transform + backend** ← BLOCKING (TypeScript error)
+   - User updated `PropertyReport.tsx` to reference `report.comparisons?.suburb` and `report.comparisons?.city`
+   - Need to add `comparisons?: ComparisonData` to `PropertyReport` interface in `types.ts`
+   - Need `ComparisonData` type: `{ suburb: SuburbCityAvg | null; city: SuburbCityAvg | null }` with fields: `avg_nzdep`, `school_count_1500m`, `transit_count_400m`, `max_noise_db`, `epb_count_300m`
+   - Need to update `transformReport.ts` to extract comparisons from backend response
+   - Need backend SQL to compute suburb/city averages (query across all addresses in same SA2/suburb for suburb avg, all Wellington for city avg)
+   - Add to `get_property_report()` SQL function or as separate endpoint
 
-2. **End-to-end PDF export test**
+2. ~~**Resolve backend 500 error blocker**~~ ✅ DONE (session 32)
+
+3. **End-to-end PDF export test**
    - Hit `POST /api/v1/property/{id}/export/pdf/start` to get job_id
    - Poll `GET /api/v1/property/{id}/export/pdf/status/{job_id}` until completed
    - Download PDF from `GET /api/v1/property/{id}/export/pdf/download/{job_id}`
    - Verify all 12 sections render + print to PDF works in Chrome
 
-3. **Final verification checklist**
+4. **Remaining UX features** (from `feature-todos.md` + UX spec):
+   - [ ] Suburb Search & Summary Page (`/suburb/[name]` route)
+   - [ ] Smart report ordering (sections re-prioritise based on property type)
+   - [ ] Map layer strategy (defaults, multi-layer tooltips, layer cap)
+   - [ ] Score semantics fix (traffic light green/amber/red, "higher = worse" clarity)
+   - [ ] User accounts + saved reports
+   - [ ] PDF sales strategy (sample report, pricing page)
+
+5. **Final verification checklist**
    - [ ] Backend health endpoint: `curl http://localhost:8000/health` → `{status: ok, db: true, redis: false}`
    - [ ] Property report: `curl http://localhost:8000/api/v1/property/1378995/report` → valid JSON with all sections
    - [ ] Frontend compiles: `cd frontend && npm run build`

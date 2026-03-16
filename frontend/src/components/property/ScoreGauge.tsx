@@ -13,26 +13,25 @@ interface ScoreGaugeProps {
 }
 
 const RADIUS = 80;
-const STROKE_WIDTH = 12;
+const STROKE_WIDTH = 14;
 const CENTER = 100;
 const TOTAL_DEGREES = 240;
 const START_ANGLE = 150; // start from bottom-left
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const ARC_LENGTH = (TOTAL_DEGREES / 360) * CIRCUMFERENCE;
+const OUTER_RING_RADIUS = RADIUS + 18;
 
-function polarToCartesian(angle: number) {
+function polarToCartesian(angle: number, radius: number = RADIUS) {
   const rad = (angle * Math.PI) / 180;
   return {
-    x: CENTER + RADIUS * Math.cos(rad),
-    y: CENTER + RADIUS * Math.sin(rad),
+    x: CENTER + radius * Math.cos(rad),
+    y: CENTER + radius * Math.sin(rad),
   };
 }
 
-function describeArc(startAngle: number, sweepDegrees: number) {
-  const start = polarToCartesian(startAngle);
-  const end = polarToCartesian(startAngle + sweepDegrees);
+function describeArc(startAngle: number, sweepDegrees: number, radius: number = RADIUS) {
+  const start = polarToCartesian(startAngle, radius);
+  const end = polarToCartesian(startAngle + sweepDegrees, radius);
   const largeArc = sweepDegrees > 180 ? 1 : 0;
-  return `M ${start.x} ${start.y} A ${RADIUS} ${RADIUS} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }
 
 export function ScoreGauge({ score, label, color, percentileText, animated = true }: ScoreGaugeProps) {
@@ -57,7 +56,6 @@ export function ScoreGauge({ score, label, color, percentileText, animated = tru
     const animate = (now: number) => {
       const elapsed = now - startTimeRef.current;
       const t = Math.min(elapsed / duration, 1);
-      // cubic-bezier approximation for ease-out
       const eased = 1 - Math.pow(1 - t, 3);
 
       setDisplayScore(Math.round(eased * score));
@@ -75,10 +73,33 @@ export function ScoreGauge({ score, label, color, percentileText, animated = tru
   const sweepDegrees = TOTAL_DEGREES * (score / 100) * arcProgress;
   const bgPath = describeArc(START_ANGLE, TOTAL_DEGREES);
   const scorePath = sweepDegrees > 0 ? describeArc(START_ANGLE, sweepDegrees) : '';
+  const outerRingPath = describeArc(START_ANGLE, TOTAL_DEGREES, OUTER_RING_RADIUS);
+
+  // Display label: "Moderate" → "Moderate Risk"
+  const displayLabel = label.includes('Risk') ? label : `${label} Risk`;
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 200" className="w-36 h-36" role="img" aria-label={`Score: ${score} out of 100, ${label}`}>
+      <svg viewBox="0 0 200 200" className="w-36 h-36" role="img" aria-label={`Score: ${score} out of 100, ${displayLabel}`}>
+        <defs>
+          <filter id="scoreGlow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Decorative outer ring */}
+        <path
+          d={outerRingPath}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1}
+          strokeDasharray="4 8"
+          strokeLinecap="round"
+          className="text-border"
+        />
         {/* Background arc */}
         <path
           d={bgPath}
@@ -86,8 +107,20 @@ export function ScoreGauge({ score, label, color, percentileText, animated = tru
           stroke="currentColor"
           strokeWidth={STROKE_WIDTH}
           strokeLinecap="round"
-          className="text-border dark:text-border-dark"
+          className="text-muted/20"
+          opacity={0.15}
         />
+        {/* Glow layer */}
+        {scorePath && (
+          <path
+            d={scorePath}
+            fill="none"
+            stroke={color}
+            strokeWidth={STROKE_WIDTH + 4}
+            strokeLinecap="round"
+            opacity={0.15}
+          />
+        )}
         {/* Score arc */}
         {scorePath && (
           <path
@@ -101,24 +134,24 @@ export function ScoreGauge({ score, label, color, percentileText, animated = tru
         {/* Score number */}
         <text
           x={CENTER}
-          y={CENTER - 4}
+          y={CENTER - 8}
           textAnchor="middle"
           dominantBaseline="central"
-          className="fill-foreground"
-          style={{ fontSize: 48, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+          style={{ fontSize: 46, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+          fill={color}
         >
           {formatScore(displayScore)}
         </text>
         {/* Label */}
         <text
           x={CENTER}
-          y={CENTER + 28}
+          y={CENTER + 24}
           textAnchor="middle"
           dominantBaseline="central"
           className="fill-muted-foreground"
-          style={{ fontSize: 14 }}
+          style={{ fontSize: 13, fontWeight: 600 }}
         >
-          {label}
+          {displayLabel}
         </text>
       </svg>
       {percentileText && (
