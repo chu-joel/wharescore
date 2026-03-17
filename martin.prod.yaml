@@ -62,3 +62,7 @@ postgres:
       minzoom: 10
     sa2_boundaries:
       minzoom: 8
+    landslide_events:
+      minzoom: 10
+    landslide_areas:
+      minzoom: 10

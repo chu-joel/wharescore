@@ -131,6 +131,36 @@ Reports are cached for 24h in Redis. Flush after data changes to ensure new fiel
 
 ---
 
+## Web Admin Approach (Implemented)
+
+The admin panel at `/admin/data-loader` now has "Load" buttons for each data source. After deploying code + migrations:
+
+1. Go to `https://wharescore.co.nz/admin/data-loader`
+2. Log in with the admin password
+3. Click "Load" on each data source — they run as background jobs
+4. Watch progress in real-time (polls every 2 seconds)
+5. Report cache is auto-flushed after each load
+
+**Data sources available:**
+| Source | Tables | API | Approx time |
+|--------|--------|-----|-------------|
+| GWRC Earthquake Hazards | 4 tables (eq hazard, ground shaking, liquefaction, slope failure) | GWRC ArcGIS | ~2 min |
+| WCC District Plan Hazards | 3 tables (faults, flood, tsunami) | WCC ArcGIS | ~1 min |
+| WCC Solar Radiation | 1 table (building solar potential) | ArcGIS Online | ~1 min |
+| Metlink GTFS + Travel Times | 3 tables (stops, travel times, frequency) | Metlink GTFS zip | ~3 min |
+
+**How it works:**
+- `POST /api/v1/admin/data-sources/{key}/load` starts a background thread
+- Loader fetches from external APIs, truncates target tables, inserts fresh data
+- Progress stored in Redis, polled by frontend
+- `data_versions` table tracks last load time per source
+- Only one load can run at a time (prevents double-loading)
+- Report Redis cache is flushed after completion
+
+**For initial deploy with existing local data (faster):** Use the pg_dump approach below, then use the web loader for subsequent refreshes.
+
+---
+
 ## Better Approach (Recommended)
 
 ### 1. Add a `manage.py` CLI to the backend

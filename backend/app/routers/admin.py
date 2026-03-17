@@ -4,6 +4,7 @@ from typing import Optional
 # backend/app/routers/admin.py
 import csv
 import io
+import json
 import re
 
 import orjson
@@ -703,6 +704,11 @@ async def admin_data_health(request: Request):
         "market_rent_cache", "wcc_rates_cache", "osm_amenities",
         "conservation_land", "area_profiles", "user_rent_reports",
         "feedback", "email_signups", "data_sources",
+        # Wellington-specific
+        "gwrc_earthquake_hazard", "gwrc_ground_shaking", "gwrc_liquefaction",
+        "gwrc_slope_failure", "wcc_fault_zones", "wcc_flood_hazard",
+        "wcc_tsunami_hazard", "wcc_solar_radiation", "metlink_stops",
+        "transit_travel_times", "transit_stop_frequency", "mbie_epb",
     ]
     table_stats = {}
     async with _db.pool.connection() as conn:
@@ -723,6 +729,172 @@ async def admin_data_health(request: Request):
             pass
 
     return {"tables": table_stats, "services": services}
+
+
+# --- Data Loader ---
+
+@router.get("/data-sources", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def admin_data_sources(request: Request):
+    """List available data sources with load status."""
+    from ..services.data_loader import DATA_SOURCES
+
+    sources = []
+    async with _db.pool.connection() as conn:
+        for src in DATA_SOURCES:
+            table_counts = {}
+            for t in src.tables:
+                try:
+                    cur = await conn.execute(f"SELECT COUNT(*) AS cnt FROM {t}")
+                    table_counts[t] = (cur.fetchone())["cnt"]
+                except Exception:
+                    table_counts[t] = 0
+
+            # Check last loaded time from data_versions if it exists
+            loaded_at = None
+            try:
+                cur = await conn.execute(
+                    "SELECT loaded_at, row_count FROM data_versions WHERE source = %s",
+                    (src.key,),
+                )
+                row = cur.fetchone()
+                if row:
+                    loaded_at = str(row["loaded_at"])
+            except Exception:
+                pass
+
+            total_rows = sum(v for v in table_counts.values() if isinstance(v, int))
+            sources.append({
+                "key": src.key,
+                "label": src.label,
+                "tables": table_counts,
+                "total_rows": total_rows,
+                "loaded_at": loaded_at,
+                "status": "loaded" if total_rows > 0 else "empty",
+            })
+
+    # Check for active loader job
+    active_job = None
+    if redis_client:
+        try:
+            active = await redis_client.get("data_loader:active")
+            if active:
+                active_job = json.loads(active)
+        except Exception:
+            pass
+
+    return {"sources": sources, "active_job": active_job}
+
+
+@router.post("/data-sources/{source_key}/load", dependencies=[Depends(require_admin)])
+@limiter.limit("3/minute")
+async def admin_load_data_source(request: Request, source_key: str):
+    """Trigger a background data load for a source."""
+    import uuid
+    import asyncio
+    from ..services.data_loader import DATA_SOURCES_BY_KEY, run_loader
+
+    if source_key not in DATA_SOURCES_BY_KEY:
+        raise HTTPException(404, f"Unknown data source: {source_key}")
+
+    # Check for active job
+    if redis_client:
+        try:
+            active = await redis_client.get("data_loader:active")
+            if active:
+                return JSONResponse(
+                    {"error": "A data load is already in progress", "active": json.loads(active)},
+                    status_code=409,
+                )
+        except Exception:
+            pass
+
+    job_id = str(uuid.uuid4())[:8]
+    job = {"id": job_id, "source": source_key, "status": "running", "progress": [], "error": None}
+
+    # Store active job state
+    if redis_client:
+        try:
+            await redis_client.set("data_loader:active", json.dumps(job), ex=1800)
+        except Exception:
+            pass
+
+    # Run in background thread (data loading is sync + CPU-bound)
+    def _run():
+        progress_msgs = []
+
+        def on_progress(msg):
+            progress_msgs.append(msg)
+            # Update Redis progress
+            try:
+                import asyncio as aio
+                loop = aio.new_event_loop()
+                job_update = {**job, "progress": progress_msgs[-10:]}  # Keep last 10
+                if redis_client:
+                    loop.run_until_complete(
+                        redis_client.set("data_loader:active", json.dumps(job_update), ex=1800)
+                    )
+                loop.close()
+            except Exception:
+                pass
+
+        result = run_loader(source_key, on_progress)
+        return result
+
+    loop = asyncio.get_event_loop()
+    # Don't await — fire and forget
+    async def _background():
+        try:
+            result = await loop.run_in_executor(None, _run)
+            completed = {
+                "id": job_id, "source": source_key,
+                "status": "completed" if not result["error"] else "failed",
+                "rows": result["rows"], "error": result["error"],
+            }
+            if redis_client:
+                await redis_client.set("data_loader:active", json.dumps(completed), ex=300)
+                # Flush report cache so new data shows
+                await redis_client.delete(*[
+                    k async for k in redis_client.scan_iter("report:*")
+                ] or ["_noop"])
+        except Exception as e:
+            if redis_client:
+                await redis_client.set(
+                    "data_loader:active",
+                    json.dumps({"id": job_id, "source": source_key, "status": "failed", "error": str(e)}),
+                    ex=300,
+                )
+
+    asyncio.create_task(_background())
+
+    return {"job_id": job_id, "source": source_key, "status": "started"}
+
+
+@router.get("/data-sources/job", dependencies=[Depends(require_admin)])
+@limiter.limit("60/minute")
+async def admin_data_loader_status(request: Request):
+    """Poll active data loader job status."""
+    if not redis_client:
+        return {"active_job": None}
+    try:
+        active = await redis_client.get("data_loader:active")
+        if active:
+            return {"active_job": json.loads(active)}
+    except Exception:
+        pass
+    return {"active_job": None}
+
+
+@router.delete("/data-sources/job", dependencies=[Depends(require_admin)])
+@limiter.limit("10/minute")
+async def admin_clear_loader_job(request: Request):
+    """Clear a completed/failed job from the active slot."""
+    if redis_client:
+        try:
+            await redis_client.delete("data_loader:active")
+        except Exception:
+            pass
+    return {"cleared": True}
 
 
 # --- Feedback Management ---

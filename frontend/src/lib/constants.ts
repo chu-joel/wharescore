@@ -38,6 +38,8 @@ export const TILE_LAYERS = [
   { id: 'tsunami_zones', group: 'Hazards', label: 'Tsunami Zones', minzoom: 8 },
   { id: 'coastal_erosion', group: 'Hazards', label: 'Coastal Erosion', minzoom: 8 },
   { id: 'wind_zones', group: 'Hazards', label: 'Wind Zones', minzoom: 8 },
+  { id: 'landslide_events', group: 'Hazards', label: 'Landslides', minzoom: 10 },
+  { id: 'landslide_areas', group: 'Hazards', label: 'Landslide Areas', minzoom: 10 },
   // Property — users want to see their parcel/building
   { id: 'parcels', group: 'Property', label: 'Parcels', minzoom: 15 },
   { id: 'building_outlines', group: 'Property', label: 'Buildings', minzoom: 13 },
@@ -52,6 +54,9 @@ export const TILE_LAYERS = [
   // Transport
   { id: 'transit_stops', group: 'Transport', label: 'Transit Stops', minzoom: 12 },
   { id: 'crashes', group: 'Transport', label: 'Crashes', minzoom: 13 },
+  // Liveability
+  { id: 'mv_nzdep_choropleth', group: 'Liveability', label: 'Deprivation (NZDep)', minzoom: 10 },
+  { id: 'mv_crime_choropleth', group: 'Liveability', label: 'Crime Density', minzoom: 10 },
   // Context
   { id: 'noise_contours', group: 'Context', label: 'Noise', minzoom: 11 },
   { id: 'conservation_land', group: 'Context', label: 'Conservation', minzoom: 10 },

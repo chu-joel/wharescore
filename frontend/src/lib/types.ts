@@ -184,6 +184,18 @@ export interface HazardData {
   epb_deadline: string | null;
   solar_mean_kwh: number | null;
   solar_max_kwh: number | null;
+  // GNS Landslide Database
+  landslide_count_500m: number | null;
+  landslide_nearest: {
+    name: string;
+    trigger: string;
+    severity: string;
+    movement_type: string;
+    date: string | null;
+    damage: string | null;
+    distance_m: number;
+  } | null;
+  landslide_in_area: boolean | null;
 }
 
 // --- Environment ---

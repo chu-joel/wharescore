@@ -70,37 +70,55 @@ export function MapControls({ mapRef }: MapControlsProps) {
     if (!navigator.geolocation) return;
     setLocating(true);
     setLocateError(false);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const map = mapRef.current?.getMap();
-        if (map) {
-          if (reducedMotion) {
-            map.jumpTo({
-              center: [pos.coords.longitude, pos.coords.latitude],
-              zoom: 16,
-            });
-          } else {
-            map.flyTo({
-              center: [pos.coords.longitude, pos.coords.latitude],
-              zoom: 16,
-              duration: TIMING.MAP_FLY_TO,
-            });
-          }
+
+    const onSuccess = (pos: GeolocationPosition) => {
+      const map = mapRef.current?.getMap();
+      if (map) {
+        if (reducedMotion) {
+          map.jumpTo({
+            center: [pos.coords.longitude, pos.coords.latitude],
+            zoom: 16,
+          });
+        } else {
+          map.flyTo({
+            center: [pos.coords.longitude, pos.coords.latitude],
+            zoom: 16,
+            duration: TIMING.MAP_FLY_TO,
+          });
         }
-        setViewport({
-          longitude: pos.coords.longitude,
-          latitude: pos.coords.latitude,
-          zoom: 16,
-        });
-        setLocating(false);
-      },
-      () => {
-        setLocateError(true);
-        setLocating(false);
-        setTimeout(() => setLocateError(false), 3000);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      }
+      setViewport({
+        longitude: pos.coords.longitude,
+        latitude: pos.coords.latitude,
+        zoom: 16,
+      });
+      setLocating(false);
+    };
+
+    const onError = (err: GeolocationPositionError) => {
+      // iOS sometimes fails with high accuracy — retry with low accuracy
+      if (err.code === err.TIMEOUT) {
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          () => {
+            setLocateError(true);
+            setLocating(false);
+            setTimeout(() => setLocateError(false), 3000);
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
+        return;
+      }
+      setLocateError(true);
+      setLocating(false);
+      setTimeout(() => setLocateError(false), 3000);
+    };
+
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
   }, [mapRef, setViewport, reducedMotion]);
 
   const handleReset = useCallback(() => {

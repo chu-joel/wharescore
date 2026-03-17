@@ -126,7 +126,11 @@ BEGIN
         'wcc_tsunami_ranking', th_wcc.hazard_ranking,
         'epb_nearest', epb_detail.nearest,
         'solar_mean_kwh', solar.mean_yearly_solar,
-        'solar_max_kwh', solar.max_yearly_solar
+        'solar_max_kwh', solar.max_yearly_solar,
+        -- GNS Landslide Database
+        'landslide_count_500m', ls_count.cnt,
+        'landslide_nearest', ls_nearest.nearest,
+        'landslide_in_area', ls_area.in_area
       )
       FROM (SELECT 1) x
       LEFT JOIN LATERAL (
@@ -230,6 +234,33 @@ BEGIN
         SELECT mean_yearly_solar, max_yearly_solar FROM wcc_solar_radiation
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) solar ON true
+      -- GNS Landslide Database: events within 500m
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS cnt FROM landslide_events
+        WHERE geom && ST_Expand(addr.geom, 0.005)
+          AND ST_DWithin(geom::geography, addr.geom::geography, 500)
+      ) ls_count ON true
+      -- GNS Landslide Database: nearest event
+      LEFT JOIN LATERAL (
+        SELECT jsonb_build_object(
+          'name', name,
+          'trigger', trigger_name,
+          'severity', severity_name,
+          'movement_type', movement_type_name,
+          'date', time_of_occurrence,
+          'damage', damage_description,
+          'distance_m', round(ST_Distance(geom::geography, addr.geom::geography)::numeric)
+        ) AS nearest
+        FROM landslide_events
+        WHERE geom && ST_Expand(addr.geom, 0.01)
+          AND ST_DWithin(geom::geography, addr.geom::geography, 1000)
+        ORDER BY geom <-> addr.geom LIMIT 1
+      ) ls_nearest ON true
+      -- GNS Landslide Database: within mapped landslide area polygon
+      LEFT JOIN LATERAL (
+        SELECT TRUE AS in_area FROM landslide_areas
+        WHERE ST_Intersects(geom, addr.geom) LIMIT 1
+      ) ls_area ON true
     ),
 
     -- ENVIRONMENT
@@ -335,19 +366,32 @@ BEGIN
         JOIN nzdep nd2 ON nd2.mb2023_code = mb.mb2023_code
         WHERE ST_Within(addr.geom, mb.geom) LIMIT 1
       ) nd ON true
-      -- Crime: try SA2 name / suburb match, fall back to TA-level stats
+      -- Crime: fuzzy match SA2 name / suburb to area_unit, fall back to TA-level stats
       LEFT JOIN LATERAL (
         SELECT
-          coalesce(au.victimisations_3yr, ta.victimisations_3yr) AS crime_victimisations,
-          au.area_unit AS crime_area_unit,
-          au.percentile_rank,
+          coalesce(best_au.victimisations_3yr, ta.victimisations_3yr) AS crime_victimisations,
+          best_au.area_unit AS crime_area_unit,
+          best_au.percentile_rank,
           ta.median_victimisations_per_au AS city_median_vics,
           ta.victimisations_3yr AS city_total_vics,
           ta.area_count AS city_area_count
         FROM mv_crime_ta ta
-        LEFT JOIN mv_crime_density au
-          ON (au.area_unit = v_sa2_name OR au.area_unit = addr.suburb_locality)
-          AND au.ta = ta.ta
+        LEFT JOIN LATERAL (
+          SELECT au.area_unit, au.victimisations_3yr, au.percentile_rank
+          FROM mv_crime_density au
+          WHERE au.ta = ta.ta
+            AND (
+              au.area_unit = v_sa2_name
+              OR au.area_unit = addr.suburb_locality
+              OR similarity(au.area_unit, v_sa2_name) > 0.3
+              OR similarity(au.area_unit, addr.suburb_locality) > 0.3
+            )
+          ORDER BY greatest(
+            similarity(au.area_unit, v_sa2_name),
+            similarity(au.area_unit, addr.suburb_locality)
+          ) DESC
+          LIMIT 1
+        ) best_au ON true
         WHERE ta.ta = v_ta_name
         LIMIT 1
       ) cd ON true

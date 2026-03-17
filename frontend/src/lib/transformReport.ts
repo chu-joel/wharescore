@@ -184,6 +184,10 @@ function transformHazards(raw: any): HazardData {
     epb_deadline: epbNearest?.deadline ?? null,
     solar_mean_kwh: raw.solar_mean_kwh ?? null,
     solar_max_kwh: raw.solar_max_kwh ?? null,
+    // GNS Landslide Database
+    landslide_count_500m: raw.landslide_count_500m ?? null,
+    landslide_nearest: raw.landslide_nearest ?? null,
+    landslide_in_area: raw.landslide_in_area ?? null,
   };
 }
 

@@ -38,6 +38,10 @@ const LAYER_STYLES: Record<string, LayerStyleConfig> = {
   slope_failure_zones: { type: 'fill', color: '#CC79A7', outlineColor: '#A8628A', fillOpacity: 0.30 },
   coastal_erosion:    { type: 'fill', color: '#D55E00', outlineColor: '#B04D00', fillOpacity: 0.30 },
   wind_zones:         { type: 'fill', color: '#9CA3AF', outlineColor: '#6B7280', fillOpacity: 0.25 },
+  landslide_areas:    { type: 'fill', color: '#F97316', outlineColor: '#EA580C', fillOpacity: 0.28 },
+
+  // --- Landslide events (points) ---
+  landslide_events:   { type: 'circle', color: '#F97316', radius: 5, strokeWidth: 1.5 },
 
   // --- Transport (points) — icons at zoom 13+ ---
   transit_stops:      { type: 'circle', color: '#0D7377', radius: 5, strokeWidth: 2, iconImage: 'icon-transit' },

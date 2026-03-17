@@ -319,6 +319,55 @@ async def _generate_pdf_background(job_id: str, address_id: int):
         except Exception as e:
             logger.warning(f"Nearby highlights query failed: {e}")
 
+        # 3c. Fetch nearby POIs for map (parks, cafes, restaurants, playgrounds)
+        nearby_parks = []
+        nearby_cafes = []
+        nearby_restaurants = []
+        nearby_playgrounds = []
+        try:
+            async with db.pool.connection() as conn_poi:
+                cur_poi = await conn_poi.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT oa.name, oa.subcategory,
+                           ST_X(oa.geom) AS longitude, ST_Y(oa.geom) AS latitude,
+                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM osm_amenities oa, addr
+                    WHERE oa.geom && ST_Expand(addr.geom, 1000 * 0.00001)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1000)
+                      AND oa.subcategory IN ('park', 'garden', 'cafe', 'restaurant', 'playground')
+                    ORDER BY distance_m
+                """, [address_id])
+                for r in cur_poi.fetchall():
+                    item = dict(r)
+                    sub = item.get("subcategory", "")
+                    if sub in ("park", "garden"):
+                        nearby_parks.append(item)
+                    elif sub == "cafe":
+                        nearby_cafes.append(item)
+                    elif sub == "restaurant":
+                        nearby_restaurants.append(item)
+                    elif sub == "playground":
+                        nearby_playgrounds.append(item)
+        except Exception as e:
+            logger.warning(f"Nearby POIs query failed: {e}")
+
+        # 3d. Fetch district plan zone polygons for map overlay
+        nearby_zones = []
+        try:
+            async with db.pool.connection() as conn_z:
+                cur_z = await conn_z.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT dz.zone_name, dz.zone_code,
+                           ST_AsGeoJSON(ST_Intersection(dz.geom, ST_Expand(addr.geom, 0.005)))::jsonb -> 'coordinates' AS coordinates
+                    FROM district_plan_zones dz, addr
+                    WHERE dz.geom && ST_Expand(addr.geom, 0.005)
+                      AND ST_Intersects(dz.geom, ST_Expand(addr.geom, 0.005))
+                    LIMIT 10
+                """, [address_id])
+                nearby_zones = [dict(r) for r in cur_z.fetchall()]
+        except Exception as e:
+            logger.warning(f"Nearby zones query failed: {e}")
+
         # 4. Run Python insight rule engine
         python_insights = build_insights(report)
 
@@ -354,13 +403,19 @@ async def _generate_pdf_background(job_id: str, address_id: int):
             report, python_insights, lifestyle_fit, ai_insights, recommendations,
             nearby_supermarkets=nearby_supermarkets,
             nearby_highlights=nearby_highlights,
+            nearby_parks=nearby_parks,
+            nearby_cafes=nearby_cafes,
+            nearby_restaurants=nearby_restaurants,
+            nearby_playgrounds=nearby_playgrounds,
+            nearby_zones=nearby_zones,
         )
 
         # 8. Mark job as completed
         await set_job_completed(job_id, html)
 
     except Exception as e:
-        logger.error(f"PDF generation failed for job {job_id}: {e}")
+        import traceback
+        logger.error(f"PDF generation failed for job {job_id}: {e}\n{traceback.format_exc()}")
         await set_job_failed(job_id, str(e))
 
 

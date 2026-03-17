@@ -244,6 +244,33 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
         rows.append({"label": "Wildfire", "status": "No wildfire data",
                      "detail": "", "risk_class": "none", "detected": False})
 
+    # Landslides (GNS NZLD)
+    ls_count = hazards.get("landslide_count_500m") or 0
+    ls_nearest = hazards.get("landslide_nearest") or {}
+    if ls_count > 0:
+        trigger = ls_nearest.get("trigger", "unknown") if isinstance(ls_nearest, dict) else "unknown"
+        dist = ls_nearest.get("distance_m", "?") if isinstance(ls_nearest, dict) else "?"
+        rows.append({
+            "label": "Landslide History",
+            "status": f"{ls_count} documented event{'s' if ls_count != 1 else ''} within 500m",
+            "detail": f"Nearest: {dist}m away ({trigger}-triggered)" if dist != "?" else "",
+            "risk_class": "warn" if ls_count < 3 else "warn",
+        })
+    elif hazards.get("landslide_in_area"):
+        rows.append({
+            "label": "Landslide History",
+            "status": "Property within mapped landslide area",
+            "detail": "GNS Science has mapped a historical landslide boundary intersecting this property",
+            "risk_class": "warn",
+        })
+    else:
+        rows.append({
+            "label": "Landslide History",
+            "status": "No documented landslides within 500m",
+            "detail": "",
+            "risk_class": "ok",
+        })
+
     # 6. Coastal Erosion
     erosion_raw = hazards.get("coastal_erosion")
     if erosion_raw and str(erosion_raw).strip() not in ("", "None", "0"):
@@ -596,6 +623,28 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{wildfire_days:.0f} Very High/Extreme fire danger days/yr — above national median.",
             "Review home and contents insurance for wildfire. Clear vegetation buffers.",
+        ).to_dict())
+
+    # GNS Landslide Database (NZLD) — historical landslide events
+    ls_count = hazards.get("landslide_count_500m") or 0
+    if ls_count >= 3:
+        result["hazards"].append(Insight(
+            "warn",
+            f"{ls_count} historical landslides documented within 500m (GNS NZLD). Multiple events indicate significant slope instability.",
+            "Commission a geotechnical assessment. Check retaining walls, drainage, and ground movement indicators.",
+        ).to_dict())
+    elif ls_count > 0:
+        result["hazards"].append(Insight(
+            "info",
+            f"{ls_count} historical landslide{'s' if ls_count > 1 else ''} recorded within 500m. Check property for signs of ground movement.",
+            "Review retaining wall condition and drainage adequacy during your viewing.",
+        ).to_dict())
+
+    if hazards.get("landslide_in_area"):
+        result["hazards"].append(Insight(
+            "warn",
+            "This property is within a mapped historical landslide boundary (GNS Science).",
+            "A geotechnical report is essential. Consider foundation type and any ground movement history.",
         ).to_dict())
 
     # Slope Failure / Landslide
@@ -1951,6 +2000,143 @@ def _build_checklist(insights: list) -> dict:
     }
 
 
+def _build_audience_callouts(report: dict) -> dict[str, list[dict]]:
+    """Generate audience-specific insight callouts for renters and buyers."""
+    hazards = report.get("hazards") or {}
+    env = report.get("environment") or {}
+    live = report.get("liveability") or {}
+    market_data = report.get("market") or {}
+    planning = report.get("planning") or {}
+
+    result: dict[str, list[dict]] = {
+        "hazards": [], "environment": [], "liveability": [],
+        "market": [], "planning": [],
+    }
+
+    # HAZARDS
+    if hazards.get("flood"):
+        result["hazards"].append({"audience": "buyer", "text": "Flood zone affects mortgage eligibility. Some lenders refuse or require higher deposits for properties in mapped flood zones. Factor in higher insurance premiums."})
+        result["hazards"].append({"audience": "renter", "text": "Flood zone doesn\u2019t affect your tenancy agreement, but ensure your contents insurance specifically covers flood damage \u2014 many basic policies exclude it."})
+
+    if hazards.get("liquefaction") and "high" in str(hazards.get("liquefaction", "")).lower():
+        result["hazards"].append({"audience": "buyer", "text": "High liquefaction susceptibility means foundation requirements are stricter. Budget for a geotechnical assessment ($2,000\u2013$5,000) before making an offer."})
+        result["hazards"].append({"audience": "renter", "text": "Liquefaction risk doesn\u2019t affect your tenancy, but know your evacuation routes in case of a major earthquake."})
+
+    if hazards.get("slope_failure") and any(w in str(hazards.get("slope_failure", "")).lower() for w in ["high", "very"]):
+        result["hazards"].append({"audience": "buyer", "text": "Commission a geotechnical report before purchase. Check retaining wall condition \u2014 repairs can cost $20,000\u2013$100,000+."})
+        result["hazards"].append({"audience": "renter", "text": "Not your financial risk, but be aware of slip-prone access routes in heavy rain. Check whether the driveway or paths are affected."})
+
+    if hazards.get("tsunami_zone_class") or hazards.get("tsunami_evac_zone"):
+        result["hazards"].append({"audience": "buyer", "text": "Tsunami zone designation may affect future insurance availability. Check with your insurer before committing."})
+        result["hazards"].append({"audience": "renter", "text": "Know your evacuation route and assembly point. Wellington has tsunami sirens \u2014 learn to recognise the signal."})
+
+    epb_count = hazards.get("epb_count_300m") or 0
+    if epb_count >= 3:
+        result["hazards"].append({"audience": "buyer", "text": f"{epb_count} earthquake-prone buildings within 300m. These may be demolished or strengthened \u2014 check council records for planned works that could affect the streetscape."})
+
+    # ENVIRONMENT
+    noise = env.get("road_noise_db") or env.get("noise_db")
+    if noise and float(noise) >= 60:
+        noise_val = float(noise)
+        if noise_val >= 65:
+            result["environment"].append({"audience": "buyer", "text": "High road noise significantly reduces your buyer pool at resale. Budget $5,000\u2013$15,000 for acoustic glazing if not already installed."})
+            result["environment"].append({"audience": "renter", "text": "Visit the property during peak traffic (7\u20139am, 4\u20136pm) before signing. Ask the landlord about window glazing type and whether ventilation works with windows closed."})
+        else:
+            result["environment"].append({"audience": "buyer", "text": "Moderate road noise is manageable with double glazing. Check window quality during your viewing."})
+            result["environment"].append({"audience": "renter", "text": "Road noise at this level is noticeable but manageable. Bedrooms at the back of the house will be quieter."})
+
+    contam_dist = env.get("contam_nearest_distance_m")
+    if contam_dist is not None:
+        try:
+            d = float(contam_dist)
+            if d < 200:
+                result["environment"].append({"audience": "buyer", "text": f"Contaminated site only {int(d)}m away. Commission a Phase 1 Environmental Site Assessment ($1,500\u2013$3,000) \u2014 this affects future development potential and resale."})
+                result["environment"].append({"audience": "renter", "text": "Registered contamination nearby doesn\u2019t typically affect daily living in established residential areas, but check if bore water is used."})
+        except (TypeError, ValueError):
+            pass
+
+    # LIVEABILITY
+    schools = live.get("schools_1500m") or []
+    in_zone = [s for s in schools if isinstance(s, dict) and s.get("in_zone")]
+    if len(in_zone) > 0:
+        result["liveability"].append({"audience": "buyer", "text": f"This property is in-zone for {len(in_zone)} school{'s' if len(in_zone) != 1 else ''}. In-zone access adds significant value \u2014 families pay $30,000\u2013$80,000+ premiums for zoned properties in Wellington."})
+        result["liveability"].append({"audience": "renter", "text": f"You\u2019re in-zone for {len(in_zone)} school{'s' if len(in_zone) != 1 else ''}. However, school zones change annually \u2014 verify directly with the Ministry of Education before enrolling."})
+
+    crime_pct = live.get("crime_percentile")
+    if crime_pct is not None:
+        try:
+            cp = float(crime_pct)
+            if cp >= 75:
+                result["liveability"].append({"audience": "buyer", "text": "High crime area affects insurance premiums (+10\u201330%) and may extend time-to-sell. Factor these costs into your purchase decision."})
+                result["liveability"].append({"audience": "renter", "text": "Check whether the property has secure entry, deadbolts, and window locks. Ask the landlord about break-in history and whether an alarm system is installed."})
+            elif cp <= 25:
+                result["liveability"].append({"audience": "buyer", "text": "Low crime area is a strong selling point. Properties in safe neighbourhoods consistently command higher prices and sell faster."})
+                result["liveability"].append({"audience": "renter", "text": "This is one of the safest areas in the city \u2014 a significant quality-of-life advantage, especially for families."})
+        except (TypeError, ValueError):
+            pass
+
+    nzdep = live.get("nzdep_decile")
+    if nzdep is not None:
+        try:
+            nd = int(nzdep)
+            if nd >= 8:
+                result["liveability"].append({"audience": "buyer", "text": "High deprivation correlates with lower property values but higher rental yields. Good for investors, but capital growth may be slower."})
+                result["liveability"].append({"audience": "renter", "text": "Higher deprivation areas often have more affordable rents. Check what local services are available \u2014 some areas have fewer GPs, pharmacies, and supermarkets."})
+        except (TypeError, ValueError):
+            pass
+
+    # MARKET
+    rental_overview = market_data.get("rental_overview") or []
+    all_rent = None
+    for r in rental_overview:
+        if isinstance(r, dict) and r.get("dwelling_type") == "ALL" and r.get("number_of_beds") == "ALL":
+            all_rent = r
+            break
+
+    if all_rent and all_rent.get("median_rent"):
+        median = all_rent["median_rent"]
+        yoy = all_rent.get("yoy_pct")
+        yoy_suffix = " Rents rose " + str(round(yoy, 1)) + "% in the last year \u2014 budget for an increase at renewal." if yoy and yoy > 0 else ""
+        result["market"].append({"audience": "renter", "text": f"Median rent in this area is ${int(median)}/week.{yoy_suffix}"})
+
+    prop = report.get("property") or {}
+    cv = prop.get("capital_value")
+    if cv and all_rent and all_rent.get("median_rent"):
+        gross_yield = (all_rent["median_rent"] * 52) / cv * 100
+        above_below = "above" if gross_yield > 3.75 else "below"
+        result["market"].append({"audience": "buyer", "text": f"Estimated gross yield of {gross_yield:.1f}% is {above_below} the Wellington average (~3.5\u20134%). Remember to factor in rates, insurance, maintenance (typically 20\u201330% of gross rent), and vacancy periods."})
+
+    trends = market_data.get("trends") or []
+    for t in trends:
+        if isinstance(t, dict) and t.get("dwelling_type") == "ALL" and t.get("number_of_beds") == "ALL":
+            cagr5 = t.get("cagr_5yr")
+            if cagr5 is not None and abs(cagr5) > 3:
+                if cagr5 > 0:
+                    result["market"].append({"audience": "buyer", "text": f"Rents growing {cagr5:.1f}% p.a. over 5 years signals strong demand. Good for rental income growth but may indicate supply constraints."})
+                    result["market"].append({"audience": "renter", "text": f"Rents have been rising {cagr5:.1f}% per year. Negotiate a longer fixed-term lease (12\u201324 months) to lock in the current rate."})
+            break
+
+    # PLANNING
+    consents = planning.get("resource_consents_500m_2yr") or 0
+    if consents >= 5:
+        result["planning"].append({"audience": "buyer", "text": f"{consents} resource consents granted nearby in the last 2 years signals active development. This typically supports property values long-term but expect construction disruption in the short term."})
+        result["planning"].append({"audience": "renter", "text": f"{consents} building consents nearby means potential construction noise and dust. Check project timelines before committing to a long lease."})
+
+    infra = planning.get("infrastructure_5km") or []
+    if len(infra) >= 2:
+        result["planning"].append({"audience": "buyer", "text": f"{len(infra)} major infrastructure projects within 5km. Government investment in transport, water, or community facilities typically drives property value growth over 5\u201310 years."})
+
+    if planning.get("heritage_listed"):
+        result["planning"].append({"audience": "buyer", "text": "Heritage listing restricts modifications. Any changes to the exterior require Heritage NZ approval, which adds cost and time to renovations."})
+        result["planning"].append({"audience": "renter", "text": "Heritage listing means the landlord can\u2019t easily alter the building\u2019s character \u2014 good if you like the period features."})
+
+    if planning.get("epb_listed"):
+        result["planning"].append({"audience": "buyer", "text": "This building is earthquake-prone. The owner must strengthen or demolish it within the deadline \u2014 check with the council for the exact timeline and estimated cost."})
+        result["planning"].append({"audience": "renter", "text": "This building is earthquake-prone. Your landlord is legally required to display an EPB notice. Consider whether you\u2019re comfortable with the seismic risk."})
+
+    return result
+
+
 # =============================================================================
 # Computed Values
 # =============================================================================
@@ -2031,8 +2217,10 @@ _RATING_BINS = [
 ]
 
 
-def _score_to_rating(score: float) -> tuple[str, str]:
+def _score_to_rating(score: float | None) -> tuple[str, str]:
     """Return (label, color) for a 0–100 risk score."""
+    if score is None:
+        return "Unknown", "#666"
     for lo, hi, label, color in _RATING_BINS:
         if lo <= score <= hi:
             return label, color
@@ -2051,6 +2239,11 @@ def render(
     recommendations: list[dict] | None = None,
     nearby_supermarkets: list[dict] | None = None,
     nearby_highlights: dict | None = None,
+    nearby_parks: list[dict] | None = None,
+    nearby_cafes: list[dict] | None = None,
+    nearby_restaurants: list[dict] | None = None,
+    nearby_playgrounds: list[dict] | None = None,
+    nearby_zones: list[dict] | None = None,
 ) -> str:
     """Generate premium HTML from a property report dict.
 
@@ -2107,11 +2300,45 @@ def render(
     rental_list = market.get("rental_overview") or []
     trends_list = market.get("trends") or []
 
+    # Safe numeric helper
+    def _safe_int(v: Any) -> int:
+        if v is None:
+            return 0
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+
+    def _safe_float_val(v: Any) -> float:
+        if v is None:
+            return 0.0
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+
     # Computed values
     yield_pct = _compute_yield(report)
     cagr_1yr = _get_cagr(report, 1)
     cagr_5yr = _get_cagr(report, 5)
-    cv = prop.get("capital_value") or prop.get("cv_capital")
+    cv_raw = prop.get("capital_value") or prop.get("cv_capital")
+    cv = _safe_int(cv_raw) if cv_raw is not None else None
+    prop_cv = cv  # alias used in template
+
+    # Phase 2: Land/Improvements split for donut chart
+    land_value = _safe_int(prop.get("land_value"))
+    improvements_value = _safe_int(prop.get("improvements_value"))
+    land_pct = round((land_value / cv) * 100) if cv and cv > 0 and land_value else 0
+    improvements_pct = 100 - land_pct if land_pct > 0 else 0
+
+    # Phase 5: Crash dot data
+    _crash_fatal = min(_safe_int(live.get("crashes_300m_fatal")), 5)
+    _crash_serious = min(_safe_int(live.get("crashes_300m_serious")) - _crash_fatal, 10)
+    _crash_minor = min(_safe_int(live.get("crashes_300m_total")) - _safe_int(live.get("crashes_300m_serious")), 10)
+    crash_dots = []
+    for _ in range(_crash_fatal): crash_dots.append({"color": "#C42D2D"})
+    for _ in range(max(0, _crash_serious)): crash_dots.append({"color": "#D55E00"})
+    for _ in range(max(0, _crash_minor)): crash_dots.append({"color": "#9CA3AF"})
 
     # Contamination explanation
     contam_cat = env.get("contam_nearest_category")
@@ -2168,6 +2395,11 @@ def render(
                 gp=live.get("nearest_gp") if isinstance(live.get("nearest_gp"), dict) else None,
                 pharmacy=live.get("nearest_pharmacy") if isinstance(live.get("nearest_pharmacy"), dict) else None,
                 transit_stops=live.get("transit_stops_list") or [],
+                parks=nearby_parks,
+                cafes=nearby_cafes,
+                restaurants=nearby_restaurants,
+                playgrounds=nearby_playgrounds,
+                zones=nearby_zones,
             )
         except Exception as e:
             logger.warning(f"Map generation failed: {e}")
@@ -2204,6 +2436,7 @@ def render(
         area_profile=report.get("area_profile"),
         # Insights
         insights=python_insights,
+        audience_callouts=_build_audience_callouts(report),
         # Lifestyle
         lifestyle_fit=personas,
         lifestyle_tips=tips,
@@ -2216,6 +2449,11 @@ def render(
         cagr_1yr=cagr_1yr,
         cagr_5yr=cagr_5yr,
         prop_cv=cv,
+        land_pct=land_pct,
+        improvements_pct=improvements_pct,
+        land_value=land_value,
+        improvements_value=improvements_value,
+        crash_dots=crash_dots,
         consents_count=consents_count,
         # Environment helpers
         noise_context=noise_ctx,
@@ -2239,6 +2477,18 @@ def render(
         highlights_good=(nearby_highlights or {}).get("good", []),
         highlights_caution=(nearby_highlights or {}).get("caution", []),
         highlights_info=(nearby_highlights or {}).get("info", []),
+        # Solar potential (from hazards/environment)
+        solar_mean=hazards.get("solar_mean_kwh"),
+        solar_max=hazards.get("solar_max_kwh"),
+        # Nearest earthquake-prone building details
+        epb_nearest=hazards.get("epb_nearest"),
+        # Wildfire trend detail
+        wildfire_trend=hazards.get("wildfire_trend"),
+        wildfire_vhe_days=hazards.get("wildfire_vhe_days"),
+        # Landslide data (GNS NZLD)
+        landslide_count=hazards.get("landslide_count_500m"),
+        landslide_nearest=hazards.get("landslide_nearest"),
+        landslide_in_area=hazards.get("landslide_in_area"),
         # Before You Buy recommendations
         recommendations=recommendations,
         recs_critical=[r for r in recommendations if r["severity"] == "critical"],

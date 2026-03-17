@@ -54,3 +54,6 @@ backend/=*
 
 *.pem
 _bmad/*
+
+# Database dumps
+*.dump

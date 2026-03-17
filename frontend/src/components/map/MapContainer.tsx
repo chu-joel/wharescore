@@ -37,9 +37,8 @@ interface HoverInfo {
 /** Extract a human-readable label from a hovered map feature */
 function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string; sublabel?: string } | null {
   const p = feature.properties ?? {};
-  // Normalize sub-layer IDs (e.g. layer-transit_stops-icon → layer-transit_stops)
   const rawId = feature.layer.id;
-  const layerId = rawId.replace(/-icon$/, '').replace(/-outline$/, '');
+  const layerId = rawId.replace(/-icon$/, '').replace(/-outline$/, '').replace(/-label$/, '');
 
   if (layerId === 'layer-addresses-click') {
     return p.full_address ? { label: p.full_address } : null;
@@ -60,7 +59,6 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
   if (layerId === 'layer-parcels') {
     return p.appellation ? { label: p.appellation as string } : null;
   }
-  // Active overlay layers
   if (layerId === 'layer-transit_stops') {
     return { label: p.stop_name as string ?? 'Transit stop', sublabel: p.route_type as string };
   }
@@ -112,18 +110,19 @@ for (const l of TILE_LAYERS) {
   LAYER_MINZOOM[l.id] = l.minzoom;
 }
 
-// The addresses layer is always loaded (invisible) so we can click on features
 const ADDRESSES_MINZOOM = 14;
-// IDs for the clickable layers we listen to
 const INTERACTIVE_LAYER_IDS = ['layer-addresses-click', 'layer-parcels', 'layer-building_outlines'];
 
-// Pre-compute all possible query layer IDs (static — avoids flatMap on every mouse move)
+// Pre-compute all possible query layer IDs (static)
 const ALL_OVERLAY_LAYER_IDS = TILE_LAYERS.flatMap((l) => [
   `layer-${l.id}`,
   `layer-${l.id}-icon`,
   `layer-${l.id}-outline`,
 ]);
 const ALL_QUERY_LAYER_IDS = [...INTERACTIVE_LAYER_IDS, ...ALL_OVERLAY_LAYER_IDS];
+
+// Reusable empty GeoJSON to avoid creating new objects
+const EMPTY_GEOJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false;
@@ -148,10 +147,26 @@ export function MapContainer() {
   const [pinVisible, setPinVisible] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
-  const [hoveredAddress, setHoveredAddress] = useState<{ id: number; label: string; lng: number; lat: number } | null>(null);
-  const [hoveredBuilding, setHoveredBuilding] = useState<maplibregl.GeoJSONFeature | null>(null);
   const [popupOverlayLines, setPopupOverlayLines] = useState<string[]>([]);
   const prevAddressRef = useRef<number | null>(null);
+  const showPopupRef = useRef(false);
+
+  // Keep ref in sync so callbacks don't need showPopup in deps
+  useEffect(() => { showPopupRef.current = showPopup; }, [showPopup]);
+
+  // Stable hover GeoJSON data refs (avoid Source mount/unmount churn)
+  const [hoverBuildingData, setHoverBuildingData] = useState<GeoJSON.Feature | null>(null);
+  const [hoverAddressData, setHoverAddressData] = useState<GeoJSON.FeatureCollection>(EMPTY_GEOJSON);
+
+  // Memoize active layer IDs + styles to avoid recalculating on every render
+  const activeLayerEntries = useMemo(() => {
+    return TILE_LAYERS
+      .filter((l) => activeLayers[l.id])
+      .map((l) => ({ id: l.id, styles: getLayerStyles(l.id) }))
+      .filter((e) => e.styles.length > 0);
+  }, [activeLayers]);
+
+  const activeLayerIds = useMemo(() => activeLayerEntries.map((e) => e.id), [activeLayerEntries]);
 
   // flyTo when a new address is selected
   useEffect(() => {
@@ -188,7 +203,8 @@ export function MapContainer() {
     }
   }, [selectedAddress]);
 
-  const onMove = useCallback(
+  // Update Zustand only when interaction ends — keeps drag/zoom fully native speed
+  const onMoveEnd = useCallback(
     (e: { viewState: { longitude: number; latitude: number; zoom: number } }) => {
       setViewport(e.viewState);
     },
@@ -201,7 +217,6 @@ export function MapContainer() {
     if (map) {
       addRiskPatterns(map);
       addLayerIcons(map);
-      // Re-add images whenever the basemap style is swapped
       map.on('style.load', () => {
         addRiskPatterns(map);
         addLayerIcons(map);
@@ -211,6 +226,7 @@ export function MapContainer() {
 
   const handleViewReport = useCallback(
     (addressId: number) => {
+      setShowPopup(false);
       router.push(`/property/${addressId}`);
     },
     [router],
@@ -220,11 +236,21 @@ export function MapContainer() {
     setShowPopup(false);
   }, []);
 
-  /** Collect overlay layer labels at a screen point (for popup context on tap/click). */
+  // Cache which layer IDs exist on the map
+  const validLayerIdsRef = useRef<string[]>([]);
+  const layerCacheDirtyRef = useRef(true);
+  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId]);
+
+  /** Collect overlay labels at a point using cached layer list */
   const getOverlayLinesAtPoint = useCallback((map: maplibregl.Map, point: maplibregl.PointLike): string[] => {
-    const overlayLayers = ALL_OVERLAY_LAYER_IDS.filter((id) => map.getLayer(id));
-    if (overlayLayers.length === 0) return [];
-    const features = map.queryRenderedFeatures(point, { layers: overlayLayers });
+    // Use the same cached layer list as handleMouseMove
+    if (layerCacheDirtyRef.current) {
+      validLayerIdsRef.current = ALL_QUERY_LAYER_IDS.filter((id) => map.getLayer(id));
+      layerCacheDirtyRef.current = false;
+    }
+    const overlayIds = validLayerIdsRef.current.filter(id => !INTERACTIVE_LAYER_IDS.includes(id));
+    if (overlayIds.length === 0) return [];
+    const features = map.queryRenderedFeatures(point, { layers: overlayIds });
     const seen = new Set<string>();
     const lines: string[] = [];
     for (const f of features) {
@@ -238,19 +264,17 @@ export function MapContainer() {
     return lines;
   }, []);
 
-  // Handle map click — select a property from the addresses tile layer
+  // Handle map click — uses ref for showPopup to avoid recreating on every popup toggle
   const handleMapClick = useCallback(
     (e: MapLayerMouseEvent) => {
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // Query for address features near the click point
       const features = map.queryRenderedFeatures(e.point, {
         layers: INTERACTIVE_LAYER_IDS.filter((id) => map.getLayer(id)),
       });
 
       if (features && features.length > 0) {
-        // Prefer address features (they have address_id)
         const addressFeature = features.find(
           (f) => f.layer.id === 'layer-addresses-click' && f.properties?.address_id
         );
@@ -277,7 +301,6 @@ export function MapContainer() {
           return;
         }
 
-        // No address at exact point — did we hit a building?
         const buildingHit = features.find(f => f.layer.id === 'layer-building_outlines');
         if (buildingHit && map.getLayer('layer-addresses-click')) {
           const R = 30;
@@ -318,47 +341,47 @@ export function MapContainer() {
         }
       }
 
-      // If user clicked on nothing while popup is showing, close it
-      if (showPopup) {
+      if (showPopupRef.current) {
         setShowPopup(false);
       }
     },
-    [selectAddress, selectProperty, showPopup, getOverlayLinesAtPoint],
+    [selectAddress, selectProperty, getOverlayLinesAtPoint],
   );
 
-  // Cache which layer IDs actually exist on the map to avoid per-move getLayer() calls
-  const validLayerIdsRef = useRef<string[]>([]);
-  const layerCacheDirtyRef = useRef(true);
+  // Hover tooltip — throttled to avoid excessive state updates
+  const lastHoverRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
 
-  // Invalidate cache when active layers or map style changes
-  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId]);
-
-  // Cursor + hover tooltip
   const handleMouseMove = useCallback(
     (e: MapLayerMouseEvent) => {
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // Rebuild cached layer list only when layers change (not on every move)
+      // Throttle: skip if mouse hasn't moved enough (< 3px) and < 32ms elapsed
+      const now = Date.now();
+      const dx = e.point.x - lastHoverRef.current.x;
+      const dy = e.point.y - lastHoverRef.current.y;
+      if (dx * dx + dy * dy < 9 && now - lastHoverRef.current.time < 32) return;
+      lastHoverRef.current = { x: e.point.x, y: e.point.y, time: now };
+
+      // Rebuild cached layer list only when layers change
       if (layerCacheDirtyRef.current) {
         validLayerIdsRef.current = ALL_QUERY_LAYER_IDS.filter((id) => map.getLayer(id));
         layerCacheDirtyRef.current = false;
       }
 
-      // Single queryRenderedFeatures call — extracts address, building, and overlay info
       const features = map.queryRenderedFeatures(e.point, { layers: validLayerIdsRef.current });
 
       if (!features || features.length === 0) {
         map.getCanvas().style.cursor = '';
         setHoverInfo(null);
-        setHoveredAddress(null);
-        setHoveredBuilding(null);
+        setHoverBuildingData(null);
+        setHoverAddressData(EMPTY_GEOJSON);
         return;
       }
 
       map.getCanvas().style.cursor = 'pointer';
 
-      // Single pass: classify features from the one query
+      // Single pass: classify features
       let addressFeature: maplibregl.MapGeoJSONFeature | undefined;
       let building: maplibregl.MapGeoJSONFeature | null = null;
       const seen = new Set<string>();
@@ -372,7 +395,6 @@ export function MapContainer() {
         }
         if (lid === 'layer-building_outlines' || lid === 'layer-building_outlines-outline') {
           if (!building) building = f;
-          // Still get its label for overlay lines below
         }
         const info = getFeatureLabel(f);
         if (!info) continue;
@@ -382,15 +404,23 @@ export function MapContainer() {
         overlayLines.push(info.sublabel ? `${info.label}: ${info.sublabel}` : info.label);
       }
 
-      // Address present: show as main label with overlay lines stacked
+      // Update hover highlight data (stable Source, just update data)
+      setHoverBuildingData(building as GeoJSON.Feature | null);
+
       if (addressFeature && addressFeature.geometry.type === 'Point') {
         const props = addressFeature.properties!;
         const coords = addressFeature.geometry.coordinates as [number, number];
         const addressId = Number(props.address_id);
         const fullAddress = String(props.full_address || `Address #${addressId}`);
 
-        setHoveredAddress({ id: addressId, label: fullAddress, lng: coords[0], lat: coords[1] });
-        setHoveredBuilding(building);
+        setHoverAddressData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coords },
+            properties: {},
+          }],
+        });
 
         setHoverInfo({
           x: e.point.x, y: e.point.y,
@@ -403,9 +433,7 @@ export function MapContainer() {
         return;
       }
 
-      // No address — show overlay features
-      setHoveredAddress(null);
-      setHoveredBuilding(null);
+      setHoverAddressData(EMPTY_GEOJSON);
 
       if (overlayLines.length > 0) {
         setHoverInfo({
@@ -416,7 +444,6 @@ export function MapContainer() {
         return;
       }
 
-      // Fallback — nothing useful
       setHoverInfo(null);
     },
     [],
@@ -424,11 +451,9 @@ export function MapContainer() {
 
   const handleMouseLeave = useCallback(() => {
     setHoverInfo(null);
-    setHoveredAddress(null);
-    setHoveredBuilding(null);
+    setHoverBuildingData(null);
+    setHoverAddressData(EMPTY_GEOJSON);
   }, []);
-
-  const activeLayerIds = TILE_LAYERS.filter((l) => activeLayers[l.id]).map((l) => l.id);
 
   return (
     <div
@@ -438,10 +463,8 @@ export function MapContainer() {
     >
       <Map
         ref={mapRef}
-        longitude={viewport.longitude}
-        latitude={viewport.latitude}
-        zoom={viewport.zoom}
-        onMove={onMove}
+        initialViewState={viewport}
+        onMoveEnd={onMoveEnd}
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
@@ -467,7 +490,6 @@ export function MapContainer() {
             minzoom={ADDRESSES_MINZOOM}
             maxzoom={14}
           >
-            {/* Invisible hit target — large radius for easy tap/click */}
             <Layer
               id="layer-addresses-click"
               source="source-addresses-click"
@@ -480,7 +502,6 @@ export function MapContainer() {
                 'circle-opacity': 0,
               }}
             />
-            {/* Visible dots — subtle hints that show "tap here" at close zoom */}
             <Layer
               id="layer-addresses-dots"
               source="source-addresses-click"
@@ -515,12 +536,12 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Hover feedback: building highlight + address ring */}
-        {mapLoaded && hoveredBuilding && (
+        {/* Hover feedback — stable Sources that update data instead of mount/unmount */}
+        {mapLoaded && (
           <Source
             id="source-hover-building"
             type="geojson"
-            data={hoveredBuilding as any}
+            data={hoverBuildingData ?? EMPTY_GEOJSON}
           >
             <Layer
               id="layer-hover-building-fill"
@@ -542,19 +563,11 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Hover address ring */}
-        {mapLoaded && hoveredAddress && (
+        {mapLoaded && (
           <Source
             id="source-hover-address-ring"
             type="geojson"
-            data={{
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [hoveredAddress.lng, hoveredAddress.lat],
-              },
-              properties: {},
-            }}
+            data={hoverAddressData}
           >
             <Layer
               id="layer-hover-address-ring"
@@ -573,25 +586,20 @@ export function MapContainer() {
 
         {/* User-toggled vector tile layers from Martin */}
         {mapLoaded &&
-          activeLayerIds.map((layerId) => {
-            const layerStyles = getLayerStyles(layerId);
-            if (!layerStyles.length) return null;
-
-            return (
-              <Source
-                key={layerId}
-                id={`source-${layerId}`}
-                type="vector"
-                tiles={[getTileUrl(layerId)]}
-                minzoom={LAYER_MINZOOM[layerId] ?? 8}
-                maxzoom={14}
-              >
-                {layerStyles.map((style) => (
-                  <Layer key={style.id} {...style} />
-                ))}
-              </Source>
-            );
-          })}
+          activeLayerEntries.map(({ id: layerId, styles }) => (
+            <Source
+              key={layerId}
+              id={`source-${layerId}`}
+              type="vector"
+              tiles={[getTileUrl(layerId)]}
+              minzoom={LAYER_MINZOOM[layerId] ?? 8}
+              maxzoom={14}
+            >
+              {styles.map((style) => (
+                <Layer key={style.id} {...style} />
+              ))}
+            </Source>
+          ))}
 
         {/* Always-visible suburb/locality labels — rendered on top of all layers */}
         {mapLoaded && (
@@ -638,7 +646,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Street/place labels on satellite basemaps — CARTO dark labels overlay */}
+        {/* Street/place labels on satellite basemaps */}
         {mapLoaded && SATELLITE_STYLE_IDS.has(baseStyleId) && (
           <Source
             id="source-carto-labels"
@@ -704,7 +712,7 @@ export function MapContainer() {
         )}
       </Map>
 
-      {/* Layer chip bar — sits at the top of the map, below the header */}
+      {/* Layer chip bar */}
       <div className="absolute top-2 left-2 right-14 lg:right-16 z-10">
         <MapLayerChipBar />
       </div>
@@ -715,7 +723,7 @@ export function MapContainer() {
       {/* Map style picker — bottom left */}
       <MapStylePicker />
 
-      {/* Legend — bottom left, above style picker */}
+      {/* Legend */}
       <MapLegend />
 
       {/* Hover tooltip */}
@@ -735,8 +743,8 @@ export function MapContainer() {
         </div>
       )}
 
-      {/* Zoom hint — visible at low zoom */}
-      {viewport.zoom < 10 && (
+      {/* Zoom hint */}
+      {(viewport.zoom < 10) && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
           Zoom in to select properties
         </div>

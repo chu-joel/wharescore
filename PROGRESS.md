@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-16 (session 35 — UX key features + report styling overhaul)
+**Last Updated:** 2026-03-17 (session 37 — PDF premium overhaul + GNS landslide data + renter/buyer insights)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -14,6 +14,166 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 ---
 
 ## Current Status
+
+**Session 37 (2026-03-17) — PDF premium overhaul + GNS landslide data + renter/buyer insights.**
+
+### What Was Done This Session
+
+**(A) PDF Report — Premium Overhaul (10 phases from PDF-REPORT-PLAN.md):**
+
+1. **Renter/Buyer Perspective System** — `_build_audience_callouts()` function generates audience-specific insight callouts across all 5 sections. Buyers get teal-bordered boxes (🏠), renters get blue-bordered boxes (🔑). Rules cover: flood zones, liquefaction, slope failure, tsunami, EPBs, noise, contamination, schools, crime, NZDep, rental yield, CAGR trends, consents, infrastructure, heritage, EPB listing.
+
+2. **Property & Valuation** — SVG donut chart showing land/improvements CV split + 2-column fact grid (land value, improvements, land area, footprint, title type, title number).
+
+3. **Score Overview** — "What This Means" contextual summary box with 5-tier interpretation based on composite score.
+
+4. **Environment Sub-sections** — Air quality trend indicator card (colored circle + arrow), water quality A-E grade bar (SVG), contamination proximity card (distance circle with color coding).
+
+5. **Road Safety** — Crash dot SVG visualization (red=fatal, orange=serious, gray=minor) with legend and summary text.
+
+6. **Amenities** — Horizontal bar chart (inline SVG) sorted by count, replacing plain table.
+
+7. **Infrastructure** — Timeline cards with colored sector dots (Transport=blue, Water=cyan, Healthcare=green, Education=purple), status badges, value ranges.
+
+8. **Key Questions** — Numbered badge cards with contextual fallback questions based on property data (flood, EPB, noise, body corporate).
+
+9. **Methodology** — Stacked weight bar SVG (5 colored segments: Hazards 30%, Liveability 25%, Environment/Market/Planning 15% each) + score interpretation gradient scale with property marker.
+
+10. **Global Polish** — Section dividers, break-inside-avoid on all cards, print CSS.
+
+**(B) GNS Landslide Database — Full Stack Integration:**
+
+- **Data downloaded:** 628 landslide point events + 157 polygon outlines from GNS WFS (`maps.gns.cri.nz`) for Wellington region. 331 rainfall-triggered (53%), 78 earthquake, 215 unknown.
+- **Database:** `landslide_events` + `landslide_areas` tables with GIST indexes. SQL: `sql/11-landslides.sql`, loader: `scripts/load_landslides.py`.
+- **Report function:** `sql/07-report-function.sql` — 3 new LATERAL subqueries: `landslide_count_500m`, `landslide_nearest` (with trigger, severity, damage, distance), `landslide_in_area` (boolean).
+- **Frontend types + transform:** `landslide_count_500m`, `landslide_nearest`, `landslide_in_area` on HazardData.
+- **Frontend findings:** `FindingCard.tsx` generates warnings for nearby landslides (with trigger type context) and critical for properties within mapped areas.
+- **PDF report:** Landslide History row in hazards table + detail card + warning card. Insights for 1+ and 3+ events.
+- **Map:** `landslide_events` (orange points) + `landslide_areas` (orange polygons) in Hazards group. Martin configs updated (all 3 environments). Layer styles in `layerStyles.ts`.
+- **Test results:** Address 1671902: 3 landslides within 500m. Address 1753062: 1 landslide (earthquake, 293m).
+
+**(C) Bug Fixes:**
+- Fixed Jinja2 `| default(0)` not handling None values — `default` only works for undefined variables, not None. Changed to explicit `if is not none else 0` pattern in crime percentile and contamination distance.
+- Fixed `_score_to_rating()` crash when score is None — added None guard.
+- Added safe numeric conversion helpers (`_safe_int`, `_safe_float_val`) for all computed values in the render function.
+
+**(D) New files created:**
+- `sql/11-landslides.sql` — landslide table schema
+- `scripts/load_landslides.py` — GNS data loader (psycopg3)
+- `data/landslides/landslide_points_wellington.geojson` — 628 events (469KB)
+- `data/landslides/landslide_polygons_wellington.geojson` — 157 areas (153KB)
+
+**(E) Tables now: 46 + 5 materialized views. ~19.4M+ records.**
+
+### What Needs To Be Done Next
+
+- **Area profiles batch generation** — `area_profiles` table exists (0 records), needs Azure OpenAI batch job for ~2,171 SA2 descriptions
+- **Additional landslide sources** — GNS SLIDE Project (rainfall probability surfaces, requires email to GNS), SlideNZ/EIL (earthquake probability at return periods)
+- **National landslide coverage** — current data is Wellington region only. Could pull national data from same GNS WFS
+- **Comparisons backend** — suburb/city average computation endpoint still needed for full ComparisonBars functionality
+- **Docker/deployment** — rebuild images with new tables and report function
+
+---
+
+**Session 36 (2026-03-16) — Massive visual premium overhaul across frontend + PDF.**
+
+### What Was Done In Session 36
+
+**(A) Frontend — Smart Report Ordering:**
+- `sectionRelevance.ts` — scores 5 accordion sections (0-100) by data interest, sorts descending
+- `ReportAccordion.tsx` — reorders by relevance, auto-opens top section, "Most relevant" badge
+- `PropertyReport.tsx` — computes + passes relevance
+
+**(B) Frontend — Score Component Visual Upgrades:**
+- `ScoreGauge.tsx` — rating color arc, glow effect, outer dashed ring, "56 Moderate Risk" label
+- `ScoreStrip.tsx` — true circles, connecting line, ring + shadow, hover scale
+- `IndicatorCard.tsx` — gradient bars (teal → rating color), endpoint dot, risk-level icons
+- `globals.css` — fade-in-up animations with stagger, card hover translateY, gradient section dividers
+
+**(C) Frontend — Charts + Section Upgrades:**
+- `RentHistoryChart.tsx` — dashed grid, 1200ms animation, active dot, current median ReferenceLine
+- `HPITrendChart.tsx` — dashed grid, animation, peak ring effect
+- `RiskHazardsSection.tsx` — thicker critical borders, pulsing dot for score ≥80, green no-risk banner
+- `FindingCard.tsx` — fade-in-up stagger, critical gradient background
+- `NearbyHighlights.tsx` — fade-in-up stagger, rounded-full icons
+
+**(D) Frontend — New Data Visualizations:**
+- `CategoryRadar.tsx` — Recharts radar chart of 5 category scores
+- `MarketHeatBadge.tsx` — thermometer pill badge (cold→hot)
+- `CrimeCard.tsx` — percentile gauge, severity label, victimisation stats, city comparison
+- `NoiseLevelGauge.tsx` — 5-zone dB meter with marker
+- `ClimateForecastCard.tsx` — temp change + precip change cards
+- `SolarPotentialCard.tsx` — kWh/yr display with progress bar
+- `CoverageRing.tsx` — SVG donut replacing plain coverage text
+- `EarthquakeDetailCard.tsx` — seismic profile with hazard grade, fault zone, gauge
+
+**(E) Frontend — Freemium Gating:**
+- `ReportUpsell.tsx` — teaser cards for gated content (findings, AI, comparisons, checklist, sections)
+- `FloatingReportButton.tsx` — sticky bottom-left FAB via createPortal, 3 states (Get/Generating/Open)
+- `KeyFindings.tsx` — shows first 2 findings free, gates the rest with severity count teaser
+- `ReportAccordion.tsx` — shows 4 free indicators per section, blurs rest with gradient overlay + upsell
+- `PropertyReport.tsx` — AI summary, comparisons, checklist gated with upsell cards
+- Removed `PdfReadyModal` from 4 components (only floating button handles PDF now)
+- Removed toast notifications from `usePdfExport` hook
+
+**(F) Frontend — Data Pipeline Fixes:**
+- `transformReport.ts` — synthesizes `transport` and `market` categories from indicators when backend doesn't provide them (fixes radar chart showing only 3 axes)
+- `types.ts` — added `crime_victimisations`, `crime_city_median`, `transit_travel_times`, `peak_trips_per_hour`, `nearest_stop_name` to LiveabilityData
+
+**(G) PDF Report — Charts & Visualizations:**
+- Radar/spider chart (SVG) of 5 category scores with polygon, grid, dots, labels
+- Hazard risk bars — horizontal bar chart of all risk indicators, color-coded
+- Comparison bars — property vs suburb vs city with contextual insight sentences
+- Rent trend SVG bar chart (last 5 periods)
+- NZDep 10-segment visual bar (SVG)
+- Crime percentile gradient gauge with marker + stats boxes
+- Noise level 5-zone gauge with marker
+- Transit mode breakdown bars (Bus/Rail/Ferry/Cable Car)
+- Score overview horizontal progress bars (replacing plain table)
+- Solar potential card with gradient bar
+- EPB nearest building detail card (name, rating, deadline, construction type)
+- Wildfire detail with VHE days + trend indicator
+- School EQI color-coded quality indicators
+
+**(H) PDF Report — Styling Overhaul:**
+- Redesigned color system with documented purpose per color
+- Executive dashboard gradient background
+- Professional section headers with gradient backgrounds
+- Consistent border-radius, spacing, shadows across all elements
+- `@page` numbering, page breaks, break-inside-avoid
+- Methodology and data quality sections
+- Pre-purchase printable checklist
+
+**(I) New files created this session (14 frontend, 0 backend):**
+- `frontend/src/lib/sectionRelevance.ts`
+- `frontend/src/components/property/CategoryRadar.tsx`
+- `frontend/src/components/property/MarketHeatBadge.tsx`
+- `frontend/src/components/property/CrimeCard.tsx`
+- `frontend/src/components/property/NoiseLevelGauge.tsx`
+- `frontend/src/components/property/ClimateForecastCard.tsx`
+- `frontend/src/components/property/SolarPotentialCard.tsx`
+- `frontend/src/components/property/CoverageRing.tsx`
+- `frontend/src/components/property/EarthquakeDetailCard.tsx`
+- `frontend/src/components/property/ReportUpsell.tsx`
+- `frontend/src/components/property/FloatingReportButton.tsx`
+
+**(J) TypeScript verified:** `tsc --noEmit` clean (pre-existing errors in SuburbSummaryPage/layerStyles only).
+
+### What Needs To Be Done Next
+
+**PDF Report Premium Overhaul (plan saved to `PDF-REPORT-PLAN.md`):**
+1. **Renter/Buyer perspective system** — audience-specific callout boxes throughout all sections
+2. **Property & Valuation** — donut chart (land vs improvements split) + icon fact grid
+3. **Score Overview** — contextual one-liners per category + "What This Means" summary
+4. **Environment sub-sections** — Air quality grade card, water quality grade bar, contamination proximity ring
+5. **Road Safety** — crash dot visualization (gray/orange/red dots)
+6. **Amenities** — horizontal bar chart replacing plain table
+7. **Infrastructure** — timeline cards with sector color dots and value ranges
+8. **Key Questions** — categorized card layout replacing plain list
+9. **Methodology** — stacked weight bar + gradient score scale
+10. **Global polish** — section dividers, print optimization, data freshness badges
+
+---
 
 **Session 35 (2026-03-16) — UX key features (FindingCards, ActionCards, ComparisonBars) + report styling overhaul.**
 

@@ -156,6 +156,32 @@ export function generateFindings(report: {
     }
   }
 
+  if (h.landslide_count_500m && h.landslide_count_500m > 0) {
+    const nearest = h.landslide_nearest;
+    const triggerText = nearest?.trigger === 'Rainfall' ? 'rainfall-triggered' : nearest?.trigger === 'Earthquake' ? 'earthquake-triggered' : 'documented';
+    findings.push({
+      headline: `${h.landslide_count_500m} ${triggerText} landslide${h.landslide_count_500m > 1 ? 's' : ''} recorded within 500m`,
+      interpretation:
+        h.landslide_count_500m >= 3
+          ? 'Multiple historical landslides in this area indicate significant slope instability. Commission a geotechnical assessment and check retaining walls before purchasing.'
+          : 'Historical landslide activity has been recorded nearby. Check the property for signs of ground movement, retaining wall condition, and drainage adequacy.',
+      severity: h.landslide_count_500m >= 3 ? 'critical' : 'warning',
+      category: 'Hazards',
+      source: 'GNS NZ Landslide Database',
+    });
+  }
+
+  if (h.landslide_in_area) {
+    findings.push({
+      headline: 'Property is within a mapped landslide area',
+      interpretation:
+        'This property sits within the boundary of a mapped historical landslide. This is a significant risk factor — a geotechnical report is essential before any purchase decision.',
+      severity: 'critical',
+      category: 'Hazards',
+      source: 'GNS NZ Landslide Database',
+    });
+  }
+
   if (h.coastal_erosion) {
     const isHigh = h.coastal_erosion.toLowerCase().includes('high') || h.coastal_erosion.toLowerCase().includes('severe');
     if (isHigh) {

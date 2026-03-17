@@ -138,3 +138,10 @@ CREATE TABLE IF NOT EXISTS transit_stop_frequency (
     stop_id TEXT PRIMARY KEY,
     peak_trips_per_hour NUMERIC NOT NULL
 );
+
+-- 13. Data Versions (tracks when each source was last loaded)
+CREATE TABLE IF NOT EXISTS data_versions (
+    source TEXT PRIMARY KEY,
+    loaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    row_count INT
+);

@@ -7,6 +7,7 @@ import { AdminAuthGate } from '@/components/admin/AdminAuthGate';
 const TABS = [
   { label: 'Dashboard', href: '/admin' },
   { label: 'Data Health', href: '/admin/data-health' },
+  { label: 'Data Loader', href: '/admin/data-loader' },
   { label: 'Feedback', href: '/admin/feedback' },
   { label: 'Emails', href: '/admin/emails' },
   { label: 'Content', href: '/admin/content' },
