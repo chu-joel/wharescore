@@ -96,6 +96,18 @@ def _mp_wkt(geom: dict) -> str | None:
     return f"MULTIPOLYGON({', '.join(parts)})"
 
 
+def _ml_wkt(geom: dict) -> str | None:
+    """ArcGIS paths → WKT MULTILINESTRING."""
+    paths = geom.get("paths", [])
+    if not paths:
+        return None
+    parts = []
+    for path in paths:
+        coords = ", ".join(f"{p[0]} {p[1]}" for p in path)
+        parts.append(f"({coords})")
+    return f"MULTILINESTRING({', '.join(parts)})"
+
+
 def _clean(val) -> str | None:
     if val is None:
         return None
@@ -598,6 +610,408 @@ def load_height_controls(conn: psycopg.Connection, log: Callable = None) -> int:
     return count
 
 
+# ── GWRC Landslide (Layer 21) ─────────────────────────────────
+
+def load_gwrc_landslide(conn: psycopg.Connection, log: Callable = None) -> int:
+    """GWRC Layer 21 — GNS QMap landslide polylines."""
+    url = "https://mapping.gw.govt.nz/arcgis/rest/services/GW/Emergencies_P/MapServer/21"
+    _progress(log, "Fetching GWRC landslide (Layer 21)...")
+    features = _fetch_arcgis(url)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE gwrc_landslide RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("paths"):
+            continue
+        wkt = _ml_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO gwrc_landslide (accuracy, type, geom) "
+            "VALUES (%s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (_clean(a.get("ACCURACY")), _clean(a.get("TYPE")), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"GWRC landslide: {count} rows")
+    return count
+
+
+# ── GWRC Coastal Elevation ────────────────────────────────────
+
+def load_coastal_elevation(conn: psycopg.Connection, log: Callable = None) -> int:
+    """GWRC Coastal elevation (cm above MHWS10)."""
+    url = "https://mapping.gw.govt.nz/arcgis/rest/services/Hazards/Coastal_elevation/MapServer/0"
+    _progress(log, "Fetching GWRC coastal elevation...")
+    features = _fetch_arcgis(url)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE coastal_elevation RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO coastal_elevation (gridcode, geom) "
+            "VALUES (%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (a.get("gridcode"), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Coastal elevation: {count} rows")
+    return count
+
+
+# ── GWRC Flood Hazard Extents (regional) ─────────────────────
+
+def load_gwrc_flood_extents(conn: psycopg.Connection, log: Callable = None) -> int:
+    """GWRC regional flood extents — 2%, 1%, 0.23% AEP."""
+    base = "https://mapping.gw.govt.nz/arcgis/rest/services/Flood_Hazard_Extents_P/MapServer"
+    cur = conn.cursor()
+    cur.execute("TRUNCATE gwrc_flood_extent RESTART IDENTITY")
+    total = 0
+    for lid, aep in [(3, "2%"), (4, "1%"), (5, "0.23%")]:
+        _progress(log, f"Fetching {aep} AEP flood extent (layer {lid})...")
+        features = _fetch_arcgis(f"{base}/{lid}")
+        count = 0
+        for f in features:
+            a = f.get("attributes", {})
+            geom = f.get("geometry")
+            if not geom or not geom.get("rings"):
+                continue
+            wkt = _mp_wkt(geom)
+            if not wkt:
+                continue
+            cur.execute(
+                "INSERT INTO gwrc_flood_extent (aep, label, title, description, hectares, geom) "
+                "VALUES (%s,%s,%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (aep, _clean(a.get("Label")), _clean(a.get("Title")),
+                 _clean(a.get("Description")), a.get("Hectares"), wkt),
+            )
+            count += 1
+        total += count
+        _progress(log, f"  {aep} AEP: {count} rows")
+    conn.commit()
+    _progress(log, f"GWRC flood extents total: {total} rows")
+    return total
+
+
+# ── WCC Corrosion Zones ──────────────────────────────────────
+
+def load_corrosion_zones(conn: psycopg.Connection, log: Callable = None) -> int:
+    """WCC Corrosion zones (500m coastal buffer)."""
+    url = "https://gis.wcc.govt.nz/arcgis/rest/services/Environment/CorrosionZones/MapServer/0"
+    _progress(log, "Fetching WCC corrosion zones...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE corrosion_zones RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO corrosion_zones (contour, buff_dist, geom) "
+            "VALUES (%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (_clean(a.get("CONTOUR")), a.get("BUFF_DIST"), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Corrosion zones: {count} rows")
+    return count
+
+
+# ── WCC Viewshafts ───────────────────────────────────────────
+
+def load_viewshafts(conn: psycopg.Connection, log: Callable = None) -> int:
+    """WCC District Plan viewshafts."""
+    url = "https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer/76"
+    _progress(log, "Fetching WCC viewshafts...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE viewshafts RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO viewshafts (dp_ref, name, description, significance, focal_elements, geom) "
+            "VALUES (%s,%s,%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (_clean(a.get("DPRef")), _clean(a.get("Name")), _clean(a.get("Description")),
+             _clean(a.get("Significance")), _clean(a.get("FocalElements")), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Viewshafts: {count} rows")
+    return count
+
+
+# ── WCC Character Precincts ──────────────────────────────────
+
+def load_character_precincts(conn: psycopg.Connection, log: Callable = None) -> int:
+    """WCC District Plan character precincts."""
+    url = "https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer/94"
+    _progress(log, "Fetching WCC character precincts...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE character_precincts RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO character_precincts (name, type, code, zone_name, zone_code, description, geom) "
+            "VALUES (%s,%s,%s,%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (_clean(a.get("Name")), _clean(a.get("Type")), _clean(a.get("Code")),
+             _clean(a.get("DPZone")), _clean(a.get("DPZoneCode")),
+             _clean(a.get("Description")), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Character precincts: {count} rows")
+    return count
+
+
+# ── WCC Coastal Inundation ───────────────────────────────────
+
+def load_coastal_inundation(conn: psycopg.Connection, log: Callable = None) -> int:
+    """WCC District Plan coastal inundation overlays (with and without SLR)."""
+    base = "https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer"
+    cur = conn.cursor()
+    cur.execute("TRUNCATE coastal_inundation RESTART IDENTITY")
+    total = 0
+    for lid in [49, 50]:
+        _progress(log, f"Fetching coastal inundation layer {lid}...")
+        features = _fetch_arcgis(f"{base}/{lid}", 2000)
+        count = 0
+        for f in features:
+            a = f.get("attributes", {})
+            geom = f.get("geometry")
+            if not geom or not geom.get("rings"):
+                continue
+            wkt = _mp_wkt(geom)
+            if not wkt:
+                continue
+            cur.execute(
+                "INSERT INTO coastal_inundation (name, hazard_ranking, scenario, coast, layer_id, geom) "
+                "VALUES (%s,%s,%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (_clean(a.get("Name")), _clean(a.get("DP_HazardRanking")),
+                 _clean(a.get("Scenario")), _clean(a.get("Coast")), lid, wkt),
+            )
+            count += 1
+        total += count
+        _progress(log, f"  Layer {lid}: {count} rows")
+    conn.commit()
+    _progress(log, f"Coastal inundation total: {total} rows")
+    return total
+
+
+# ── WCC Rail Vibration Advisory ──────────────────────────────
+
+def load_rail_vibration(conn: psycopg.Connection, log: Callable = None) -> int:
+    """WCC District Plan rail vibration advisory overlay."""
+    url = "https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer/140"
+    _progress(log, "Fetching WCC rail vibration advisory...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE rail_vibration RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO rail_vibration (noise_area, noise_area_type, eplan_category, geom) "
+            "VALUES (%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (_clean(a.get("NoiseArea")), _clean(a.get("NoiseAreaType")),
+             _clean(a.get("eplan_category")), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Rail vibration: {count} rows")
+    return count
+
+
+# ── GWRC Erosion Prone Land ──────────────────────────────────
+
+def load_erosion_prone_land(conn: psycopg.Connection, log: Callable = None) -> int:
+    """GWRC Regional Planning — erosion prone land."""
+    url = "https://mapping.gw.govt.nz/arcgis/rest/services/GW/Regional_Planning_P/MapServer/22"
+    _progress(log, "Fetching GWRC erosion prone land...")
+    features = _fetch_arcgis(url)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE erosion_prone_land RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        cur.execute(
+            "INSERT INTO erosion_prone_land (min_angle, hectares, geom) "
+            "VALUES (%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            (a.get("MINANGLE"), a.get("Hectares"), wkt),
+        )
+        count += 1
+    conn.commit()
+    _progress(log, f"Erosion prone land: {count} rows")
+    return count
+
+
+# ── GNS Landslide Database (NZLD) ─────────────────────────────
+
+def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load GNS NZ Landslide Database — point events + polygon areas for Wellington region."""
+    cur = conn.cursor()
+
+    # Create tables if they don't exist
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS landslide_events (
+          id SERIAL PRIMARY KEY,
+          gns_landslide_id INTEGER,
+          name TEXT,
+          time_of_occurrence DATE,
+          damage_description TEXT,
+          size_category INTEGER,
+          trigger_name TEXT,
+          severity_name TEXT,
+          debris_type_name TEXT,
+          material_type_name TEXT,
+          movement_type_name TEXT,
+          activity_name TEXT,
+          aspect_name TEXT,
+          data_source_name TEXT,
+          geom GEOMETRY(Point, 4326)
+        );
+        CREATE INDEX IF NOT EXISTS idx_landslide_events_geom ON landslide_events USING GIST (geom);
+        CREATE INDEX IF NOT EXISTS idx_landslide_events_trigger ON landslide_events (trigger_name);
+
+        CREATE TABLE IF NOT EXISTS landslide_areas (
+          id SERIAL PRIMARY KEY,
+          gns_feature_id INTEGER,
+          gns_landslide_id INTEGER,
+          name TEXT,
+          feature_type TEXT,
+          geom GEOMETRY(MultiPolygon, 4326)
+        );
+        CREATE INDEX IF NOT EXISTS idx_landslide_areas_geom ON landslide_areas USING GIST (geom);
+    """)
+    conn.commit()
+
+    # Wellington bounding box
+    bbox = "174.5,-41.5,175.1,-41.0"
+    total = 0
+
+    # 1. Point events
+    _progress(log, "Fetching GNS landslide point events (Wellington)...")
+    url = (
+        "https://maps.gns.cri.nz/gns/ows?service=wfs&version=1.0.0"
+        "&request=GetFeature&typeName=gns:v_landslide3"
+        f"&outputFormat=application/json&maxFeatures=5000&CQL_FILTER=BBOX(location,{bbox})"
+    )
+    data = json.loads(_fetch_url(url, timeout=120))
+    features = data.get("features", [])
+    _progress(log, f"  Downloaded {len(features)} point events")
+
+    cur.execute("TRUNCATE landslide_events RESTART IDENTITY")
+    count = 0
+    for feat in features:
+        props = feat.get("properties", {})
+        geom = feat.get("geometry")
+        if not geom or not geom.get("coordinates"):
+            continue
+        coords = geom["coordinates"]
+        if len(coords) < 2:
+            continue
+        cur.execute(
+            "INSERT INTO landslide_events "
+            "(gns_landslide_id, name, time_of_occurrence, damage_description, "
+            "size_category, trigger_name, severity_name, debris_type_name, "
+            "material_type_name, movement_type_name, activity_name, "
+            "aspect_name, data_source_name, geom) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, ST_SetSRID(ST_MakePoint(%s,%s),4326))",
+            (props.get("id"), props.get("name"), props.get("time_of_occurrence"),
+             props.get("damage_description"), props.get("size_category"),
+             props.get("trigger_name"), props.get("severity_name"),
+             props.get("debris_type_name"), props.get("material_type_name"),
+             props.get("movement_type_name"), props.get("activity_name"),
+             props.get("aspect_name"), props.get("data_source_name"),
+             coords[0], coords[1]),
+        )
+        count += 1
+    total += count
+    _progress(log, f"  Inserted {count} point events")
+
+    # 2. Polygon areas
+    _progress(log, "Fetching GNS landslide polygon areas (Wellington)...")
+    url = (
+        "https://maps.gns.cri.nz/gns/ows?service=wfs&version=1.0.0"
+        "&request=GetFeature&typeName=gns:landslide_polygon_feature_view"
+        f"&outputFormat=application/json&maxFeatures=5000&CQL_FILTER=BBOX(Geometry,{bbox})"
+    )
+    data = json.loads(_fetch_url(url, timeout=120))
+    features = data.get("features", [])
+    _progress(log, f"  Downloaded {len(features)} polygon areas")
+
+    cur.execute("TRUNCATE landslide_areas RESTART IDENTITY")
+    count = 0
+    for feat in features:
+        props = feat.get("properties", {})
+        geom = feat.get("geometry")
+        if not geom:
+            continue
+        geom_json = json.dumps(geom)
+        try:
+            cur.execute(
+                "INSERT INTO landslide_areas "
+                "(gns_feature_id, gns_landslide_id, name, feature_type, geom) "
+                "VALUES (%s,%s,%s,%s, ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)))",
+                (props.get("Feature ID"), props.get("Landslide ID"),
+                 props.get("Landslide name"), props.get("Landslide feature"), geom_json),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"Skipped landslide polygon: {e}")
+            conn.rollback()
+    total += count
+    _progress(log, f"  Inserted {count} polygon areas")
+
+    conn.commit()
+    cur.execute("ANALYZE landslide_events")
+    cur.execute("ANALYZE landslide_areas")
+    conn.commit()
+
+    _progress(log, f"GNS landslides total: {total} records")
+    return total
+
+
 # ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
@@ -649,6 +1063,57 @@ DATA_SOURCES: list[DataSource] = [
         "height_controls", "WCC Height Controls",
         ["height_controls"],
         load_height_controls,
+    ),
+    DataSource(
+        "gns_landslides", "GNS Landslide Database (Wellington)",
+        ["landslide_events", "landslide_areas"],
+        load_gns_landslides,
+    ),
+    # Tier 1+2 new datasets
+    DataSource(
+        "gwrc_landslide", "GWRC Landslide (GNS QMap)",
+        ["gwrc_landslide"],
+        load_gwrc_landslide,
+    ),
+    DataSource(
+        "coastal_elevation", "GWRC Coastal Elevation",
+        ["coastal_elevation"],
+        load_coastal_elevation,
+    ),
+    DataSource(
+        "gwrc_flood_extents", "GWRC Flood Extents (2%, 1%, 0.23% AEP)",
+        ["gwrc_flood_extent"],
+        load_gwrc_flood_extents,
+    ),
+    DataSource(
+        "corrosion_zones", "WCC Corrosion Zones",
+        ["corrosion_zones"],
+        load_corrosion_zones,
+    ),
+    DataSource(
+        "viewshafts", "WCC Viewshafts",
+        ["viewshafts"],
+        load_viewshafts,
+    ),
+    DataSource(
+        "character_precincts", "WCC Character Precincts",
+        ["character_precincts"],
+        load_character_precincts,
+    ),
+    DataSource(
+        "coastal_inundation", "WCC Coastal Inundation (+ SLR)",
+        ["coastal_inundation"],
+        load_coastal_inundation,
+    ),
+    DataSource(
+        "rail_vibration", "WCC Rail Vibration Advisory",
+        ["rail_vibration"],
+        load_rail_vibration,
+    ),
+    DataSource(
+        "erosion_prone_land", "GWRC Erosion Prone Land",
+        ["erosion_prone_land"],
+        load_erosion_prone_land,
     ),
 ]
 
