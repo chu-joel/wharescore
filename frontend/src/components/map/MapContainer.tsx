@@ -102,6 +102,16 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
   if (layerId === 'layer-noise_contours') return { label: `Noise: ${p.laeq24h ?? ''}dB` };
   if (layerId === 'layer-conservation_land') return { label: p.name as string ?? 'Conservation land', sublabel: p.land_type as string };
   if (layerId === 'layer-school_zones') return { label: p.school_name as string ?? 'School zone' };
+  if (layerId === 'layer-mv_nzdep_choropleth') {
+    const d = p.nzdep as number;
+    return { label: `NZDep Decile ${d}`, sublabel: d <= 3 ? 'Low deprivation' : d <= 7 ? 'Moderate' : 'High deprivation' };
+  }
+  if (layerId === 'layer-mv_crime_choropleth') {
+    const v = p.victimisations as number;
+    if (v === 0) return null;
+    const levels = ['', 'Very low', 'Low', 'Moderate', 'High', 'Very high'];
+    return { label: `${v} victimisations (3yr)`, sublabel: levels[p.crime_level as number] ?? '' };
+  }
   return null;
 }
 

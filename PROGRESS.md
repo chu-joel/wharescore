@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-17 (session 37 — PDF premium overhaul + GNS landslide data + renter/buyer insights)
+**Last Updated:** 2026-03-18 (session 39 — Score semantics, map overhaul, suburb page, PDF satellite map)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,63 +15,133 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 37 (2026-03-17) — PDF premium overhaul + GNS landslide data + renter/buyer insights.**
+**Session 39 (2026-03-18) — Score semantics, map overhaul, suburb page, PDF satellite map, NZDep/crime layers.**
 
 ### What Was Done This Session
 
-**(A) PDF Report — Premium Overhaul (10 phases from PDF-REPORT-PLAN.md):**
+**(A) Score Traffic Light Colors:**
+- `constants.ts` — `RATING_BINS` colors updated: teal/blue/amber/orange/red → green/lime/yellow/orange/red (traffic-light semantics). All components auto-update via `getRatingBin()`.
 
-1. **Renter/Buyer Perspective System** — `_build_audience_callouts()` function generates audience-specific insight callouts across all 5 sections. Buyers get teal-bordered boxes (🏠), renters get blue-bordered boxes (🔑). Rules cover: flood zones, liquefaction, slope failure, tsunami, EPBs, noise, contamination, schools, crime, NZDep, rental yield, CAGR trends, consents, infrastructure, heritage, EPB listing.
+**(B) Suburb Search & Summary Page:**
+- **Backend:** `services/suburb.py` (search + summary), `routers/suburb.py` (2 endpoints with rate limits + Redis cache), registered in `main.py`
+- **Frontend:** Types (`SuburbSearchResult`, `SuburbSummary`), hooks (`useSuburbReport`, `useSuburbSearch` with debounce), `/suburb/[code]` route, `SuburbSummaryPage` component (header, stats, rental market, suburb vs city comparison, CTA)
+- **Search integration:** `SearchBar.tsx` runs address + suburb search in parallel, grouped dropdown with "Suburbs" section above "Addresses"
 
-2. **Property & Valuation** — SVG donut chart showing land/improvements CV split + 2-column fact grid (land value, improvements, land area, footprint, title type, title number).
+**(C) Map Layer Strategy — Smart Defaults + Layer Cap:**
+- `DEFAULT_LAYERS`: buildings + flood zones + parcels (was parcels + SA2)
+- `PROPERTY_CONTEXT_LAYERS`: auto-enable on property select (unless user manually changed layers)
+- `MAX_ACTIVE_LAYERS = 5` enforced in `toggleLayer`, `setLayers`, chip bar, picker — toast via sonner when cap reached
+- `resetViewport()` resets layers + `userHasChangedLayers` flag
 
-3. **Score Overview** — "What This Means" contextual summary box with 5-tier interpretation based on composite score.
+**(D) Map Visual Overhaul:**
+- **Real satellite basemap:** Esri World Imagery (free, no API key) replaces fake Voyager "satellite". LINZ aerial HD available when key set.
+- **Visible address dots:** teal dots at z15+ (1.5-4.5px, fade in) so users know where to tap
+- **Building outlines color-coded by use:** Residential=teal, Commercial=amber, Industrial=purple, Other=slate. Opacity inverted (30% zoomed out, 12% zoomed in).
+- **OSM amenities color-coded:** Shop=blue, Healthcare=red, Amenity=amber, Leisure=green, Tourism=purple
+- **Parcel lines:** white, 0.5px, only visible at z15+ with gradual fade-in
+- **SA2 suburb labels:** white text with dark halo, rendered on top of all layers
+- **CARTO dark labels:** overlaid on satellite mode for city/suburb names
+- **All overlay opacities boosted** for satellite contrast (flood zones 35%, hazards 28-32%, etc.)
+- **Legend updated:** multi-color swatches for buildings/amenities, gradient swatches for severity layers
 
-4. **Environment Sub-sections** — Air quality trend indicator card (colored circle + arrow), water quality A-E grade bar (SVG), contamination proximity card (distance circle with color coding).
+**(E) Map Performance Optimizations:**
+- **Uncontrolled map mode:** `initialViewState` + `onMoveEnd` instead of controlled `longitude/latitude/zoom` + `onMove`. Eliminates React re-renders during pan/zoom — GPU-native speed.
+- **Hover throttle:** skip if mouse moved <3px and <32ms elapsed
+- **Stable hover Sources:** always-mounted with data updates (no mount/unmount churn)
+- **Memoized layer styles:** `activeLayerEntries` via `useMemo` — precomputes styles
+- **Cached valid layer IDs:** ref-based cache, invalidated only on layer/style change
+- **showPopup ref pattern:** click handler doesn't recreate on popup toggle
+- **Search debounce:** 200ms debounce on both address and suburb search hooks
 
-5. **Road Safety** — Crash dot SVG visualization (red=fatal, orange=serious, gray=minor) with legend and summary text.
+**(F) Mobile/Touch Support:**
+- **Tap overlay info in popup:** `MapPopup` shows overlay layer context (flood zone, school zone, etc.) collected at tap point — replaces hover tooltip for touch devices
+- **Geolocation fix:** Backend `Permissions-Policy` was `geolocation=()` (blocked) → `geolocation=(self)`. iOS timeout fallback retries with `enableHighAccuracy: false`.
+- **Popup closes on "Get Full Report"** click
 
-6. **Amenities** — Horizontal bar chart (inline SVG) sorted by count, replacing plain table.
+**(G) NZDep + Crime Map Layers:**
+- Created `mv_nzdep_choropleth` materialized view (56,020 meshblock polygons joined to NZDep decile scores)
+- Created `mv_crime_choropleth` materialized view (meshblock polygons with 3yr victimisation counts, 5-level classification)
+- Frontend: NZDep green→red gradient choropleth, Crime transparent→red choropleth
+- New "Liveability" group in layer picker and chip bar
+- Hover labels show decile/victimisation count
+- Legend shows gradient swatches
+- Martin auto-discovers both MVs (auto-publish mode)
 
-7. **Infrastructure** — Timeline cards with colored sector dots (Transport=blue, Water=cyan, Healthcare=green, Education=purple), status badges, value ranges.
+**(H) PDF Report Enhancements:**
+- **Satellite map:** `map_renderer.py` switched from OSM tiles to Esri World Imagery. Dark legend bar, white text attribution.
+- **Map size:** 700x500px, full-width below executive dashboard stats
+- **Zone overlays:** District plan zones drawn as semi-transparent colored polygons (residential=green, commercial=amber, industrial=purple, open space=dark green)
+- **New POI markers:** Parks (green triangles), cafes (brown diamonds), restaurants (orange diamonds), playgrounds (light green triangles) — queried from `osm_amenities` within 1km
+- **EPB alert:** Prominent red banner in executive dashboard when property is earthquake-prone
+- **Crime percentile fix:** NULL percentile no longer defaults to "0th" — shows "Percentile ranking not available" with TA-level context
+- **Crime matching improved:** `07-report-function.sql` now uses `similarity()` fuzzy matching (threshold 0.3) instead of exact area_unit name match
 
-8. **Key Questions** — Numbered badge cards with contextual fallback questions based on property data (flood, EPB, noise, body corporate).
-
-9. **Methodology** — Stacked weight bar SVG (5 colored segments: Hazards 30%, Liveability 25%, Environment/Market/Planning 15% each) + score interpretation gradient scale with property marker.
-
-10. **Global Polish** — Section dividers, break-inside-avoid on all cards, print CSS.
-
-**(B) GNS Landslide Database — Full Stack Integration:**
-
-- **Data downloaded:** 628 landslide point events + 157 polygon outlines from GNS WFS (`maps.gns.cri.nz`) for Wellington region. 331 rainfall-triggered (53%), 78 earthquake, 215 unknown.
-- **Database:** `landslide_events` + `landslide_areas` tables with GIST indexes. SQL: `sql/11-landslides.sql`, loader: `scripts/load_landslides.py`.
-- **Report function:** `sql/07-report-function.sql` — 3 new LATERAL subqueries: `landslide_count_500m`, `landslide_nearest` (with trigger, severity, damage, distance), `landslide_in_area` (boolean).
-- **Frontend types + transform:** `landslide_count_500m`, `landslide_nearest`, `landslide_in_area` on HazardData.
-- **Frontend findings:** `FindingCard.tsx` generates warnings for nearby landslides (with trigger type context) and critical for properties within mapped areas.
-- **PDF report:** Landslide History row in hazards table + detail card + warning card. Insights for 1+ and 3+ events.
-- **Map:** `landslide_events` (orange points) + `landslide_areas` (orange polygons) in Hazards group. Martin configs updated (all 3 environments). Layer styles in `layerStyles.ts`.
-- **Test results:** Address 1671902: 3 landslides within 500m. Address 1753062: 1 landslide (earthquake, 293m).
-
-**(C) Bug Fixes:**
-- Fixed Jinja2 `| default(0)` not handling None values — `default` only works for undefined variables, not None. Changed to explicit `if is not none else 0` pattern in crime percentile and contamination distance.
-- Fixed `_score_to_rating()` crash when score is None — added None guard.
-- Added safe numeric conversion helpers (`_safe_int`, `_safe_float_val`) for all computed values in the render function.
-
-**(D) New files created:**
-- `sql/11-landslides.sql` — landslide table schema
-- `scripts/load_landslides.py` — GNS data loader (psycopg3)
-- `data/landslides/landslide_points_wellington.geojson` — 628 events (469KB)
-- `data/landslides/landslide_polygons_wellington.geojson` — 157 areas (153KB)
-
-**(E) Tables now: 46 + 5 materialized views. ~19.4M+ records.**
+**(I) Backend — Suburb API:**
+- Single DB connection (was 8 via asyncio.gather), sequential queries within connection
+- Spatial join for property count (ST_Within addresses↔sa2_boundaries)
+- Redis cache (1hr TTL) on suburb summary endpoint
 
 ### What Needs To Be Done Next
 
+- **Fix Martin config file parsing** — `martin.local.yaml` fails with "untagged enum OptOneMany" error in v1.3.1. Currently running with auto-discover (connection string only) which works but doesn't set minzoom per layer.
+- **Deploy updated code to Azure** — all map/report/suburb changes need deployment
+- **Integrate new GWRC/WCC datasets into report function** — coastal_elevation, coastal_inundation, corrosion_zones, viewshafts, character_precincts, rail_vibration, erosion_prone_land
+- **Area profiles batch generation** — `area_profiles` table exists (0 records), needs Azure OpenAI batch job
+- **MapTiler or similar for street-level labels on satellite** — CARTO dark_only_labels only covers city-level for NZ
+
+---
+
+**Session 38 (2026-03-17) — 9 new datasets loaded + Azure database deployed.**
+
+### What Was Done In Session 38
+
+**(A) 9 New Datasets Loaded Locally (from GWRC + WCC ArcGIS APIs):**
+
+| Dataset | Source | Rows | Table |
+|---------|--------|------|-------|
+| GWRC Landslide (GNS QMap) | GWRC Emergencies Layer 21 | 192 | `gwrc_landslide` |
+| GWRC Flood Extents (1% + 0.23% AEP) | GWRC Flood_Hazard_Extents_P | 14 | `gwrc_flood_extent` |
+| GWRC Coastal Elevation | GWRC Hazards (Wellington metro) | 42,469 | `coastal_elevation` |
+| WCC Coastal Inundation (+1.43m SLR) | WCC District Plan layers 49-50 | 192 | `coastal_inundation` |
+| WCC Corrosion Zones | WCC Environment | 1 | `corrosion_zones` |
+| WCC Viewshafts | WCC District Plan layer 76 | 17 | `viewshafts` |
+| WCC Character Precincts | WCC District Plan layer 94 | 7 | `character_precincts` |
+| WCC Rail Vibration Advisory | WCC District Plan layer 140 | 1 | `rail_vibration` |
+| GWRC Erosion Prone Land | GWRC Regional Planning layer 22 | 9,114 | `erosion_prone_land` |
+
+- All tables created with GIST spatial indexes
+- All loaders added to `backend/app/services/data_loader.py` with registry entries (triggerable from admin panel)
+- Added `_ml_wkt()` helper for polyline geometry conversion (used by landslide loader)
+- GWRC flood extent layers 3 (2% AEP) was empty; layers 4 and 5 needed one-at-a-time fetching with `maxAllowableOffset=5` due to massive geometries
+- Coastal elevation needed spatial filter (Wellington bbox in NZTM2000) — full dataset is 268K features region-wide
+
+**(B) Azure Database Deployment:**
+
+- Created 4.1GB pg_dump of local wharescore database (`wellington-data.dump`)
+- pg_dump found at `E:/Programs/postgresql/bin/pg_dump.exe` (PG18, service needed manual start via `pg_ctl`)
+- SCP uploaded to Azure VM (20.5.86.126)
+- Restored on Azure: dropped/recreated DB, `pg_restore --no-owner --no-privileges --jobs=2`
+- Materialized views `mv_sa2_comparisons` and `mv_ta_comparisons` crashed during restore (OOM on B2ms) — refreshed manually after
+- All services restarted and healthy: api, web, martin, nginx, postgres, redis
+- Added `*.dump` to `.gitignore`
+
+**(C) Data Loader Enhancements:**
+
+- `backend/app/services/data_loader.py` now has 18 registered data sources (was 9)
+- GNS Landslide Database loader (`load_gns_landslides`) added — fetches from GNS WFS for Wellington bbox
+- 9 new ArcGIS loaders for Tier 1+2 datasets
+
+**(D) Tables now: 74 (65 + 9 new) + 5 materialized views. ~19.4M+ records locally.**
+
+### What Needs To Be Done Next
+
+- **Deploy updated code to Azure** — `git pull` + `docker compose build` on VM so the 9 new data loaders are available in admin panel, then trigger them to load on the server
+- **Integrate new datasets into report function** — `sql/07-report-function.sql` needs LATERAL subqueries for: coastal_elevation, coastal_inundation, corrosion_zones, viewshafts, character_precincts, rail_vibration, erosion_prone_land, gwrc_landslide, gwrc_flood_extent
+- **Frontend types + FindingCards** for new datasets — display in report UI
+- **PDF report sections** for new datasets
+- **Map layers** for new datasets (Martin config + layerStyles.ts)
 - **Area profiles batch generation** — `area_profiles` table exists (0 records), needs Azure OpenAI batch job for ~2,171 SA2 descriptions
-- **Additional landslide sources** — GNS SLIDE Project (rainfall probability surfaces, requires email to GNS), SlideNZ/EIL (earthquake probability at return periods)
-- **National landslide coverage** — current data is Wellington region only. Could pull national data from same GNS WFS
 - **Comparisons backend** — suburb/city average computation endpoint still needed for full ComparisonBars functionality
-- **Docker/deployment** — rebuild images with new tables and report function
 
 ---
 

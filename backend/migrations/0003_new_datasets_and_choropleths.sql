@@ -756,3 +756,52 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- =============================================================================
+-- NZDep Choropleth (meshblock polygons colored by deprivation decile)
+-- =============================================================================
+DROP MATERIALIZED VIEW IF EXISTS mv_nzdep_choropleth CASCADE;
+CREATE MATERIALIZED VIEW mv_nzdep_choropleth AS
+SELECT
+  row_number() OVER () AS id,
+  m.geom,
+  n.nzdep2023 AS nzdep,
+  m.mb2023_code
+FROM meshblocks m
+JOIN nzdep n ON n.mb2023_code = m.mb2023_code
+WHERE m.landwater_name IN ('Mainland', 'Island')
+  AND n.nzdep2023 IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_nzdep_id ON mv_nzdep_choropleth(id);
+CREATE INDEX IF NOT EXISTS idx_mv_nzdep_geom ON mv_nzdep_choropleth USING GIST (geom);
+
+-- =============================================================================
+-- Crime Density Choropleth (meshblock polygons with 3yr victimisation counts)
+-- =============================================================================
+DROP MATERIALIZED VIEW IF EXISTS mv_crime_choropleth CASCADE;
+CREATE MATERIALIZED VIEW mv_crime_choropleth AS
+SELECT
+  row_number() OVER () AS id,
+  m.geom,
+  m.mb2023_code,
+  COALESCE(c.vics, 0) AS victimisations,
+  CASE
+    WHEN c.vics IS NULL OR c.vics = 0 THEN 0
+    WHEN c.vics <= 5 THEN 1
+    WHEN c.vics <= 20 THEN 2
+    WHEN c.vics <= 50 THEN 3
+    WHEN c.vics <= 100 THEN 4
+    ELSE 5
+  END AS crime_level
+FROM meshblocks m
+LEFT JOIN (
+  SELECT meshblock, SUM(victimisations)::int AS vics
+  FROM crime
+  WHERE year_month >= (CURRENT_DATE - interval '3 years')::date
+    AND meshblock IS NOT NULL
+  GROUP BY meshblock
+) c ON c.meshblock = m.mb2023_code
+WHERE m.landwater_name IN ('Mainland', 'Island');
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_crime_id ON mv_crime_choropleth(id);
+CREATE INDEX IF NOT EXISTS idx_mv_crime_geom ON mv_crime_choropleth USING GIST (geom);

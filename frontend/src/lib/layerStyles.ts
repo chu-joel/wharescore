@@ -457,6 +457,69 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
+  // Special: NZDep choropleth — green (decile 1) to red (decile 10)
+  if (layerId === 'mv_nzdep_choropleth') {
+    const fillColor: SeverityExpr = [
+      'interpolate', ['linear'], ['get', 'nzdep'],
+      1, '#22C55E',   // green — least deprived
+      3, '#84CC16',   // lime
+      5, '#EAB308',   // yellow
+      7, '#F97316',   // orange
+      9, '#EF4444',   // red
+      10, '#DC2626',  // dark red — most deprived
+    ];
+    return [
+      {
+        id: 'layer-mv_nzdep_choropleth',
+        source: 'source-mv_nzdep_choropleth',
+        'source-layer': 'mv_nzdep_choropleth',
+        type: 'fill' as const,
+        paint: {
+          'fill-color': fillColor,
+          'fill-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            10, 0.25,
+            14, 0.20,
+            16, 0.12,
+          ],
+          'fill-outline-color': 'transparent',
+        },
+      } as LayerProps,
+    ];
+  }
+
+  // Special: Crime density choropleth — transparent (no crime) to red (high crime)
+  if (layerId === 'mv_crime_choropleth') {
+    const fillColor: SeverityExpr = [
+      'match', ['get', 'crime_level'],
+      0, 'transparent',
+      1, '#FDE68A',    // pale yellow — very low
+      2, '#F59E0B',    // amber — low
+      3, '#F97316',    // orange — moderate
+      4, '#EF4444',    // red — high
+      5, '#DC2626',    // dark red — very high
+      'transparent',
+    ];
+    return [
+      {
+        id: 'layer-mv_crime_choropleth',
+        source: 'source-mv_crime_choropleth',
+        'source-layer': 'mv_crime_choropleth',
+        type: 'fill' as const,
+        paint: {
+          'fill-color': fillColor,
+          'fill-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            10, 0.30,
+            14, 0.22,
+            16, 0.15,
+          ],
+          'fill-outline-color': 'transparent',
+        },
+      } as LayerProps,
+    ];
+  }
+
   // Special: parcels — fade in at high zoom, invisible when zoomed out
   if (layerId === 'parcels') {
     return [

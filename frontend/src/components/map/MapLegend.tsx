@@ -26,6 +26,10 @@ const LAYER_COLORS: Record<string, string> = {
   conservation_land: '#2D6A4F',
   osm_amenities: '#0D7377',
   sa2_boundaries: '#6B7280',
+  mv_nzdep_choropleth: '#EAB308',
+  mv_crime_choropleth: '#EF4444',
+  landslide_events: '#F97316',
+  landslide_areas: '#F97316',
 };
 
 /** Layers with category-based coloring — show multi-dot or multi-fill swatches */
@@ -51,6 +55,14 @@ const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: str
 
 /** Layers with data-driven severity gradients — show a gradient swatch in legend */
 const SEVERITY_GRADIENT_LAYERS: Record<string, { colors: string[]; labels: [string, string] }> = {
+  mv_nzdep_choropleth: {
+    colors: ['#22C55E', '#84CC16', '#EAB308', '#F97316', '#EF4444'],
+    labels: ['1 (low)', '10 (high)'],
+  },
+  mv_crime_choropleth: {
+    colors: ['#FDE68A', '#F59E0B', '#F97316', '#EF4444', '#DC2626'],
+    labels: ['Low', 'High'],
+  },
   slope_failure_zones: {
     colors: ['#A8D5BA', '#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
     labels: ['0', '100'],
@@ -86,7 +98,9 @@ const LAYER_GEOM: Record<string, 'fill' | 'circle' | 'line'> = {
   conservation_land: 'fill',
   transit_stops: 'circle', crashes: 'circle', heritage_sites: 'circle',
   contaminated_land: 'circle', infrastructure_projects: 'circle', osm_amenities: 'circle',
+  landslide_events: 'circle',
   parcels: 'line', transmission_lines: 'line', sa2_boundaries: 'line',
+  mv_nzdep_choropleth: 'fill', mv_crime_choropleth: 'fill', landslide_areas: 'fill',
 };
 
 function GradientSwatch({ colors }: { colors: string[] }) {

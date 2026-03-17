@@ -56,11 +56,16 @@ const LAYER_META: Record<string, { icon: LucideIcon; description: string }> = {
   conservation_land:       { icon: TreePine,     description: 'DOC reserves and national parks' },
   osm_amenities:           { icon: Coffee,       description: 'Cafes, shops, parks and more' },
   sa2_boundaries:          { icon: MapIcon,      description: 'Statistical area boundaries' },
+  mv_nzdep_choropleth:     { icon: MapIcon,      description: 'NZ Deprivation Index by meshblock (1-10)' },
+  mv_crime_choropleth:     { icon: AlertTriangle,description: 'Crime density heatmap (3-year victimisations)' },
+  landslide_events:        { icon: Mountain,     description: 'GNS recorded landslide events' },
+  landslide_areas:         { icon: Mountain,     description: 'GNS mapped landslide areas' },
 };
 
 // Groups for the picker
 const GROUPS = [
-  { label: 'Hazards', ids: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones'] },
+  { label: 'Hazards', ids: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones', 'landslide_events', 'landslide_areas'] },
+  { label: 'Liveability', ids: ['mv_nzdep_choropleth', 'mv_crime_choropleth'] },
   { label: 'Property', ids: ['parcels', 'building_outlines'] },
   { label: 'Schools & Community', ids: ['school_zones'] },
   { label: 'Planning & Environment', ids: ['district_plan_zones', 'contaminated_land', 'heritage_sites', 'infrastructure_projects', 'transmission_lines'] },
