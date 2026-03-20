@@ -167,6 +167,15 @@ SEVERITY_COASTAL_EXPOSURE = {
     None: 0, "S": 10, "S-PB": 15, "E": 65, "E-PB": 70,
 }
 
+SEVERITY_LANDSLIDE_SUSCEPTIBILITY = {
+    None: 0, "Very Low": 5, "Low": 15, "Moderate": 45, "Medium": 45,
+    "High": 75, "Very High": 90,
+}
+
+SEVERITY_COASTAL_EROSION_EXPOSURE = {
+    None: 0, "Very Low": 5, "Low": 15, "Moderate": 40, "High": 70, "Very High": 90,
+}
+
 SEVERITY_AIR_QUALITY = {
     None: 30,
     "Improving": 10,
@@ -208,9 +217,12 @@ SEVERITY_WILDFIRE_TREND = {
 # =============================================================================
 
 WEIGHTS_HAZARDS = {          # Sum = 1.0 (base), softmax aggregation
-    "flood": 0.16, "tsunami": 0.13, "liquefaction": 0.13,
-    "slope_failure": 0.13, "earthquake": 0.11, "coastal_erosion": 0.10,
-    "wind": 0.09, "wildfire": 0.09, "epb": 0.06,
+    "flood": 0.14, "tsunami": 0.11, "liquefaction": 0.11,
+    "slope_failure": 0.11, "earthquake": 0.09, "coastal_erosion": 0.08,
+    "wind": 0.07, "wildfire": 0.07, "epb": 0.05,
+    # Council-specific (only present when data available)
+    "landslide_susceptibility": 0.10, "overland_flow": 0.04,
+    "aircraft_noise": 0.05, "coastal_erosion_council": 0.08,
     # Wellington-specific (only present when GWRC/WCC data available)
     "ground_shaking": 0.12, "fault_zone": 0.10,
 }
@@ -400,6 +412,47 @@ def enrich_with_scores(report: dict) -> dict:
         tsunami_score = {"1:100yr": 80, "1:500yr": 55, "1:1000yr": 25}.get(wcc_tsunami, 30)
         if tsunami_score > (indicators.get("tsunami") or 0):
             indicators["tsunami"] = tsunami_score
+
+    # Council landslide susceptibility (Auckland etc.)
+    ls_rating = haz.get("landslide_susceptibility_rating")
+    if ls_rating:
+        ls_score = SEVERITY_LANDSLIDE_SUSCEPTIBILITY.get(ls_rating, 0)
+        # Take the worse of slope_failure and landslide_susceptibility
+        if ls_score > (indicators.get("slope_failure") or 0):
+            indicators["landslide_susceptibility"] = ls_score
+        else:
+            indicators["landslide_susceptibility"] = ls_score
+
+    # Overland flow path (binary: on/near a flow path)
+    if haz.get("on_overland_flow_path") or haz.get("overland_flow_within_50m"):
+        indicators["overland_flow"] = 45  # moderate risk — surface flooding possible
+
+    # Aircraft noise
+    aircraft_dba = haz.get("aircraft_noise_dba")
+    if aircraft_dba is not None:
+        try:
+            indicators["aircraft_noise"] = normalize_min_max(float(aircraft_dba), 50, 75)
+        except (TypeError, ValueError):
+            pass
+
+    # Council coastal erosion (separate from NIWA national)
+    cce = haz.get("council_coastal_erosion")
+    if isinstance(cce, dict):
+        cce_dist = cce.get("distance_m")
+        if cce_dist is not None:
+            try:
+                # Closer = worse, 0m = 100, 500m+ = ~0
+                indicators["coastal_erosion_council"] = normalize_min_max(
+                    float(cce_dist), 0, 500, inverse=True
+                )
+            except (TypeError, ValueError):
+                pass
+    else:
+        ce_exp = haz.get("coastal_erosion_exposure")
+        if ce_exp:
+            ce_score = SEVERITY_COASTAL_EROSION_EXPOSURE.get(ce_exp, 0)
+            if ce_score > 0:
+                indicators["coastal_erosion_council"] = ce_score
 
     # Environment
     indicators["noise"] = normalize_min_max(env.get("road_noise_db"), 40, 75)

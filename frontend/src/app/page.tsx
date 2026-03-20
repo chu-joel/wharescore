@@ -79,7 +79,7 @@ function LandingPanel() {
             <MapPin className="h-8 w-8 text-piq-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2 text-foreground">
-            Property<span className="text-piq-primary">IQ</span>
+            Whare<span className="text-piq-primary">Score</span>
           </h1>
           <p className="text-base text-muted-foreground max-w-xs mx-auto">
             Everything the listing doesn&apos;t tell you

@@ -146,6 +146,13 @@ function transformPlanning(raw: any, liveabilityRaw: any, environmentRaw: any): 
     infrastructure_count: Array.isArray(raw.infrastructure_5km) ? raw.infrastructure_5km.length : null,
     contamination_count: environmentRaw?.contam_count_2km ?? null,
     epb_listed: raw.epb_listed ?? null,
+    // Viewshafts
+    in_viewshaft: raw.in_viewshaft ?? null,
+    viewshaft_name: raw.viewshaft_name ?? null,
+    viewshaft_significance: raw.viewshaft_significance ?? null,
+    // Character precincts
+    in_character_precinct: raw.in_character_precinct ?? null,
+    character_precinct_name: raw.character_precinct_name ?? null,
     // Heritage overlay
     in_heritage_overlay: raw.in_heritage_overlay ?? null,
     heritage_overlay_name: raw.heritage_overlay_name ?? null,
@@ -229,6 +236,11 @@ function transformHazards(raw: any): HazardData {
     aircraft_noise_name: raw.aircraft_noise_name ?? null,
     aircraft_noise_dba: raw.aircraft_noise_dba ?? null,
     aircraft_noise_category: raw.aircraft_noise_category ?? null,
+    // Coastal elevation
+    coastal_elevation_cm: raw.coastal_elevation_cm ?? null,
+    // Flood extent (AEP-based)
+    flood_extent_aep: raw.flood_extent_aep ?? null,
+    flood_extent_label: raw.flood_extent_label ?? null,
     // Geotechnical reports
     geotech_count_500m: raw.geotech_count_500m ?? null,
     geotech_nearest_hazard: raw.geotech_nearest_hazard ?? null,

@@ -197,6 +197,97 @@ export function generateFindings(report: {
     }
   }
 
+  // Council landslide susceptibility (Auckland etc.)
+  if (h.landslide_susceptibility_rating) {
+    const rating = h.landslide_susceptibility_rating.toLowerCase();
+    if (rating.includes('very high') || rating.includes('high')) {
+      findings.push({
+        headline: `${rating.includes('very') ? 'Very high' : 'High'} landslide susceptibility zone`,
+        interpretation:
+          'Council assessment indicates significant landslide risk in this area. This considers both rainfall-triggered and earthquake-induced slope failures. A geotechnical assessment is recommended.',
+        severity: rating.includes('very') ? 'critical' : 'warning',
+        category: 'Hazards',
+        source: 'Council Landslide Susceptibility',
+      });
+    } else if (rating.includes('moderate') || rating.includes('medium')) {
+      findings.push({
+        headline: 'Moderate landslide susceptibility',
+        interpretation:
+          'Some slope instability risk during heavy rain or earthquakes. Check retaining walls and drainage.',
+        severity: 'info',
+        category: 'Hazards',
+        source: 'Council Landslide Susceptibility',
+      });
+    }
+  }
+
+  // Overland flow path
+  if (h.on_overland_flow_path || h.overland_flow_within_50m) {
+    findings.push({
+      headline: 'Near overland flow path',
+      interpretation:
+        'Surface water may flow through or near this property during heavy rain. Check ground levels, drainage, and whether the building floor is raised above surrounding grade.',
+      severity: 'info',
+      category: 'Hazards',
+      source: 'Council Overland Flow Maps',
+    });
+  }
+
+  // Aircraft noise
+  if (h.aircraft_noise_dba && h.aircraft_noise_dba >= 55) {
+    findings.push({
+      headline: `Aircraft noise zone: ${h.aircraft_noise_dba} dBA${h.aircraft_noise_name ? ` (${h.aircraft_noise_name})` : ''}`,
+      interpretation:
+        h.aircraft_noise_dba >= 65
+          ? 'High aircraft noise zone. Double glazing and acoustic insulation are strongly recommended. May affect outdoor amenity and sleep quality.'
+          : 'Moderate aircraft noise. Check noise levels during peak flight times. Bedrooms facing the flight path may need acoustic glazing.',
+      severity: h.aircraft_noise_dba >= 65 ? 'warning' : 'info',
+      category: 'Environment',
+      source: 'Council Aircraft Noise Overlay',
+    });
+  }
+
+  // Council coastal erosion
+  if (h.council_coastal_erosion && typeof h.council_coastal_erosion === 'object') {
+    const dist = h.council_coastal_erosion.distance_m;
+    if (dist != null && dist < 200) {
+      findings.push({
+        headline: `Coastal erosion risk within ${Math.round(dist)}m`,
+        interpretation:
+          'Council coastal erosion projections show this area could be affected. Review the coastal hazard assessment and check if managed retreat is planned.',
+        severity: dist < 50 ? 'critical' : 'warning',
+        category: 'Hazards',
+        source: 'Council Coastal Erosion Assessment',
+      });
+    }
+  } else if (h.coastal_erosion_exposure) {
+    const exp = h.coastal_erosion_exposure.toLowerCase();
+    if (exp.includes('high') || exp.includes('very')) {
+      findings.push({
+        headline: `Coastal erosion exposure: ${h.coastal_erosion_exposure}`,
+        interpretation:
+          'This location has high coastal erosion exposure. Review council coastal hazard plans and check if managed retreat is being considered.',
+        severity: 'warning',
+        category: 'Hazards',
+        source: 'Council Coastal Erosion Assessment',
+      });
+    }
+  }
+
+  // Geotechnical reports
+  if (h.geotech_count_500m && h.geotech_count_500m >= 10) {
+    findings.push({
+      headline: `${h.geotech_count_500m} geotechnical reports within 500m`,
+      interpretation:
+        h.geotech_nearest_hazard
+          ? `This area has known ground issues. Nearest report flags: ${h.geotech_nearest_hazard}. Request copies of relevant reports from the council — previous investigations can save you thousands.`
+          : 'Multiple geotechnical reports in this area indicate known ground conditions. Request copies from the council before commissioning your own assessment.',
+      severity: 'info',
+      category: 'Hazards',
+      source: 'Council Geotechnical Reports',
+    });
+  }
+
   if (h.epb_count && h.epb_count > 0) {
     findings.push({
       headline: `${h.epb_count} earthquake-prone building${h.epb_count > 1 ? 's' : ''} within 300m`,
@@ -380,6 +471,63 @@ export function generateFindings(report: {
       severity: 'info',
       category: 'Liveability',
       source: 'University of Otago / Stats NZ',
+    });
+  }
+
+  // --- Planning findings ---
+
+  if (p.in_heritage_overlay && p.heritage_overlay_name) {
+    findings.push({
+      headline: `Heritage overlay: ${p.heritage_overlay_name}`,
+      interpretation:
+        'External modifications may require resource consent. Check the heritage schedule for specific controls on this site.',
+      severity: 'info',
+      category: 'Planning',
+      source: 'Council Heritage Overlay',
+    });
+  }
+
+  if (p.in_special_character_area && p.special_character_name) {
+    findings.push({
+      headline: `Special character area: ${p.special_character_name}`,
+      interpretation:
+        'Demolition and major alterations are controlled. New builds and additions must be sympathetic to neighbourhood character.',
+      severity: 'info',
+      category: 'Planning',
+      source: 'Council District/Unitary Plan',
+    });
+  }
+
+  if (p.in_ecological_area) {
+    findings.push({
+      headline: `Significant ecological area${p.ecological_area_name ? `: ${p.ecological_area_name}` : ''}`,
+      interpretation:
+        'Vegetation removal, earthworks, and building may require ecological assessment and resource consent.',
+      severity: 'info',
+      category: 'Planning',
+      source: 'Council District/Unitary Plan',
+    });
+  }
+
+  if (p.notable_tree_count_50m && p.notable_tree_count_50m > 0) {
+    findings.push({
+      headline: `${p.notable_tree_count_50m} protected tree${p.notable_tree_count_50m > 1 ? 's' : ''} within 50m`,
+      interpretation:
+        'Scheduled/notable trees are protected. Removal or significant pruning requires resource consent. Root protection zones may restrict building.',
+      severity: 'info',
+      category: 'Planning',
+      source: 'Council Notable Trees Register',
+    });
+  }
+
+  if (p.park_count_500m && p.park_count_500m >= 3 && p.nearest_park_distance_m && p.nearest_park_distance_m <= 300) {
+    findings.push({
+      headline: `${p.park_count_500m} parks within 500m${p.nearest_park_name ? ` — nearest: ${p.nearest_park_name}` : ''}`,
+      interpretation:
+        'Excellent green space access. Multiple parks nearby is a strong positive for families, exercise, and property values.',
+      severity: 'positive',
+      category: 'Liveability',
+      source: 'Council Parks Data',
     });
   }
 

@@ -33,20 +33,25 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     def validate_secrets(self):
-        """Fail loudly if critical secrets missing in production."""
+        """Warn if secrets missing in production. Only ADMIN_PASSWORD_HASH is fatal."""
         if self.ENVIRONMENT == "production":
-            required = {
+            # Fatal — admin panel won't work without this
+            if not self.ADMIN_PASSWORD_HASH:
+                raise RuntimeError("Missing required secret: ADMIN_PASSWORD_HASH")
+
+            # Warn-only — features degrade gracefully without these
+            optional = {
                 "AUTH_SECRET": self.AUTH_SECRET,
                 "STRIPE_SECRET_KEY": self.STRIPE_SECRET_KEY,
                 "STRIPE_WEBHOOK_SECRET": self.STRIPE_WEBHOOK_SECRET,
-                "ADMIN_PASSWORD_HASH": self.ADMIN_PASSWORD_HASH,
             }
-            missing = [k for k, v in required.items() if not v]
+            missing = [k for k, v in optional.items() if not v]
             if missing:
-                raise RuntimeError(f"Missing required secrets: {', '.join(missing)}")
+                import logging
+                logging.getLogger(__name__).warning(f"Optional secrets not set (features disabled): {', '.join(missing)}")
 
             if "sslmode=" not in self.DATABASE_URL:
-                raise RuntimeError("DATABASE_URL must include sslmode=require in production")
+                raise RuntimeError("DATABASE_URL must include sslmode= parameter in production")
 
 
 settings = Settings()

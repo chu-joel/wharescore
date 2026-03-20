@@ -31,7 +31,7 @@ router = APIRouter()
 
 
 @router.get("/property/{address_id}/report")
-@limiter.limit("20/minute", key_func=lambda req: _extract_bearer(req) or get_remote_address(req))
+@limiter.limit("20/minute", key_func=lambda request: _extract_bearer(request) or get_remote_address(request))
 @limiter.limit("5/minute", key_func=get_remote_address)
 async def get_report(request: Request, address_id: int):
     """Full property report with risk scores.

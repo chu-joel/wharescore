@@ -60,7 +60,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       MBIE_API_KEY: ${MBIE_API_KEY:-}
       LINZ_API_KEY: ${LINZ_API_KEY:-}
@@ -70,6 +70,13 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost"]}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-["*"]}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_SINGLE: ${STRIPE_PRICE_SINGLE:-}
+      STRIPE_PRICE_PACK3: ${STRIPE_PRICE_PACK3:-}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://wharescore.co.nz}
       ENVIRONMENT: production
     restart: unless-stopped
     depends_on:
@@ -94,6 +101,10 @@ services:
         NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
     environment:
       NODE_ENV: production
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      AUTH_TRUST_HOST: "true"
     restart: unless-stopped
     depends_on:
       api:

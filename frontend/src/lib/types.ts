@@ -231,6 +231,11 @@ export interface HazardData {
   aircraft_noise_name: string | null;
   aircraft_noise_dba: number | null;
   aircraft_noise_category: string | null;
+  // Coastal elevation
+  coastal_elevation_cm: number | null;
+  // Flood extent (AEP-based)
+  flood_extent_aep: string | null;
+  flood_extent_label: string | null;
   // Geotechnical reports
   geotech_count_500m: number | null;
   geotech_nearest_hazard: string | null;
@@ -286,6 +291,13 @@ export interface PlanningData {
   infrastructure_count: number | null;
   contamination_count: number | null;
   epb_listed: boolean | null;
+  // Viewshafts
+  in_viewshaft: boolean | null;
+  viewshaft_name: string | null;
+  viewshaft_significance: string | null;
+  // Character precincts
+  in_character_precinct: boolean | null;
+  character_precinct_name: string | null;
   // Heritage overlay (Auckland etc.)
   in_heritage_overlay: boolean | null;
   heritage_overlay_name: string | null;

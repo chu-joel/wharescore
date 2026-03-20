@@ -784,6 +784,33 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Double glazing is recommended for bedrooms facing the flight path.",
         ).to_dict())
 
+    # Council landslide susceptibility (Auckland etc.)
+    ls_rating = str(hazards.get("landslide_susceptibility_rating") or "").lower()
+    if "very high" in ls_rating or "high" in ls_rating:
+        result["hazards"].append(Insight(
+            "warn",
+            f"{'Very high' if 'very' in ls_rating else 'High'} landslide susceptibility zone (council assessment).",
+            "Commission a geotechnical assessment. Check retaining walls, drainage, and slope stability. "
+            "This rating considers rainfall-triggered landslides as well as earthquake-induced failures.",
+        ).to_dict())
+    elif "moderate" in ls_rating or "medium" in ls_rating:
+        result["hazards"].append(Insight(
+            "info",
+            "Moderate landslide susceptibility — some slope instability risk during heavy rain or earthquakes.",
+            "Check retaining wall condition and drainage during inspection.",
+        ).to_dict())
+
+    # Geotechnical reports nearby
+    geotech_count = hazards.get("geotech_count_500m") or 0
+    if geotech_count >= 10:
+        nearest_hazard = hazards.get("geotech_nearest_hazard")
+        hazard_str = f" Nearest report flags: **{nearest_hazard}**." if nearest_hazard else ""
+        result["hazards"].append(Insight(
+            "info",
+            f"{geotech_count} geotechnical reports filed within 500m — this area has known ground issues.{hazard_str}",
+            "Request copies of relevant geotech reports from the council. Previous investigations can save you thousands.",
+        ).to_dict())
+
     # Overland flow path proximity
     if hazards.get("overland_flow_within_50m"):
         result["hazards"].append(Insight(
@@ -806,6 +833,57 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 + (f" — {scenario}" if scenario else "") + ".",
                 "Review coastal hazard assessment before purchase. Erosion may affect insurance and resale value.",
             ).to_dict())
+
+    # Viewshaft
+    if planning.get("in_viewshaft"):
+        vs_name = planning.get("viewshaft_name") or "viewshaft"
+        vs_sig = planning.get("viewshaft_significance") or ""
+        sig_str = f" ({vs_sig})" if vs_sig else ""
+        result["planning"].append(Insight(
+            "info",
+            f"Property is within a protected **viewshaft**{sig_str}: {vs_name}.",
+            "Height and bulk restrictions apply. New buildings and additions must not obstruct the protected view.",
+        ).to_dict())
+
+    # Character precinct
+    if planning.get("in_character_precinct"):
+        cp_name = planning.get("character_precinct_name") or "character precinct"
+        result["planning"].append(Insight(
+            "info",
+            f"Within a **character precinct** ({cp_name}). Design controls protect neighbourhood character.",
+            "Additions and new builds must be sympathetic. Demolition may require resource consent.",
+        ).to_dict())
+
+    # Coastal elevation
+    celev = hazards.get("coastal_elevation_cm")
+    if celev is not None:
+        try:
+            cm = float(celev)
+            if cm <= 50:
+                result["hazards"].append(Insight(
+                    "warn",
+                    f"Property is only {cm:.0f}cm above mean high water springs — very low coastal elevation.",
+                    "High risk of coastal inundation during storm surges. Check insurance and future sea level rise projections.",
+                ).to_dict())
+            elif cm <= 150:
+                result["hazards"].append(Insight(
+                    "info",
+                    f"Coastal elevation: {cm:.0f}cm above mean high water springs.",
+                    "Some exposure to coastal flooding during extreme events. Review with sea level rise scenarios.",
+                ).to_dict())
+        except (TypeError, ValueError):
+            pass
+
+    # Flood extent (AEP)
+    fe_aep = hazards.get("flood_extent_aep")
+    fe_label = hazards.get("flood_extent_label")
+    if fe_aep:
+        result["hazards"].append(Insight(
+            "warn" if fe_aep in ("2%", "1%") else "info",
+            f"Within regional flood extent ({fe_aep} AEP)"
+            + (f" — {fe_label}" if fe_label else "") + ".",
+            "Annual Exceedance Probability indicates likelihood of flooding in any given year. Check floor levels.",
+        ).to_dict())
 
     # Heritage overlay
     if planning.get("in_heritage_overlay"):

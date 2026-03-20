@@ -40,7 +40,6 @@ const LAYER_META: Record<string, { icon: LucideIcon; description: string }> = {
   tsunami_zones:           { icon: Waves,        description: 'Tsunami evacuation zones' },
   liquefaction_zones:      { icon: Mountain,     description: 'Ground liquefaction risk zones' },
   slope_failure_zones:     { icon: TriangleAlert,description: 'Earthquake-induced landslide susceptibility' },
-  coastal_erosion:         { icon: Waves,        description: 'Coastal erosion susceptibility' },
   wind_zones:              { icon: Wind,         description: 'Wind speed design zones' },
   school_zones:            { icon: GraduationCap,description: 'School enrolment zone boundaries' },
   transit_stops:           { icon: Bus,          description: 'Bus and train stops' },
@@ -72,11 +71,18 @@ const LAYER_META: Record<string, { icon: LucideIcon; description: string }> = {
   mana_whenua_sites:       { icon: CircleDot,    description: 'Sites of significance to Mana Whenua' },
   park_extents:            { icon: TreePine,     description: 'Public park boundaries' },
   active_faults:           { icon: TriangleAlert, description: 'GNS active fault traces' },
+  fault_avoidance_zones:   { icon: TriangleAlert, description: 'Fault avoidance setback zones' },
+  flood_hazard:            { icon: Droplets,     description: 'Council flood hazard overlays' },
+  tsunami_hazard:          { icon: Waves,        description: 'Council tsunami hazard overlays' },
+  fault_zones:             { icon: TriangleAlert, description: 'District plan fault zones' },
+  flood_extent:            { icon: Droplets,     description: 'Regional flood extents (AEP)' },
+  landslide_susceptibility:{ icon: Mountain,     description: 'Council landslide susceptibility' },
+  coastal_erosion:         { icon: Waves,        description: 'Council coastal erosion zones' },
 };
 
 // Groups for the picker
 const GROUPS = [
-  { label: 'Hazards', ids: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones', 'landslide_events', 'landslide_areas', 'active_faults', 'overland_flow_paths'] },
+  { label: 'Hazards', ids: ['flood_zones', 'flood_hazard', 'flood_extent', 'liquefaction_zones', 'slope_failure_zones', 'landslide_susceptibility', 'tsunami_zones', 'tsunami_hazard', 'coastal_erosion', 'wind_zones', 'landslide_events', 'landslide_areas', 'active_faults', 'fault_avoidance_zones', 'fault_zones', 'overland_flow_paths'] },
   { label: 'Liveability', ids: ['mv_nzdep_choropleth', 'mv_crime_choropleth', 'park_extents'] },
   { label: 'Property', ids: ['parcels', 'building_outlines'] },
   { label: 'Schools & Community', ids: ['school_zones', 'notable_trees'] },

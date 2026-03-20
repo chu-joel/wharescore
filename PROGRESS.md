@@ -61,13 +61,62 @@ Also loaded: Palmerston North GTFS (885 stops), New Plymouth GTFS (388 stops).
 
 **(G) Database totals:** 12.8M+ rows across 53 tables. Auckland rates (623K) still loading at session end.
 
+**(H) Session 45 fixes (parallel session):**
+- **Transit night bus fix** — N-bus routes (N1, N6, N22, N66, N8, N88) excluded from peak commute data in `data_loader.py`. Evening peak (4:30–6:30 PM) added alongside morning (7–9 AM). New `peak_window` column in `transit_travel_times`. Frontend shows separate AM/PM commute cards. **Note: Metlink GTFS needs reload to populate PM times.**
+- **PDF persona cache fix** — `pdfExportStore.ts` tracks persona, switching renter↔buyer regenerates PDF instead of serving cached wrong version.
+- **Checklist icon fix** — `Info` (ℹ️) → `CircleDot` (◉) for important, `CheckCircle2` (✓) → `Circle` (○) for recommended. PDF template updated to match.
+- **Shallow landslide dedup DONE** — deleted 4,782,549 duplicate rows. Final: large_scale 86,475 + shallow 4,955,499 = 5,041,974 total.
+
+**(I) Full pipeline wiring audit + fixes (session 53 continuation):**
+
+Comprehensive audit found only 64% of new data reached users. Fixed:
+
+- **types.ts**: Added `coastal_elevation_cm`, `flood_extent_aep/label`, `in_viewshaft`/`viewshaft_name`/`viewshaft_significance`, `in_character_precinct`/`character_precinct_name`
+- **transformReport.ts**: Added mappings for all 7 missing fields
+- **MapLayerPicker.tsx**: Added 7 more layers to LAYER_META + GROUPS: `fault_avoidance_zones`, `flood_hazard`, `tsunami_hazard`, `fault_zones`, `flood_extent`, `landslide_susceptibility`, `coastal_erosion`
+- **report_html.py**: Added 5 new insight rules: viewshafts, character precincts, coastal elevation (low elevation warning), flood extent (AEP), plus height variation + nearest park (from earlier)
+
+**Pipeline coverage after fixes: ~95%** (was 64% → 85% → 95%).
+
+**(J) Risk score engine + findings for new data (session 45):**
+
+- **risk_score.py** — 4 new indicators added to hazards scoring:
+  - `landslide_susceptibility`: ordinal Very Low→Very High (0→90), uses `SEVERITY_LANDSLIDE_SUSCEPTIBILITY` dict
+  - `overland_flow`: binary 45 if on/near flow path
+  - `aircraft_noise`: min-max normalized (50–75 dBA range)
+  - `coastal_erosion_council`: distance-inverse (closer=worse) or ordinal exposure rating
+  - Hazard weights rebalanced to accommodate new indicators (softmax aggregation handles variable presence)
+
+- **report_html.py** — 2 new insight rules added:
+  - Landslide susceptibility: High/Very High = warn, Moderate = info
+  - Geotechnical reports: ≥10 within 500m = info with nearest hazard detail
+
+- **FindingCard.tsx** — 11 new finding rules:
+  - Landslide susceptibility (critical/warning/info by rating)
+  - Overland flow path (info)
+  - Aircraft noise ≥55 dBA (warning/info)
+  - Council coastal erosion proximity + exposure (critical/warning)
+  - Geotech reports ≥10 (info)
+  - Heritage overlay (info)
+  - Special character area (info)
+  - Ecological area (info)
+  - Notable trees (info)
+  - Parks ≥3 within 500m (positive)
+
+- **MapLayerPicker.tsx** — fixed duplicate `coastal_erosion` key (TypeScript error from session 53)
+
+Remaining gaps:
+- Regional hazard grades (earthquake_hazard_index, ground_shaking_severity) have types + transform but no component renders them directly — they feed into the composite risk score instead.
+- Regional GTFS (Hamilton/Dunedin/Nelson) loads into `transit_stops` with `source` column but mode breakdown in SQL only queries `metlink_stops` + `at_stops` (generic stop count works though).
+
 ### What Needs To Be Done Next
 
-- **Verify Auckland rates loaded** — 623K features, was still downloading
-- **Re-run `auckland_coastal_erosion`** if needed (was fixed mid-session)
-- **Frontend TypeScript build verification** — confirm types compile clean
+- **Auckland rates** — 623K features, re-running with error handling for bad geometries
+- **Reload Metlink GTFS** — needed to populate PM peak times and remove N-bus entries
+- **Frontend TypeScript build verification** — confirm types compile clean after all changes
+- **Planning overlays card** — create UI component to render heritage/ecological/special character/mana whenua/trees/viewshaft data (data flows through but no card shows it)
+- **Regional hazard card** — render earthquake_hazard_index, ground_shaking_severity, gwrc_liquefaction per-property
 - **PDF template** — add commute time table, mode breakdown, CBD distance
-- **Shallow landslide dedup** (~9.7M → ~4.87M)
 - **Risk score engine** — rules for new fields
 - **Deploy to Azure**
 
