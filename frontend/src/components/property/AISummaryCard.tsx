@@ -20,13 +20,20 @@ export function AISummaryCard({ summary, areaProfile, suburbName, loading }: AIS
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="rounded-xl bg-piq-primary/5 p-4 space-y-2">
-          <Skeleton className="h-3 w-32" />
+        <div className="rounded-xl border border-piq-primary/15 bg-piq-primary/5 dark:bg-piq-primary/10 p-4 space-y-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <MapPin className="h-4 w-4 text-piq-primary/50" />
+            <span className="text-xs font-medium text-muted-foreground">Loading suburb information…</span>
+          </div>
+          <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-3/4" />
         </div>
-        <div className="rounded-xl bg-piq-primary/5 p-4 space-y-2">
-          <Skeleton className="h-3 w-24" />
+        <div className="rounded-xl border border-piq-primary/15 bg-piq-primary/5 dark:bg-piq-primary/10 p-4 space-y-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles className="h-4 w-4 text-piq-primary/50" />
+            <span className="text-xs font-medium text-muted-foreground">Loading AI summary…</span>
+          </div>
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-3/4" />

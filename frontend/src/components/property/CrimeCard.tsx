@@ -1,6 +1,7 @@
 'use client';
 
 import { ShieldAlert, ShieldCheck, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ContextBadge } from '@/components/common/ContextBadge';
 
 interface CrimeCardProps {
   /** Crime percentile rank (0-100). Higher = more crime relative to city. */
@@ -93,6 +94,16 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
           <span className="text-[10px] text-red-500">Most crime</span>
         </div>
       </div>
+
+      {/* Context badge */}
+      {comparisonText && (
+        <div>
+          <ContextBadge
+            text={comparisonText}
+            sentiment={percentile <= 50 ? 'positive' : 'negative'}
+          />
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="flex gap-3">

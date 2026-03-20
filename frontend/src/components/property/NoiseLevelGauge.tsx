@@ -1,9 +1,25 @@
 'use client';
 
 import { Volume2 } from 'lucide-react';
+import { ContextBadge } from '@/components/common/ContextBadge';
 
 interface NoiseLevelGaugeProps {
   noiseDb: number | null;
+}
+
+/**
+ * Approximate percentile from Wellington noise distribution.
+ * Based on NZTA data: median ~55dB, most properties 40-75dB range.
+ */
+function getNoisePercentile(db: number): number {
+  if (db <= 40) return 5;
+  if (db <= 45) return 15;
+  if (db <= 50) return 30;
+  if (db <= 55) return 50;
+  if (db <= 60) return 65;
+  if (db <= 65) return 80;
+  if (db <= 70) return 90;
+  return 95;
 }
 
 function getZone(db: number) {
@@ -63,7 +79,13 @@ export function NoiseLevelGauge({ noiseDb }: NoiseLevelGaugeProps) {
         <span className="text-[10px] text-muted-foreground">Very Loud</span>
       </div>
 
-      {/* Context line */}
+      {/* Context badge + line */}
+      <div className="flex items-center gap-2 mb-1">
+        <ContextBadge
+          text={`${noiseDb <= 55 ? 'Quieter' : 'Louder'} than ${noiseDb <= 55 ? 100 - getNoisePercentile(noiseDb) : getNoisePercentile(noiseDb)}% of properties`}
+          sentiment={noiseDb < 55 ? 'positive' : noiseDb < 65 ? 'neutral' : 'negative'}
+        />
+      </div>
       <p className="text-xs text-muted-foreground">{zone.context}</p>
     </div>
   );

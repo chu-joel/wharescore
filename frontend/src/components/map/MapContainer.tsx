@@ -7,6 +7,7 @@ import Map, {
   Marker,
   Popup,
   AttributionControl,
+  ScaleControl,
 } from 'react-map-gl/maplibre';
 import type { MapRef, MapLayerMouseEvent } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -17,6 +18,7 @@ import { TILE_LAYERS } from '@/lib/constants';
 import { getLayerStyles, getTileUrl } from '@/lib/layerStyles';
 import { addRiskPatterns, addLayerIcons } from '@/lib/mapStyles';
 import { getBasemapStyle, SATELLITE_STYLE_IDS } from '@/lib/basemapStyles';
+import { LABEL_SOURCE_ID, LABEL_TILE_URL, LABEL_LAYERS_LIGHT } from '@/lib/mapLabels';
 import { TIMING } from '@/lib/animations';
 import { MapLayerChipBar } from './MapLayerChipBar';
 import { MapLegend } from './MapLegend';
@@ -71,7 +73,10 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
     return { label: name ?? cat ?? 'Amenity', sublabel: name ? cat : undefined };
   }
   if (layerId === 'layer-crashes') {
-    return { label: 'Crash site', sublabel: p.severity as string };
+    const severity = (p.crash_severity as string) ?? (p.severity as string);
+    const year = p.crash_year as number | undefined;
+    const sublabel = [severity, year ? `(${year})` : ''].filter(Boolean).join(' ');
+    return { label: 'Crash site', sublabel: sublabel || undefined };
   }
   if (layerId === 'layer-contaminated_land') {
     return { label: p.site_name as string ?? 'Contaminated site' };
@@ -82,35 +87,68 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
   if (layerId === 'layer-district_plan_zones') {
     return { label: p.zone_name as string ?? 'Zone' };
   }
-  if (layerId === 'layer-flood_zones') return { label: 'Flood zone', sublabel: p.title as string || p.label as string };
+  if (layerId === 'layer-flood_zones') {
+    const title = p.title as string || p.label as string;
+    return { label: 'Flood zone', sublabel: title ? `${title} — check floor level` : 'Check floor level relative to flood extent' };
+  }
   if (layerId === 'layer-tsunami_zones') {
     const zc = p.zone_class as number | undefined;
     const zone = zc ? `Zone ${zc}` : undefined;
     const evac = p.evac_zone as string | undefined;
-    return { label: 'Tsunami zone', sublabel: [zone, evac].filter(Boolean).join(' · ') || undefined };
+    const context = zc === 1 ? 'Highest risk — evacuate immediately' : zc === 2 ? 'Moderate risk — know your route' : 'Lower risk zone';
+    return { label: 'Tsunami zone', sublabel: [zone, evac, context].filter(Boolean).join(' · ') };
   }
-  if (layerId === 'layer-liquefaction_zones') return { label: 'Liquefaction', sublabel: p.liquefaction as string };
-  if (layerId === 'layer-slope_failure_zones') return { label: 'Slope failure', sublabel: p.susceptibility as string };
+  if (layerId === 'layer-liquefaction_zones') {
+    const liq = p.liquefaction as string;
+    const context: Record<string, string> = {
+      'Low': 'Minimal ground settlement expected',
+      'Moderate': 'Some ground damage possible in large quake',
+      'High': 'Significant ground damage likely — check foundations',
+      'Very High': 'Severe ground damage expected — engineering assessment recommended',
+    };
+    return { label: 'Liquefaction', sublabel: `${liq}${context[liq] ? ' — ' + context[liq] : ''}` };
+  }
+  if (layerId === 'layer-slope_failure_zones') {
+    const sus = p.susceptibility as string;
+    const context: Record<string, string> = {
+      'Very Low': 'Negligible landslide risk',
+      'Low': 'Minor risk — standard foundations sufficient',
+      'Medium': 'Moderate risk — geotech report recommended',
+      'High': 'Significant risk — geotech report essential',
+      'Very High': 'Severe risk — specialist assessment required',
+    };
+    return { label: 'Slope failure', sublabel: `${sus}${context[sus] ? ' — ' + context[sus] : ''}` };
+  }
   if (layerId === 'layer-wind_zones') {
     const names: Record<string, string> = { M: 'Moderate', H: 'High', VH: 'Very High', EH: 'Extreme', SED: 'Special Exposure' };
-    return { label: 'Wind zone', sublabel: names[p.zone_name as string] ?? p.zone_name as string };
+    const tips: Record<string, string> = { M: '', H: '', VH: 'Higher building standards apply', EH: 'Special design required', SED: 'Site-specific wind study needed' };
+    const name = names[p.zone_name as string] ?? p.zone_name as string;
+    const tip = tips[p.zone_name as string];
+    return { label: 'Wind zone', sublabel: tip ? `${name} — ${tip}` : name };
   }
   if (layerId === 'layer-coastal_erosion') {
     const csi = p.csi_in as number | undefined;
-    return { label: 'Coastal erosion', sublabel: csi != null ? `CSI ${csi}` : undefined };
+    const level = csi == null ? '' : csi < 25 ? 'Low risk' : csi < 50 ? 'Moderate risk' : csi < 75 ? 'High risk' : 'Very high risk';
+    return { label: 'Coastal erosion', sublabel: csi != null ? `CSI ${csi} — ${level}` : undefined };
   }
-  if (layerId === 'layer-noise_contours') return { label: `Noise: ${p.laeq24h ?? ''}dB` };
+  if (layerId === 'layer-noise_contours') {
+    const db = p.laeq24h as number | undefined;
+    const level = db == null ? '' : db < 50 ? '(quiet)' : db < 55 ? '(moderate)' : db < 60 ? '(noticeable)' : db < 65 ? '(loud — may affect sleep)' : '(very loud — noise mitigation recommended)';
+    return { label: `Noise: ${db ?? ''}dB ${level}`.trim() };
+  }
   if (layerId === 'layer-conservation_land') return { label: p.name as string ?? 'Conservation land', sublabel: p.land_type as string };
   if (layerId === 'layer-school_zones') return { label: p.school_name as string ?? 'School zone' };
   if (layerId === 'layer-mv_nzdep_choropleth') {
     const d = p.nzdep as number;
-    return { label: `NZDep Decile ${d}`, sublabel: d <= 3 ? 'Low deprivation' : d <= 7 ? 'Moderate' : 'High deprivation' };
+    const context = d <= 2 ? 'Least deprived area' : d <= 4 ? 'Low deprivation' : d <= 6 ? 'Moderate deprivation' : d <= 8 ? 'Higher deprivation' : 'Most deprived area';
+    return { label: `NZDep Decile ${d}`, sublabel: context };
   }
   if (layerId === 'layer-mv_crime_choropleth') {
     const v = p.victimisations as number;
     if (v === 0) return null;
     const levels = ['', 'Very low', 'Low', 'Moderate', 'High', 'Very high'];
-    return { label: `${v} victimisations (3yr)`, sublabel: levels[p.crime_level as number] ?? '' };
+    const level = levels[p.crime_level as number] ?? '';
+    return { label: `${v} victimisations (3yr)`, sublabel: `${level} crime area` };
   }
   return null;
 }
@@ -139,6 +177,33 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/** Generate a GeoJSON circle (64-point polygon) for a distance ring */
+function makeDistanceRing(lngCenter: number, latCenter: number, radiusMeters: number): GeoJSON.FeatureCollection {
+  const points = 64;
+  const coords: [number, number][] = [];
+  const earthRadius = 6371000;
+  const latRad = (latCenter * Math.PI) / 180;
+
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * 2 * Math.PI;
+    const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
+    const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
+    coords.push([
+      lngCenter + (dLng * 180) / Math.PI,
+      latCenter + (dLat * 180) / Math.PI,
+    ]);
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: coords },
+      properties: {},
+    }],
+  };
+}
+
 export function MapContainer() {
   const mapRef = useRef<MapRef>(null);
   const viewport = useMapStore((s) => s.viewport);
@@ -164,6 +229,20 @@ export function MapContainer() {
   // Keep ref in sync so callbacks don't need showPopup in deps
   useEffect(() => { showPopupRef.current = showPopup; }, [showPopup]);
 
+  // Keyboard shortcut: L to open layer picker
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'l' || e.key === 'L') {
+        const trigger = document.querySelector<HTMLButtonElement>('[data-layer-picker-trigger]');
+        trigger?.click();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Stable hover GeoJSON data refs (avoid Source mount/unmount churn)
   const [hoverBuildingData, setHoverBuildingData] = useState<GeoJSON.Feature | null>(null);
   const [hoverAddressData, setHoverAddressData] = useState<GeoJSON.FeatureCollection>(EMPTY_GEOJSON);
@@ -178,7 +257,7 @@ export function MapContainer() {
 
   const activeLayerIds = useMemo(() => activeLayerEntries.map((e) => e.id), [activeLayerEntries]);
 
-  // flyTo when a new address is selected
+  // flyTo when a new address is selected (from search bar — goes straight to full popup)
   useEffect(() => {
     if (!selectedAddress || !mapRef.current) return;
     if (prevAddressRef.current === selectedAddress.addressId) return;
@@ -490,6 +569,45 @@ export function MapContainer() {
         ]}
       >
         <AttributionControl compact position="bottom-right" />
+        <ScaleControl position="bottom-left" maxWidth={120} unit="metric" />
+
+        {/* Distance ring around selected property — 500m dashed circle */}
+        {selectedAddress && pinVisible && (
+          <Source
+            id="source-distance-ring"
+            type="geojson"
+            data={makeDistanceRing(selectedAddress.lng, selectedAddress.lat, 500)}
+          >
+            <Layer
+              id="layer-distance-ring"
+              type="line"
+              paint={{
+                'line-color': '#0D7377',
+                'line-width': 1.5,
+                'line-dasharray': [4, 3],
+                'line-opacity': 0.55,
+              }}
+            />
+            <Layer
+              id="layer-distance-ring-label"
+              type="symbol"
+              layout={{
+                'symbol-placement': 'line',
+                'text-field': '500m',
+                'text-size': 11,
+                'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+                'text-offset': [0, -0.7],
+                'text-allow-overlap': false,
+              }}
+              paint={{
+                'text-color': '#0D7377',
+                'text-halo-color': 'rgba(255,255,255,0.85)',
+                'text-halo-width': 1.5,
+                'text-opacity': 0.8,
+              }}
+            />
+          </Source>
+        )}
 
         {/* Addresses layer — invisible hit target + visible dots at high zoom */}
         {mapLoaded && (
@@ -611,7 +729,7 @@ export function MapContainer() {
             </Source>
           ))}
 
-        {/* Always-visible suburb/locality labels — rendered on top of all layers */}
+        {/* SA2 area labels — NZ statistical areas, visible below suburb zoom where OFM labels take over */}
         {mapLoaded && (
           <Source
             id="source-sa2-labels"
@@ -626,14 +744,13 @@ export function MapContainer() {
               source-layer="sa2_boundaries"
               type="symbol"
               minzoom={8}
-              maxzoom={15}
+              maxzoom={12}
               layout={{
                 'text-field': ['coalesce', ['get', 'name'], ''],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
                   8, 10,
-                  12, 13,
-                  15, 12,
+                  11, 13,
                 ],
                 'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
                 'text-anchor': 'center',
@@ -643,60 +760,85 @@ export function MapContainer() {
               }}
               paint={{
                 'text-color': '#FFFFFF',
-                'text-halo-color': 'rgba(0, 0, 0, 0.6)',
+                'text-halo-color': 'rgba(0, 0, 0, 0.65)',
                 'text-halo-width': 1.5,
                 'text-opacity': [
                   'interpolate', ['linear'], ['zoom'],
                   8, 0.6,
-                  12, 0.9,
-                  15, 0,
+                  10, 0.85,
+                  12, 0,
                 ],
               }}
             />
           </Source>
         )}
 
-        {/* Street/place labels on satellite basemaps */}
-        {mapLoaded && SATELLITE_STYLE_IDS.has(baseStyleId) && (
+        {/* Vector labels on satellite/dark basemaps — Google-style white text with dark outlines */}
+        {mapLoaded && (SATELLITE_STYLE_IDS.has(baseStyleId) || baseStyleId === 'dark') && (
           <Source
-            id="source-carto-labels"
-            type="raster"
-            tiles={[
-              'https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
-              'https://b.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
-              'https://c.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
-            ]}
-            tileSize={256}
-            maxzoom={18}
+            id={LABEL_SOURCE_ID}
+            type="vector"
+            tiles={[LABEL_TILE_URL]}
+            maxzoom={14}
           >
-            <Layer id="layer-carto-labels" type="raster" />
+            {LABEL_LAYERS_LIGHT.map((layer) => (
+              <Layer key={layer.id} {...layer} />
+            ))}
           </Source>
         )}
 
-        {/* Selected property marker */}
+        {/* Compass rose on distance ring — north indicator */}
+        {selectedAddress && pinVisible && (() => {
+          const earthR = 6371000;
+          const latRad = (selectedAddress.lat * Math.PI) / 180;
+          const dLat = (500 / earthR) * (180 / Math.PI);
+          return (
+            <Marker
+              longitude={selectedAddress.lng}
+              latitude={selectedAddress.lat + dLat}
+              anchor="center"
+            >
+              <div className="flex flex-col items-center animate-fade-in" style={{ opacity: 0.7 }}>
+                <span className="text-[10px] font-bold text-piq-primary drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">N</span>
+                <svg width="8" height="6" viewBox="0 0 8 6" className="text-piq-primary -mt-0.5">
+                  <polygon points="4,0 0,6 8,6" fill="currentColor" />
+                </svg>
+              </div>
+            </Marker>
+          );
+        })()}
+
+        {/* Selected property marker — full pin when popup visible, small dot when report is open */}
         {selectedAddress && pinVisible && (
           <Marker
             longitude={selectedAddress.lng}
             latitude={selectedAddress.lat}
-            anchor="bottom"
+            anchor={showPopup ? 'bottom' : 'center'}
             onClick={() => {
               if (!selectedAddress) return;
               selectProperty(selectedAddress.addressId, selectedAddress.lng, selectedAddress.lat);
               setShowPopup(true);
             }}
           >
-            <div className="relative">
-              <div className="absolute -inset-3 flex items-center justify-center">
-                <div className="w-6 h-6 rounded-full bg-piq-primary/30 animate-pulse-ring" />
+            {showPopup ? (
+              <div className="relative cursor-pointer">
+                <div className="absolute -inset-3 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-piq-primary/30 animate-pulse-ring" />
+                </div>
+                <div className="animate-bounce-in">
+                  <MapPin
+                    className="h-9 w-9 text-piq-primary drop-shadow-lg"
+                    fill="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </div>
               </div>
-              <div className="animate-bounce-in">
-                <MapPin
-                  className="h-9 w-9 text-piq-primary drop-shadow-lg"
-                  fill="currentColor"
-                  strokeWidth={1.5}
-                />
+            ) : (
+              /* Small indicator dot when report is open / popup dismissed */
+              <div className="cursor-pointer">
+                <div className="w-3.5 h-3.5 rounded-full bg-piq-primary border-2 border-white shadow-md" />
               </div>
-            </div>
+            )}
           </Marker>
         )}
 
@@ -753,10 +895,15 @@ export function MapContainer() {
         </div>
       )}
 
-      {/* Zoom hint */}
-      {(viewport.zoom < 10) && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
-          Zoom in to select properties
+      {/* Zoom hint — contextual based on zoom level */}
+      {(viewport.zoom < 14 && !selectedAddress) && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
+          {viewport.zoom < 8
+            ? 'Zoom in or search for an address to get started'
+            : viewport.zoom < 11
+              ? 'Zoom in closer to see properties'
+              : 'Zoom in or tap a building to select'
+          }
         </div>
       )}
     </div>

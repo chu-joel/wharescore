@@ -9,6 +9,7 @@ import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
 
 import type { PropertyReport, RatingBin } from '@/lib/types';
+import { usePersonaStore } from '@/stores/personaStore';
 
 function ratingVariant(rating: RatingBin) {
   const map: Record<RatingBin, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -52,11 +53,36 @@ function TradeMeLink({ address }: { address: string }) {
 }
 
 export function PropertySummaryCard({ report }: { report: PropertyReport }) {
-  const { address, property, scores, coverage } = report;
+  const { address, property, scores, coverage, market } = report;
   const hasScore = Number.isFinite(scores?.overall);
   const bin = hasScore ? getRatingBin(scores.overall) : null;
+  const persona = usePersonaStore((s) => s.persona);
 
   const pdf = usePdfExport(address.address_id);
+
+  // Persona-specific headline metric
+  const personaHeadline = (() => {
+    if (persona === 'renter' && market.rent_assessment?.median) {
+      return `Median rent: $${market.rent_assessment.median}/wk for this area`;
+    }
+    if (persona === 'buyer') {
+      const parts: string[] = [];
+      const isMulti = !!report.property_detection?.is_multi_unit;
+      const units = report.property_detection?.unit_count ?? 1;
+      const cv = property.capital_value;
+      const effectiveCv = (isMulti && cv && units > 1) ? Math.round(cv / units) : cv;
+      if (effectiveCv) {
+        parts.push(`${isMulti && units > 1 ? '~' : 'CV: '}$${(effectiveCv / 1000).toFixed(0)}k${isMulti && units > 1 ? ' est.' : ''}`);
+      }
+      if (market.rent_assessment?.median && effectiveCv) {
+        const annualRent = market.rent_assessment.median * 52;
+        const grossYield = (annualRent / effectiveCv) * 100;
+        parts.push(`Est. yield: ${grossYield.toFixed(1)}%`);
+      }
+      return parts.length > 0 ? parts.join(' · ') : null;
+    }
+    return null;
+  })();
 
   return (
     <Card className="rounded-xl card-elevated overflow-hidden">
@@ -132,11 +158,18 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
         {/* Property info — key-value pills */}
         {(property.capital_value || property.land_area_sqm || property.building_area_sqm) && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {property.capital_value && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                CV {formatCurrency(property.capital_value)}
-              </span>
-            )}
+            {property.capital_value && (() => {
+              const isMulti = !!report.property_detection?.is_multi_unit;
+              const units = report.property_detection?.unit_count ?? 1;
+              const perUnit = isMulti && units > 1 ? Math.round(property.capital_value / units) : null;
+              return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                  {perUnit
+                    ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
+                    : <>CV {formatCurrency(property.capital_value)}</>}
+                </span>
+              );
+            })()}
             {property.land_area_sqm && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
                 Land {property.land_area_sqm.toLocaleString()}m²
@@ -148,6 +181,13 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
               </span>
             )}
           </div>
+        )}
+
+        {/* Persona-specific headline */}
+        {personaHeadline && (
+          <p className="text-sm font-medium text-piq-primary pt-1">
+            {personaHeadline}
+          </p>
         )}
       </CardContent>
 

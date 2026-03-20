@@ -196,6 +196,44 @@ export interface HazardData {
     distance_m: number;
   } | null;
   landslide_in_area: boolean | null;
+  // GNS Active Faults (national)
+  active_fault_nearest: {
+    name: string;
+    class: string;
+    slip_rate_mm_yr: number | null;
+    recurrence_interval: string;
+    fault_type: string;
+    distance_m: number;
+  } | null;
+  fault_avoidance_zone: {
+    fault_name: string;
+    zone_type: string;
+    fault_class: string;
+    setback_m: number;
+  } | null;
+  // Landslide susceptibility (council data)
+  landslide_susceptibility_rating: string | null;
+  landslide_susceptibility_type: string | null;
+  // Overland flow path
+  on_overland_flow_path: boolean | null;
+  overland_flow_within_50m: boolean | null;
+  // Coastal erosion (council data)
+  coastal_erosion_exposure: string | null;
+  coastal_erosion_timeframe: number | null;
+  council_coastal_erosion: {
+    name: string;
+    timeframe: number | null;
+    scenario: string | null;
+    sea_level_rise: number | null;
+    distance_m: number | null;
+  } | null;
+  // Aircraft noise
+  aircraft_noise_name: string | null;
+  aircraft_noise_dba: number | null;
+  aircraft_noise_category: string | null;
+  // Geotechnical reports
+  geotech_count_500m: number | null;
+  geotech_nearest_hazard: string | null;
 }
 
 // --- Environment ---
@@ -203,6 +241,8 @@ export interface EnvironmentData {
   wind_zone: string | null;
   noise_db: number | null;
   air_quality_trend: string | null;
+  air_quality_site: string | null;
+  air_quality_distance_m: number | null;
   water_quality_grade: string | null;
   climate_projection: Record<string, unknown> | null;
 }
@@ -225,6 +265,7 @@ export interface LiveabilityData {
   cable_car_stops_800m: number | null;
   // Transit travel times
   transit_travel_times: TransitTravelTime[] | null;
+  transit_travel_times_pm: TransitTravelTime[] | null;
   peak_trips_per_hour: number | null;
   nearest_stop_name: string | null;
 }
@@ -245,6 +286,29 @@ export interface PlanningData {
   infrastructure_count: number | null;
   contamination_count: number | null;
   epb_listed: boolean | null;
+  // Heritage overlay (Auckland etc.)
+  in_heritage_overlay: boolean | null;
+  heritage_overlay_name: string | null;
+  heritage_overlay_type: string | null;
+  // Special character area
+  in_special_character_area: boolean | null;
+  special_character_name: string | null;
+  // Notable trees
+  notable_tree_count_50m: number | null;
+  notable_tree_nearest: string | null;
+  // Significant ecological area
+  in_ecological_area: boolean | null;
+  ecological_area_name: string | null;
+  ecological_area_type: string | null;
+  // Mana whenua
+  in_mana_whenua: boolean | null;
+  mana_whenua_name: string | null;
+  // Height variation
+  height_variation_limit: string | null;
+  // Parks
+  park_count_500m: number | null;
+  nearest_park_name: string | null;
+  nearest_park_distance_m: number | null;
 }
 
 // --- Comparisons (suburb + city averages) ---

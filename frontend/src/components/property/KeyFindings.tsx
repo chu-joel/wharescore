@@ -2,17 +2,22 @@
 
 import { Lightbulb } from 'lucide-react';
 import { FindingCard, generateFindings } from './FindingCard';
-import { ReportUpsell } from './ReportUpsell';
+import { BlurredFindingCards } from './BlurredFindingCards';
 import type { PropertyReport } from '@/lib/types';
+import type { Persona } from '@/stores/personaStore';
 
 interface KeyFindingsProps {
   report: PropertyReport;
-  /** Max findings to show for free. Remaining are gated behind upsell. */
+  /** Max findings to show for free. Remaining are shown as blurred cards. */
   maxFree?: number;
+  /** Current persona — affects finding order */
+  persona?: Persona;
+  /** Address ID for upgrade CTA */
+  addressId?: number;
 }
 
-export function KeyFindings({ report, maxFree = 5 }: KeyFindingsProps) {
-  const findings = generateFindings(report);
+export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
+  const findings = generateFindings(report, persona);
 
   if (findings.length === 0) return null;
 
@@ -65,14 +70,11 @@ export function KeyFindings({ report, maxFree = 5 }: KeyFindingsProps) {
         ))}
       </div>
 
-      {/* Gated findings teaser */}
+      {/* Blurred ghost cards — show severity colors through blur */}
       {hiddenFindings.length > 0 && (
-        <ReportUpsell
-          addressId={report.address.address_id}
-          feature="findings"
-          hiddenCount={hiddenFindings.length}
-          criticalCount={hiddenCritical}
-          warningCount={hiddenWarning}
+        <BlurredFindingCards
+          findings={hiddenFindings}
+          addressId={addressId ?? report.address.address_id}
         />
       )}
     </div>

@@ -7,32 +7,38 @@ import { PropertySummaryCard } from './PropertySummaryCard';
 import { ScoreGauge } from './ScoreGauge';
 import { ScoreStrip } from './ScoreStrip';
 import { AISummaryCard } from './AISummaryCard';
-import { ReportAccordion } from './ReportAccordion';
-import { scoreSectionRelevance } from '@/lib/sectionRelevance';
+import { QuestionAccordion } from './QuestionAccordion';
+import { PersonaToggle } from './PersonaToggle';
+import { HeroQuestion } from './HeroQuestion';
 import { BuildingInfoBanner } from './BuildingInfoBanner';
 import { KeyTakeaways } from './KeyTakeaways';
 import { BetaBanner } from './BetaBanner';
 import { ReportCTABanner } from './ReportCTABanner';
-import { ReportUpsell } from './ReportUpsell';
 import { FloatingReportButton } from './FloatingReportButton';
+import { UpgradeModal } from './UpgradeModal';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ReportDisclaimer } from '@/components/common/ReportDisclaimer';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { getRatingBin } from '@/lib/constants';
-import { formatCoverage } from '@/lib/format';
 import { NotFoundError, RateLimitError } from '@/lib/api';
-import { Info, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { NearbyHighlights } from './NearbyHighlights';
-import { SolarPotentialCard } from './SolarPotentialCard';
-import { CommutePreviewCard } from './CommutePreviewCard';
 import { KeyFindings } from './KeyFindings';
 import { CategoryRadar } from './CategoryRadar';
-import { NoiseLevelGauge } from './NoiseLevelGauge';
-import { ClimateForecastCard } from './ClimateForecastCard';
+import { PremiumGate } from './PremiumGate';
 import { CoverageRing } from './CoverageRing';
+import { SavePropertyButton } from './SavePropertyButton';
+import { ScrollPrompt } from './ScrollPrompt';
+import { SocialProof } from './SocialProof';
+import { EmailSummaryCapture } from './EmailSummaryCapture';
+import { generateFindings } from './FindingCard';
+import { trackVisit, shouldShowComparisonUpsell } from '@/hooks/useVisitTracker';
+import { usePersonaStore } from '@/stores/personaStore';
+import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 /** How many findings to show for free before gating */
 const FREE_FINDINGS = 2;
@@ -42,6 +48,23 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   const { data: aiData, isLoading: aiLoading } = useAISummary(addressId, !isLoading && !error);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
+  const persona = usePersonaStore((s) => s.persona);
+  const questions = getQuestionsForPersona(persona);
+  const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
+  const canDownload = useDownloadGateStore((s) => s.canDownload);
+
+  // Track property visit for second-visit detection
+  useEffect(() => {
+    if (!report) return;
+    trackVisit(addressId);
+    // If second property visit + can't download → show "comparing" upsell after 30s (once per session)
+    if (shouldShowComparisonUpsell() && !canDownload().allowed) {
+      const t = setTimeout(() => {
+        setShowUpgradeModal(true, 'comparing');
+      }, 30000);
+      return () => clearTimeout(t);
+    }
+  }, [addressId, report]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearchAnother = () => {
     clearSelection();
@@ -74,9 +97,17 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     );
   }
 
-  if (!report) return null;
+  if (!report) {
+    return (
+      <div className="p-4">
+        <ErrorState variant="network" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
-  const sectionRelevance = scoreSectionRelevance(report);
+  // Calculate risk count for contextual CTA copy
+  const findings = generateFindings(report, persona);
+  const riskCount = findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length;
 
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
@@ -85,14 +116,29 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     : undefined;
   const hasCategories = Array.isArray(report.scores?.categories) && report.scores.categories.length > 0;
 
+  const heroQuestion = questions[0];
+  // Daily life / neighbourhood is promoted to its own section, so exclude from accordion
+  const promotedIds = new Set(['daily-life', 'neighbourhood']);
+  const accordionQuestions = questions.slice(1).filter((q) => !promotedIds.has(q.id));
+
   return (
-    <div className="flex flex-col min-h-full" key={addressId}>
+    <div className="flex flex-col min-h-full" key={`${addressId}-${persona}`}>
       <div className="flex-1 px-4 py-5 space-y-5">
         {/* Beta Banner */}
         <BetaBanner />
 
-        {/* Summary Card */}
+        {/* Summary Card + Save Button */}
         <PropertySummaryCard report={report} />
+        <div className="flex items-center justify-between -mt-2">
+          <SavePropertyButton
+            addressId={addressId}
+            fullAddress={report.address.full_address}
+          />
+          <SocialProof suburbName={report.address.sa2_name} />
+        </div>
+
+        {/* Persona Toggle */}
+        <PersonaToggle />
 
         {/* Earthquake-Prone Building Warning — always show (safety) */}
         {report.planning?.epb_listed && (
@@ -169,56 +215,64 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Category Radar — visual profile */}
         {hasCategories && <CategoryRadar categories={report.scores.categories} />}
 
-        {/* === KEY FINDINGS (first 2 free, rest gated) === */}
+        {/* === KEY FINDINGS (persona-aware, first 2 free, rest gated) === */}
         <div className="section-divider">
-          <KeyFindings report={report} maxFree={FREE_FINDINGS} />
+          <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
+          {/* Email capture — registration wall before paywall */}
+          <div className="mt-3">
+            <EmailSummaryCapture
+              addressId={addressId}
+              fullAddress={report.address.full_address}
+              findingCount={findings.length}
+              riskCount={riskCount}
+            />
+          </div>
         </div>
 
-        {/* === GATED: AI Summary === */}
-        <ReportUpsell addressId={addressId} feature="ai-summary" />
+        {/* AI Summary + Area Profile */}
+        <AISummaryCard
+          summary={aiData?.ai_summary ?? null}
+          areaProfile={aiData?.area_profile ?? null}
+          suburbName={report.address.sa2_name}
+          loading={aiLoading}
+        />
 
-        {/* === GATED: Comparisons === */}
-        <ReportUpsell addressId={addressId} feature="comparisons" />
+        {/* Daily life snapshot — always visible, high-value info */}
+        {(() => {
+          const dailyLifeQ = questions.find((q) => q.id === 'daily-life' || q.id === 'neighbourhood');
+          if (!dailyLifeQ) return null;
+          return (
+            <div className="section-divider">
+              <HeroQuestion question={dailyLifeQ} report={report} />
+            </div>
+          );
+        })()}
+
+        {/* === HERO QUESTION — first question promoted to full-width card === */}
+        {heroQuestion && heroQuestion.id !== 'daily-life' && heroQuestion.id !== 'neighbourhood' && (
+          <div className="section-divider">
+            <HeroQuestion question={heroQuestion} report={report} />
+          </div>
+        )}
+
+        {/* === QUESTION ACCORDION — remaining questions as expandable sections === */}
+        <div className="section-divider space-y-5">
+          <p className="section-heading">
+            {persona === 'renter' ? 'More about this rental' : 'More about this property'}
+          </p>
+          <QuestionAccordion
+            report={report}
+            questions={accordionQuestions}
+          />
+        </div>
 
         {/* CTA Banner — primary conversion point */}
-        <ReportCTABanner addressId={addressId} />
-
-        {/* Nearby highlights — free (basic counts, builds trust) */}
-        <div className="section-divider space-y-5">
-          <p className="section-heading">Nearby essentials</p>
-          <NearbyHighlights
-            addressId={addressId}
-            schoolCount={report.liveability.school_count}
-            transitCount={report.liveability.transit_count}
-          />
-          <CommutePreviewCard
-            travelTimes={report.liveability.transit_travel_times}
-            peakTripsPerHour={report.liveability.peak_trips_per_hour}
-            nearestStopName={report.liveability.nearest_stop_name}
-          />
-          <SolarPotentialCard
-            meanKwh={report.hazards.solar_mean_kwh ?? null}
-            maxKwh={report.hazards.solar_max_kwh ?? null}
-          />
-          <NoiseLevelGauge noiseDb={report.environment.noise_db} />
-          <ClimateForecastCard projection={report.environment.climate_projection} />
-        </div>
-
-        {/* === GATED: Accordion Sections (headers visible, content locked) === */}
-        <div className="section-divider space-y-5">
-          <p className="section-heading">Detailed breakdown</p>
-          <ReportAccordion
-            report={report}
-            orderedSections={sectionRelevance}
-            defaultOpenSection={sectionRelevance[0]?.section}
-            locked
-          />
-        </div>
-
-        {/* === GATED: Checklist === */}
-        <div className="section-divider">
-          <ReportUpsell addressId={addressId} feature="checklist" />
-        </div>
+        <ReportCTABanner
+          addressId={addressId}
+          suburbName={report.address.sa2_name}
+          capitalValue={report.property.capital_value}
+          medianRent={report.market.rent_assessment?.median}
+        />
 
         {/* Key Takeaways — simplified (just CTA buttons) */}
         <div className="section-divider">
@@ -230,8 +284,14 @@ export function PropertyReport({ addressId }: { addressId: number }) {
       </div>
       <AppFooter />
 
-      {/* Floating download button — always visible */}
-      <FloatingReportButton addressId={addressId} />
+      {/* Floating download button — contextual CTA copy */}
+      <FloatingReportButton addressId={addressId} riskCount={riskCount} />
+
+      {/* Scroll-triggered upgrade prompt */}
+      <ScrollPrompt report={report} />
+
+      {/* Paywall modal — shown when free user clicks download */}
+      <UpgradeModal />
     </div>
   );
 }
@@ -241,6 +301,8 @@ function ReportSkeleton() {
     <div className="p-4 space-y-4">
       {/* Summary card skeleton */}
       <Skeleton className="h-32 w-full rounded-xl" />
+      {/* Persona toggle skeleton */}
+      <Skeleton className="h-12 w-full rounded-xl" />
       {/* Score gauge skeleton */}
       <div className="flex justify-center">
         <Skeleton className="h-36 w-36 rounded-full" />
@@ -258,10 +320,10 @@ function ReportSkeleton() {
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-3/4" />
       </div>
-      {/* Accordion skeletons */}
+      {/* Question section skeletons */}
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          <Skeleton key={i} className="h-16 w-full rounded-lg" />
         ))}
       </div>
     </div>

@@ -32,6 +32,17 @@ async def verify_admin(password: str, hashed_password: str) -> str | None:
     return None
 
 
+async def delete_admin_session(token: str):
+    """Invalidate an admin session token."""
+    from ..redis import redis_client as _rc
+    try:
+        if _rc:
+            await _rc.delete(f"admin_session:{token}")
+    except Exception:
+        pass
+    _memory_sessions.pop(token, None)
+
+
 async def require_admin(request: Request):
     """FastAPI dependency — validates admin session token from cookie."""
     token = request.cookies.get("admin_token")

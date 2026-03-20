@@ -5,7 +5,8 @@ Batch generate AI area profiles for all SA2s.
 Usage:
     cd backend
     python -m scripts.generate_area_profiles --ta "Wellington City"
-    python -m scripts.generate_area_profiles --all  # national (~$0.50)
+    python -m scripts.generate_area_profiles --all --skip-existing
+    python -m scripts.generate_area_profiles --all --skip-existing --workers 10
 """
 
 import argparse
@@ -14,8 +15,10 @@ import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import psycopg
+import psycopg.rows
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
@@ -24,12 +27,6 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# Azure OpenAI client (sync — this is a batch script)
-client = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_version="2024-12-01-preview",
-)
 MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
 
 SYSTEM_PROMPT = """You are a New Zealand suburb expert. Given data about a suburb,
@@ -85,21 +82,68 @@ FROM sa2_boundaries sa2
 WHERE sa2.sa2_code = %s
 """
 
+UPSERT_SQL = """
+INSERT INTO area_profiles (sa2_code, sa2_name, ta_name, profile, data_snapshot, model_used)
+VALUES (%s, %s, %s, %s, %s::jsonb, %s)
+ON CONFLICT (sa2_code) DO UPDATE SET
+    profile = EXCLUDED.profile,
+    data_snapshot = EXCLUDED.data_snapshot,
+    model_used = EXCLUDED.model_used,
+    generated_at = NOW()
+"""
 
-def generate_profile(sa2_name: str, ta_name: str, data: dict) -> str:
-    """Call Azure OpenAI to generate a suburb profile."""
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Suburb: {sa2_name}, {ta_name}\n\nBackground data (for context only — do not cite numbers):\n{json.dumps(data, indent=2, default=str)}",
-            },
-        ],
-        max_completion_tokens=2000,
+
+def process_sa2(sa2, db_url, index, total):
+    """Process a single SA2 — each thread gets its own DB conn and OpenAI client."""
+    ai_client = AzureOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_version="2024-12-01-preview",
     )
-    return response.choices[0].message.content
+
+    try:
+        with psycopg.connect(db_url, row_factory=psycopg.rows.dict_row) as conn:
+            # Get data snapshot
+            data_row = conn.execute(DATA_SNAPSHOT_SQL, [sa2["sa2_code"]]).fetchone()
+            if not data_row:
+                logger.warning(f"  [{index}/{total}] No data for {sa2['sa2_code']}")
+                return False
+
+            data_snapshot = {k: v for k, v in data_row.items() if v is not None}
+
+            # Generate profile via AI
+            response = ai_client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": f"Suburb: {sa2['sa2_name']}, {sa2['ta_name']}\n\nBackground data (for context only — do not cite numbers):\n{json.dumps(data_snapshot, indent=2, default=str)}",
+                    },
+                ],
+                max_completion_tokens=2000,
+            )
+            profile = response.choices[0].message.content
+            logger.info(f"  [{index}/{total}] {sa2['sa2_name']}: {len(profile)} chars")
+
+            # Upsert
+            conn.execute(
+                UPSERT_SQL,
+                [
+                    sa2["sa2_code"],
+                    sa2["sa2_name"],
+                    sa2["ta_name"],
+                    profile,
+                    json.dumps(data_snapshot, default=str),
+                    MODEL,
+                ],
+            )
+            conn.commit()
+            return True
+
+    except Exception as e:
+        logger.error(f"  [{index}/{total}] Failed {sa2['sa2_name']}: {e}")
+        return False
 
 
 def main():
@@ -107,6 +151,7 @@ def main():
     parser.add_argument("--ta", help="Generate for a specific TA (e.g. 'Wellington City')")
     parser.add_argument("--all", action="store_true", help="Generate for all SA2s nationally")
     parser.add_argument("--skip-existing", action="store_true", help="Skip SA2s that already have profiles")
+    parser.add_argument("--workers", type=int, default=5, help="Number of parallel workers (default: 5)")
     args = parser.parse_args()
 
     db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/wharescore")
@@ -125,58 +170,50 @@ def main():
             sys.exit(1)
 
         sa2s = cur.fetchall()
-        logger.info(f"Processing {len(sa2s)} SA2s")
 
-        for i, sa2 in enumerate(sa2s):
-            if args.skip_existing:
-                existing = conn.execute(
-                    "SELECT 1 FROM area_profiles WHERE sa2_code = %s", [sa2["sa2_code"]]
-                ).fetchone()
-                if existing:
-                    logger.info(f"  [{i+1}/{len(sa2s)}] Skipping {sa2['sa2_name']} (exists)")
-                    continue
+        # Filter out existing if requested
+        if args.skip_existing:
+            existing_codes = {
+                r["sa2_code"]
+                for r in conn.execute("SELECT sa2_code FROM area_profiles").fetchall()
+            }
+            sa2s = [s for s in sa2s if s["sa2_code"] not in existing_codes]
 
-            # Get data snapshot
-            data_row = conn.execute(DATA_SNAPSHOT_SQL, [sa2["sa2_code"]]).fetchone()
-            if not data_row:
-                logger.warning(f"  [{i+1}/{len(sa2s)}] No data for {sa2['sa2_code']}")
-                continue
+        logger.info(f"Processing {len(sa2s)} SA2s with {args.workers} workers")
 
-            data_snapshot = {k: v for k, v in data_row.items() if v is not None}
+    if not sa2s:
+        logger.info("Nothing to do — all profiles exist")
+        return
 
-            # Generate profile
-            try:
-                profile = generate_profile(sa2["sa2_name"], sa2["ta_name"], data_snapshot)
-                logger.info(f"  [{i+1}/{len(sa2s)}] {sa2['sa2_name']}: {len(profile)} chars")
-            except Exception as e:
-                logger.error(f"  [{i+1}/{len(sa2s)}] Failed {sa2['sa2_name']}: {e}")
-                time.sleep(2)
-                continue
+    # Process in parallel
+    done = 0
+    failed = 0
+    total = len(sa2s)
+    start = time.time()
 
-            # Upsert into area_profiles
-            conn.execute(
-                """
-                INSERT INTO area_profiles (sa2_code, sa2_name, ta_name, profile, data_snapshot, model_used)
-                VALUES (%s, %s, %s, %s, %s::jsonb, %s)
-                ON CONFLICT (sa2_code) DO UPDATE SET
-                    profile = EXCLUDED.profile,
-                    data_snapshot = EXCLUDED.data_snapshot,
-                    model_used = EXCLUDED.model_used,
-                    generated_at = NOW()
-                """,
-                [
-                    sa2["sa2_code"],
-                    sa2["sa2_name"],
-                    sa2["ta_name"],
-                    profile,
-                    json.dumps(data_snapshot, default=str),
-                    MODEL,
-                ],
-            )
-            conn.commit()
-            time.sleep(0.5)  # rate limit courtesy
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        futures = {
+            executor.submit(process_sa2, sa2, db_url, i + 1, total): sa2
+            for i, sa2 in enumerate(sa2s)
+        }
+        for future in as_completed(futures):
+            if future.result():
+                done += 1
+            else:
+                failed += 1
 
-    logger.info("Done")
+            if (done + failed) % 50 == 0:
+                elapsed = time.time() - start
+                rate = (done + failed) / elapsed
+                remaining = (total - done - failed) / rate if rate > 0 else 0
+                logger.info(
+                    f"  Progress: {done + failed}/{total} "
+                    f"({done} ok, {failed} failed) "
+                    f"~{remaining/60:.1f} min remaining"
+                )
+
+    elapsed = time.time() - start
+    logger.info(f"Done: {done} generated, {failed} failed in {elapsed/60:.1f} min")
 
 
 if __name__ == "__main__":

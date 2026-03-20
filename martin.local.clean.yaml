@@ -1,0 +1,121 @@
+# Martin tile server config - LOCAL (non-Docker)
+# Usage: martin.exe --config martin.local.yaml --listen-addresses 0.0.0.0:3001
+postgres:
+  connection_string: postgresql://postgres:postgres@localhost:5432/wharescore
+  auto_publish:
+    tables:
+      from_schemas: public
+  tables:
+    parcels:
+      minzoom: 12
+    building_outlines:
+      minzoom: 13
+    addresses:
+      minzoom: 14
+    flood_zones:
+      minzoom: 8
+    tsunami_zones:
+      minzoom: 8
+    liquefaction_zones:
+      minzoom: 10
+    slope_failure_zones:
+      minzoom: 10
+    district_plan_zones:
+      minzoom: 10
+    height_controls:
+      minzoom: 12
+    noise_contours:
+      minzoom: 11
+    school_zones:
+      minzoom: 10
+    transmission_lines:
+      minzoom: 8
+    contaminated_land:
+      minzoom: 12
+    coastal_erosion:
+      minzoom: 8
+    wind_zones:
+      minzoom: 8
+    earthquakes:
+      minzoom: 6
+    transit_stops:
+      minzoom: 12
+    heritage_sites:
+      minzoom: 12
+    crashes:
+      minzoom: 13
+    resource_consents:
+      minzoom: 13
+    infrastructure_projects:
+      minzoom: 10
+    council_valuations:
+      minzoom: 14
+    air_quality_sites:
+      minzoom: 8
+    water_quality_sites:
+      minzoom: 8
+    osm_amenities:
+      minzoom: 13
+    conservation_land:
+      minzoom: 10
+    sa2_boundaries:
+      minzoom: 8
+    landslide_events:
+      minzoom: 10
+    landslide_areas:
+      minzoom: 10
+    # National expansion — renamed tables
+    earthquake_hazard:
+      minzoom: 10
+    ground_shaking:
+      minzoom: 10
+    liquefaction_detail:
+      minzoom: 10
+    slope_failure:
+      minzoom: 10
+    fault_zones:
+      minzoom: 10
+    flood_hazard:
+      minzoom: 10
+    tsunami_hazard:
+      minzoom: 8
+    flood_extent:
+      minzoom: 8
+    landslide_susceptibility:
+      minzoom: 10
+    # GNS national
+    active_faults:
+      minzoom: 8
+    fault_avoidance_zones:
+      minzoom: 10
+    # Auckland
+    stormwater_management_area:
+      minzoom: 10
+    overland_flow_paths:
+      minzoom: 12
+    historic_heritage_overlay:
+      minzoom: 11
+    aircraft_noise_overlay:
+      minzoom: 9
+    special_character_areas:
+      minzoom: 11
+    notable_trees:
+      minzoom: 13
+    significant_ecological_areas:
+      minzoom: 10
+    coastal_erosion:
+      minzoom: 10
+    height_variation_control:
+      minzoom: 11
+    mana_whenua_sites:
+      minzoom: 11
+    geotechnical_reports:
+      minzoom: 12
+    auckland_schools:
+      minzoom: 10
+    park_extents:
+      minzoom: 10
+    heritage_extent:
+      minzoom: 12
+    at_stops:
+      minzoom: 12

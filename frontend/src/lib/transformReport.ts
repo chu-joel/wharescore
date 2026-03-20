@@ -129,6 +129,7 @@ function transformLiveability(raw: any): LiveabilityData {
     cable_car_stops_800m: raw.cable_car_stops_800m ?? null,
     // Transit travel times
     transit_travel_times: Array.isArray(raw.transit_travel_times) ? raw.transit_travel_times : null,
+    transit_travel_times_pm: Array.isArray(raw.transit_travel_times_pm) ? raw.transit_travel_times_pm : null,
     peak_trips_per_hour: raw.peak_trips_per_hour ?? null,
     nearest_stop_name: raw.nearest_stop_name ?? null,
   };
@@ -145,6 +146,29 @@ function transformPlanning(raw: any, liveabilityRaw: any, environmentRaw: any): 
     infrastructure_count: Array.isArray(raw.infrastructure_5km) ? raw.infrastructure_5km.length : null,
     contamination_count: environmentRaw?.contam_count_2km ?? null,
     epb_listed: raw.epb_listed ?? null,
+    // Heritage overlay
+    in_heritage_overlay: raw.in_heritage_overlay ?? null,
+    heritage_overlay_name: raw.heritage_overlay_name ?? null,
+    heritage_overlay_type: raw.heritage_overlay_type ?? null,
+    // Special character area
+    in_special_character_area: raw.in_special_character ?? raw.in_special_character_area ?? null,
+    special_character_name: raw.special_character_name ?? null,
+    // Notable trees
+    notable_tree_count_50m: raw.notable_trees_50m ?? raw.notable_tree_count_50m ?? null,
+    notable_tree_nearest: raw.notable_tree_nearest ?? null,
+    // Significant ecological area
+    in_ecological_area: raw.in_ecological_area ?? null,
+    ecological_area_name: raw.ecological_area_name ?? null,
+    ecological_area_type: raw.ecological_area_type ?? null,
+    // Mana whenua
+    in_mana_whenua: raw.in_mana_whenua ?? null,
+    mana_whenua_name: raw.mana_whenua_name ?? null,
+    // Height variation
+    height_variation_limit: raw.height_variation_limit ?? null,
+    // Parks
+    park_count_500m: raw.park_count_500m ?? null,
+    nearest_park_name: raw.nearest_park_name ?? null,
+    nearest_park_distance_m: raw.nearest_park_distance_m ?? null,
   };
 }
 
@@ -188,6 +212,26 @@ function transformHazards(raw: any): HazardData {
     landslide_count_500m: raw.landslide_count_500m ?? null,
     landslide_nearest: raw.landslide_nearest ?? null,
     landslide_in_area: raw.landslide_in_area ?? null,
+    // GNS Active Faults (national)
+    active_fault_nearest: raw.active_fault_nearest ?? null,
+    fault_avoidance_zone: raw.fault_avoidance_zone ?? null,
+    // Landslide susceptibility (council data)
+    landslide_susceptibility_rating: raw.landslide_susceptibility_rating ?? null,
+    landslide_susceptibility_type: raw.landslide_susceptibility_type ?? null,
+    // Overland flow path
+    on_overland_flow_path: raw.on_overland_flow_path ?? raw.overland_flow_within_50m ?? null,
+    overland_flow_within_50m: raw.overland_flow_within_50m ?? raw.on_overland_flow_path ?? null,
+    // Coastal erosion (council data)
+    coastal_erosion_exposure: raw.coastal_erosion_exposure ?? null,
+    coastal_erosion_timeframe: raw.coastal_erosion_timeframe ?? null,
+    council_coastal_erosion: raw.council_coastal_erosion ?? null,
+    // Aircraft noise
+    aircraft_noise_name: raw.aircraft_noise_name ?? null,
+    aircraft_noise_dba: raw.aircraft_noise_dba ?? null,
+    aircraft_noise_category: raw.aircraft_noise_category ?? null,
+    // Geotechnical reports
+    geotech_count_500m: raw.geotech_count_500m ?? null,
+    geotech_nearest_hazard: raw.geotech_nearest_hazard ?? null,
   };
 }
 
@@ -195,11 +239,13 @@ function transformEnvironment(raw: any): EnvironmentData {
   if (!raw) return {} as EnvironmentData;
   return {
     wind_zone: null, // wind_zone is in hazards
-    noise_db: raw.road_noise_db ?? null,
-    air_quality_trend: raw.air_pm10_trend ?? raw.air_pm25_trend ?? null,
-    water_quality_grade: raw.water_drp_band ?? null,
-    climate_projection: raw.climate_temp_change != null
-      ? { temp_change: raw.climate_temp_change, precip_change_pct: raw.climate_precip_change_pct }
+    noise_db: raw.noise_db ?? raw.road_noise_db ?? null,
+    air_quality_trend: raw.air_quality_pm10_trend ?? raw.air_pm10_trend ?? raw.air_pm25_trend ?? null,
+    air_quality_site: raw.air_quality_site ?? raw.air_pm10_site ?? raw.air_pm25_site ?? null,
+    air_quality_distance_m: raw.air_pm10_distance_m ?? raw.air_pm25_distance_m ?? null,
+    water_quality_grade: raw.water_quality_ecoli_band ?? raw.water_drp_band ?? null,
+    climate_projection: (raw.climate_temp_change != null)
+      ? { temp_change: raw.climate_temp_change, precip_change_pct: raw.climate_rainfall_change ?? raw.climate_precip_change_pct }
       : null,
   };
 }
@@ -266,6 +312,36 @@ function transformComparisons(raw: any): ComparisonData | undefined {
   };
 }
 
+// --- Computed contextual fields ---
+
+export interface ComputedContext {
+  crime_vs_city_pct: number | null;
+  rent_vs_area: 'above' | 'below' | 'at' | null;
+  nzdep_context: string | null;
+}
+
+function computeContext(liveability: LiveabilityData, market: MarketData): ComputedContext {
+  // Crime vs city as percentage
+  let crime_vs_city_pct: number | null = null;
+  if (liveability.crime_victimisations != null && liveability.crime_city_median != null && liveability.crime_city_median > 0) {
+    crime_vs_city_pct = Math.round(((liveability.crime_victimisations / liveability.crime_city_median) - 1) * 100);
+  }
+
+  // NZDep context text
+  let nzdep_context: string | null = null;
+  if (liveability.nzdep_score != null) {
+    const pct = liveability.nzdep_score * 10;
+    nzdep_context = liveability.nzdep_score <= 5
+      ? `Less deprived than ${100 - pct}% of the country`
+      : `More deprived than ${100 - pct}% of the country`;
+  }
+
+  // Rent vs area median — currently no per-listing rent to compare
+  const rent_vs_area: 'above' | 'below' | 'at' | null = null;
+
+  return { crime_vs_city_pct, rent_vs_area, nzdep_context };
+}
+
 /**
  * Transform the raw API response into the shape the frontend components expect.
  */
@@ -321,9 +397,9 @@ export function transformReport(raw: any): PropertyReport {
     address,
     property,
     hazards: transformHazards(raw.hazards),
-    environment: transformEnvironment(raw.environment),
+    environment: transformEnvironment(raw.environment ?? raw.hazards),
     liveability: transformLiveability(raw.liveability),
-    planning: transformPlanning(raw.planning, raw.liveability, raw.environment),
+    planning: transformPlanning(raw.planning, raw.liveability, raw.environment ?? raw.hazards),
     market: transformMarket(raw.market),
     comparisons: transformComparisons(raw.comparisons),
     scores: {

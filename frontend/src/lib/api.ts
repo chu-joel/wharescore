@@ -23,15 +23,23 @@ export class RateLimitError extends ApiError {
   }
 }
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const headers: HeadersInit = { ...options?.headers };
+export async function apiFetch<T>(
+  path: string,
+  options?: RequestInit & { token?: string },
+): Promise<T> {
+  const { token, ...fetchOptions } = options ?? {};
+  const headers: HeadersInit = { ...fetchOptions?.headers };
   // Only set Content-Type for JSON — let the browser handle FormData, etc.
-  if (!(options?.body instanceof FormData)) {
+  if (!(fetchOptions?.body instanceof FormData)) {
     (headers as Record<string, string>)['Content-Type'] ??= 'application/json';
+  }
+  // Add Bearer auth if token provided (Clerk JWT)
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
   const res = await fetch(path, {
-    ...options,
+    ...fetchOptions,
     headers,
     credentials: 'include',
   });

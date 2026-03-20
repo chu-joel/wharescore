@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-18 (session 39 — Score semantics, map overhaul, suburb page, PDF satellite map)
+**Last Updated:** 2026-03-21 (session 52 — Guest checkout + Google-style map labels)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,9 +15,681 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 39 (2026-03-18) — Score semantics, map overhaul, suburb page, PDF satellite map, NZDep/crime layers.**
+**Session 52 (2026-03-21) — Guest checkout implementation + Google-style vector map labels.**
 
 ### What Was Done This Session
+
+**(A) Guest Checkout (no-account PDF purchase):**
+
+Full flow: guest clicks "Buy without account" ($4.99) → Stripe Checkout (no customer param, no auth) → redirect to `/guest/download?session_id=xxx` → one-time token exchange via Redis (5-min TTL) → PDF generation → download (max 3x, 72hr expiry) → "Create account to save this report" CTA.
+
+**Files created (2):**
+- `backend/migrations/0011_guest_purchases.sql` — guest_purchases table (token hash, download count, account linking)
+- `frontend/src/app/guest/download/page.tsx` — self-contained download page with progress steps, error handling, retry, Google sign-in CTA
+
+**Files modified (7):**
+- `backend/app/routers/webhooks.py` — `_handle_guest_checkout()` for `plan=guest_single`, generates `token_urlsafe(32)`, SHA-256 hash in DB, plaintext in Redis (5-min TTL)
+- `backend/app/routers/payments.py` — `POST /checkout/guest-session` (no auth) + `GET /checkout/guest-token` (one-time exchange)
+- `backend/app/routers/property.py` — `POST .../pdf/guest-start?token=xxx` (validates hashed token, idempotent) + download `?token=xxx` (tracks download_count, max 3)
+- `backend/app/services/auth.py` — `_ensure_user_exists()` links guest_purchases by email on account creation
+- `frontend/src/stores/downloadGateStore.ts` — added `targetAddressId`/`targetPersona` for guest checkout context
+- `frontend/src/stores/pdfExportStore.ts` — passes address context when opening upgrade modal
+- `frontend/src/components/property/UpgradeModal.tsx` — "Continue without account — $4.99" dashed button for non-signed-in users
+
+**Security:** 256-bit token, SHA-256 hashed in DB, one-time Redis exchange, max 3 downloads, 72hr expiry, rate limits on all guest endpoints. Existing auth flow completely untouched.
+
+**(B) Google-Style Vector Map Labels:**
+
+Replaced CARTO `dark_only_labels` raster overlay with custom-styled vector labels from OpenFreeMap (free, no API key, OpenMapTiles schema).
+
+**Files created (1):**
+- `frontend/src/lib/mapLabels.ts` — 8 label layers with Google Maps-style white text + dark halo:
+  - Country (zoom 2-5, bold uppercase) → State (4-8) → City (5-13, bold large) → Town (8-15) → Suburb (11-17) → Water (6+, light blue) → Major roads (12+, line-following) → Minor roads (14+)
+  - Paint: `#FFFFFF` text, `rgba(0,0,0,0.75)` halo, 1.5px width, 0.5px blur
+  - Fonts: Open Sans Regular/Semibold from `fonts.openmaptiles.org`
+
+**Files modified (2):**
+- `frontend/src/components/map/MapContainer.tsx` — Replaced CARTO raster label `<Source>` with OpenFreeMap vector `<Source>` + 8 `<Layer>` components. Labels render on satellite + dark basemaps only (light/standard have labels baked in). SA2 labels reduced to zoom 8-12 to hand off to OpenFreeMap suburb labels at 11+.
+- `frontend/next.config.ts` — Added `tiles.openfreemap.org` and `fonts.openmaptiles.org` to CSP `connect-src` and `font-src` (this was the root cause of labels not appearing — browser silently blocked tile/glyph fetches).
+
+**Source:** OpenFreeMap vector tiles via direct PBF URL `https://tiles.openfreemap.org/planet/20260311_001001_pt/{z}/{x}/{y}.pbf` (maxzoom 14).
+
+---
+
+**Session 51 (2026-03-21) — Security hardening (18 fixes, 13 files) + Zustand hydration fix.**
+
+### What Was Done In Session 51
+
+**(A) Security Hardening — 4 Critical, 6 High, 8 Medium fixes:**
+
+**Critical:**
+- **C1** `config.py` — `validate_secrets()` on Settings, called from `main.py` lifespan. Production crashes if AUTH_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, or ADMIN_PASSWORD_HASH missing. Also checks DATABASE_URL includes `sslmode=` (H4).
+- **C2** `admin.py` — 4 SQL injection patterns eliminated: `make_interval(days => %s)` for intervals, `psycopg.sql.Identifier()` + `ALLOWED_TABLES` frozenset for table names, `sql.SQL()` composition for feedback filters.
+- **C3** `credit_check.py` — Dev bypass (`X-Promo`) restricted to localhost IPs only.
+- **C4** `downloadGateStore.ts` + `account.py` — Hardcoded promo code removed from client JS. New `/account/redeem-promo` backend endpoint with per-user limits (max 3 uses) in `promo_redemptions` table. `UpgradeModal.tsx` updated for async handler. Migration `0012_promo_redemptions.sql`.
+
+**High:**
+- **H1** `next.config.ts` — `unsafe-eval` only in dev. Permissions-Policy expanded.
+- **H2** `property.py` — PDF error messages generic to clients, details logged server-side.
+- **H3** `admin.py` + `admin_auth.py` — `/admin/logout` endpoint + `delete_admin_session()`.
+- **H5** `property.py` — 5/min unauthenticated, 20/min authenticated rate limits on report endpoint.
+- **H6** `data_loader.py` — SSL verification failures raise in production.
+
+**Medium:**
+- **M1** `admin.py` — Redis brute force lockout (5 failures → 15min block).
+- **M2** `PropertyPin.tsx` — Color prop hex-validated before innerHTML.
+- **M3** `auth.py` — JWT error details no longer logged.
+- **M4** `main.py` — `/docs` + `/openapi.json` disabled in production.
+- **M5** Permissions-Policy: `payment=(self), interest-cohort=()` added (backend + frontend).
+- **M6** `admin.py` — `ADMIN_AUDIT` log entries for login/logout/data loads.
+- **M7** `main.py` — CORS `max_age=0` in dev.
+- **M8** `webhooks.py` — 60/min rate limit on Stripe webhook.
+
+**(B) Zustand Persist Hydration Fix:**
+
+Root cause of intermittent "disabled fields" bug: Zustand `persist` stores (`budgetStore`, `personaStore`) load from localStorage *after* React hydration. During the brief window between SSR hydration and localStorage rehydration, inputs rendered with stale defaults and were unresponsive.
+
+**Fix:**
+- New `useStoreHydrated()` hook (`frontend/src/hooks/useStoreHydrated.ts`) — returns false until client `useEffect` fires.
+- `BuyerBudgetCalculator.tsx` — shows skeleton placeholder until hydrated.
+- `RenterBudgetCalculator.tsx` — same.
+- `PersonaToggle.tsx` — defers active highlight until hydrated.
+
+**Files modified (16):** `config.py`, `main.py`, `admin.py`, `property.py`, `account.py`, `webhooks.py`, `admin_auth.py`, `auth.py`, `credit_check.py`, `data_loader.py`, `next.config.ts`, `downloadGateStore.ts`, `PropertyPin.tsx`, `UpgradeModal.tsx`, `BuyerBudgetCalculator.tsx`, `RenterBudgetCalculator.tsx`, `PersonaToggle.tsx`
+**Files created (2):** `0012_promo_redemptions.sql`, `useStoreHydrated.ts`
+
+**Out of scope (future):** Row-Level Security, nonce-based CSP, JWT revocation list, WAF, dependency audit CI.
+
+---
+
+**Session 50 (2026-03-21) — National data expansion: 101 data loaders, 8 regions, 12.4M+ rows loaded.**
+
+### What Was Done In Session 50
+
+**(A) Data Loaders — expanded from ~20 to 101:**
+
+| Region | Loaders | Key data |
+|---|---|---|
+| National (GNS) | 2 | 10K faults, 17K landslide events, 21K areas |
+| Wellington (GWRC+WCC+Metlink) | 18 | Full hazard suite + solar + transit + EPBs + 268K coastal |
+| Auckland (AC+AT) | 23 | 1.26M overland flow, 139K zones, 86K landslide, 76K geotech, AT GTFS |
+| Christchurch (CCC+ECan) | 11 | 321K flood, 105K coastal inundation, 7.5K zones, 5.3K erosion, trees, heritage |
+| Hamilton (HCC+WRC) | 9 | 27K flood, 9.3K liquefaction, 1.2K ground shaking, zones, heritage, trees |
+| Tauranga (TCC+BoPRC) | 6 | 108K flood, 5K slope, 2.7K zones, liquefaction, coastal erosion |
+| Dunedin (DCC+ORC) | 11 | Flood (3 levels), zones, heritage (1K), trees (1K), airport noise, tsunami |
+| Napier/Hastings (HBRC) | 8 | 32K landslide, 7.3K flood, 649 zones, 678 contaminated sites |
+| Nelson (NCC) | 5 | Flood, liquefaction, fault corridor, slope, 821 trees |
+
+**(B) Fixes:** Christchurch liquefaction (6→26 rows, 2 sources), Tauranga plan zones (new endpoint, 2.7K), Christchurch heritage (polygon→heritage_extent table), coastal_erosion source_council column.
+
+**(C) Migration 0006:** Region-aware CBD distance (14 cities), transit queries for both Metlink+AT with COALESCE, 12 new report fields, 8 new insight rules.
+
+**(D) Report text nationalised** — 15 Wellington-specific references removed.
+
+**(E) Regional GTFS:** Hamilton (1,570 stops), Dunedin (907), Palmerston North (885), New Plymouth (388), Nelson (231). Generic `_load_regional_gtfs()` function.
+
+**(F) Council rates loader:** `_load_rates()` for Auckland (623K), Christchurch (186K), Dunedin.
+
+**(G) Batch loader** (`backend/scripts/batch_load.py`): 15 waves, 6 workers/wave, auto-migrations, `--wave`/`--only`/`--dry-run` flags.
+
+**(H) Not available (no public endpoint):** Auckland contaminated land, MBIE EPBs, Auckland solar, ChCh Metro GTFS (needs API key), Hamilton rates (auth-locked), Palmerston North/Tasman/Rotorua/Whangarei/Invercargill/Queenstown (no public GIS).
+
+### What Needs To Be Done Next
+
+- **Re-run `chch_heritage`** with fixed table target (heritage_extent)
+- **Verify rates loaded** — Auckland (623K), Christchurch (186K), Dunedin (waves 12+15 were still running)
+- Frontend layer picker for new overlay tiles
+- Add commute time table to PDF template
+- Deploy to Azure
+- Shallow landslide dedup (~9.7M → ~4.87M)
+- Risk score engine rules for new fields
+
+---
+
+**Session 49 (2026-03-21) — Guest checkout implementation + map label research.**
+
+### What Was Done In Session 49
+
+**(A) Guest Checkout (no-account PDF purchase):**
+
+Full implementation allowing users to buy a $4.99 report without creating an account. Stripe collects email + payment, user gets immediate download.
+
+**Flow:** Guest clicks "Buy without account" → Stripe Checkout (no customer param) → redirect to /guest/download?session_id=xxx → token exchange (one-time, 5-min Redis TTL) → PDF generation → download (max 3x, 72hr expiry) → "Create account" CTA.
+
+**Files created (2):**
+- `backend/migrations/0011_guest_purchases.sql` — guest_purchases table (token hash, download tracking, account linking)
+- `frontend/src/app/guest/download/page.tsx` — self-contained download page with progress UI, error handling, retry, account CTA
+
+**Files modified (7):**
+- `backend/app/routers/webhooks.py` — `_handle_guest_checkout()` for `plan=guest_single`
+- `backend/app/routers/payments.py` — `POST /checkout/guest-session` + `GET /checkout/guest-token`
+- `backend/app/routers/property.py` — `POST .../pdf/guest-start?token=xxx` + download `?token=xxx` support
+- `backend/app/services/auth.py` — links guest_purchases by email on account creation
+- `frontend/src/stores/downloadGateStore.ts` — targetAddressId/targetPersona for guest context
+- `frontend/src/stores/pdfExportStore.ts` — passes address context to upgrade modal
+- `frontend/src/components/property/UpgradeModal.tsx` — "Continue without account — $4.99" button
+
+**(B) Map Label Research (not yet implemented):**
+
+Researched options for Google Maps-style labels on MapLibre. Current map uses raster basemaps (OSM, CARTO, Esri) with only SA2 boundary labels from own vector tiles. Three options identified:
+1. **OpenFreeMap "Liberty" style** — full vector basemap with Google-like labels, free, unlimited
+2. **Protomaps** — self-hosted PMTiles with `@protomaps/basemaps` npm package for pre-built styles
+3. **Vector label overlay** — add OpenMapTiles vector source on top of existing raster basemaps
+
+Recommended: Option 1 (OpenFreeMap) or Option 2 (Protomaps) as new basemap choices in `basemapStyles.ts`. Both provide country/city/suburb/street labels with proper typography hierarchy.
+
+---
+
+**Session 47 (2026-03-21) — Comprehensive security hardening: 18 fixes across 13 files.**
+
+### What Was Done (Session 47)
+
+**(A) Security Hardening — 4 Critical, 6 High, 8 Medium fixes:**
+
+**Critical:**
+- **C1** `config.py` — `validate_secrets()` method on Settings class, called from `main.py` lifespan. Production fails hard if AUTH_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, or ADMIN_PASSWORD_HASH missing. Also checks DATABASE_URL includes `sslmode=` (H4).
+- **C2** `admin.py` — Eliminated 4 SQL injection patterns: dashboard interval query uses `make_interval(days => %s)`, table count queries use `psycopg.sql.Identifier()` with `ALLOWED_TABLES` frozenset whitelist, feedback filter uses `sql.SQL()` composition.
+- **C3** `credit_check.py` — Dev bypass (`X-Promo` header) now restricted to localhost IPs only (`127.0.0.1`, `::1`, `localhost`).
+- **C4** `downloadGateStore.ts` + `account.py` — Hardcoded promo code `WHARESCOREJOEL` removed from client JS. New `/account/redeem-promo` backend endpoint validates code, checks per-user redemption limits (max 3 uses) in `promo_redemptions` table, adds credits server-side. Frontend `redeemPromo()` is now async, calls backend. `UpgradeModal.tsx` updated for async handler. New migration `0012_promo_redemptions.sql`.
+
+**High:**
+- **H1** `next.config.ts` — `unsafe-eval` only in dev mode (`NODE_ENV === 'development'`). Permissions-Policy expanded with `payment=(self), interest-cohort=()`.
+- **H2** `property.py` — PDF download error messages are now generic ("PDF generation failed. Please try again."), internal details logged server-side only.
+- **H3** `admin.py` + `admin_auth.py` — New `/admin/logout` endpoint invalidates session in Redis + memory. New `delete_admin_session()` function in admin_auth.
+- **H5** `property.py` — Report endpoint rate limit tightened: 5/min unauthenticated (by IP), 20/min authenticated (by bearer token).
+- **H6** `data_loader.py` — SSL verification failures raise in production (no fallback). Dev mode logs ERROR and falls back.
+
+**Medium:**
+- **M1** `admin.py` — Redis-based admin login brute force protection. 5 failed attempts from same IP → 429 for 15 minutes.
+- **M2** `PropertyPin.tsx` — Color prop validated against `/^#[0-9A-Fa-f]{3,8}$/` before innerHTML interpolation.
+- **M3** `auth.py` — JWT error details no longer logged (was `f"Invalid JWT: {e}"`, now `"Invalid JWT received"`).
+- **M4** `main.py` — `/docs` and `/openapi.json` disabled in production (FastAPI docs_url/openapi_url set to None).
+- **M5** `main.py` + `next.config.ts` — `payment=(self), interest-cohort=()` added to Permissions-Policy header.
+- **M6** `admin.py` — `ADMIN_AUDIT` log entries for login_success, login_failed, logout, load_data_source.
+- **M7** `main.py` — CORS `max_age=0` in dev (instant preflight refresh), 3600 in production.
+- **M8** `webhooks.py` — `@limiter.limit("60/minute")` on Stripe webhook endpoint.
+
+**Files modified (13):**
+- `backend/app/config.py`, `backend/app/main.py`, `backend/app/routers/admin.py`, `backend/app/routers/property.py`, `backend/app/routers/account.py`, `backend/app/routers/webhooks.py`
+- `backend/app/services/admin_auth.py`, `backend/app/services/auth.py`, `backend/app/services/credit_check.py`, `backend/app/services/data_loader.py`
+- `frontend/next.config.ts`, `frontend/src/stores/downloadGateStore.ts`, `frontend/src/components/map/PropertyPin.tsx`
+- `frontend/src/components/property/UpgradeModal.tsx` (async handler update)
+- `backend/migrations/0012_promo_redemptions.sql` (new)
+
+**Out of scope (documented for future):** Row-Level Security, nonce-based CSP, JWT revocation list, WAF, dependency audit CI.
+
+---
+
+**Session 46 (2026-03-21) — Premium PDF overhaul (5 new builder functions, renter living guide, RAG grid, interpretation boxes, active faults, Healthy Homes) + comprehensive data audit revealing major unused data.**
+
+### What Was Done (Session 46)
+
+**(A) Premium PDF Report Overhaul — 2 files changed (backend only):**
+
+Files: `backend/app/services/report_html.py` + `backend/app/templates/report/property_report.html`
+
+5 new builder functions in `report_html.py`:
+1. **`_build_rag_grid()`** — 8-9 item traffic-light "At a Glance" grid (green/amber/red/grey) for: Hazard Risk, Insurance, Crime, Noise, Walkability, Schools, Transport, Yield (buyer) / Rent (renter)
+2. **`_build_active_fault_section()`** — Surfaces `active_fault_nearest` and `fault_avoidance_zone` data (fault name, class, distance, slip rate, avoidance zone warning)
+3. **`_build_healthy_homes_signals()`** — 5 Healthy Homes standard rows (Heating, Insulation, Ventilation, Moisture, Draught) with environmental flagging (flood→moisture, high wind→draught)
+4. **`_build_rent_verdict()`** — Compares user rent to area median, position (above/below/at), confidence stars from bond count
+5. **`_build_section_interpretations()`** — "What this means" one-liners for hazards, money, neighbourhood, trajectory, investment sections
+
+Template changes:
+- **Page 1:** RAG "At a Glance" 4-column grid after key stats + area profile snippet (300 char preview)
+- **Page 2:** Active fault section after landslides + hazard interpretation box
+- **Page 3:** Money interpretation box after budget breakdown
+- **Page 4:** Full area profile at top of neighbourhood section + neighbourhood interpretation
+- **Page 5:** Trajectory interpretation + investment interpretation boxes
+- **Page 6:** NEW — Buyer/renter conditional: buyers get Planning & Restrictions (unchanged), **renters get new "Renter Living Guide"** with Healthy Homes assessment table, rent verdict with confidence stars, and area profile
+- **Page 7:** Renter checklist enhanced with specific Healthy Homes items (heating 1.5kW, insulation R2.9/R1.3, ventilation extractors) + dynamic items for flagged moisture/draught risks
+
+CSS: `.rag-grid`, `.rag-item`, `.rag-dot-*`, `.interpretation-box`, `.hh-table`, `.rent-verdict` classes
+
+All smoke-tested: Python syntax OK, Jinja2 template parses, all 5 builders return correct data, full buyer+renter render produces valid HTML.
+
+**(B) Comprehensive Data Audit — Major Unused Data Identified:**
+
+Explored all 54+ database tables. Current report uses ~35-40% of available data. Key findings:
+
+**Transport data we have but PDF doesn't show:**
+- `transit_travel_times` — pre-computed commute times to 12 key destinations (CBD, Airport, Hospital, Universities, etc.) for AM + PM peaks. Report function already returns this as JSON arrays. Frontend shows it but PDF template doesn't.
+- `transit_stop_frequency` — peak services/hr per stop
+- Route names per stop-destination pair
+- Mode breakdown (bus/rail/ferry/cable car counts within 800m)
+- Nearest train station name + distance
+- CBD distance
+
+**Other significantly underutilized data:**
+- **Crash data** — 903K records with vehicle types, speed limits, pedestrian/vehicle breakdown, time of day. Currently just count of fatal/serious/total.
+- **Climate projections** — 2.6M records with 40+ indicators. Currently only temperature + precipitation. Unused: seasonal breakdowns (DJF/MAM/JJA/SON), frost days, hot days >30°C, multiple scenarios (ssp245/ssp585), multiple periods (2031-2050, 2081-2100).
+- **OSM amenities** — 94K POIs across 10+ categories. Currently only nearest supermarket/GP/pharmacy. Could score walkability across restaurants, cafes, gyms, libraries, childcare etc.
+- **Heritage sites** — 7,360 listed places with name, category, description. Currently just count within 500m.
+- **Resource consents** — 26K granted consents with type breakdown, purpose descriptions. Currently just count.
+- **School data** — 30+ demographic columns, only 5-6 used. Achievement data, ethnicity, specialization all available.
+- **Active faults** — slip rate, recurrence interval, last rupture date. Could compute rupture probability.
+- **NZDep** — component breakdown (income, employment, education, health) available, only decile used.
+
+### What Was Also Done (Session 41 continuation — National data expansion)
+
+**(H) Massive National Data Expansion — 101 loaders across 8+ regions:**
+
+**Batch loaded 7.4M+ rows in first run (78 loaders), then expanded to 101:**
+
+| Region | Loaders | Key data loaded |
+|---|---|---|
+| National (GNS) | 2 | 10,269 active faults, 17K landslide events, 21K landslide areas |
+| Wellington (GWRC+WCC+Metlink) | 18 | Full hazard suite, solar, transit (9.7K), EPBs, consents, 268K coastal elevation |
+| Auckland (AC+AT) | 23 | 1.26M overland flow paths, 139K plan zones, 86K landslide, 76K geotech reports, 36K flood, AT GTFS (13.8K stops+times) |
+| Christchurch (CCC+ECan) | 11 | 321K flood, 7.5K plan zones, 105K coastal inundation, 5.3K coastal erosion, 867 tsunami, 631 slope, 1.96K notable trees, heritage, liquefaction (fixed) |
+| Hamilton (HCC+WRC) | 7 | 27K flood, 9.3K liquefaction, 1.2K ground shaking, 1K plan zones, 127 heritage, 375 trees |
+| Tauranga (TCC+BoPRC) | 6 | 108K flood, 5K slope, 422 liquefaction, 215 coastal erosion, 2.7K plan zones (fixed endpoint) |
+| Dunedin (DCC+ORC) | 8+3 | Flood (3 levels), land instability, tsunami, 208 plan zones, heritage precincts, 1.9K heritage buildings, 1.4K trees, airport noise |
+| Napier/Hastings (HBRC) | 7+1 | 7.3K flood, 32K landslide, 568 liquefaction, 433 ground shaking, 678 contaminated sites, 649 plan zones |
+| Nelson (NCC) | 4+1 | Flood, liquefaction, fault corridor, 216 slope, 821 notable trees |
+
+**Rates/valuations:** Auckland (623K), Christchurch (186K), Dunedin — dedicated `_load_rates()` function with council-specific field mapping.
+
+**Regional GTFS transit:** Hamilton (BUSIT), Dunedin (Orbus), Nelson (eBus), New Plymouth (Citylink), Palmerston North (Horizons) — generic `_load_regional_gtfs()` loads stops into `transit_stops` table.
+
+**(I) Report Function Nationalised (migration 0006):**
+- CBD distance: 14 NZ cities supported (Auckland, Christchurch, Hamilton, Tauranga, Dunedin, Napier, Hastings, Nelson, Invercargill, Queenstown, Rotorua, New Plymouth, Whangarei, Palmerston North)
+- Transit: Queries both Metlink + AT tables with COALESCE
+- 12 new fields added: aircraft noise, overland flow proximity, council coastal erosion, heritage overlay, special character, ecological area, height variation, notable trees, mana whenua, nearest park
+- 8 new insight rules in report_html.py
+
+**(J) All Wellington-specific text removed from reports** — "WCC District Plan" → "District Plan", "Wellington metro average" → "NZ metro average", etc. (15 text fixes)
+
+### What Needs To Be Done Next
+
+**Immediate (transport section for PDF):**
+- Add commute time table to PDF template — show travel times to 12 key destinations (AM + PM peak), routes, frequency. Data already flows through `render()` but isn't in the template.
+- Add mode breakdown visual (bus/rail/ferry/cable car icons + counts)
+- Add CBD distance + nearest train station to PDF
+
+**Premium PDF enhancements (using newly loaded data):**
+- Crash micro-safety card — break down by type (pedestrian, intersection, speed), show trend
+- Climate resilience section — seasonal temperature changes, frost days, extreme heat days
+- Walkability deep-dive — expand from 3 categories to 10+ amenity types with distance tiers
+- Heritage & culture card — show nearest heritage sites by name and category
+- Development pipeline — resource consent type breakdown, what's being built nearby
+
+**Data gaps (no public endpoint available):**
+- Auckland contaminated land, MBIE EPBs (no API), Auckland solar radiation
+- Christchurch Metro GTFS requires API key (register at apidevelopers.metroinfo.co.nz)
+- BayBus (Tauranga) and GoBay (Napier) GTFS URLs are unstable (filename changes per timetable)
+- Palmerston North, Tasman, Rotorua, Whangarei, Invercargill, Queenstown — no public council GIS
+- Hamilton rates — locked behind auth token
+
+**Existing backlog:**
+- Shallow landslide dedup (~9.7M → ~4.87M)
+- Risk score engine rules for new fields
+- Frontend layer picker for new overlay tiles
+- Deploy to Azure
+
+---
+
+**Session 45 (2026-03-21) — Transit data fix, Auckland landslide loaded, 16 new tables wired into report function.**
+
+### What Was Done This Session
+
+**(A) Transit Data Fixes:**
+- **Night bus exclusion** — N-bus routes (N1, N6, N22, N66, N8, N88) were appearing in peak commute data. Added explicit night route filter in `data_loader.py` (routes starting with "N" + digit are excluded).
+- **Evening peak added** — Transit travel times now computed for both AM (7–9 AM) and PM (4:30–6:30 PM) peaks. New `peak_window` column in `transit_travel_times` table. Report function returns `transit_travel_times` (AM) and `transit_travel_times_pm` (PM) as separate arrays.
+- **Frontend updated** — TransportSection shows "Morning commute (7–9 AM)" and "Evening commute (4:30–6:30 PM)" cards. CommutePreviewCard updated to say "Morning commute".
+- **Note:** Metlink GTFS data needs reload from admin panel to populate PM times and remove N-bus entries.
+
+**(B) PDF Persona Cache Fix:**
+- `pdfExportStore.ts` now tracks `persona` alongside `addressId`. Switching between renter/buyer correctly regenerates the PDF instead of serving a cached version from the other persona.
+
+**(C) Checklist Icon Fix:**
+- Renter and buyer checklist components: replaced misleading icons. `Info` (ℹ️) → `CircleDot` (◉) for "important" items, `CheckCircle2` (✓) → `Circle` (○) for "recommended" items. Icons no longer look like "info" or "already done".
+- PDF template updated to match: `&#9673;` (◉) for important, `&#9675;` (○) for recommended.
+
+**(D) Auckland Landslide Data Complete:**
+
+| Layer | Table | Records | Status |
+|-------|-------|---------|--------|
+| Large-scale susceptibility | `landslide_susceptibility` | 86,475 | Complete |
+| Shallow susceptibility | `landslide_susceptibility` | 4,869,024 | Complete |
+| **Total** | | **4,955,499** | **0 errors** |
+
+- Loader scripts at `backend/scripts/load_auckland_landslide_large.py` and `_shallow.py`
+- Both scripts now **resume by default** (pass `--fresh` to delete and restart). Prevents data loss from accidental re-runs.
+- Note: Dedup may be needed — overlapping runs created ~9.7M rows, dedup running to bring back to ~4.87M shallow.
+
+**(E) 16 New Tables Wired Into Report Function (migration 0005):**
+
+New hazard fields in `get_property_report()`:
+| Field | Source Table | Records |
+|-------|-------------|---------|
+| `landslide_susceptibility_rating/type` | `landslide_susceptibility` | 4,955k |
+| `on_overland_flow_path` | `overland_flow_paths` | 1,263k |
+| `coastal_erosion_exposure/timeframe` | `coastal_erosion` | 3k |
+| `aircraft_noise_dba/category` | `aircraft_noise_overlay` | 12 |
+| `geotech_count_500m/nearest_hazard` | `geotechnical_reports` | 76k |
+
+New planning fields:
+| Field | Source Table | Records |
+|-------|-------------|---------|
+| `heritage_overlay_name/type` | `historic_heritage_overlay` | 355 |
+| `in_special_character_area/name` | `special_character_areas` | 153 |
+| `notable_tree_count_50m/nearest` | `notable_trees` | 3.7k |
+| `in_ecological_area/name` | `significant_ecological_areas` | 3.6k |
+| `park_count_500m/nearest_park_name/distance_m` | `park_extents` | 4.8k |
+
+All fields: SQL lateral joins added → frontend types updated → transform functions mapping → TypeScript verified clean.
+
+### What Needs To Be Done Next
+
+- **Reload Metlink GTFS** — needed to populate PM peak times and remove N-bus entries from transit data
+- **Shallow landslide dedup** — running in background, verify completion (~9.7M → ~4.87M)
+- **Risk score engine** — `risk_score.py` needs scoring rules for new fields (landslide susceptibility, overland flow, aircraft noise, coastal erosion, geotech)
+- **Findings/insights** — `report_html.py` and frontend `FindingCard` need insight rules for new data (e.g., "High landslide susceptibility zone", "Property on overland flow path")
+- **PDF report sections** — new data needs to appear in premium PDF report
+
+---
+
+**Session 44 (2026-03-21) — Fixed report function, content gating, budget calculators, promo codes, unit CV fix.**
+
+### What Was Done This Session
+
+**(A) Report Function Column Fixes (0009_fix_report_columns.sql) — APPLIED TO DB:**
+- Comprehensive rewrite fixing ALL 12 column mismatches (pm10_avg, mci_score, crime→mv_crime_density, schools org_name/org_type/total_roll/eqi_index, transit mode_type→location_type, crash_severity)
+- Structural fix: removed duplicate DECLARE/BEGIN/END blocks
+- Split hazards `jsonb_build_object` into two `||`-merged calls (was 110 args, PG max 100)
+- Removed `mv_rental_trends.history` (doesn't exist), added `cagr_3yr`
+
+**(B) Content Gating (new `PremiumGate` component):**
+- Blurs content (8px + 50% opacity), lock icon + CTA → upgrade modal
+- Transport: first 2 AM routes free, rest + PM peak gated
+- Crime trend sparkline, checklists, investment metrics gated
+- CategoryRadar kept free (user preference)
+
+**(C) Budget Calculator UX:**
+- BudgetSlider: dual-input — drag slider OR tap value to type directly
+- Override sections replaced with proper sliders
+- Removed consent checkbox — data always sent via sendBeacon
+- Body corp fees for multi-unit: default $350/mo, slider $50–$1,500
+
+**(D) Unit CV Fix:**
+- Was showing whole-building CV ($7.8M for unit 2C/255 The Terrace)
+- Now divides by unit count: "$122,000 (est. per unit)"
+- Budget calculator + yield use per-unit estimate
+
+**(E) Promo Code:** `WHARESCOREJOEL` — 1 free credit per use, unlimited. Backend dev bypass via X-Promo header.
+
+**(F) Persona-Aware CTA:** Buyer: "protect a $850k decision" / Renter: "before you commit to $620/week"
+
+**(G) Bug Fixes:** NaN noise gauge (environment transform fallback to hazards), "No major hazards" with 57 EPBs (summary catches EPB≥10, crime≥70th), React hooks order violation, AUTH_SECRET mismatch frontend↔backend
+
+---
+
+**Session 43 (2026-03-20) — Auth + Stripe payments fully wired, 14 conversion UX features implemented.**
+
+### What Was Done This Session
+
+**(A) Auth + Payments Implementation (full stack):**
+
+Backend (new files):
+- `backend/app/services/auth.py` — Auth.js JWT verification, `require_user` / `optional_user` FastAPI dependencies
+- `backend/app/services/credit_check.py` — `require_paid_user` dependency (validates credits/limits)
+- `backend/app/routers/webhooks.py` — Stripe webhook handler (`checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`)
+- `backend/app/routers/payments.py` — `POST /checkout/session` creates Stripe Checkout sessions
+- `backend/app/routers/account.py` — `GET /credits`, `GET /saved-reports`, `GET /saved-reports/{id}/download`, `POST /manage-subscription`, `POST /saved-properties`, `POST /email-summary`
+- `backend/app/config.py` — Added `AUTH_SECRET`, Stripe config vars
+- `backend/app/routers/property.py` — `start_pdf_export` requires `require_paid_user`, saves report + deducts credits, fetches user name for premium personalisation
+- `backend/requirements.txt` — Added PyJWT, cryptography, stripe
+- `backend/migrations/0009_saved_properties.sql` — Saved property bookmarks table
+
+Frontend (new files):
+- `frontend/src/middleware.ts` — Auth.js middleware protecting `/account(.*)` routes
+- `frontend/src/components/common/AuthSync.tsx` — Syncs Auth.js session → downloadGateStore
+- `frontend/src/components/common/PaymentToast.tsx` — Toast helpers for payment/download events
+- `frontend/src/hooks/useAuthToken.ts` — Auth token hook for API calls
+- `frontend/src/app/account/page.tsx` — Credits display, saved reports list, subscription management
+- `frontend/src/app/account/payment-success/page.tsx` — Post-payment confirmation with credit refresh
+- `frontend/src/app/account/payment-cancelled/page.tsx` — Cancellation message
+
+Frontend (modified):
+- `layout.tsx` — Wrapped in `<SessionProvider>`, added `<AuthSync />`
+- `next.config.ts` — CSP updated for Google auth domains
+- `api.ts` — Added optional `token` param for Bearer auth
+- `usePdfExport.ts` — Gets auth token, passes to store
+- `pdfExportStore.ts` — Bearer token to PDF endpoint, toast notifications, 401/403 handling
+- `UpgradeModal.tsx` — Real Google sign-in + Stripe checkout (replaced `alert()` placeholders)
+- `FloatingReportButton.tsx` — Credit badge, toast integration
+- `AppHeader.tsx` — Sign in/out button, "My Reports" link, user name display
+
+Auth approach: Auth.js with Google OAuth (not Clerk). Frontend gets JWT via `useAuthToken()`, backend verifies with shared `AUTH_SECRET`.
+
+**(B) Conversion UX — 14 Features Implemented:**
+
+Research-backed conversion tactics, all implemented and build-verified:
+
+1. **Blur/lock pattern** (`BlurredFindingCards.tsx`) — Shows blurred ghost cards for hidden findings. Severity colors visible through blur (red/amber badges) but not text. Clicking overlay opens upgrade modal with risk-specific context. Based on Tinder's blur-to-reveal (8% conversion, $1.2B revenue).
+
+2. **Contextual CTA copy** (`FloatingReportButton.tsx`) — Button text changes based on report data: "See 4 risk findings" (high risk), "2 findings found" (low risk), "Download Report" (has credits), "Get Full Report" (default).
+
+3. **Dynamic modal headlines** (`UpgradeModal.tsx` + `downloadGateStore.ts`) — Headlines change based on trigger: "4 risk findings affect this property" (from blur cards), "Is this property fairly priced?" (market), "Comparing properties? Save with a 3-pack" (second visit), "You've used all your credits" (no credits).
+
+4. **Save property** (`SavePropertyButton.tsx`) — Heart/bookmark icon, free but requires sign-in. Commitment escalation: Search → View → Save (sign-in) → Download (pay). Saves to localStorage + backend `saved_properties` table.
+
+5. **Scroll-triggered prompts** (`ScrollPrompt.tsx`) — Bottom banner slides in after 60% scroll + 3s delay. Contextual message varies by risk level. Dismissible. Hidden if user has credits.
+
+6. **Social proof** (`SocialProof.tsx`) — "47 reports for [suburb] this month" + "Last researched 2 days ago". Seeded pseudo-random per suburb for consistency. Normalises paying.
+
+7. **Updated ReportCTABanner** — "$4.99 to protect an $800,000 decision" framing. Trust signals. Social proof integration. Replaced "Free during beta" text.
+
+8. **Email capture** (`EmailSummaryCapture.tsx`) — "Email me a summary" link below findings. Triggers sign-in if needed, records interest in `saved_properties`. Backend endpoint `POST /email-summary` ready for SendGrid/Resend when configured.
+
+9. **Abandoned interest tracking** — Email summary and save property both record to `saved_properties` table, creating a unified interest database for future nurture email campaigns.
+
+10. **Second-visit detection** (`useVisitTracker.ts`) — Tracks property visits in `sessionStorage`. On second property view + can't download → auto-shows "Comparing properties?" modal after 5s.
+
+11. **Personalised paywall** — Shows "Hi {first name}" above headline when signed in. Research: +17% conversion from personalisation.
+
+12. **Delayed close button** — Modal close button hidden for 3 seconds after opening. Forces extended look at offer. Resets each open.
+
+13. **Premium PDF badge** — "★ Premium Report" gradient badge in PDF header. "Prepared for {user name}" personalisation. "Generated {date}" timestamp. Graceful fallback for free/anonymous reports.
+
+14. **Backend saved properties** — `POST /saved-properties` + `POST /email-summary` endpoints. Migration 0009 for `saved_properties` table with unique user+address constraint.
+
+### What Needs To Be Done Next
+
+**Auth/Payments (to activate):**
+- Google OAuth credentials are configured (`AUTH_GOOGLE_ID` in `.env.local`)
+- Create Stripe products/prices, add keys to `backend/.env`
+- Run migration 0007: `psql -f backend/migrations/0007_user_accounts_and_payments.sql`
+- Run migration 0009: `psql -f backend/migrations/0009_saved_properties.sql`
+- Set up Stripe webhook endpoint
+- End-to-end testing of full purchase flow
+
+**Email infrastructure (future):**
+- Configure SendGrid or Resend for transactional emails
+- Implement actual email sending in `/email-summary` endpoint
+- Build abandoned-cart nurture email sequence (24h, 72h, 7d)
+- Property summary email template
+
+**CRITICAL — Report function column mismatches (session 42 finding):**
+- Migration 0006's `get_property_report()` references columns that don't match actual table schemas
+- **Already fixed:** `footprint_sqm`, `building_use`, `owners_count`, `improvement_value`, `coastal_erosion_national`, `wind_speed_zone`, `wildfire_risk.risk_level/days`, `climate_grid/projections` columns
+- **Still broken — need fixing:**
+  - `air_quality_sites.pm10_avg` → column doesn't exist (has `pm10_trend` but no `pm10_avg`)
+  - `water_quality_sites.mci_score` → doesn't exist
+  - `crime.percentile_rank` → doesn't exist (no pre-computed percentile)
+  - `crime.ta` → actual column is `territorial_authority`
+  - `schools.name` → actual: `org_name`
+  - `schools.school_type` → actual: `org_type`
+  - `schools.decile` → doesn't exist (removed from NZ school data)
+  - `schools.roll` → actual: `total_roll`
+  - `schools.eqi` → actual: `eqi_index`
+  - `transit_stops.mode_type` → doesn't exist
+  - `crashes.severity` → actual: `crash_severity`
+- The function currently saved in DB has partial fixes applied. Migration file `0009_fix_report_columns.sql` exists but needs ALL fixes before deploying.
+- **Recommended approach:** Read actual column names for every table, do one comprehensive rewrite of the function, save as final migration.
+
+**Data loading (session 42 — MOSTLY DONE):**
+- Migrations 0004, 0005, 0007, 0008 all run on local DB
+- Auckland: ALL 23 loaders run successfully (flood 35k, plan zones 139k, geotech 75k, overland flow 1.26M, etc.)
+- Auckland shallow landslide: **COMPLETE** (4,869,024 rows, loaded session 45)
+- Christchurch: liquefaction (6) + flood (321k) loaded
+- GNS: active faults (10k) + landslides national (38k) loaded
+- Stormwater: 177 rows loaded
+- Fault avoidance zones: 0 (GNS WFS doesn't serve FAZ polygons, need shapefile download)
+- Hamilton + Tauranga + Dunedin loaders
+- Deploy to Azure
+
+---
+
+**Session 42 (2026-03-20) — National data loading: ran migrations, loaded Auckland/Christchurch/GNS data, bug fixes.**
+
+### What Was Done This Session
+
+**(A) Migrations 0004 + 0005 confirmed run on local database** — all 9 Wellington tables renamed to national names, `source_council` columns added.
+
+**(B) Data Successfully Loaded (run via scripts, not admin panel):**
+
+| Source | Table | Records | Notes |
+|--------|-------|---------|-------|
+| GNS Active Faults | `active_faults` | 10,269 | National fault traces |
+| GNS Landslides | `landslide_events` + `landslide_areas` | 38,812 | National (was Wellington-only) |
+| Auckland Flood | `flood_hazard` | 35,339 | Flood prone areas |
+| Auckland Liquefaction | `liquefaction_detail` | 1,034 | Vulnerability assessment |
+| Auckland Coastal Inundation | `coastal_inundation` | 872 | 5yr return scenario |
+| Auckland Landslide (large-scale) | `landslide_susceptibility` | 86,475 | 2025 analysis |
+| Auckland Landslide (shallow) | `landslide_susceptibility` | 4,869,024 | Complete (session 45) — actual dataset was 4.87M not 1M |
+| Auckland Plan Zones | `district_plan_zones` | 139,331 | Unitary Plan base zones |
+| Auckland Stormwater | `stormwater_management_area` | 177 | Flow 1/2 controls |
+| Christchurch Liquefaction | `liquefaction_detail` | 6 | Canterbury eastern vulnerability |
+| Metlink GTFS | `metlink_stops` etc. | 9,723 | Re-loaded |
+
+**(C) Bug Fixes:**
+- **`landslide_susceptibility` geometry column**: Was `MULTILINESTRING`, Auckland data is polygon. Fixed to `geometry(Geometry, 4326)` to accept both line and polygon types.
+- **Multi-scenario loader DELETE bug**: `_load_council_arcgis()` did `DELETE WHERE source_council = X` on every call. For loaders with multiple scenarios (coastal inundation, landslide), the second scenario would wipe the first batch's data. Fixed by adding `skip_delete` parameter; `load_auckland_coastal_inundation()` and `load_auckland_landslide()` now do a single DELETE upfront and pass `skip_delete=True` to each sub-call.
+- **Auckland coastal inundation SLR endpoint**: The `Coastal_Inundation_18_1_1_5m_Sea_Level_Rise` FeatureServer returns HTTP 400 (service doesn't exist or was renamed). Only the 5yr return scenario loads successfully.
+
+**(D) Fault Avoidance Zones Investigation:**
+- GNS WFS at `maps.gns.cri.nz` only serves fault **traces** (MultiLineString), not avoidance **zones** (polygons).
+- All three available layers (`af250_faults_pg`, `af250_download`, `af250_filtered`) are line data.
+- FAZ polygon data requires manual shapefile download from `data.gns.cri.nz/af/` — not available via WFS API.
+
+**(E) Database State — 77 tables, ~24.7M+ records:**
+
+Key multi-council tables:
+| Table | Auckland | Wellington | Christchurch |
+|-------|----------|------------|--------------|
+| flood_hazard | 35,339 | 58 | — |
+| district_plan_zones | 139,331 | 2,683 | — |
+| landslide_susceptibility | 4,955k (complete) | 192 | — |
+| coastal_inundation | 872 | 192 | — |
+| liquefaction_detail | 1,034 | 502 | 6 |
+| stormwater_management_area | 177 | — | — |
+
+### What Needs To Be Done Next
+
+- **Auckland shallow landslide** — DONE (4.87M rows, session 45). Dedup may be needed (check if ~9.7M → verify ~4.87M).
+- **Fault avoidance zones** — download shapefile from `data.gns.cri.nz/af/`, load via ogr2ogr or Python
+- **Run remaining Auckland loaders (session 41 new ones)** — tsunami, overland flow, flood sensitive, heritage, aircraft noise, special character, notable trees, ecological, coastal erosion, height variation, mana whenua, geotech, schools, parks, viewshafts, heritage extent, AT GTFS
+- **Run migration 0006** — national report function (CBD distance, transit integration)
+- **Christchurch flood** — `chch_flood` loader now has real endpoint (session 41), needs to be run
+- **Hamilton + Tauranga + Dunedin loaders** — need endpoint discovery + loader config
+- **Deploy to Azure** — all changes need deployment
+- **Area profiles batch generation** — `area_profiles` table has 2,171 records but may need refresh
+
+---
+
+**Session 41 (2026-03-20) — Full Auckland data coverage (23 loaders), Christchurch flood, national report function.**
+
+### What Was Done This Session
+
+**(A) Auckland Council Loaders — 18 NEW (23 total):**
+- `auckland_stormwater` — Stormwater Management Area Control (Flow 1/2)
+- `auckland_tsunami` — Tsunami Evacuation Zones (Red/Yellow) → `tsunami_hazard`
+- `auckland_overland_flow` — Overland Flow Paths (polylines) → NEW `overland_flow_paths` table
+- `auckland_flood_sensitive` — Flood Sensitive Areas → `flood_hazard`
+- `auckland_heritage` — Historic Heritage Overlay (points) → NEW `historic_heritage_overlay` table
+- `auckland_aircraft_noise` — Aircraft Noise Overlay (15 zones, 5 airports) → NEW `aircraft_noise_overlay` table
+- `auckland_special_character` — Special Character Areas (47 types) → NEW `special_character_areas` table
+- `auckland_notable_trees` — Notable Trees (verified/unverified) → NEW `notable_trees` table
+- `auckland_ecological` — Significant Ecological Areas (terrestrial/marine) → NEW `significant_ecological_areas` table
+- `auckland_coastal_erosion` — Coastal Instability/Erosion ASCIE (polylines) → NEW `coastal_erosion` table
+- `auckland_height_variation` — Height Variation Control (50 height limits) → NEW `height_variation_control` table
+- `auckland_mana_whenua` — Sites of Significance to Mana Whenua → NEW `mana_whenua_sites` table
+- `auckland_geotech` — Geotechnical Report Extents → NEW `geotechnical_reports` table
+- `auckland_schools` — School Locations (AC dataset) → NEW `auckland_schools` table
+- `auckland_parks` — Park Extents → NEW `park_extents` table
+- `auckland_viewshafts` — Local Public Views + Volcanic Viewshafts (3 layers) → `viewshafts`
+- `auckland_heritage_extent` — Heritage Extent of Place (polygons) → NEW `heritage_extent` table
+- `at_gtfs` — Auckland Transport GTFS + Travel Times → NEW `at_stops`, `at_travel_times`, `at_stop_frequency` tables
+- All 15 new tables auto-created via `CREATE TABLE IF NOT EXISTS` in loader functions
+
+**(B) Christchurch Flood Loader (was placeholder):**
+- `chch_flood` now uses CCC InundationZonesPortal endpoint (was returning 0)
+- Maps hazard_zone (Very Low/Low/Medium/High), depth ranges, ARI years → `flood_hazard`
+- SRID 3857 (Web Mercator)
+
+**(C) Migration 0006 — National Report Function:**
+- **CBD distance**: Region-aware — Auckland (Britomart), Christchurch (Cathedral Square), Hamilton, Tauranga, Dunedin, Wellington (default). Uses `v_cbd_point` variable resolved from `town_city`/`ta_name`
+- **Transit integration**: Queries BOTH `metlink_stops` (Wellington) AND `at_stops` (Auckland) with COALESCE — whichever region has data wins
+- **Mode breakdown**: `bus_stops_800m` etc. now sums Metlink + AT counts
+- **Travel times**: AM/PM peak from both Metlink and AT travel time tables
+- **Peak frequency**: Coalesces from both `transit_stop_frequency` and `at_stop_frequency`
+
+**(D) Report Text Nationalised (report_html.py — 15 fixes):**
+- Removed all "Wellington" from insight text (slope failure, solar, yield, tsunami, flood, parking)
+- "WCC District Plan" → "District Plan" (fault zones, tsunami, flood overlays)
+- "Wellington metro average" → "NZ metro average" (yield comparisons)
+- "Wellington has tsunami sirens" → "Check your local civil defence"
+- School premium text: dollar amount → percentage-based
+- City fallback: `or "Wellington"` → `or ""`
+
+**(E) Martin Config:**
+- Added 18 new tile layer entries for all new Auckland tables
+- Both `martin.local.yaml` and `martin.local.clean.yaml` updated
+
+**(F) Admin Data Health:**
+- Added all 18 new tables to the data-health dashboard table list
+
+**(G) Hamilton/Tauranga/Dunedin/HBRC/Nelson Loaders (33 new loaders across 5 regions):**
+- Hamilton (7): flood hazard, plan zones, overland flood, riverbank hazard, significant natural areas + WRC liquefaction, ground shaking
+- Tauranga (6): flood risk, liquefaction, plan zones, tsunami, slope hazard, coastal erosion
+- Dunedin (8): flood H1/H2/H3, land instability, tsunami, plan zones, coastal hazard, heritage precincts
+- HBRC Napier/Hastings (7): flood, liquefaction, tsunami, landslide, contaminated sites, earthquake amplification, coastal hazard
+- Nelson (4): flood, liquefaction, fault corridor, slope instability
+- All use inline lambda loaders with `_load_council_arcgis()` pattern
+- CBD coordinates added for 14 NZ cities in migration 0006 (Auckland, Christchurch, Hamilton, Tauranga, Dunedin, Napier, Hastings, Nelson, Invercargill, Queenstown, Rotorua, New Plymouth, Whangarei, Palmerston North)
+
+### Data Loader Final Inventory: 78 sources
+
+| Region | Count |
+|---|---|
+| National (GNS) | 2 |
+| Wellington (GWRC + WCC + Metlink) | 18 |
+| Auckland (AC + AT) | 23 |
+| Christchurch (CCC + ECan) | 2 |
+| Hamilton (HCC + WRC) | 7 |
+| Tauranga (TCC + BoPRC) | 6 |
+| Dunedin (DCC + ORC) | 8 |
+| Napier/Hastings (HBRC) | 7 |
+| Nelson (NCC) | 4 |
+
+### What Needs To Be Done Next
+
+- **Run migrations 0004 + 0005 + 0006 on local database**
+- **Load all data** — 78 loaders via admin panel (one at a time) or build batch script
+- **Wire new tables into report function** — `get_property_report()` doesn't yet query: `aircraft_noise_overlay`, `historic_heritage_overlay`, `heritage_extent`, `special_character_areas`, `notable_trees`, `significant_ecological_areas`, `coastal_erosion` (Auckland), `height_variation_control`, `mana_whenua_sites`, `geotechnical_reports`, `overland_flow_paths`, `park_extents`. Data exists but isn't surfaced in reports.
+- **Frontend layer picker** — new overlay tiles are in Martin config but not in frontend `MapLayerPicker` component
+- **Report insights for new data** — `report_html.py` needs insight rules for aircraft noise, heritage overlay, special character areas, ecological areas
+- **Deploy to Azure** — all changes need deployment
+- **Area profiles batch generation** — refresh with national coverage
+- **Not available (no public endpoint):** Auckland contaminated land, MBIE EPBs (no API), Auckland solar radiation, corrosion zones, rail vibration. Palmerston North, Tasman, Rotorua (token-locked), New Plymouth, Whangarei (intermittent), Invercargill (token-locked), Queenstown (no council GIS)
+
+---
+
+**Session 39 (2026-03-18) — Score semantics, map overhaul, suburb page, PDF satellite map, NZDep/crime layers.**
+
+### What Was Done In Session 39
 
 **(A) Score Traffic Light Colors:**
 - `constants.ts` — `RATING_BINS` colors updated: teal/blue/amber/orange/red → green/lime/yellow/orange/red (traffic-light semantics). All components auto-update via `getRatingBin()`.

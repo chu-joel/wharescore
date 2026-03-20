@@ -163,7 +163,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines }: Map
         </div>
       )}
 
-      {/* Street View — small text link at bottom */}
+      {/* Street View link */}
       <div className="px-4 pb-3 flex justify-end">
         <a
           href={streetViewUrl}

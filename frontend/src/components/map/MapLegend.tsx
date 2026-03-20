@@ -51,6 +51,14 @@ const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: str
       { color: '#9333EA', label: 'Tourism' },
     ],
   },
+  crashes: {
+    items: [
+      { color: '#DC2626', label: 'Fatal' },
+      { color: '#EA580C', label: 'Serious' },
+      { color: '#D97706', label: 'Minor' },
+      { color: '#9CA3AF', label: 'Non-injury' },
+    ],
+  },
 };
 
 /** Layers with data-driven severity gradients — show a gradient swatch in legend */
@@ -190,7 +198,7 @@ export function MapLegend() {
   }, {});
 
   return (
-    <div className="absolute bottom-4 left-3 z-20 max-w-[220px]">
+    <div className="absolute bottom-4 left-3 z-30 max-w-[220px]">
       <div className="bg-background/95 backdrop-blur-sm rounded-xl border border-border shadow-md overflow-hidden">
         {/* Header */}
         <button
@@ -212,7 +220,7 @@ export function MapLegend() {
 
         {/* Expanded content */}
         {expanded && (
-          <div className="px-2.5 pb-2.5 max-h-[280px] overflow-y-auto space-y-2">
+          <div className="px-2.5 pb-2.5 max-h-[200px] sm:max-h-[280px] overflow-y-auto space-y-2">
             {Object.entries(grouped).map(([group, items]) => (
               <div key={group}>
                 <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 px-0.5">

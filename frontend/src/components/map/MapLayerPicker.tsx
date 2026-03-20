@@ -60,17 +60,29 @@ const LAYER_META: Record<string, { icon: LucideIcon; description: string }> = {
   mv_crime_choropleth:     { icon: AlertTriangle,description: 'Crime density heatmap (3-year victimisations)' },
   landslide_events:        { icon: Mountain,     description: 'GNS recorded landslide events' },
   landslide_areas:         { icon: Mountain,     description: 'GNS mapped landslide areas' },
+  // Auckland / regional overlays
+  overland_flow_paths:     { icon: Droplets,     description: 'Overland stormwater flow paths' },
+  aircraft_noise_overlay:  { icon: Volume2,      description: 'Airport noise contours' },
+  notable_trees:           { icon: TreePine,     description: 'Protected notable/scheduled trees' },
+  significant_ecological_areas: { icon: TreePine, description: 'Significant ecological areas' },
+  special_character_areas: { icon: Landmark,     description: 'Special character area overlays' },
+  historic_heritage_overlay: { icon: Landmark,   description: 'Council heritage overlays (points)' },
+  heritage_extent:         { icon: Landmark,     description: 'Heritage extent boundaries' },
+  height_variation_control: { icon: Building2,   description: 'Height variation control zones' },
+  mana_whenua_sites:       { icon: CircleDot,    description: 'Sites of significance to Mana Whenua' },
+  park_extents:            { icon: TreePine,     description: 'Public park boundaries' },
+  active_faults:           { icon: TriangleAlert, description: 'GNS active fault traces' },
 };
 
 // Groups for the picker
 const GROUPS = [
-  { label: 'Hazards', ids: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones', 'landslide_events', 'landslide_areas'] },
-  { label: 'Liveability', ids: ['mv_nzdep_choropleth', 'mv_crime_choropleth'] },
+  { label: 'Hazards', ids: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones', 'landslide_events', 'landslide_areas', 'active_faults', 'overland_flow_paths'] },
+  { label: 'Liveability', ids: ['mv_nzdep_choropleth', 'mv_crime_choropleth', 'park_extents'] },
   { label: 'Property', ids: ['parcels', 'building_outlines'] },
-  { label: 'Schools & Community', ids: ['school_zones'] },
-  { label: 'Planning & Environment', ids: ['district_plan_zones', 'contaminated_land', 'heritage_sites', 'infrastructure_projects', 'transmission_lines'] },
+  { label: 'Schools & Community', ids: ['school_zones', 'notable_trees'] },
+  { label: 'Planning & Environment', ids: ['district_plan_zones', 'contaminated_land', 'heritage_sites', 'historic_heritage_overlay', 'heritage_extent', 'special_character_areas', 'height_variation_control', 'significant_ecological_areas', 'mana_whenua_sites', 'infrastructure_projects', 'transmission_lines'] },
   { label: 'Transport', ids: ['transit_stops', 'crashes'] },
-  { label: 'Context', ids: ['noise_contours', 'conservation_land', 'osm_amenities', 'sa2_boundaries'] },
+  { label: 'Context', ids: ['noise_contours', 'aircraft_noise_overlay', 'conservation_land', 'osm_amenities', 'sa2_boundaries'] },
 ];
 
 export function MapLayerPicker() {
@@ -124,6 +136,7 @@ export function MapLayerPicker() {
   return (
     <Dialog>
       <DialogTrigger
+        data-layer-picker-trigger
         className="shrink-0 flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border bg-background/95 backdrop-blur-sm text-muted-foreground border-border hover:bg-muted hover:text-foreground transition-all active:scale-95"
       >
         <Layers className="h-3.5 w-3.5" />

@@ -368,7 +368,7 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
                          "risk_class": "info", "detected": True})
         elif "low" in sf_str and "very" not in sf_str:
             rows.append({"label": "Slope Stability", "status": "Low landslide susceptibility",
-                         "detail": "Below-average slope failure risk for the Wellington region.",
+                         "detail": "Below-average slope failure risk for this region.",
                          "risk_class": "ok", "detected": True})
         else:
             rows.append({"label": "Slope Stability", "status": "Very Low landslide susceptibility",
@@ -394,7 +394,7 @@ def build_exec_summary_fallback(report: dict, insights: dict) -> str:
     rating_obj = scores.get("rating") or {}
     rating = rating_obj.get("label", "Unknown") if isinstance(rating_obj, dict) else "Unknown"
     suburb = addr.get("suburb") or addr.get("sa2_name") or ""
-    city   = addr.get("city") or "Wellington"
+    city   = addr.get("city") or ""
 
     parts: list[str] = []
 
@@ -555,7 +555,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             result["hazards"].append(Insight(
                 "warn",
                 f"Tsunami Zone {tz} — highest local government warning tier for this area.",
-                "Identify your inland evacuation route. Zone 3 affects resale times in some Wellington suburbs.",
+                "Identify your inland evacuation route. Zone 3 affects resale times in some coastal suburbs.",
             ).to_dict())
         elif tz >= 1:
             result["hazards"].append(Insight(
@@ -652,9 +652,9 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if "very high" in slope_failure:
         result["hazards"].append(Insight(
             "warn",
-            "Very High earthquake-induced landslide susceptibility — Wellington's steep clay hillsides "
-            "are among NZ's most slip-prone terrain. Recent storms (2022, 2024) caused hundreds of slips "
-            "across the region in zones like this.",
+            "Very High earthquake-induced landslide susceptibility — steep terrain in this area "
+            "is highly prone to slope failure. Recent storms have caused significant slips "
+            "across NZ in zones like this.",
             "Commission geotechnical assessment ($2,000-5,000). Check retaining walls, drainage, "
             "and any signs of historic ground movement (cracked paths, leaning fences, bowing walls). "
             "Ask neighbours about slip history. Review EQC claim history via LIM.",
@@ -675,7 +675,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Ask about drainage and retaining wall maintenance during inspection.",
         ).to_dict())
 
-    # ── Wellington-Specific Hazard Rules ─────────────────────────────────────
+    # ── Regional Hazard Rules (from source_council-based layers) ────────────
 
     gs_severity = str(hazards.get("ground_shaking_severity") or "").lower()
     if "high" in gs_severity or gs_severity.startswith("5") or gs_severity.startswith("4"):
@@ -703,7 +703,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         result["hazards"].append(Insight(
             "warn",
             f"Within **{fault_name}** fault zone (ranking: {ranking}) — risk of surface rupture.",
-            "WCC District Plan restricts building in fault avoidance zones. Check if resource consent "
+            "District Plan rules restrict building in fault avoidance zones. Check if resource consent "
             "is required for modifications. Surface rupture cannot be mitigated by building design.",
         ).to_dict())
 
@@ -711,7 +711,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if wcc_tsunami and wcc_tsunami in ("1:100yr", "1:500yr"):
         result["hazards"].append(Insight(
             "warn" if wcc_tsunami == "1:100yr" else "info",
-            f"WCC District Plan tsunami zone ({wcc_tsunami} return period).",
+            f"District Plan tsunami zone ({wcc_tsunami} return period).",
             "Know your evacuation route to high ground. Long or strong earthquake = move immediately. "
             "Zone affects insurance and may restrict future building consent for habitable rooms.",
         ).to_dict())
@@ -722,7 +722,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         severity = "warn" if wcc_flood_rank in ("High", "Medium") else "info"
         result["hazards"].append(Insight(
             severity,
-            f"WCC District Plan flood overlay: **{wcc_flood_type}** ({wcc_flood_rank} ranking).",
+            f"District Plan flood overlay: **{wcc_flood_type}** ({wcc_flood_rank} ranking).",
             "Stream corridor = highest risk. Check floor level relative to estimated flood level. "
             "Resource consent may be needed for new buildings/additions in flood overlay areas.",
         ).to_dict())
@@ -737,7 +737,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if solar_kwh >= 1200:
             result["environment"].append(Insight(
                 "ok",
-                f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr — above Wellington average. Solar panels viable.",
+                f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr — above average. Solar panels viable.",
                 "",
             ).to_dict())
         elif solar_kwh < 800:
@@ -767,6 +767,122 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Multi-modal transit within 800m: {', '.join(modes)} stops.",
             "",
         ).to_dict())
+
+    # ── New Overlay Insights ────────────────────────────────────────────────
+
+    # Aircraft noise
+    aircraft_noise = hazards.get("aircraft_noise_name")
+    if aircraft_noise:
+        dba = hazards.get("aircraft_noise_dba")
+        cat = hazards.get("aircraft_noise_category") or ""
+        dba_str = f" ({dba} dBA)" if dba else ""
+        severity = "warn" if cat == "High" else "info"
+        result["environment"].append(Insight(
+            severity,
+            f"Aircraft noise overlay: **{aircraft_noise}**{dba_str}.",
+            "Check noise levels during peak flight times. This may affect outdoor amenity and sleep quality. "
+            "Double glazing is recommended for bedrooms facing the flight path.",
+        ).to_dict())
+
+    # Overland flow path proximity
+    if hazards.get("overland_flow_within_50m"):
+        result["hazards"].append(Insight(
+            "info",
+            "Overland flow path within 50m — surface water may flow through or near this property during heavy rain.",
+            "Check ground levels, drainage, and whether the building floor is raised above surrounding grade.",
+        ).to_dict())
+
+    # Council coastal erosion
+    cce = hazards.get("council_coastal_erosion")
+    if cce and isinstance(cce, dict):
+        tf = cce.get("timeframe")
+        dist = cce.get("distance_m")
+        scenario = cce.get("scenario") or ""
+        if dist is not None and dist < 200:
+            result["hazards"].append(Insight(
+                "warn",
+                f"Coastal erosion projection within {int(dist)}m"
+                + (f" (timeframe: {tf}yr)" if tf else "")
+                + (f" — {scenario}" if scenario else "") + ".",
+                "Review coastal hazard assessment before purchase. Erosion may affect insurance and resale value.",
+            ).to_dict())
+
+    # Heritage overlay
+    if planning.get("in_heritage_overlay"):
+        name = planning.get("heritage_overlay_name") or "heritage overlay"
+        result["planning"].append(Insight(
+            "info",
+            f"Property is within a council heritage overlay (**{name}**). External modifications may require resource consent.",
+            "Check the district/unitary plan heritage schedule for specific controls on this site.",
+        ).to_dict())
+
+    # Special character area
+    if planning.get("in_special_character"):
+        name = planning.get("special_character_name") or "special character area"
+        result["planning"].append(Insight(
+            "info",
+            f"Within a **Special Character Area** ({name}). Demolition and major alterations are controlled.",
+            "Design of new builds and additions must be sympathetic to neighbourhood character.",
+        ).to_dict())
+
+    # Significant ecological area
+    if planning.get("in_ecological_area"):
+        name = planning.get("ecological_area_name") or "ecological area"
+        eco_type = planning.get("ecological_area_type") or ""
+        result["planning"].append(Insight(
+            "info",
+            f"Within a **Significant Ecological Area** ({name})"
+            + (f" — {eco_type}" if eco_type else "") + ".",
+            "Vegetation removal, earthworks, and building may require ecological assessment and resource consent.",
+        ).to_dict())
+
+    # Mana whenua
+    if planning.get("in_mana_whenua"):
+        name = planning.get("mana_whenua_name") or "a site of significance"
+        result["planning"].append(Insight(
+            "info",
+            f"Within a **Site of Significance to Mana Whenua** ({name}).",
+            "Cultural heritage assessment may be required for development. Engage early with iwi/hapū.",
+        ).to_dict())
+
+    # Notable trees
+    nt_count = planning.get("notable_trees_50m") or 0
+    if nt_count > 0:
+        result["planning"].append(Insight(
+            "info",
+            f"{nt_count} notable/scheduled tree{'s' if nt_count != 1 else ''} within 50m — protected under the district/unitary plan.",
+            "Removal or significant pruning requires resource consent. Root protection zones may restrict building.",
+        ).to_dict())
+
+    # Height variation control
+    hv_limit = planning.get("height_variation_limit")
+    if hv_limit:
+        result["planning"].append(Insight(
+            "info",
+            f"Height variation control applies: **{hv_limit}** maximum.",
+            "This overrides the base zone height limit. Check the district/unitary plan for specific rules.",
+        ).to_dict())
+
+    # Nearest park
+    park_name = planning.get("nearest_park_name")
+    park_dist = planning.get("nearest_park_distance_m")
+    if park_name and park_dist is not None:
+        try:
+            d = float(park_dist)
+            if d <= 300:
+                result["liveability"].append(Insight(
+                    "ok",
+                    f"**{park_name}** is just {int(d)}m away — excellent green space access.",
+                    "",
+                ).to_dict())
+            elif d <= 800:
+                result["liveability"].append(Insight(
+                    "info",
+                    f"Nearest park (**{park_name}**) is {int(d)}m away.",
+                    "",
+                ).to_dict())
+        except (TypeError, ValueError):
+            pass
 
     # ── Environment Rules ─────────────────────────────────────────────────────
 
@@ -807,11 +923,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     air_site = env.get("air_pm10_site") or env.get("air_pm25_site")
     air_dist = env.get("air_pm10_distance_m") or env.get("air_pm25_distance_m")
     if air_trend and str(air_trend).lower() == "degrading":
-        dist_str = f" ({int(air_dist)}m)" if air_dist else ""
+        dist_km = f"{air_dist / 1000:.1f} km" if air_dist else ""
+        site_str = f" at {air_site}" if air_site else ""
+        dist_note = f" ({dist_km} away)" if dist_km else ""
         result["environment"].append(Insight(
             "warn",
-            f"PM10 air quality is degrading at {air_site}{dist_str}.",
-            "HEPA filtration effective indoors. Check if wood burners are the dominant source.",
+            f"Regional air quality is degrading{site_str}{dist_note}.",
+            "This is regional LAWA data, not a property-specific reading. HEPA filtration effective indoors. Check if wood burners are the dominant source.",
         ).to_dict())
 
     water_band = env.get("water_ecoli_band")
@@ -980,13 +1098,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             if yield_pct >= 5:
                 result["market"].append(Insight(
                     "ok",
-                    f"Indicative gross yield: {yield_pct}% — above Wellington metro average (~3.5–4%).",
+                    f"Indicative gross yield: {yield_pct}% — above NZ metro average (~3.5–4%).",
                     "",
                 ).to_dict())
             elif yield_pct < 3:
                 result["market"].append(Insight(
                     "info",
-                    f"Indicative gross yield: {yield_pct}% — below typical Wellington averages. Elevated price-to-rent ratio.",
+                    f"Indicative gross yield: {yield_pct}% — below typical NZ metro averages. Elevated price-to-rent ratio.",
                     "",
                 ).to_dict())
 
@@ -1606,7 +1724,7 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
     if cbd_dist is not None and cbd_dist <= 1500:
         tips.append(
             f"Being {int(cbd_dist)}m from the CBD, street parking is limited — "
-            "if you have a car, factor in a parking space (~$200–350/month in central Wellington)."
+            "if you have a car, factor in a parking space (~$200–350/month in central areas)."
         )
 
     if supermarket_dist is not None and supermarket_dist >= 1000:
@@ -2028,7 +2146,7 @@ def _build_audience_callouts(report: dict) -> dict[str, list[dict]]:
 
     if hazards.get("tsunami_zone_class") or hazards.get("tsunami_evac_zone"):
         result["hazards"].append({"audience": "buyer", "text": "Tsunami zone designation may affect future insurance availability. Check with your insurer before committing."})
-        result["hazards"].append({"audience": "renter", "text": "Know your evacuation route and assembly point. Wellington has tsunami sirens \u2014 learn to recognise the signal."})
+        result["hazards"].append({"audience": "renter", "text": "Know your evacuation route and assembly point. Check your local civil defence for tsunami alert systems."})
 
     epb_count = hazards.get("epb_count_300m") or 0
     if epb_count >= 3:
@@ -2059,7 +2177,7 @@ def _build_audience_callouts(report: dict) -> dict[str, list[dict]]:
     schools = live.get("schools_1500m") or []
     in_zone = [s for s in schools if isinstance(s, dict) and s.get("in_zone")]
     if len(in_zone) > 0:
-        result["liveability"].append({"audience": "buyer", "text": f"This property is in-zone for {len(in_zone)} school{'s' if len(in_zone) != 1 else ''}. In-zone access adds significant value \u2014 families pay $30,000\u2013$80,000+ premiums for zoned properties in Wellington."})
+        result["liveability"].append({"audience": "buyer", "text": f"This property is in-zone for {len(in_zone)} school{'s' if len(in_zone) != 1 else ''}. In-zone access adds significant value \u2014 families pay premiums of 5\u201315% for zoned properties in desirable school catchments."})
         result["liveability"].append({"audience": "renter", "text": f"You\u2019re in-zone for {len(in_zone)} school{'s' if len(in_zone) != 1 else ''}. However, school zones change annually \u2014 verify directly with the Ministry of Education before enrolling."})
 
     crime_pct = live.get("crime_percentile")
@@ -2104,7 +2222,7 @@ def _build_audience_callouts(report: dict) -> dict[str, list[dict]]:
     if cv and all_rent and all_rent.get("median_rent"):
         gross_yield = (all_rent["median_rent"] * 52) / cv * 100
         above_below = "above" if gross_yield > 3.75 else "below"
-        result["market"].append({"audience": "buyer", "text": f"Estimated gross yield of {gross_yield:.1f}% is {above_below} the Wellington average (~3.5\u20134%). Remember to factor in rates, insurance, maintenance (typically 20\u201330% of gross rent), and vacancy periods."})
+        result["market"].append({"audience": "buyer", "text": f"Estimated gross yield of {gross_yield:.1f}% is {above_below} the NZ metro average (~3.5\u20134%). Remember to factor in rates, insurance, maintenance (typically 20\u201330% of gross rent), and vacancy periods."})
 
     trends = market_data.get("trends") or []
     for t in trends:
@@ -2135,6 +2253,1125 @@ def _build_audience_callouts(report: dict) -> dict[str, list[dict]]:
         result["planning"].append({"audience": "renter", "text": "This building is earthquake-prone. Your landlord is legally required to display an EPB notice. Consider whether you\u2019re comfortable with the seismic risk."})
 
     return result
+
+
+# =============================================================================
+# NEW SVG Chart Builders (Phase 6)
+# =============================================================================
+
+def _build_rent_trend_chart(rent_history: list) -> dict | None:
+    """10-year rent trend line chart with quartile band + CAGR annotation.
+    ViewBox 500×200. Returns SVG data for Jinja2."""
+    if not rent_history or len(rent_history) < 3:
+        return None
+
+    # Extract valid data points
+    points = []
+    for row in rent_history:
+        median = row.get("median_rent")
+        if median is None:
+            continue
+        try:
+            median_f = float(median)
+        except (TypeError, ValueError):
+            continue
+        tf = row.get("time_frame")
+        if tf is None:
+            continue
+        lq = row.get("lower_quartile_rent")
+        uq = row.get("upper_quartile_rent")
+        try:
+            lq_f = float(lq) if lq is not None else None
+        except (TypeError, ValueError):
+            lq_f = None
+        try:
+            uq_f = float(uq) if uq is not None else None
+        except (TypeError, ValueError):
+            uq_f = None
+        points.append({"tf": str(tf), "median": median_f, "lq": lq_f, "uq": uq_f})
+
+    if len(points) < 3:
+        return None
+
+    # Chart dimensions
+    w, h = 500, 200
+    pad_l, pad_r, pad_t, pad_b = 50, 20, 15, 30
+    chart_w = w - pad_l - pad_r
+    chart_h = h - pad_t - pad_b
+
+    all_vals = [p["median"] for p in points]
+    for p in points:
+        if p["lq"] is not None:
+            all_vals.append(p["lq"])
+        if p["uq"] is not None:
+            all_vals.append(p["uq"])
+    y_min = min(all_vals) * 0.9
+    y_max = max(all_vals) * 1.05
+    if y_max <= y_min:
+        y_max = y_min + 50
+
+    def _x(i: int) -> float:
+        return pad_l + (i / max(len(points) - 1, 1)) * chart_w
+
+    def _y(v: float) -> float:
+        return pad_t + chart_h - ((v - y_min) / (y_max - y_min)) * chart_h
+
+    # Build median line points
+    median_pts = " ".join(f"{_x(i):.1f},{_y(p['median']):.1f}" for i, p in enumerate(points))
+
+    # Build quartile band polygon (upper path forward, lower path backward)
+    band_upper = []
+    band_lower = []
+    for i, p in enumerate(points):
+        uq = p["uq"] if p["uq"] is not None else p["median"]
+        lq = p["lq"] if p["lq"] is not None else p["median"]
+        band_upper.append(f"{_x(i):.1f},{_y(uq):.1f}")
+        band_lower.append(f"{_x(i):.1f},{_y(lq):.1f}")
+    band_lower.reverse()
+    polygon_band = " ".join(band_upper + band_lower)
+
+    # X labels — show ~5 evenly spaced
+    x_labels = []
+    step = max(1, len(points) // 5)
+    for i in range(0, len(points), step):
+        tf = points[i]["tf"]
+        label = tf[:7] if len(tf) >= 7 else tf  # YYYY-MM
+        x_labels.append({"x": _x(i), "label": label})
+    # Always include last
+    if x_labels and x_labels[-1]["label"] != points[-1]["tf"][:7]:
+        x_labels.append({"x": _x(len(points) - 1), "label": points[-1]["tf"][:7]})
+
+    # Y labels
+    y_labels = []
+    y_step = (y_max - y_min) / 4
+    for i in range(5):
+        val = y_min + i * y_step
+        y_labels.append({"y": _y(val), "label": f"${int(val)}"})
+
+    # CAGR calculations
+    latest = points[-1]["median"]
+    cagr_5yr = None
+    cagr_10yr = None
+    if len(points) >= 20:  # quarterly, ~5yr = 20 pts
+        old_5 = points[-20]["median"]
+        if old_5 > 0:
+            cagr_5yr = round(((latest / old_5) ** (1 / 5) - 1) * 100, 1)
+    if len(points) >= 40:
+        old_10 = points[-40]["median"]
+        if old_10 > 0:
+            cagr_10yr = round(((latest / old_10) ** (1 / 10) - 1) * 100, 1)
+
+    return {
+        "points_median": median_pts,
+        "polygon_band": polygon_band,
+        "x_labels": x_labels,
+        "y_labels": y_labels,
+        "cagr_5yr": cagr_5yr,
+        "cagr_10yr": cagr_10yr,
+        "latest_median": int(latest),
+        "pad_t": pad_t,
+        "pad_b": pad_b,
+        "chart_h": chart_h,
+        "pad_l": pad_l,
+    }
+
+
+def _build_rent_quartile_box(rental_overview: list) -> dict | None:
+    """Box-whisker showing Q1/median/Q3 for ALL dwelling type.
+    ViewBox 400×50."""
+    if not isinstance(rental_overview, list):
+        return None
+    row = next(
+        (r for r in rental_overview if isinstance(r, dict)
+         and r.get("dwelling_type") == "ALL" and r.get("beds") == "ALL"),
+        next((r for r in rental_overview if isinstance(r, dict) and r.get("beds") == "ALL"), None),
+    )
+    if not row:
+        return None
+
+    median = row.get("median")
+    lq = row.get("lower_quartile")
+    uq = row.get("upper_quartile")
+    if median is None:
+        return None
+
+    try:
+        median_f = float(median)
+        lq_f = float(lq) if lq is not None else median_f * 0.8
+        uq_f = float(uq) if uq is not None else median_f * 1.2
+    except (TypeError, ValueError):
+        return None
+
+    # Scale: min/max with padding
+    scale_min = lq_f * 0.85
+    scale_max = uq_f * 1.15
+    if scale_max <= scale_min:
+        scale_max = scale_min + 100
+
+    def _sx(v: float) -> float:
+        return 40 + ((v - scale_min) / (scale_max - scale_min)) * 320
+
+    return {
+        "lq": int(lq_f),
+        "median": int(median_f),
+        "uq": int(uq_f),
+        "scale_min": int(scale_min),
+        "scale_max": int(scale_max),
+        "box_x": round(_sx(lq_f), 1),
+        "box_w": round(_sx(uq_f) - _sx(lq_f), 1),
+        "median_x": round(_sx(median_f), 1),
+        "label": f"${int(lq_f)} – ${int(median_f)} – ${int(uq_f)}/wk",
+    }
+
+
+def _build_transit_mode_bars(live: dict) -> dict | None:
+    """Horizontal bars for bus/rail/ferry/cable car within 800m."""
+    modes = [
+        ("Bus", live.get("bus_stops_800m"), "#3B82F6"),
+        ("Rail", live.get("rail_stops_800m"), "#22C55E"),
+        ("Ferry", live.get("ferry_stops_800m"), "#06B6D4"),
+        ("Cable Car", live.get("cable_car_stops_800m"), "#A855F7"),
+    ]
+
+    active_modes = []
+    total = 0
+    for name, count, color in modes:
+        if count and int(count) > 0:
+            c = int(count)
+            active_modes.append({"name": name, "count": c, "color": color})
+            total += c
+
+    if not active_modes:
+        return None
+
+    for m in active_modes:
+        m["pct"] = round((m["count"] / total) * 100, 1) if total > 0 else 0
+
+    return {"modes": active_modes, "total": total}
+
+
+def _build_amenity_breakdown(amenities_500m: dict) -> list[dict]:
+    """Horizontal bar chart of amenity categories, top 10, sorted descending."""
+    if not amenities_500m or not isinstance(amenities_500m, dict):
+        return []
+
+    items = []
+    for cat, cnt in amenities_500m.items():
+        if cnt and isinstance(cnt, (int, float)) and cnt > 0:
+            items.append({"name": cat.replace("_", " ").title(), "count": int(cnt)})
+
+    if not items:
+        return []
+
+    items.sort(key=lambda x: x["count"], reverse=True)
+    items = items[:10]
+
+    max_count = items[0]["count"] if items else 1
+    for item in items:
+        item["pct"] = round((item["count"] / max_count) * 100, 1)
+
+    return items
+
+
+def _build_monthly_cost(report: dict, rates_data: dict | None = None) -> dict | None:
+    """Stacked bar: mortgage + rates + insurance estimate.
+    Mortgage calc: CV × 0.8, 6.5% rate, 30yr P&I."""
+    import math
+
+    prop = report.get("property") or {}
+    hazards = report.get("hazards") or {}
+    cv = prop.get("capital_value") or prop.get("cv_capital")
+    if not cv:
+        return None
+
+    try:
+        cv = int(cv)
+    except (TypeError, ValueError):
+        return None
+
+    if cv <= 0:
+        return None
+
+    # Mortgage: 80% LVR, 6.5% rate, 30yr
+    loan = cv * 0.8
+    rate_monthly = 0.065 / 12
+    n_payments = 360
+    if rate_monthly > 0:
+        monthly_mortgage = loan * (rate_monthly * (1 + rate_monthly) ** n_payments) / (
+            (1 + rate_monthly) ** n_payments - 1
+        )
+    else:
+        monthly_mortgage = loan / n_payments
+
+    # Rates — handle both flat and nested (current_valuation.total_rates) formats
+    monthly_rates = cv * 0.004 / 12  # default estimate
+    if rates_data and isinstance(rates_data, dict):
+        annual_rates = (
+            rates_data.get("total_rates")
+            or rates_data.get("annual_rates")
+            or (rates_data.get("current_valuation") or {}).get("total_rates")
+        )
+        if annual_rates:
+            try:
+                monthly_rates = float(annual_rates) / 12
+            except (TypeError, ValueError):
+                pass
+
+    # Insurance estimate based on hazard count
+    hazard_factors = 0
+    if hazards.get("flood"):
+        hazard_factors += 1
+    if hazards.get("landslide_in_area"):
+        hazard_factors += 1
+    slope = str(hazards.get("slope_failure") or "").lower()
+    if "high" in slope:
+        hazard_factors += 1
+    if hazards.get("tsunami_zone_class"):
+        hazard_factors += 1
+
+    if hazard_factors >= 3:
+        annual_insurance = 4000
+    elif hazard_factors >= 1:
+        annual_insurance = 3000
+    else:
+        annual_insurance = 2000
+    monthly_insurance = annual_insurance / 12
+
+    total = monthly_mortgage + monthly_rates + monthly_insurance
+
+    segments = [
+        {"label": "Mortgage", "amount": int(monthly_mortgage), "color": "#0D7377", "pct": round(monthly_mortgage / total * 100)},
+        {"label": "Rates", "amount": int(monthly_rates), "color": "#3B82F6", "pct": round(monthly_rates / total * 100)},
+        {"label": "Insurance", "amount": int(monthly_insurance), "color": "#F59E0B", "pct": round(monthly_insurance / total * 100)},
+    ]
+
+    assumptions = f"Based on CV ${cv:,} at 80% LVR, 6.5% interest, 30yr term. Rates estimated{' from WCC data' if rates_data else ' at 0.4% of CV'}. Insurance ${annual_insurance:,}/yr."
+
+    return {
+        "segments": segments,
+        "total": int(total),
+        "assumptions_text": assumptions,
+    }
+
+
+def _build_budget_from_inputs(report: dict, budget_inputs: dict | None, rates_data: dict | None = None) -> dict | None:
+    """Enhanced monthly cost with user budget calculator inputs. Falls back to defaults."""
+    import math
+
+    if not budget_inputs:
+        return None
+
+    persona = budget_inputs.get("persona", "buyer")
+    prop = report.get("property") or {}
+    hazards = report.get("hazards") or {}
+    cv_raw = prop.get("capital_value") or prop.get("cv_capital")
+
+    if persona == "buyer":
+        cv = budget_inputs.get("purchase_price") or (int(cv_raw) if cv_raw else None)
+        if not cv or cv <= 0:
+            return None
+
+        deposit_pct = budget_inputs.get("deposit_pct", 20)
+        interest_rate = budget_inputs.get("interest_rate", 6.5)
+        loan_term = budget_inputs.get("loan_term", 30)
+
+        loan = cv * (1 - deposit_pct / 100)
+        r = interest_rate / 100 / 12
+        n = loan_term * 12
+        if r > 0:
+            mortgage = loan * (r * (1 + r) ** n) / ((1 + r) ** n - 1)
+        else:
+            mortgage = loan / n
+
+        rates_monthly = budget_inputs.get("rates_override") or (cv * 0.004 / 12)
+        if rates_data and not budget_inputs.get("rates_override"):
+            annual = (rates_data.get("total_rates") or rates_data.get("annual_rates")
+                      or (rates_data.get("current_valuation") or {}).get("total_rates"))
+            if annual:
+                try:
+                    rates_monthly = float(annual) / 12
+                except (TypeError, ValueError):
+                    pass
+
+        insurance_monthly = budget_inputs.get("insurance_override") or 250
+        utilities_monthly = budget_inputs.get("utilities_override") or 250
+        maintenance_monthly = budget_inputs.get("maintenance_override") or (cv * 0.005 / 12)
+
+        total = mortgage + rates_monthly + insurance_monthly + utilities_monthly + maintenance_monthly
+        segments = [
+            {"label": "Mortgage", "amount": int(mortgage), "color": "#0D7377", "pct": round(mortgage / total * 100)},
+            {"label": "Rates", "amount": int(rates_monthly), "color": "#3B82F6", "pct": round(rates_monthly / total * 100)},
+            {"label": "Insurance", "amount": int(insurance_monthly), "color": "#F59E0B", "pct": round(insurance_monthly / total * 100)},
+            {"label": "Utilities", "amount": int(utilities_monthly), "color": "#8B5CF6", "pct": round(utilities_monthly / total * 100)},
+            {"label": "Maintenance", "amount": int(maintenance_monthly), "color": "#6B7280", "pct": round(maintenance_monthly / total * 100)},
+        ]
+
+        income = budget_inputs.get("annual_income")
+        ratio = round((total / (income / 12)) * 100) if income and income > 0 else None
+
+        return {
+            "segments": segments,
+            "total": int(total),
+            "is_custom": True,
+            "assumptions_text": f"Based on your inputs: ${cv:,} at {deposit_pct}% deposit, {interest_rate}% interest, {loan_term}yr term.",
+            "affordability_ratio": ratio,
+        }
+
+    else:  # renter
+        weekly_rent = budget_inputs.get("weekly_rent", 500)
+        room_only = budget_inputs.get("room_only", False)
+        household_size = budget_inputs.get("household_size", 1)
+        divisor = household_size if room_only else 1
+
+        rent_monthly = weekly_rent * 52 / 12
+        utilities = (budget_inputs.get("utilities_override") or 250) / divisor
+        insurance = (budget_inputs.get("contents_insurance_override") or 50) / divisor
+        transport = budget_inputs.get("transport_override") or 240
+        food = budget_inputs.get("food_override") or 300
+
+        total = rent_monthly + utilities + insurance + transport + food
+        rent_pct = round(rent_monthly / total * 100) if total > 0 else 0
+
+        segments = [
+            {"label": "Rent", "amount": int(rent_monthly), "color": "#0D7377", "pct": round(rent_monthly / total * 100)},
+            {"label": "Utilities", "amount": int(utilities), "color": "#3B82F6", "pct": round(utilities / total * 100)},
+            {"label": "Insurance", "amount": int(insurance), "color": "#F59E0B", "pct": round(insurance / total * 100)},
+            {"label": "Transport", "amount": int(transport), "color": "#8B5CF6", "pct": round(transport / total * 100)},
+            {"label": "Food", "amount": int(food), "color": "#22C55E", "pct": round(food / total * 100)},
+        ]
+
+        income = budget_inputs.get("annual_income")
+        ratio = round((total / (income / 12)) * 100) if income and income > 0 else None
+
+        label = f"${weekly_rent}/wk rent"
+        if room_only:
+            label += f" (room in {household_size}-person flat)"
+
+        return {
+            "segments": segments,
+            "total": int(total),
+            "is_custom": True,
+            "rent_pct": rent_pct,
+            "assumptions_text": f"Based on your inputs: {label}. Shared costs split by {household_size}." if room_only else f"Based on your inputs: {label}.",
+            "affordability_ratio": ratio,
+        }
+
+
+def _build_walkability_gauge(live: dict) -> dict:
+    """SVG arc gauge (270°) with score 0-100 and factor breakdown.
+    ViewBox 140×140."""
+    import math
+
+    amenity_ct = sum(v for v in (live.get("amenities_500m") or {}).values() if isinstance(v, (int, float)))
+    transit_ct = live.get("transit_stops_400m") or 0
+    cbd_dist = live.get("cbd_distance_m") or 10000
+    school_ct = len(live.get("schools_1500m") or [])
+
+    # Same formula as render()
+    amenity_pts = min(25, round((amenity_ct / 15) * 25))
+    transit_pts = min(25, round((transit_ct / 10) * 25))
+    cbd_pts = max(0, round(20 * (1 - min(cbd_dist, 5000) / 5000)))
+    school_pts = min(15, round((school_ct / 5) * 15))
+    baseline = 10
+
+    score = min(100, amenity_pts + transit_pts + cbd_pts + school_pts + baseline)
+
+    # Arc parameters
+    total_angle = 270  # degrees
+    arc_frac = score / 100
+    arc_length = arc_frac * total_angle
+
+    # Color
+    if score >= 80:
+        color = "#2D6A4F"
+        label = "Walker's Paradise"
+    elif score >= 60:
+        color = "#0D7377"
+        label = "Very Walkable"
+    elif score >= 40:
+        color = "#E69F00"
+        label = "Somewhat Walkable"
+    else:
+        color = "#D55E00"
+        label = "Car-Dependent"
+
+    # SVG arc path
+    cx, cy, r = 70, 70, 55
+    start_angle = 135  # start at bottom-left
+    end_angle_bg = start_angle + total_angle
+    end_angle_fg = start_angle + arc_length
+
+    def _arc_point(angle_deg: float) -> tuple[float, float]:
+        rad = math.radians(angle_deg)
+        return (round(cx + r * math.cos(rad), 1), round(cy + r * math.sin(rad), 1))
+
+    # Background arc
+    bg_start = _arc_point(start_angle)
+    bg_end = _arc_point(end_angle_bg)
+    bg_large = 1 if total_angle > 180 else 0
+    bg_path = f"M {bg_start[0]} {bg_start[1]} A {r} {r} 0 {bg_large} 1 {bg_end[0]} {bg_end[1]}"
+
+    # Foreground arc
+    fg_end = _arc_point(end_angle_fg)
+    fg_large = 1 if arc_length > 180 else 0
+    fg_path = f"M {bg_start[0]} {bg_start[1]} A {r} {r} 0 {fg_large} 1 {fg_end[0]} {fg_end[1]}"
+
+    factors = [
+        {"name": "Amenities", "pts": amenity_pts},
+        {"name": "Transit", "pts": transit_pts},
+        {"name": "CBD Proximity", "pts": cbd_pts},
+        {"name": "Schools", "pts": school_pts},
+    ]
+
+    return {
+        "score": score,
+        "bg_path": bg_path,
+        "fg_path": fg_path,
+        "color": color,
+        "label": label,
+        "factors": factors,
+    }
+
+
+def _build_trajectory_visual(report: dict) -> dict | None:
+    """Signal bar + direction indicator for neighbourhood trajectory."""
+    market = report.get("market") or {}
+    planning = report.get("planning") or {}
+    live = report.get("liveability") or {}
+
+    signals = []
+
+    # Rent trend signal
+    trends = market.get("trends") or []
+    all_trend = next(
+        (t for t in trends if isinstance(t, dict)
+         and t.get("dwelling_type") == "ALL" and t.get("beds") == "ALL"),
+        None,
+    )
+    if all_trend:
+        cagr5 = all_trend.get("cagr_5yr")
+        if cagr5 is not None:
+            if cagr5 > 3:
+                signals.append({"name": "Rent Growth", "direction": "up", "color": "#22C55E"})
+            elif cagr5 > 0:
+                signals.append({"name": "Rent Growth", "direction": "stable", "color": "#E69F00"})
+            else:
+                signals.append({"name": "Rent Growth", "direction": "down", "color": "#D55E00"})
+
+    # Development activity
+    consents = planning.get("resource_consents_500m_2yr") or 0
+    if consents >= 5:
+        signals.append({"name": "Development", "direction": "up", "color": "#22C55E"})
+    elif consents >= 2:
+        signals.append({"name": "Development", "direction": "stable", "color": "#E69F00"})
+    else:
+        signals.append({"name": "Development", "direction": "down", "color": "#9CA3AF"})
+
+    # Infrastructure projects
+    infra = planning.get("infrastructure_5km") or planning.get("infrastructure_projects") or []
+    if len(infra) >= 3:
+        signals.append({"name": "Infrastructure", "direction": "up", "color": "#22C55E"})
+    elif len(infra) >= 1:
+        signals.append({"name": "Infrastructure", "direction": "stable", "color": "#E69F00"})
+    else:
+        signals.append({"name": "Infrastructure", "direction": "stable", "color": "#9CA3AF"})
+
+    # Crime trend
+    crime_pct = live.get("crime_percentile")
+    if crime_pct is not None:
+        try:
+            cp = float(crime_pct)
+            if cp <= 30:
+                signals.append({"name": "Safety", "direction": "up", "color": "#22C55E"})
+            elif cp <= 60:
+                signals.append({"name": "Safety", "direction": "stable", "color": "#E69F00"})
+            else:
+                signals.append({"name": "Safety", "direction": "down", "color": "#D55E00"})
+        except (TypeError, ValueError):
+            pass
+
+    if not signals:
+        return None
+
+    # Overall direction
+    up_count = sum(1 for s in signals if s["direction"] == "up")
+    down_count = sum(1 for s in signals if s["direction"] == "down")
+    if up_count > down_count:
+        direction = "improving"
+        color = "#22C55E"
+        label = "Neighbourhood is improving"
+    elif down_count > up_count:
+        direction = "declining"
+        color = "#D55E00"
+        label = "Neighbourhood may be declining"
+    else:
+        direction = "stable"
+        color = "#E69F00"
+        label = "Neighbourhood is stable"
+
+    return {
+        "direction": direction,
+        "color": color,
+        "signals": signals,
+        "label": label,
+    }
+
+
+def _build_hpi_chart(hpi_data: list) -> dict | None:
+    """National HPI area chart for buyer investment section.
+    ViewBox 500×160."""
+    if not hpi_data or len(hpi_data) < 4:
+        return None
+
+    points = []
+    for row in hpi_data:
+        hpi = row.get("house_price_index")
+        qe = row.get("quarter_end")
+        if hpi is None or qe is None:
+            continue
+        try:
+            hpi_f = float(hpi)
+        except (TypeError, ValueError):
+            continue
+        points.append({"qe": str(qe), "hpi": hpi_f})
+
+    if len(points) < 4:
+        return None
+
+    w, h = 500, 160
+    pad_l, pad_r, pad_t, pad_b = 50, 20, 10, 25
+    chart_w = w - pad_l - pad_r
+    chart_h = h - pad_t - pad_b
+
+    hpi_vals = [p["hpi"] for p in points]
+    y_min = min(hpi_vals) * 0.95
+    y_max = max(hpi_vals) * 1.02
+    if y_max <= y_min:
+        y_max = y_min + 100
+
+    def _x(i: int) -> float:
+        return pad_l + (i / max(len(points) - 1, 1)) * chart_w
+
+    def _y(v: float) -> float:
+        return pad_t + chart_h - ((v - y_min) / (y_max - y_min)) * chart_h
+
+    # Line points
+    line_points = " ".join(f"{_x(i):.1f},{_y(p['hpi']):.1f}" for i, p in enumerate(points))
+
+    # Area polygon (line + bottom edge)
+    area_bottom = f"{_x(len(points)-1):.1f},{pad_t + chart_h} {_x(0):.1f},{pad_t + chart_h}"
+    area_points = line_points + " " + area_bottom
+
+    # X labels (~5)
+    x_labels = []
+    step = max(1, len(points) // 5)
+    for i in range(0, len(points), step):
+        qe = points[i]["qe"]
+        label = qe[:4]  # year
+        x_labels.append({"x": _x(i), "label": label})
+
+    # Y labels
+    y_labels = []
+    y_step = (y_max - y_min) / 4
+    for i in range(5):
+        val = y_min + i * y_step
+        y_labels.append({"y": _y(val), "label": f"{int(val)}"})
+
+    latest = points[-1]["hpi"]
+    earliest = points[0]["hpi"]
+    change_pct = round(((latest - earliest) / earliest) * 100, 1) if earliest > 0 else 0
+
+    return {
+        "area_points": area_points,
+        "line_points": line_points,
+        "x_labels": x_labels,
+        "y_labels": y_labels,
+        "latest": round(latest, 1),
+        "change_pct": change_pct,
+    }
+
+
+def _build_investment_cards(report: dict) -> dict | None:
+    """Structured investment metrics for 2×2 card grid."""
+    prop = report.get("property") or {}
+    market = report.get("market") or {}
+    scores = report.get("scores") or {}
+
+    cv = prop.get("capital_value") or prop.get("cv_capital")
+    land_area = prop.get("land_area_sqm")
+
+    # Yield
+    yield_pct = _compute_yield(report)
+    if yield_pct is not None:
+        if yield_pct > 5:
+            yield_ctx = "Strong yield"
+        elif yield_pct > 3.5:
+            yield_ctx = "Average yield"
+        else:
+            yield_ctx = "Below average"
+    else:
+        yield_ctx = None
+
+    # Rent growth
+    rent_1yr = _get_cagr(report, 1)
+    rent_5yr = _get_cagr(report, 5)
+
+    # Market heat (based on rent growth + consents)
+    planning = report.get("planning") or {}
+    consents = planning.get("resource_consents_500m_2yr") or 0
+    heat_score = 0
+    if rent_5yr and rent_5yr > 3:
+        heat_score += 2
+    elif rent_5yr and rent_5yr > 0:
+        heat_score += 1
+    if consents >= 5:
+        heat_score += 2
+    elif consents >= 2:
+        heat_score += 1
+
+    if heat_score >= 3:
+        heat = "Hot"
+        heat_color = "#C42D2D"
+    elif heat_score >= 2:
+        heat = "Warm"
+        heat_color = "#D55E00"
+    elif heat_score >= 1:
+        heat = "Moderate"
+        heat_color = "#E69F00"
+    else:
+        heat = "Cool"
+        heat_color = "#0D7377"
+
+    # CV per sqm
+    cv_per_sqm = None
+    if cv and land_area and land_area > 0:
+        try:
+            cv_per_sqm = int(int(cv) / float(land_area))
+        except (TypeError, ValueError, ZeroDivisionError):
+            pass
+
+    if yield_pct is None and rent_1yr is None and cv_per_sqm is None:
+        return None
+
+    return {
+        "yield_pct": yield_pct,
+        "yield_ctx": yield_ctx,
+        "rent_1yr": rent_1yr,
+        "rent_5yr": rent_5yr,
+        "heat": heat,
+        "heat_color": heat_color,
+        "cv_per_sqm": cv_per_sqm,
+    }
+
+
+# =============================================================================
+# RAG "At a Glance" Grid
+# =============================================================================
+
+def _build_rag_grid(
+    report: dict, persona: str, insurance_risk: str, walkability: int,
+) -> list[dict]:
+    """Return list of {label, status, tooltip} for traffic-light grid on page 1."""
+    hazards = report.get("hazards") or {}
+    live = report.get("liveability") or {}
+    env = report.get("environment") or {}
+    market = report.get("market") or {}
+    scores = report.get("scores") or {}
+
+    items: list[dict] = []
+
+    # Hazard Risk (composite score)
+    composite = scores.get("composite")
+    if composite is not None:
+        if composite <= 30:
+            items.append({"label": "Hazard Risk", "status": "green", "tooltip": f"Score {int(composite)}/100 — low risk"})
+        elif composite <= 60:
+            items.append({"label": "Hazard Risk", "status": "amber", "tooltip": f"Score {int(composite)}/100 — moderate risk"})
+        else:
+            items.append({"label": "Hazard Risk", "status": "red", "tooltip": f"Score {int(composite)}/100 — elevated risk"})
+    else:
+        items.append({"label": "Hazard Risk", "status": "grey", "tooltip": "No data"})
+
+    # Insurance
+    ins_map = {"green": "green", "amber": "amber", "red": "red"}
+    ins_tip = {"green": "Standard premiums likely", "amber": "May face excess or exclusions", "red": "Significant premium loading likely"}
+    items.append({"label": "Insurance", "status": ins_map.get(insurance_risk, "grey"), "tooltip": ins_tip.get(insurance_risk, "")})
+
+    # Crime
+    crime_pct = live.get("crime_percentile")
+    if crime_pct is not None:
+        if crime_pct <= 25:
+            items.append({"label": "Crime", "status": "green", "tooltip": f"{int(crime_pct)}th percentile — low crime"})
+        elif crime_pct <= 60:
+            items.append({"label": "Crime", "status": "amber", "tooltip": f"{int(crime_pct)}th percentile — moderate"})
+        else:
+            items.append({"label": "Crime", "status": "red", "tooltip": f"{int(crime_pct)}th percentile — above average"})
+    else:
+        items.append({"label": "Crime", "status": "grey", "tooltip": "No data"})
+
+    # Noise
+    noise_db = env.get("road_noise_db")
+    if noise_db is not None:
+        try:
+            db = float(noise_db)
+        except (TypeError, ValueError):
+            db = None
+        if db is not None:
+            if db < 55:
+                items.append({"label": "Noise", "status": "green", "tooltip": f"{db:.0f} dB — quiet"})
+            elif db <= 65:
+                items.append({"label": "Noise", "status": "amber", "tooltip": f"{db:.0f} dB — moderate"})
+            else:
+                items.append({"label": "Noise", "status": "red", "tooltip": f"{db:.0f} dB — loud"})
+        else:
+            items.append({"label": "Noise", "status": "grey", "tooltip": "No data"})
+    else:
+        items.append({"label": "Noise", "status": "grey", "tooltip": "No data"})
+
+    # Walkability
+    if walkability >= 65:
+        items.append({"label": "Walkability", "status": "green", "tooltip": f"Score {walkability} — very walkable"})
+    elif walkability >= 40:
+        items.append({"label": "Walkability", "status": "amber", "tooltip": f"Score {walkability} — somewhat walkable"})
+    else:
+        items.append({"label": "Walkability", "status": "red", "tooltip": f"Score {walkability} — car-dependent"})
+
+    # Schools
+    schools = live.get("schools_1500m") or []
+    in_zone = sum(1 for s in schools if isinstance(s, dict) and s.get("in_zone"))
+    if in_zone >= 2:
+        items.append({"label": "Schools", "status": "green", "tooltip": f"{in_zone} in-zone schools"})
+    elif in_zone == 1:
+        items.append({"label": "Schools", "status": "amber", "tooltip": "1 in-zone school"})
+    elif schools:
+        items.append({"label": "Schools", "status": "red", "tooltip": "No in-zone schools nearby"})
+    else:
+        items.append({"label": "Schools", "status": "grey", "tooltip": "No data"})
+
+    # Transport
+    transit = live.get("transit_stops_400m")
+    if transit is not None:
+        try:
+            stops = int(transit)
+        except (TypeError, ValueError):
+            stops = 0
+        if stops >= 5:
+            items.append({"label": "Transport", "status": "green", "tooltip": f"{stops} stops within 400m"})
+        elif stops >= 2:
+            items.append({"label": "Transport", "status": "amber", "tooltip": f"{stops} stops within 400m"})
+        else:
+            items.append({"label": "Transport", "status": "red", "tooltip": f"{stops} stop{'s' if stops != 1 else ''} within 400m"})
+    else:
+        items.append({"label": "Transport", "status": "grey", "tooltip": "No data"})
+
+    # Persona-specific last item
+    if persona == "buyer":
+        yield_pct = _compute_yield(report)
+        if yield_pct is not None:
+            if yield_pct > 4:
+                items.append({"label": "Yield", "status": "green", "tooltip": f"{yield_pct}% gross yield"})
+            elif yield_pct >= 3:
+                items.append({"label": "Yield", "status": "amber", "tooltip": f"{yield_pct}% gross yield"})
+            else:
+                items.append({"label": "Yield", "status": "red", "tooltip": f"{yield_pct}% gross yield"})
+        else:
+            items.append({"label": "Yield", "status": "grey", "tooltip": "No data"})
+    else:
+        # Renter: rent vs median
+        rental_list = market.get("rental_overview") or []
+        all_r = next(
+            (r for r in rental_list if isinstance(r, dict)
+             and r.get("dwelling_type") == "House" and r.get("beds") == "ALL"),
+            next((r for r in rental_list if isinstance(r, dict) and r.get("beds") == "ALL"), None),
+        )
+        if all_r and all_r.get("median"):
+            median = all_r["median"]
+            uq = all_r.get("upper_quartile") or median * 1.2
+            if median <= median:  # always true for the area median
+                items.append({"label": "Rent", "status": "green", "tooltip": f"Median ${int(median)}/wk for area"})
+            elif median <= uq:
+                items.append({"label": "Rent", "status": "amber", "tooltip": f"${int(median)}/wk — near upper range"})
+            else:
+                items.append({"label": "Rent", "status": "red", "tooltip": f"Above upper quartile"})
+        else:
+            items.append({"label": "Rent", "status": "grey", "tooltip": "No rental data"})
+
+    return items
+
+
+# =============================================================================
+# Active Fault Section
+# =============================================================================
+
+def _build_active_fault_section(hazards: dict) -> dict | None:
+    """Build active fault display data from hazard dict."""
+    fault_nearest = hazards.get("active_fault_nearest")
+    faz = hazards.get("fault_avoidance_zone")
+
+    if not fault_nearest and not faz:
+        return None
+
+    result: dict[str, Any] = {}
+
+    if isinstance(fault_nearest, dict) and fault_nearest.get("fault_name"):
+        result["fault_name"] = fault_nearest.get("fault_name", "Unknown Fault")
+        result["fault_class"] = fault_nearest.get("fault_class", "")
+        result["distance_m"] = fault_nearest.get("distance_m")
+        result["slip_rate"] = fault_nearest.get("slip_rate_mm_yr")
+        result["recurrence"] = fault_nearest.get("recurrence_interval")
+
+    if isinstance(faz, dict) and faz.get("fault_name"):
+        result["in_avoidance_zone"] = True
+        result["faz_fault_name"] = faz.get("fault_name", "")
+        result["faz_zone_type"] = faz.get("zone_type", "")
+        result["faz_fault_class"] = faz.get("fault_class", "")
+        result["faz_setback_m"] = faz.get("setback_m")
+    else:
+        result["in_avoidance_zone"] = False
+
+    # Risk class
+    dist = result.get("distance_m")
+    if result.get("in_avoidance_zone"):
+        result["risk_class"] = "warn"
+    elif dist is not None and dist < 500:
+        result["risk_class"] = "warn"
+    elif dist is not None and dist < 2000:
+        result["risk_class"] = "info"
+    else:
+        result["risk_class"] = "ok"
+
+    return result if (result.get("fault_name") or result.get("in_avoidance_zone")) else None
+
+
+# =============================================================================
+# Healthy Homes Signals (Renter Page)
+# =============================================================================
+
+def _build_healthy_homes_signals(report: dict) -> list[dict]:
+    """Build 5 Healthy Homes standard rows with status flags from hazard data."""
+    hazards = report.get("hazards") or {}
+
+    # Determine environmental flags
+    flood = bool(hazards.get("flood"))
+    liq_raw = str(hazards.get("liquefaction") or "").lower()
+    high_liq = "high" in liq_raw or "very high" in liq_raw
+    coastal_erosion = bool(hazards.get("coastal_erosion") and str(hazards.get("coastal_erosion")).strip().lower() not in ("", "none", "0", "stable"))
+    wind_raw = str(hazards.get("wind_zone") or "").strip().upper()
+    high_wind = wind_raw in ("H", "VH", "EH", "SED")
+
+    rows = [
+        {
+            "area": "Heating",
+            "check": "Fixed heater capable of ≥1.5kW in main living area",
+            "status": "unknown",
+            "flagged": False,
+            "flag_reason": "",
+        },
+        {
+            "area": "Insulation",
+            "check": "Ceiling ≥R2.9, underfloor ≥R1.3",
+            "status": "unknown",
+            "flagged": False,
+            "flag_reason": "",
+        },
+        {
+            "area": "Ventilation",
+            "check": "Extractor fans in kitchen & bathroom vent to outside",
+            "status": "unknown",
+            "flagged": False,
+            "flag_reason": "",
+        },
+        {
+            "area": "Moisture",
+            "check": "No visible mould, condensation, or rising damp",
+            "status": "flagged" if (flood or high_liq or coastal_erosion) else "unknown",
+            "flagged": flood or high_liq or coastal_erosion,
+            "flag_reason": ", ".join(filter(None, [
+                "flood zone" if flood else "",
+                "high liquefaction" if high_liq else "",
+                "coastal erosion risk" if coastal_erosion else "",
+            ])),
+        },
+        {
+            "area": "Draught",
+            "check": "Window and door seals intact, no draughts",
+            "status": "flagged" if high_wind else "unknown",
+            "flagged": high_wind,
+            "flag_reason": f"Wind zone {wind_raw} — higher draught risk" if high_wind else "",
+        },
+    ]
+    return rows
+
+
+# =============================================================================
+# Rent Verdict (Renter Page)
+# =============================================================================
+
+def _build_rent_verdict(report: dict, budget_inputs: dict | None) -> dict | None:
+    """Compare user rent to area median. Returns verdict dict or None."""
+    market = report.get("market") or {}
+    addr = report.get("address") or {}
+    rental_list = market.get("rental_overview") or []
+
+    # Get median rent
+    all_r = next(
+        (r for r in rental_list if isinstance(r, dict)
+         and r.get("dwelling_type") == "House" and r.get("beds") == "ALL"),
+        next((r for r in rental_list if isinstance(r, dict) and r.get("beds") == "ALL"), None),
+    )
+    if not all_r or not all_r.get("median"):
+        return None
+
+    median = float(all_r["median"])
+    uq = float(all_r.get("upper_quartile") or median * 1.2)
+    bond_count = all_r.get("bond_count")
+
+    # User rent from budget inputs
+    user_rent = None
+    if budget_inputs and budget_inputs.get("rent_weekly"):
+        try:
+            user_rent = float(budget_inputs["rent_weekly"])
+        except (TypeError, ValueError):
+            pass
+
+    suburb = addr.get("suburb") or addr.get("sa2_name") or "this area"
+    dwelling_type = all_r.get("dwelling_type") or "all types"
+
+    result: dict[str, Any] = {
+        "median": int(median),
+        "uq": int(uq),
+        "suburb": suburb,
+        "dwelling_type": dwelling_type,
+    }
+
+    # Confidence stars based on bond count
+    if bond_count:
+        try:
+            bc = int(bond_count)
+        except (TypeError, ValueError):
+            bc = 0
+        if bc >= 50:
+            result["confidence"] = 5
+        elif bc >= 30:
+            result["confidence"] = 4
+        elif bc >= 15:
+            result["confidence"] = 3
+        elif bc >= 5:
+            result["confidence"] = 2
+        else:
+            result["confidence"] = 1
+    else:
+        result["confidence"] = 0
+
+    if user_rent is not None:
+        result["user_rent"] = int(user_rent)
+        pct_diff = ((user_rent - median) / median) * 100
+        if pct_diff < -5:
+            result["position"] = "below"
+            result["color"] = "green"
+        elif pct_diff > 5:
+            result["position"] = "above"
+            result["color"] = "red"
+        else:
+            result["position"] = "at"
+            result["color"] = "amber"
+    else:
+        result["user_rent"] = None
+        result["position"] = None
+        result["color"] = None
+
+    return result
+
+
+# =============================================================================
+# Section Interpretations ("What This Means" one-liners)
+# =============================================================================
+
+def _build_section_interpretations(
+    report: dict,
+    persona: str,
+    insights: dict,
+    monthly_cost: dict | None,
+    trajectory: dict | None,
+    investment_cards: dict | None,
+    hazard_rows: list[dict] | None = None,
+    comparison_bars: list[dict] | None = None,
+) -> dict[str, str]:
+    """Return interpretation text keyed by section name."""
+    interp: dict[str, str] = {}
+
+    # Hazards
+    if hazard_rows:
+        warn_rows = [r for r in hazard_rows if r.get("risk_class") == "warn"]
+        if warn_rows:
+            worst = warn_rows[0]["label"]
+            interp["hazards"] = (
+                f"{len(warn_rows)} of {len(hazard_rows)} hazard checks flagged. "
+                f"{worst} is the most significant concern."
+            )
+        else:
+            interp["hazards"] = "No hazard concerns — clean safety profile."
+
+    # Money
+    if monthly_cost and isinstance(monthly_cost, dict):
+        total = monthly_cost.get("total", 0)
+        ratio = monthly_cost.get("affordability_ratio")
+        if persona == "buyer":
+            if ratio:
+                if ratio < 30:
+                    comfort = "comfortable"
+                elif ratio <= 40:
+                    comfort = "a stretch"
+                else:
+                    comfort = "stressful"
+                interp["money"] = f"Total ${total:,}/mo. At {ratio}% of income, this is {comfort}."
+            else:
+                interp["money"] = f"Estimated ownership cost ${total:,}/mo."
+        else:
+            rent_pct = monthly_cost.get("rent_pct")
+            if rent_pct:
+                if rent_pct < 30:
+                    health = "healthy"
+                elif rent_pct <= 40:
+                    health = "tight"
+                else:
+                    health = "stressed"
+                interp["money"] = (
+                    f"Rent takes {rent_pct}% of your monthly budget — {health}. "
+                    f"The average NZ renter spends 32%."
+                )
+            elif total:
+                interp["money"] = f"Estimated monthly cost ${total:,}/mo."
+
+    # Neighbourhood
+    if comparison_bars:
+        above_count = sum(1 for bar in comparison_bars if bar.get("property_above_suburb"))
+        interp["neighbourhood"] = f"Scores above average on {above_count} of {len(comparison_bars)} metrics."
+
+    # Trajectory
+    if trajectory and isinstance(trajectory, dict):
+        direction = trajectory.get("direction", "stable")
+        if direction == "improving":
+            interp["trajectory"] = "Neighbourhood shows positive signals — improving trajectory."
+        elif direction == "declining":
+            interp["trajectory"] = "Neighbourhood shows negative signals — declining trajectory."
+        else:
+            interp["trajectory"] = "Neighbourhood shows mixed signals — stable trajectory."
+
+    # Investment (buyer only)
+    if persona == "buyer" and investment_cards and isinstance(investment_cards, dict):
+        yld = investment_cards.get("yield_pct")
+        heat = investment_cards.get("heat", "")
+        if yld:
+            if yld > 4 and heat in ("Hot", "Warm"):
+                outlook = "promising fundamentals"
+            elif yld < 3 and heat in ("Cool",):
+                outlook = "needs careful analysis"
+            else:
+                outlook = "moderate outlook"
+            interp["investment"] = f"At {yld}% yield and {heat.lower()} market, {outlook}."
+
+    return interp
 
 
 # =============================================================================
@@ -2244,6 +3481,12 @@ def render(
     nearby_restaurants: list[dict] | None = None,
     nearby_playgrounds: list[dict] | None = None,
     nearby_zones: list[dict] | None = None,
+    persona: str = "buyer",
+    rent_history_data: list[dict] | None = None,
+    hpi_data: list[dict] | None = None,
+    rates_data: dict | None = None,
+    user_display_name: str | None = None,
+    budget_inputs: dict | None = None,
 ) -> str:
     """Generate premium HTML from a property report dict.
 
@@ -2253,6 +3496,9 @@ def render(
     recommendations      — output of build_recommendations(report) → list of rec dicts
     nearby_supermarkets  — list of up to 5 nearby supermarkets from OSM
     nearby_highlights    — {"good": [...], "caution": [...], "info": [...]} categorised amenities
+    rent_history_data    — 10yr rent time series from bonds_detailed
+    hpi_data             — national HPI trend from rbnz_housing
+    rates_data           — WCC rates breakdown (Wellington only)
     """
     if python_insights is None:
         python_insights = build_insights(report)
@@ -2412,7 +3658,69 @@ def render(
     ), autoescape=True)
     template = env_jinja.get_template("property_report.html")
 
+    # Persona-specific computed values
+    persona_label = "Renter Report" if persona == "renter" else "Property Report"
+
+    # Insurance risk assessment
+    _insurance_factors = []
+    if hazards.get("flood"):
+        _insurance_factors.append("Flood zone")
+    if planning.get("epb_listed"):
+        _insurance_factors.append("Earthquake-prone building")
+    _slope = (hazards.get("slope_failure") or "").lower()
+    if "high" in _slope:
+        _insurance_factors.append("Slope failure risk")
+    if hazards.get("tsunami_evac_zone") or hazards.get("tsunami_zone_class"):
+        _insurance_factors.append("Tsunami zone")
+    if hazards.get("landslide_in_area"):
+        _insurance_factors.append("Mapped landslide area")
+    insurance_risk = "green" if len(_insurance_factors) == 0 else ("amber" if len(_insurance_factors) <= 2 else "red")
+    insurance_message = {
+        "green": "Standard insurance likely available at normal premiums.",
+        "amber": f"May face excess or exclusions for {', '.join(f.lower() for f in _insurance_factors)}.",
+        "red": "Likely to face significant premium loading or difficulty obtaining cover.",
+    }[insurance_risk]
+
+    # Walkability estimate
+    _amenity_ct = sum(v for v in (live.get("amenities_500m") or {}).values() if isinstance(v, (int, float)))
+    _transit_ct = live.get("transit_stops_400m") or 0
+    _cbd_dist = live.get("cbd_distance_m") or 10000
+    _school_ct = len(live.get("schools_1500m") or [])
+    walkability = min(100, (
+        min(25, round((_amenity_ct / 15) * 25))
+        + min(25, round((_transit_ct / 10) * 25))
+        + max(0, round(20 * (1 - min(_cbd_dist, 5000) / 5000)))
+        + min(15, round((_school_ct / 5) * 15))
+        + 10  # baseline
+    ))
+
+    # Phase 6: New SVG chart builders
+    rent_trend_chart = _build_rent_trend_chart(rent_history_data or [])
+    rent_quartile_box = _build_rent_quartile_box(rental_list)
+    transit_mode_chart = _build_transit_mode_bars(live)
+    amenity_breakdown = _build_amenity_breakdown(live.get("amenities_500m") or {})
+    monthly_cost = _build_budget_from_inputs(report, budget_inputs, rates_data) or _build_monthly_cost(report, rates_data)
+    walkability_gauge = _build_walkability_gauge(live)
+    trajectory = _build_trajectory_visual(report)
+    hpi_chart = _build_hpi_chart(hpi_data or [])
+    investment_cards = _build_investment_cards(report)
+
+    # Premium PDF overhaul builders
+    comparison_bars = _build_comparison_bars(report, suburb_name=addr.get("suburb") or addr.get("sa2_name") or "")
+    rag_grid = _build_rag_grid(report, persona, insurance_risk, walkability)
+    active_fault_section = _build_active_fault_section(hazards)
+    healthy_homes = _build_healthy_homes_signals(report)
+    rent_verdict = _build_rent_verdict(report, budget_inputs)
+    section_interp = _build_section_interpretations(
+        report, persona, python_insights, monthly_cost,
+        trajectory, investment_cards,
+        hazard_rows=hazard_rows, comparison_bars=comparison_bars,
+    )
+
     return template.render(
+        # Persona
+        persona=persona,
+        persona_label=persona_label,
         # Cover
         full_address=full_address,
         report_date=date.today().isoformat(),
@@ -2457,7 +3765,7 @@ def render(
         consents_count=consents_count,
         # Environment helpers
         noise_context=noise_ctx,
-        city_median_noise=58,   # Wellington residential median
+        city_median_noise=58,   # NZ urban residential median
         contam_category_explanation=contam_cat_exp,
         # New additions
         hazard_rows=hazard_rows,
@@ -2495,7 +3803,7 @@ def render(
         recs_important=[r for r in recommendations if r["severity"] == "important"],
         recs_advisory=[r for r in recommendations if r["severity"] == "advisory"],
         # Phase 4: Premium PDF Toolkit
-        comparison_bars=_build_comparison_bars(report, suburb_name=addr.get("suburb") or addr.get("sa2_name") or ""),
+        comparison_bars=comparison_bars,
         radar_chart=_build_radar_chart(categories),
         hazard_bars=_build_hazard_bars(report),
         rent_bars=_build_rent_bars(report),
@@ -2527,4 +3835,46 @@ def render(
             {"source": "NIWA Climate Projections (SSP2-4.5)", "last_updated": "2024", "coverage_pct": 100},
             {"source": "GWRC Contaminated Land (SLUR)", "last_updated": "2024", "coverage_pct": 90},
         ],
+        # Phase 5: New computed sections
+        insurance_risk=insurance_risk,
+        insurance_factors=_insurance_factors,
+        insurance_message=insurance_message,
+        walkability_score=walkability,
+        # Phase 6: New SVG charts + missing data fields
+        rent_trend_chart=rent_trend_chart,
+        rent_quartile_box=rent_quartile_box,
+        transit_mode_chart=transit_mode_chart,
+        amenity_breakdown=amenity_breakdown,
+        monthly_cost=monthly_cost,
+        walkability_gauge=walkability_gauge,
+        trajectory=trajectory,
+        hpi_chart=hpi_chart,
+        investment_cards=investment_cards,
+        rates_data=rates_data,
+        # Missing data fields
+        in_corrosion_zone=hazards.get("in_corrosion_zone"),
+        in_rail_vibration_area=hazards.get("in_rail_vibration_area"),
+        rail_vibration_type=hazards.get("rail_vibration_type"),
+        on_erosion_prone_land=hazards.get("on_erosion_prone_land"),
+        erosion_min_angle=hazards.get("erosion_min_angle"),
+        coastal_elevation_m=hazards.get("coastal_elevation_m"),
+        coastal_inundation_ranking=hazards.get("coastal_inundation_ranking"),
+        in_viewshaft=planning.get("in_viewshaft"),
+        viewshaft_name=planning.get("viewshaft_name"),
+        in_character_precinct=planning.get("in_character_precinct"),
+        character_precinct_name=planning.get("character_precinct_name"),
+        conservation_nearest=live.get("conservation_nearest"),
+        building_use=prop.get("building_use"),
+        title_type=prop.get("title_type"),
+        estate_description=prop.get("estate_description"),
+        zone_category=planning.get("zone_category"),
+        # Premium user personalisation
+        is_premium=user_display_name is not None,
+        user_display_name=user_display_name,
+        # Premium PDF overhaul
+        rag_grid=rag_grid,
+        active_fault_section=active_fault_section,
+        healthy_homes=healthy_homes,
+        rent_verdict=rent_verdict,
+        section_interp=section_interp,
     )

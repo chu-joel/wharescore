@@ -36,12 +36,12 @@ export function CommutePreviewCard({
           <Clock className="h-4 w-4 text-piq-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold">Commute times</p>
-          {peakTripsPerHour != null && (
-            <p className="text-[10px] text-muted-foreground">
-              ~{Math.round(peakTripsPerHour)} services/hr at peak
-            </p>
-          )}
+          <p className="text-xs font-semibold">Morning commute</p>
+          <p className="text-[10px] text-muted-foreground">
+            {peakTripsPerHour != null
+              ? `~${Math.round(peakTripsPerHour)} services/hr · 7–9 AM`
+              : '7–9 AM weekday schedule'}
+          </p>
         </div>
       </div>
 

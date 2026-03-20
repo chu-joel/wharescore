@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: run migrations, open DB pool + Redis. Shutdown: close both."""
+    """Startup: validate secrets, run migrations, open DB pool + Redis. Shutdown: close both."""
+    settings.validate_secrets()
     run_migrations(settings.DATABASE_URL)
     await db.init_pool(settings.DATABASE_URL)
     await app_redis.init_redis(settings.REDIS_URL)
@@ -40,6 +41,9 @@ app = FastAPI(
     title="WhareScore API",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if settings.ENVIRONMENT == "development" else None,
 )
 
 # --- Middleware stack (order matters — outermost runs first) ---
@@ -54,7 +58,7 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self), payment=(self), interest-cohort=()"
     if settings.ENVIRONMENT == "production":
         response.headers["Strict-Transport-Security"] = (
             "max-age=63072000; includeSubDomains; preload"
@@ -68,7 +72,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT"],
     allow_headers=["Content-Type", "Authorization"],
     allow_credentials=True,
-    max_age=3600,
+    max_age=3600 if settings.ENVIRONMENT == "production" else 0,
 )
 
 # 4. Bot detection — block scrapers, detect scraping patterns
@@ -126,3 +130,11 @@ from .routers import rent_reports, feedback, email_signups
 app.include_router(rent_reports.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(email_signups.router, prefix="/api/v1")
+
+from .routers import webhooks, payments, account
+app.include_router(webhooks.router, prefix="/api/v1")
+app.include_router(payments.router, prefix="/api/v1")
+app.include_router(account.router, prefix="/api/v1")
+
+from .routers import budget
+app.include_router(budget.router, prefix="/api/v1")

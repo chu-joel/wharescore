@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Plus, Minus, Locate, Map as MapIcon } from 'lucide-react';
+import { Plus, Minus, Locate, Map as MapIcon, Mountain } from 'lucide-react';
 import { useMapStore } from '@/stores/mapStore';
 import type { MapRef } from 'react-map-gl/maplibre';
 import { TIMING } from '@/lib/animations';
@@ -42,6 +42,7 @@ export function MapControls({ mapRef }: MapControlsProps) {
   const resetViewport = useMapStore((s) => s.resetViewport);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState(false);
+  const [terrainEnabled, setTerrainEnabled] = useState(false);
 
   const reducedMotion =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -137,8 +138,43 @@ export function MapControls({ mapRef }: MapControlsProps) {
     resetViewport();
   }, [mapRef, resetViewport, reducedMotion]);
 
+  const toggleTerrain = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const next = !terrainEnabled;
+    setTerrainEnabled(next);
+
+    if (next) {
+      // Add terrain source if not present
+      if (!map.getSource('terrain-source')) {
+        map.addSource('terrain-source', {
+          type: 'raster-dem',
+          tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+          encoding: 'terrarium',
+          tileSize: 256,
+          maxzoom: 15,
+        });
+      }
+      map.setTerrain({ source: 'terrain-source', exaggeration: 1.5 });
+      // Tilt the map to show terrain
+      if (!reducedMotion) {
+        map.easeTo({ pitch: 60, duration: 600 });
+      } else {
+        map.jumpTo({ pitch: 60 });
+      }
+    } else {
+      map.setTerrain(null);
+      if (!reducedMotion) {
+        map.easeTo({ pitch: 0, duration: 400 });
+      } else {
+        map.jumpTo({ pitch: 0 });
+      }
+    }
+  }, [mapRef, terrainEnabled, reducedMotion]);
+
   return (
-    <div className="absolute bottom-80 right-3 lg:top-14 lg:bottom-auto lg:right-3 z-20 flex flex-col gap-1">
+    <div className="absolute bottom-80 right-3 lg:top-14 lg:bottom-auto lg:right-3 z-30 flex flex-col gap-1">
       <ControlButton onClick={zoomIn} label="Zoom in" disabled={viewport.zoom >= 18}>
         <Plus className="h-4 w-4" />
       </ControlButton>
@@ -162,6 +198,16 @@ export function MapControls({ mapRef }: MapControlsProps) {
 
       <ControlButton onClick={handleReset} label="Reset view">
         <MapIcon className="h-3.5 w-3.5" />
+      </ControlButton>
+
+      <div className="h-1" />
+
+      <ControlButton
+        onClick={toggleTerrain}
+        label={terrainEnabled ? '3D terrain on' : '3D terrain'}
+        className={terrainEnabled ? 'ring-2 ring-piq-primary border-piq-primary' : ''}
+      >
+        <Mountain className={`h-4 w-4 ${terrainEnabled ? 'text-piq-primary' : ''}`} />
       </ControlButton>
     </div>
   );

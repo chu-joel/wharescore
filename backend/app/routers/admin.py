@@ -7,9 +7,12 @@ import io
 import json
 import re
 
+import logging
+
 import orjson
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from psycopg import sql
 
 from ..config import settings
 from .. import db as _db
@@ -17,11 +20,44 @@ from ..deps import limiter
 from ..redis import redis_client
 from ..services.admin_auth import (
     ADMIN_SESSION_DURATION,
+    delete_admin_session,
     require_admin,
     verify_admin,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/admin")
+
+# Hardcoded whitelist of table names safe for admin queries (defence-in-depth)
+ALLOWED_TABLES = frozenset([
+    "addresses", "parcels", "building_outlines", "property_titles",
+    "flood_zones", "tsunami_zones", "liquefaction_zones", "earthquakes",
+    "schools", "crashes", "transit_stops", "crime", "heritage_sites",
+    "wind_zones", "noise_contours", "air_quality_sites", "water_quality_sites",
+    "climate_grid", "climate_projections", "infrastructure_projects",
+    "district_plan_zones", "height_controls", "contaminated_land",
+    "earthquake_prone_buildings", "resource_consents", "sa2_boundaries",
+    "council_valuations", "bonds_detailed", "bonds_tla", "bonds_region",
+    "market_rent_cache", "wcc_rates_cache", "osm_amenities",
+    "conservation_land", "area_profiles", "user_rent_reports",
+    "feedback", "email_signups", "data_sources",
+    "earthquake_hazard", "ground_shaking", "liquefaction_detail",
+    "slope_failure", "fault_zones", "flood_hazard",
+    "tsunami_hazard", "flood_extent", "landslide_susceptibility",
+    "wcc_solar_radiation", "metlink_stops",
+    "transit_travel_times", "transit_stop_frequency", "mbie_epb",
+    "active_faults", "fault_avoidance_zones",
+    "landslide_events", "landslide_areas",
+    "stormwater_management_area", "overland_flow_paths",
+    "historic_heritage_overlay", "aircraft_noise_overlay",
+    "special_character_areas", "notable_trees",
+    "significant_ecological_areas", "coastal_erosion",
+    "height_variation_control", "mana_whenua_sites",
+    "geotechnical_reports", "auckland_schools", "park_extents",
+    "heritage_extent",
+    "at_stops", "at_travel_times", "at_stop_frequency",
+])
 
 # All recommendation rule IDs with default severity, title, category, and action templates.
 # Action templates use {placeholder} syntax for dynamic property data.
@@ -639,9 +675,42 @@ DEFAULT_RECOMMENDATIONS = [
 @limiter.limit("5/15minutes" if settings.ENVIRONMENT == "production" else "100/minute")
 async def admin_login(request: Request, password: str = Body(..., embed=True)):
     """Authenticate admin. Returns session cookie (httpOnly, secure, sameSite)."""
+    client_ip = request.client.host if request.client else "unknown"
+
+    # M1: Brute force protection — 5 failures from same IP = 15min lockout
+    if redis_client:
+        lockout_key = f"admin_lockout:{client_ip}"
+        try:
+            lockout = await redis_client.get(lockout_key)
+            if lockout and int(lockout) >= 5:
+                raise HTTPException(429, "Too many login attempts. Try again in 15 minutes.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
     token = await verify_admin(password, settings.ADMIN_PASSWORD_HASH)
     if not token:
+        # Track failed attempt
+        if redis_client:
+            try:
+                pipe = redis_client.pipeline()
+                pipe.incr(f"admin_lockout:{client_ip}")
+                pipe.expire(f"admin_lockout:{client_ip}", 900)  # 15 minutes
+                await pipe.execute()
+            except Exception:
+                pass
+        logger.warning(f"ADMIN_AUDIT: login_failed from {client_ip}")
         raise HTTPException(401, "Invalid password")
+
+    # Clear lockout on success
+    if redis_client:
+        try:
+            await redis_client.delete(f"admin_lockout:{client_ip}")
+        except Exception:
+            pass
+
+    logger.info(f"ADMIN_AUDIT: login_success from {client_ip}")
     response = JSONResponse({"status": "authenticated"})
     is_prod = settings.ENVIRONMENT == "production"
     response.set_cookie(
@@ -655,6 +724,20 @@ async def admin_login(request: Request, password: str = Body(..., embed=True)):
     return response
 
 
+@router.post("/logout", dependencies=[Depends(require_admin)])
+@limiter.limit("10/minute")
+async def admin_logout(request: Request):
+    """Invalidate admin session."""
+    token = request.cookies.get("admin_token")
+    if token:
+        await delete_admin_session(token)
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: logout from {client_ip}")
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("admin_token")
+    return response
+
+
 # --- Dashboard ---
 
 @router.get("/dashboard", dependencies=[Depends(require_admin)])
@@ -663,9 +746,10 @@ async def admin_dashboard(request: Request):
     """Summary stats: rent report counts, feedback counts, email signups."""
     async with _db.pool.connection() as conn:
         stats = {}
-        for label, interval in [("24h", "24 hours"), ("7d", "7 days"), ("30d", "30 days")]:
+        for label, days in [("24h", 1), ("7d", 7), ("30d", 30)]:
             cur = await conn.execute(
-                f"SELECT COUNT(*) AS cnt FROM user_rent_reports WHERE reported_at > NOW() - interval '{interval}'"
+                "SELECT COUNT(*) AS cnt FROM user_rent_reports WHERE reported_at > NOW() - make_interval(days => %s)",
+                [days],
             )
             stats[f"rent_reports_{label}"] = (cur.fetchone())["cnt"]
 
@@ -691,30 +775,11 @@ async def admin_dashboard(request: Request):
 @limiter.limit("30/minute")
 async def admin_data_health(request: Request):
     """Per-table row counts + service health checks."""
-    # Table names are hardcoded — NOT from user input (safe for f-string)
-    tables = [
-        "addresses", "parcels", "building_outlines", "property_titles",
-        "flood_zones", "tsunami_zones", "liquefaction_zones", "earthquakes",
-        "schools", "crashes", "transit_stops", "crime", "heritage_sites",
-        "wind_zones", "noise_contours", "air_quality_sites", "water_quality_sites",
-        "climate_grid", "climate_projections", "infrastructure_projects",
-        "district_plan_zones", "height_controls", "contaminated_land",
-        "earthquake_prone_buildings", "resource_consents", "sa2_boundaries",
-        "council_valuations", "bonds_detailed", "bonds_tla", "bonds_region",
-        "market_rent_cache", "wcc_rates_cache", "osm_amenities",
-        "conservation_land", "area_profiles", "user_rent_reports",
-        "feedback", "email_signups", "data_sources",
-        # Wellington-specific
-        "gwrc_earthquake_hazard", "gwrc_ground_shaking", "gwrc_liquefaction",
-        "gwrc_slope_failure", "wcc_fault_zones", "wcc_flood_hazard",
-        "wcc_tsunami_hazard", "wcc_solar_radiation", "metlink_stops",
-        "transit_travel_times", "transit_stop_frequency", "mbie_epb",
-    ]
     table_stats = {}
     async with _db.pool.connection() as conn:
-        for t in tables:
+        for t in ALLOWED_TABLES:
             try:
-                cur = await conn.execute(f"SELECT COUNT(*) AS cnt FROM {t}")
+                cur = await conn.execute(sql.SQL("SELECT COUNT(*) AS cnt FROM {}").format(sql.Identifier(t)))
                 table_stats[t] = (cur.fetchone())["cnt"]
             except Exception:
                 table_stats[t] = "error"
@@ -744,8 +809,10 @@ async def admin_data_sources(request: Request):
         for src in DATA_SOURCES:
             table_counts = {}
             for t in src.tables:
+                if t not in ALLOWED_TABLES:
+                    continue
                 try:
-                    cur = await conn.execute(f"SELECT COUNT(*) AS cnt FROM {t}")
+                    cur = await conn.execute(sql.SQL("SELECT COUNT(*) AS cnt FROM {}").format(sql.Identifier(t)))
                     table_counts[t] = (cur.fetchone())["cnt"]
                 except Exception:
                     table_counts[t] = 0
@@ -796,6 +863,9 @@ async def admin_load_data_source(request: Request, source_key: str):
 
     if source_key not in DATA_SOURCES_BY_KEY:
         raise HTTPException(404, f"Unknown data source: {source_key}")
+
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: load_data_source {source_key} from {client_ip}")
 
     # Check for active job
     if redis_client:
@@ -912,26 +982,26 @@ async def admin_feedback_list(
     offset = (page - 1) * limit
     async with _db.pool.connection() as conn:
         where_clauses = []
-        params = []
+        params: list = []
         if type:
-            where_clauses.append("type = %s")
+            where_clauses.append(sql.SQL("type = %s"))
             params.append(type)
         if status:
-            where_clauses.append("status = %s")
+            where_clauses.append(sql.SQL("status = %s"))
             params.append(status)
-        where = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        where = sql.SQL(" WHERE ") + sql.SQL(" AND ").join(where_clauses) if where_clauses else sql.SQL("")
 
-        cur = await conn.execute(f"SELECT COUNT(*) AS cnt FROM feedback {where}", params)
+        cur = await conn.execute(sql.SQL("SELECT COUNT(*) AS cnt FROM feedback") + where, params)
         total = (cur.fetchone())["cnt"]
 
         cur = await conn.execute(
-            f"""
+            sql.SQL("""
             SELECT id, type, description, context, page_url, property_address,
                    importance, satisfaction, email, status, created_at
-            FROM feedback {where}
+            FROM feedback""") + where + sql.SQL("""
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s
-            """,
+            """),
             params + [limit, offset],
         )
         items = cur.fetchall()

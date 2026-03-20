@@ -104,11 +104,11 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
 
         # -- Area profile --
         cur = await conn.execute(
-            "SELECT profile_text FROM area_profiles WHERE sa2_code = %s LIMIT 1",
+            "SELECT profile FROM area_profiles WHERE sa2_code = %s LIMIT 1",
             [sa2_code],
         )
         profile_row = cur.fetchone()
-        area_profile = profile_row["profile_text"] if profile_row else None
+        area_profile = profile_row["profile"] if profile_row else None
 
         # -- Rental overview --
         cur = await conn.execute(

@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { FeedbackFAB } from "@/components/feedback/FeedbackFAB";
 import { AnalyticsConsent } from "@/components/common/AnalyticsConsent";
+import { AuthSync } from "@/components/common/AuthSync";
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -35,11 +37,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>
-          {children}
-          <FeedbackFAB />
-          <AnalyticsConsent />
-        </Providers>
+        <SessionProvider>
+          <Providers>
+            <AuthSync />
+            {children}
+            <FeedbackFAB />
+            <AnalyticsConsent />
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );

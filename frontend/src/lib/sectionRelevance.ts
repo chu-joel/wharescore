@@ -1,22 +1,32 @@
 import type { PropertyReport } from '@/lib/types';
+import type { Persona } from '@/stores/personaStore';
 
 export interface SectionRelevance {
   section: 'risk' | 'liveability' | 'market' | 'transport' | 'planning';
   score: number;
 }
 
+/** Persona boosts: extra weight for sections most relevant to each persona */
+const PERSONA_BOOSTS: Record<Persona, Partial<Record<SectionRelevance['section'], number>>> = {
+  renter: { risk: 15, market: 10, liveability: 5 },
+  buyer: { risk: 10, planning: 15, market: 10 },
+};
+
 /**
  * Scores each accordion section 0–100 based on how "interesting" the
  * property's data is for that category. Sections with higher scores
  * contain more noteworthy information and should be shown first.
+ * Optionally accepts a persona to boost relevant sections.
  */
-export function scoreSectionRelevance(report: PropertyReport): SectionRelevance[] {
+export function scoreSectionRelevance(report: PropertyReport, persona?: Persona): SectionRelevance[] {
+  const boosts = persona ? PERSONA_BOOSTS[persona] : {};
+
   const results: SectionRelevance[] = [
-    { section: 'risk', score: scoreRisk(report) },
-    { section: 'liveability', score: scoreLiveability(report) },
-    { section: 'market', score: scoreMarket(report) },
-    { section: 'transport', score: scoreTransport(report) },
-    { section: 'planning', score: scorePlanning(report) },
+    { section: 'risk', score: Math.min(100, scoreRisk(report) + (boosts.risk ?? 0)) },
+    { section: 'liveability', score: Math.min(100, scoreLiveability(report) + (boosts.liveability ?? 0)) },
+    { section: 'market', score: Math.min(100, scoreMarket(report) + (boosts.market ?? 0)) },
+    { section: 'transport', score: Math.min(100, scoreTransport(report) + (boosts.transport ?? 0)) },
+    { section: 'planning', score: Math.min(100, scorePlanning(report) + (boosts.planning ?? 0)) },
   ];
 
   return results.sort((a, b) => b.score - a.score);

@@ -2,17 +2,21 @@ from __future__ import annotations
 
 # backend/app/routers/property.py
 import asyncio
+import hashlib
 import logging
 
 import orjson
 
 logger = logging.getLogger(__name__)
-from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .. import db
 from ..deps import limiter
 from ..redis import cache_get, cache_set
+from ..services.auth import _extract_bearer
+from slowapi.util import get_remote_address
+from ..services.credit_check import require_paid_user, CreditInfo
 from ..services.ai_summary import generate_pdf_insights, generate_property_summary
 from ..services.property_detection import detect_property_type
 from ..services.report_html import build_insights, build_lifestyle_fit, build_recommendations
@@ -27,7 +31,8 @@ router = APIRouter()
 
 
 @router.get("/property/{address_id}/report")
-@limiter.limit("20/minute")
+@limiter.limit("20/minute", key_func=lambda req: _extract_bearer(req) or get_remote_address(req))
+@limiter.limit("5/minute", key_func=get_remote_address)
 async def get_report(request: Request, address_id: int):
     """Full property report with risk scores.
     Calls get_property_report() PL/pgSQL function, enriches with Python scoring.
@@ -40,7 +45,12 @@ async def get_report(request: Request, address_id: int):
     cache_key = f"report:{address_id}"
     cached = await cache_get(cache_key)
     if cached:
-        return orjson.loads(cached)
+        report = orjson.loads(cached)
+        # Re-enrich if scores are missing (stale cache from before scoring was added)
+        if not (report.get("scores") or {}).get("composite"):
+            report = enrich_with_scores(report)
+            await cache_set(cache_key, orjson.dumps(report), ex=86400)
+        return report
 
     # 2. Call PL/pgSQL function — single DB round-trip
     async with db.pool.connection() as conn:
@@ -82,6 +92,105 @@ async def get_report(request: Request, address_id: int):
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
 
     return report
+
+
+# --- Crime Trend ---
+
+@router.get("/property/{address_id}/crime-trend")
+@limiter.limit("30/minute")
+async def get_crime_trend(request: Request, address_id: int):
+    """Monthly crime victimisations for the property's area unit, last 3 years.
+    Cached 24h by area_unit."""
+
+    # 1. Get the area unit for this address
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT au2017_code FROM addresses WHERE address_id = %s", [address_id]
+        )
+        row = cur.fetchone()
+    if not row or not row.get("au2017_code"):
+        return []
+
+    au_code = row["au2017_code"]
+
+    # 2. Check cache
+    cache_key = f"crime-trend:{au_code}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return orjson.loads(cached)
+
+    # 3. Query monthly crime counts
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT to_char(year_month, 'YYYY-MM') AS month, victimisations AS count
+            FROM crime
+            WHERE au2017_code = %s
+              AND year_month >= (CURRENT_DATE - INTERVAL '3 years')
+            ORDER BY year_month
+            """,
+            [au_code],
+        )
+        rows = cur.fetchall()
+
+    result = [{"month": r["month"], "count": r["count"]} for r in rows]
+
+    # 4. Cache 24h
+    await cache_set(cache_key, orjson.dumps(result).decode(), ex=86400)
+
+    return result
+
+
+# --- Earthquake Timeline ---
+
+@router.get("/property/{address_id}/earthquake-timeline")
+@limiter.limit("30/minute")
+async def get_earthquake_timeline(request: Request, address_id: int):
+    """Annual earthquake count + max magnitude within 50km, last 10 years.
+    Cached 24h by lat/lng bucket."""
+
+    # 1. Get property location
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT ST_Y(geom) AS lat, ST_X(geom) AS lng FROM addresses WHERE address_id = %s",
+            [address_id],
+        )
+        row = cur.fetchone()
+    if not row:
+        return []
+
+    lat, lng = row["lat"], row["lng"]
+    # Bucket to 0.1 degree for caching
+    lat_bucket = round(lat, 1)
+    lng_bucket = round(lng, 1)
+
+    cache_key = f"eq-timeline:{lat_bucket}:{lng_bucket}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return orjson.loads(cached)
+
+    # 2. Query annual earthquake data within 50km
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT EXTRACT(YEAR FROM origin_time)::int AS year,
+                   COUNT(*)::int AS count,
+                   ROUND(MAX(magnitude)::numeric, 1) AS max_mag
+            FROM earthquakes
+            WHERE ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, 50000)
+              AND origin_time >= (CURRENT_DATE - INTERVAL '10 years')
+            GROUP BY 1
+            ORDER BY 1
+            """,
+            [lng, lat],
+        )
+        rows = cur.fetchall()
+
+    result = [{"year": r["year"], "count": r["count"], "max_mag": float(r["max_mag"] or 0)} for r in rows]
+
+    await cache_set(cache_key, orjson.dumps(result).decode(), ex=86400)
+
+    return result
 
 
 @router.get("/property/{address_id}/ai-summary")
@@ -149,12 +258,21 @@ async def get_summary(request: Request, address_id: int):
 
     # 2. Fall back to full report (generates cache for future requests)
     try:
-        report = await get_property_report(address_id)
-        return _extract_summary(report, address_id)
+        async with db.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT get_property_report(%s) AS report", [address_id]
+            )
+            row = cur.fetchone()
+        if row and row["report"]:
+            report = enrich_with_scores(row["report"])
+            await cache_set(cache_key, orjson.dumps(report), ex=86400)
+            return _extract_summary(report, address_id)
+        raise HTTPException(404, "Address not found")
     except HTTPException:
         raise
     except Exception as e:
         # If full report fails, return minimal data
+        logger.warning(f"Summary fallback for {address_id}: {type(e).__name__}: {e}")
         async with db.pool.connection() as conn:
             cur = await conn.execute(
                 """
@@ -237,8 +355,12 @@ def _extract_summary(report: dict, address_id: int) -> dict:
 # PDF Generation (Background)
 # =============================================================================
 
-async def _generate_pdf_background(job_id: str, address_id: int):
-    """Background task to generate PDF report."""
+async def _generate_pdf_background(
+    job_id: str, address_id: int, persona: str = "buyer",
+    user_id: str | None = None, credit_id: int | None = None, is_pro: bool = False,
+    budget_inputs: dict | None = None,
+):
+    """Background task to generate PDF report. Saves report + deducts credit on success."""
     try:
         await set_job_generating(job_id)
 
@@ -368,6 +490,52 @@ async def _generate_pdf_background(job_id: str, address_id: int):
         except Exception as e:
             logger.warning(f"Nearby zones query failed: {e}")
 
+        # 3e. Fetch rent history time series (10yr)
+        rent_history_data = []
+        try:
+            sa2_code = (report.get("address") or {}).get("sa2_code")
+            if sa2_code:
+                async with db.pool.connection() as conn_rh:
+                    cur_rh = await conn_rh.execute("""
+                        SELECT time_frame, median_rent, lower_quartile_rent,
+                               upper_quartile_rent, active_bonds
+                        FROM bonds_detailed
+                        WHERE location_id = %s AND dwelling_type = 'ALL'
+                          AND number_of_beds = 'ALL'
+                          AND time_frame >= (CURRENT_DATE - INTERVAL '10 years')
+                        ORDER BY time_frame
+                    """, [sa2_code])
+                    rent_history_data = [dict(r) for r in cur_rh.fetchall()]
+        except Exception as e:
+            logger.warning(f"Rent history query failed: {e}")
+
+        # 3f. Fetch national HPI trend (10yr)
+        hpi_data = []
+        try:
+            async with db.pool.connection() as conn_hpi:
+                cur_hpi = await conn_hpi.execute("""
+                    SELECT quarter_end, house_price_index
+                    FROM rbnz_housing
+                    WHERE quarter_end >= (CURRENT_DATE - INTERVAL '10 years')
+                    ORDER BY quarter_end
+                """)
+                hpi_data = [dict(r) for r in cur_hpi.fetchall()]
+        except Exception as e:
+            logger.warning(f"HPI query failed: {e}")
+
+        # 3g. Fetch council rates breakdown (region-specific)
+        rates_data = None
+        try:
+            full_address = (report.get("address") or {}).get("full_address", "")
+            city = (report.get("address") or {}).get("city", "")
+            if "wellington" in city.lower():
+                from ..services.rates import fetch_wcc_rates
+                async with db.pool.connection() as conn_rates:
+                    rates_data = await fetch_wcc_rates(full_address, conn_rates)
+            # TODO: Add Auckland Council rates API when available
+        except Exception as e:
+            logger.warning(f"Rates fetch failed: {e}")
+
         # 4. Run Python insight rule engine
         python_insights = build_insights(report)
 
@@ -398,6 +566,20 @@ async def _generate_pdf_background(job_id: str, address_id: int):
             logger.warning(f"PDF AI insights failed for {address_id}: {e}")
             ai_insights = None
 
+        # 7b. Fetch user display name for premium personalisation
+        user_display_name = None
+        if user_id:
+            try:
+                async with db.pool.connection() as conn_name:
+                    cur_name = await conn_name.execute(
+                        "SELECT display_name FROM users WHERE user_id = %s", [user_id]
+                    )
+                    row_name = cur_name.fetchone()
+                    if row_name:
+                        user_display_name = row_name["display_name"]
+            except Exception:
+                pass
+
         # 8. Render premium HTML
         html = render_report_html(
             report, python_insights, lifestyle_fit, ai_insights, recommendations,
@@ -408,9 +590,41 @@ async def _generate_pdf_background(job_id: str, address_id: int):
             nearby_restaurants=nearby_restaurants,
             nearby_playgrounds=nearby_playgrounds,
             nearby_zones=nearby_zones,
+            persona=persona,
+            rent_history_data=rent_history_data,
+            hpi_data=hpi_data,
+            rates_data=rates_data,
+            user_display_name=user_display_name,
+            budget_inputs=budget_inputs,
         )
 
-        # 8. Mark job as completed
+        # 8a. Save report + deduct credit (after successful generation)
+        if user_id:
+            full_address = (report.get("address") or {}).get("full_address", "Unknown")
+            try:
+                async with db.pool.connection() as conn_save:
+                    # Save report snapshot
+                    await conn_save.execute(
+                        """
+                        INSERT INTO saved_reports (user_id, address_id, full_address, report_html, persona)
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        [user_id, address_id, full_address, html, persona],
+                    )
+                    # Deduct credit for non-pro users (pro uses count-based limits)
+                    if not is_pro and credit_id:
+                        await conn_save.execute(
+                            """
+                            UPDATE report_credits
+                            SET credits_remaining = credits_remaining - 1
+                            WHERE id = %s AND credits_remaining > 0
+                            """,
+                            [credit_id],
+                        )
+            except Exception as e:
+                logger.error(f"Failed to save report/deduct credit for {user_id}: {e}")
+
+        # 8b. Mark job as completed
         await set_job_completed(job_id, html)
 
     except Exception as e:
@@ -425,10 +639,90 @@ async def _generate_pdf_background(job_id: str, address_id: int):
 
 @router.post("/property/{address_id}/export/pdf/start")
 @limiter.limit("5/hour")
-async def start_pdf_export(request: Request, address_id: int, background_tasks: BackgroundTasks):
-    """Start background PDF generation. Returns job ID for polling."""
+async def start_pdf_export(
+    request: Request,
+    address_id: int,
+    background_tasks: BackgroundTasks,
+    credit_info: CreditInfo = Depends(require_paid_user),
+    persona: str = "buyer",
+):
+    """Start background PDF generation. Requires authenticated user with credits."""
+    # Parse optional budget_inputs from request body
+    budget_inputs = None
+    try:
+        body = await request.json()
+        if isinstance(body, dict) and "budget_inputs" in body:
+            budget_inputs = body["budget_inputs"]
+    except Exception:
+        pass
+
     job_id = await create_job(address_id)
-    background_tasks.add_task(_generate_pdf_background, job_id, address_id)
+    background_tasks.add_task(
+        _generate_pdf_background, job_id, address_id, persona,
+        user_id=credit_info.user_id,
+        credit_id=credit_info.credit_id,
+        is_pro=credit_info.is_pro,
+        budget_inputs=budget_inputs,
+    )
+    return JSONResponse({
+        "job_id": job_id,
+        "status_url": f"/api/v1/property/{address_id}/export/pdf/status/{job_id}",
+        "download_url": f"/api/v1/property/{address_id}/export/pdf/download/{job_id}",
+    })
+
+
+# =============================================================================
+# POST /property/{address_id}/export/pdf/guest-start — Guest PDF generation
+# =============================================================================
+
+@router.post("/property/{address_id}/export/pdf/guest-start")
+@limiter.limit("5/hour")
+async def start_guest_pdf_export(
+    request: Request,
+    address_id: int,
+    background_tasks: BackgroundTasks,
+    token: str = Query(...),
+):
+    """Start background PDF generation for a guest purchase. Requires valid download token."""
+    # Hash token and look up in guest_purchases
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT id, address_id, persona, job_id, expires_at
+            FROM guest_purchases
+            WHERE download_token_hash = %s AND address_id = %s
+              AND expires_at > now()
+            """,
+            [token_hash, address_id],
+        )
+        row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(403, "Invalid or expired token")
+
+    # Idempotent: if already has a job_id, return it
+    if row["job_id"]:
+        return JSONResponse({
+            "job_id": row["job_id"],
+            "status_url": f"/api/v1/property/{address_id}/export/pdf/status/{row['job_id']}",
+            "download_url": f"/api/v1/property/{address_id}/export/pdf/download/{row['job_id']}",
+        })
+
+    job_id = await create_job(address_id)
+
+    # Store job_id in guest_purchases
+    async with db.pool.connection() as conn:
+        await conn.execute(
+            "UPDATE guest_purchases SET job_id = %s WHERE id = %s",
+            [job_id, row["id"]],
+        )
+
+    background_tasks.add_task(
+        _generate_pdf_background, job_id, address_id, row["persona"],
+    )
+
     return JSONResponse({
         "job_id": job_id,
         "status_url": f"/api/v1/property/{address_id}/export/pdf/status/{job_id}",
@@ -456,15 +750,49 @@ async def check_pdf_status(request: Request, address_id: int, job_id: str):
 
 @router.get("/property/{address_id}/export/pdf/download/{job_id}")
 @limiter.limit("20/minute")
-async def download_pdf(request: Request, address_id: int, job_id: str):
-    """Download the generated PDF report HTML."""
+async def download_pdf(
+    request: Request,
+    address_id: int,
+    job_id: str,
+    token: str | None = Query(None),
+):
+    """Download the generated PDF report HTML. Supports optional guest token."""
+    # If guest token provided, validate and track download count
+    if token:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        async with db.pool.connection() as conn:
+            cur = await conn.execute(
+                """
+                SELECT id, download_count, max_downloads, expires_at
+                FROM guest_purchases
+                WHERE download_token_hash = %s AND address_id = %s
+                """,
+                [token_hash, address_id],
+            )
+            gp = cur.fetchone()
+            if not gp:
+                raise HTTPException(403, "Invalid download token")
+            if gp["expires_at"].tzinfo and gp["download_count"] >= gp["max_downloads"]:
+                raise HTTPException(403, "Download limit reached (3 downloads max)")
+            # Increment download count + set redeemed_at on first download
+            await conn.execute(
+                """
+                UPDATE guest_purchases
+                SET download_count = download_count + 1,
+                    redeemed_at = COALESCE(redeemed_at, now())
+                WHERE id = %s
+                """,
+                [gp["id"]],
+            )
+
     html = await get_job_html(job_id)
     if not html:
         status = await get_job_status(job_id)
         if not status:
             raise HTTPException(404, "Job not found")
         if status["status"] == "failed":
-            raise HTTPException(400, f"PDF generation failed: {status['error']}")
+            logger.error(f"PDF download failed for {address_id}: {status['error']}")
+            raise HTTPException(400, "PDF generation failed. Please try again.")
         raise HTTPException(202, "PDF still generating")
 
     return HTMLResponse(

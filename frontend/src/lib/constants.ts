@@ -40,6 +40,12 @@ export const TILE_LAYERS = [
   { id: 'wind_zones', group: 'Hazards', label: 'Wind Zones', minzoom: 8 },
   { id: 'landslide_events', group: 'Hazards', label: 'Landslides', minzoom: 10 },
   { id: 'landslide_areas', group: 'Hazards', label: 'Landslide Areas', minzoom: 10 },
+  { id: 'active_faults', group: 'Hazards', label: 'Active Faults', minzoom: 8 },
+  { id: 'fault_avoidance_zones', group: 'Hazards', label: 'Fault Avoidance', minzoom: 10 },
+  { id: 'flood_hazard', group: 'Hazards', label: 'Flood Hazard (Council)', minzoom: 10 },
+  { id: 'tsunami_hazard', group: 'Hazards', label: 'Tsunami Hazard (Council)', minzoom: 8 },
+  { id: 'fault_zones', group: 'Hazards', label: 'Fault Zones (Council)', minzoom: 10 },
+  { id: 'flood_extent', group: 'Hazards', label: 'Flood Extent', minzoom: 8 },
   // Property — users want to see their parcel/building
   { id: 'parcels', group: 'Property', label: 'Parcels', minzoom: 15 },
   { id: 'building_outlines', group: 'Property', label: 'Buildings', minzoom: 13 },

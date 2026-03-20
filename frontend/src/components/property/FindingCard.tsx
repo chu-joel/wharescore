@@ -92,6 +92,7 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
 /**
  * Generate findings from the property report data.
  * Each finding has a plain English headline + interpretation.
+ * Optionally accepts a persona to reorder findings by relevance.
  */
 export function generateFindings(report: {
   hazards: import('@/lib/types').HazardData;
@@ -99,7 +100,7 @@ export function generateFindings(report: {
   liveability: import('@/lib/types').LiveabilityData;
   planning: import('@/lib/types').PlanningData;
   scores: import('@/lib/types').CompositeScore;
-}): Finding[] {
+}, persona?: 'renter' | 'buyer'): Finding[] {
   const findings: Finding[] = [];
   const h = report.hazards;
   const e = report.environment;
@@ -385,6 +386,25 @@ export function generateFindings(report: {
   // Sort: critical first, then warning, then info, then positive
   const severityOrder = { critical: 0, warning: 1, info: 2, positive: 3 };
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+  // Persona-aware reordering: boost relevant categories to the top within same severity
+  if (persona) {
+    const renterCategories = ['Hazards', 'Liveability', 'Environment'];
+    const buyerCategories = ['Hazards', 'Planning', 'Liveability'];
+    const priorityCategories = persona === 'renter' ? renterCategories : buyerCategories;
+
+    findings.sort((a, b) => {
+      // First by severity
+      const sevDiff = severityOrder[a.severity] - severityOrder[b.severity];
+      if (sevDiff !== 0) return sevDiff;
+      // Then by persona category relevance
+      const aIdx = priorityCategories.indexOf(a.category);
+      const bIdx = priorityCategories.indexOf(b.category);
+      const aRank = aIdx >= 0 ? aIdx : 99;
+      const bRank = bIdx >= 0 ? bIdx : 99;
+      return aRank - bRank;
+    });
+  }
 
   return findings;
 }

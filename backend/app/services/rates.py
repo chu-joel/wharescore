@@ -42,7 +42,6 @@ async def fetch_wcc_rates(address: str, conn) -> dict | None:
         search_url = f"{WCC_SEARCH_URL}?address={urllib.parse.quote(search_addr)}&page=1&pageSize=3"
         logger.debug(f"WCC search: {search_url}")
         search_data = await _fetch_json(search_url)
-        logger.debug(f"WCC search results: {len(search_data.get('results', []))} hits")
 
         if not search_data or not search_data.get("results"):
             logger.debug("No WCC search results, falling back to cache")
@@ -181,7 +180,8 @@ def _format_response(prop: dict) -> dict:
 async def _fetch_json(url: str, timeout: int = 5) -> dict | None:
     """Fetch JSON from URL with timeout. Returns None on failure."""
     try:
-        return await asyncio.to_thread(_sync_fetch, url, timeout)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, _sync_fetch, url, timeout)
     except Exception as e:
         logger.warning(f"HTTP fetch failed for {url}: {e}")
         return None

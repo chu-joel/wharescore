@@ -39,6 +39,15 @@ const LAYER_STYLES: Record<string, LayerStyleConfig> = {
   coastal_erosion:    { type: 'fill', color: '#D55E00', outlineColor: '#B04D00', fillOpacity: 0.30 },
   wind_zones:         { type: 'fill', color: '#9CA3AF', outlineColor: '#6B7280', fillOpacity: 0.25 },
   landslide_areas:    { type: 'fill', color: '#F97316', outlineColor: '#EA580C', fillOpacity: 0.28 },
+  // Council flood/tsunami/liquefaction detail layers (national expansion)
+  flood_hazard:       { type: 'fill', color: '#3B82F6', outlineColor: '#2563EB', fillOpacity: 0.30 },
+  tsunami_hazard:     { type: 'fill', color: '#0D7377', outlineColor: '#0A5C5F', fillOpacity: 0.30 },
+  fault_zones:        { type: 'fill', color: '#DC2626', outlineColor: '#B91C1C', fillOpacity: 0.25 },
+  flood_extent:       { type: 'fill', color: '#60A5FA', outlineColor: '#3B82F6', fillOpacity: 0.25 },
+  landslide_susceptibility: { type: 'fill', color: '#D97706', outlineColor: '#B45309', fillOpacity: 0.25 },
+  // GNS national fault layers
+  active_faults:      { type: 'line', color: '#DC2626', lineWidth: 2.5 },
+  fault_avoidance_zones: { type: 'fill', color: '#FCA5A5', outlineColor: '#DC2626', fillOpacity: 0.20 },
 
   // --- Landslide events (points) ---
   landslide_events:   { type: 'circle', color: '#F97316', radius: 5, strokeWidth: 1.5 },
@@ -367,6 +376,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
 
   // Special: building outlines — color-coded by use type
   // Residential = teal, Commercial = amber, Other = slate
+  // Boosted opacity for better visibility
   if (layerId === 'building_outlines') {
     const fillColor: SeverityExpr = [
       'match', ['get', 'use'],
@@ -392,9 +402,9 @@ export function getLayerStyles(layerId: string): LayerProps[] {
           'fill-color': fillColor,
           'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
-            13, 0.30,
-            15, 0.20,
-            17, 0.12,
+            13, 0.40,
+            15, 0.30,
+            17, 0.22,
           ],
           'fill-outline-color': 'transparent',
         },
@@ -409,18 +419,71 @@ export function getLayerStyles(layerId: string): LayerProps[] {
           'line-color': outlineColor,
           'line-width': [
             'interpolate', ['linear'], ['zoom'],
-            14, 0.5,
-            16, 1.5,
-            18, 2.5,
+            14, 0.8,
+            16, 1.8,
+            18, 2.8,
           ],
           'line-opacity': [
             'interpolate', ['linear'], ['zoom'],
-            14, 0.3,
-            16, 0.7,
-            18, 0.85,
+            14, 0.5,
+            16, 0.8,
+            18, 0.9,
           ],
         },
       },
+    ];
+  }
+
+  // Special: crashes — severity-driven colors and sizes
+  // Fatal = large red, Serious = orange, Minor = amber, Non-injury = gray
+  if (layerId === 'crashes') {
+    const colorExpr: SeverityExpr = [
+      'match', ['get', 'crash_severity'],
+      'Fatal Crash',      '#DC2626',  // red
+      'Serious Crash',    '#EA580C',  // deep orange
+      'Minor Crash',      '#D97706',  // amber
+      'Non-Injury Crash', '#9CA3AF',  // gray
+      '#C42D2D',                      // fallback
+    ];
+    const radiusExpr: SeverityExpr = [
+      'interpolate', ['linear'], ['zoom'],
+      10, ['match', ['get', 'crash_severity'],
+        'Fatal Crash', 4, 'Serious Crash', 3, 'Minor Crash', 2, 'Non-Injury Crash', 1.5, 2],
+      14, ['match', ['get', 'crash_severity'],
+        'Fatal Crash', 7, 'Serious Crash', 5.5, 'Minor Crash', 4, 'Non-Injury Crash', 3, 4],
+      18, ['match', ['get', 'crash_severity'],
+        'Fatal Crash', 10, 'Serious Crash', 8, 'Minor Crash', 6, 'Non-Injury Crash', 4, 5],
+    ];
+    const opacityExpr: SeverityExpr = [
+      'match', ['get', 'crash_severity'],
+      'Fatal Crash',      0.95,
+      'Serious Crash',    0.85,
+      'Minor Crash',      0.65,
+      'Non-Injury Crash', 0.45,
+      0.7,
+    ];
+    return [
+      {
+        id: 'layer-crashes',
+        source: 'source-crashes',
+        'source-layer': 'crashes',
+        type: 'circle' as const,
+        paint: {
+          'circle-color': colorExpr,
+          'circle-radius': radiusExpr,
+          'circle-opacity': opacityExpr,
+          'circle-stroke-width': ['match', ['get', 'crash_severity'],
+            'Fatal Crash', 2, 'Serious Crash', 1.5, 1],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': ['match', ['get', 'crash_severity'],
+            'Fatal Crash', 0.9, 'Serious Crash', 0.7, 0.5],
+        },
+        // Sort: fatal on top, then serious, then minor, non-injury at bottom
+        layout: {
+          'circle-sort-key': ['match', ['get', 'crash_severity'],
+            'Fatal Crash', 4, 'Serious Crash', 3, 'Minor Crash', 2, 'Non-Injury Crash', 1, 0],
+        },
+      } as LayerProps,
     ];
   }
 

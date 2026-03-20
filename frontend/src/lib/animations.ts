@@ -25,9 +25,9 @@ export const TIMING = {
   // Skeleton
   SKELETON_SHIMMER: 1500,
 
-  // Post-selection sequence
-  POST_SELECT_PIN_DELAY: 800,
-  POST_SELECT_SHEET_DELAY: 1000,
+  // Post-selection sequence (pin appears mid-fly, popup shortly after landing)
+  POST_SELECT_PIN_DELAY: 500,
+  POST_SELECT_SHEET_DELAY: 650,
 } as const;
 
 export const EASING = {

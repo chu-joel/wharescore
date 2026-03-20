@@ -1,7 +1,8 @@
 'use client';
 
-import { HelpCircle, Moon, Sun, ChevronLeft, MapPin } from 'lucide-react';
+import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/search/SearchBar';
 import { useSearchStore } from '@/stores/searchStore';
@@ -13,6 +14,8 @@ export function AppHeader() {
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user;
   const isPropertyPage = pathname?.startsWith('/property/');
   const isHome = pathname === '/';
 
@@ -99,6 +102,40 @@ export function AppHeader() {
           >
             About
           </a>
+
+          {isSignedIn ? (
+            <>
+              <a
+                href="/account"
+                className="hidden sm:inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2.5 py-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                My Reports
+              </a>
+              <span className="hidden sm:inline text-xs text-muted-foreground px-1.5 truncate max-w-[120px]">
+                {session.user?.name?.split(' ')[0]}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => signOut()}
+                className="h-9 w-9"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm"
+              onClick={() => signIn('google')}
+            >
+              Sign in
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"

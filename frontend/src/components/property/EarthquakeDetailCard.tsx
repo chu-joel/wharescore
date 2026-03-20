@@ -57,12 +57,12 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
     });
   }
 
-  if (ground_shaking_zone != null) {
-    let display = ground_shaking_zone;
-    if (ground_shaking_severity) {
-      display += ` — ${ground_shaking_severity}`;
-    }
-    rows.push({ label: 'Ground Shaking', value: display });
+  if (ground_shaking_severity != null) {
+    // severity is like "1 Low", "3 Moderate", "5 High" — use it directly
+    rows.push({ label: 'Ground Shaking', value: ground_shaking_severity });
+  } else if (ground_shaking_zone != null) {
+    const zoneLabels: Record<string, string> = { '1': 'Low', '2': 'Low–Moderate', '3': 'Moderate', '4': 'Moderate–High', '5': 'High' };
+    rows.push({ label: 'Ground Shaking', value: zoneLabels[ground_shaking_zone] ?? `Zone ${ground_shaking_zone}` });
   }
 
   if (fault_zone_name != null) {
@@ -93,22 +93,22 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
         </div>
       )}
 
-      {/* Hazard index gauge (0–1 scale) */}
+      {/* Hazard index gauge — CHI (Combined Hazard Index), typically 0–20,000+ */}
       {earthquake_hazard_index != null && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Hazard Index</span>
-            <span className="text-xs font-medium">{earthquake_hazard_index.toFixed(2)}</span>
+            <span className="text-xs text-muted-foreground">Hazard Index (CHI)</span>
+            <span className="text-xs font-medium">{Math.round(earthquake_hazard_index).toLocaleString()}</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-amber-400 to-red-500"
-              style={{ width: `${Math.min(100, earthquake_hazard_index * 100)}%` }}
+              style={{ width: `${Math.min(100, (earthquake_hazard_index / 15000) * 100)}%` }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>0</span>
-            <span>1</span>
+            <span>Low</span>
+            <span>High</span>
           </div>
         </div>
       )}
