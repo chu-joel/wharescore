@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Download, CheckCircle, AlertCircle, UserPlus } from 'lucide-react';
 import { signIn } from 'next-auth/react';
@@ -8,6 +8,18 @@ import { signIn } from 'next-auth/react';
 type Stage = 'loading' | 'exchanging' | 'generating' | 'ready' | 'error';
 
 export default function GuestDownloadPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-piq-primary" />
+      </div>
+    }>
+      <GuestDownloadContent />
+    </Suspense>
+  );
+}
+
+function GuestDownloadContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
