@@ -2427,12 +2427,19 @@ def _load_rates(
             geom_sql = f"ST_Transform(ST_SetSRID(ST_GeomFromText(%s), {srid}), 4326)"
             geom_params = (wkt,)
 
-        cur.execute(
-            f"INSERT INTO council_valuations (council, capital_value, land_value, improvements_value, address, geom) "
-            f"VALUES (%s, %s, %s, %s, %s, {geom_sql})",
-            (council, cv, lv, iv, addr, *geom_params),
-        )
-        count += 1
+        try:
+            cur.execute(
+                f"INSERT INTO council_valuations (council, capital_value, land_value, improvements_value, address, geom) "
+                f"VALUES (%s, %s, %s, %s, %s, {geom_sql})",
+                (council, cv, lv, iv, addr, *geom_params),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()  # skip bad geometry
+            continue
+
+        if count % 5000 == 0:
+            conn.commit()
     conn.commit()
     _progress(log, f"{council} rates: {count} rows")
     return count

@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-21 (session 52 — Guest checkout + Google-style map labels)
+**Last Updated:** 2026-03-21 (session 53 — National data expansion: 101 loaders, 12.8M+ rows, full pipeline wiring)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,9 +15,69 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 52 (2026-03-21) — Guest checkout implementation + Google-style vector map labels.**
+**Session 53 (2026-03-21) — National data expansion: 101 data loaders, 8 regions, 12.8M+ rows, full pipeline wiring.**
 
 ### What Was Done This Session
+
+**(A) Data Loaders — expanded from ~20 to 101 across 8 regions:**
+
+| Region | Loaders | Key data loaded |
+|---|---|---|
+| National (GNS) | 2 | 10K active faults, 17K landslide events, 21K landslide areas |
+| Wellington (GWRC+WCC+Metlink) | 18 | Full hazard suite + solar + EPBs + consents + transit (9.7K) + 268K coastal elevation |
+| Auckland (AC+AT) | 23 | 1.26M overland flow, 139K plan zones, 86K landslide, 76K geotech, 36K flood, AT GTFS (13.8K), viewshafts, heritage, aircraft noise, ecological, mana whenua, trees, parks, stormwater, special character, height variation, coastal erosion |
+| Christchurch (CCC+ECan) | 11 | 321K flood, 186K rates, 105K coastal inundation, 7.5K zones, 5.3K coastal erosion, 867 tsunami, 631 slope, 1.96K trees, 709 heritage |
+| Hamilton (HCC+WRC) | 9 | 27K flood, 9.3K liquefaction, 1.2K ground shaking, 1K zones, 100 heritage, 100 trees, BUSIT GTFS (1.6K stops) |
+| Tauranga (TCC+BoPRC) | 6 | 108K flood, 5K slope, 2.7K zones (fixed), 422 liquefaction, 215 coastal erosion |
+| Dunedin (DCC+ORC) | 11 | Flood (3 levels), 1K heritage, 1K trees, 208 zones, airport noise, Orbus GTFS (907 stops), 1K rates |
+| Napier/Hastings (HBRC) | 8 | 32K landslide, 7.3K flood, 649 zones, 678 contaminated, 433 ground shaking |
+| Nelson (NCC) | 5 | Flood, liquefaction, fault corridor, 216 slope, 821 trees, eBus GTFS (231 stops) |
+
+Also loaded: Palmerston North GTFS (885 stops), New Plymouth GTFS (388 stops).
+
+**(B) Fixes applied during loading:**
+- Christchurch liquefaction: ECan layer 3 (6 polylines) → GCSP layer 39 (18 zones) + ECan layer 4 (8 regional)
+- Tauranga plan zones: `MapServer/667` (unsupported) → `City_Planning_Zones/MapServer/10` (2,693 features)
+- Christchurch heritage: polygon data → `heritage_extent` table (not Point `historic_heritage_overlay`)
+- `coastal_erosion` table: added missing `source_council` column
+- `council_valuations` geometry: changed from MultiPolygon to generic Geometry (supports Point rates data)
+- Auckland rates: added per-row error handling for bad geometries outside projection domain
+
+**(C) Migration 0006 — National Report Function:**
+- CBD distance for 14 NZ cities (Auckland, Christchurch, Hamilton, Tauranga, Dunedin, Napier, Hastings, Nelson, Invercargill, Queenstown, Rotorua, New Plymouth, Whangarei, Palmerston North)
+- Transit queries: BOTH Metlink + AT tables with COALESCE
+- 12 new fields: aircraft noise (name/dba/category), overland flow proximity, council coastal erosion (JSONB), heritage overlay, special character, ecological area (+type), height variation, notable trees count, mana whenua, nearest park (name+distance)
+- 10 new insight rules in report_html.py: aircraft noise, overland flow, coastal erosion, heritage overlay, special character, ecological area, mana whenua, notable trees, height variation, nearest park
+
+**(D) Report text nationalised** — 15 Wellington-specific references → region-neutral ("WCC District Plan" → "District Plan", "Wellington metro average" → "NZ metro average", etc.)
+
+**(E) Full pipeline wiring audit + fixes:**
+- **types.ts**: Added `in_heritage_overlay`, `ecological_area_type`, `in_mana_whenua`, `mana_whenua_name`, `height_variation_limit`, `council_coastal_erosion`, `aircraft_noise_name`, `overland_flow_within_50m`
+- **transformReport.ts**: Added all missing mappings, fixed field name mismatches (SQL `notable_trees_50m` → TS `notable_tree_count_50m`, SQL `overland_flow_within_50m` → TS `on_overland_flow_path`)
+- **MapLayerPicker.tsx**: Added 11 new layers to LAYER_META + GROUPS (overland flow, aircraft noise, notable trees, ecological areas, special character, heritage overlay, heritage extent, height variation, mana whenua, parks, active faults)
+- All 12 new data types now fully wired: SQL → report_html.py → types.ts → transformReport.ts → UI
+
+**(F) Batch loader** (`backend/scripts/batch_load.py`): 15 waves, 6 workers/wave, auto-migrations, `--wave`/`--only`/`--dry-run`/`--skip-migrations` flags. Generic `_load_regional_gtfs()` for transit, `_load_rates()` for council valuations.
+
+**(G) Database totals:** 12.8M+ rows across 53 tables. Auckland rates (623K) still loading at session end.
+
+### What Needs To Be Done Next
+
+- **Verify Auckland rates loaded** — 623K features, was still downloading
+- **Re-run `auckland_coastal_erosion`** if needed (was fixed mid-session)
+- **Frontend TypeScript build verification** — confirm types compile clean
+- **PDF template** — add commute time table, mode breakdown, CBD distance
+- **Shallow landslide dedup** (~9.7M → ~4.87M)
+- **Risk score engine** — rules for new fields
+- **Deploy to Azure**
+
+**Not available (no public endpoint):** Auckland contaminated land, MBIE EPBs (no API), Auckland solar, Christchurch Metro GTFS (needs API key), Hamilton rates (auth-locked), BayBus/GoBay GTFS (unstable URLs), Palmerston North/Tasman/Rotorua/Whangarei/Invercargill/Queenstown (no public GIS)
+
+---
+
+**Session 52 (2026-03-21) — Guest checkout implementation + Google-style vector map labels.**
+
+### What Was Done In Session 52
 
 **(A) Guest Checkout (no-account PDF purchase):**
 
