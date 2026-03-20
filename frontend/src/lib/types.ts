@@ -384,6 +384,29 @@ export interface SuburbRentalTrend {
   cagr_10yr: number | null;
 }
 
+// --- Rent Advisor ---
+export interface RentAdjustment {
+  factor: string;
+  label: string;
+  pct: number;
+  dollar: number;
+  reason: string;
+}
+
+export interface RentAdvisorResult {
+  verdict: 'below-market' | 'fair' | 'slightly-high' | 'high' | 'very-high';
+  adjusted_median: number;
+  raw_median: number;
+  your_rent: number;
+  difference_pct: number;
+  adjustments: RentAdjustment[];
+  advice_lines: string[];
+  confidence: 1 | 2 | 3 | 4 | 5;
+  bond_count: number;
+  data_source: string;
+  disclaimer: string;
+}
+
 // --- Feedback ---
 export interface FeedbackCreate {
   type: 'bug' | 'feature' | 'general';

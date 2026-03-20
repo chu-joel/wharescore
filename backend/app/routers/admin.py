@@ -967,6 +967,155 @@ async def admin_clear_loader_job(request: Request):
     return {"cleared": True}
 
 
+@router.post("/data-sources/load-new", dependencies=[Depends(require_admin)])
+@limiter.limit("1/minute")
+async def admin_load_all_new(request: Request):
+    """Load all datasets that have never been loaded (not in data_versions).
+    Runs migrations first, then loads new datasets sequentially in background."""
+    import uuid
+    import asyncio
+    from ..services.data_loader import DATA_SOURCES, run_loader
+
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: load_all_new from {client_ip}")
+
+    # Check for active job
+    if redis_client:
+        try:
+            active = await redis_client.get("data_loader:active")
+            if active:
+                return JSONResponse(
+                    {"error": "A data load is already in progress", "active": json.loads(active)},
+                    status_code=409,
+                )
+        except Exception:
+            pass
+
+    # Find unloaded datasets
+    unloaded = []
+    async with _db.pool.connection() as conn:
+        try:
+            cur = await conn.execute("SELECT source FROM data_versions")
+            loaded = {r["source"] for r in cur.fetchall()}
+        except Exception:
+            loaded = set()
+
+        unloaded = [s.key for s in DATA_SOURCES if s.key not in loaded]
+
+    if not unloaded:
+        return {"status": "nothing_to_load", "message": "All datasets already loaded", "total": len(DATA_SOURCES)}
+
+    job_id = str(uuid.uuid4())[:8]
+    job = {
+        "id": job_id, "source": f"batch ({len(unloaded)} new)",
+        "status": "running", "progress": [], "error": None,
+        "pending": unloaded, "total_pending": len(unloaded),
+    }
+
+    if redis_client:
+        try:
+            await redis_client.set("data_loader:active", json.dumps(job), ex=7200)
+        except Exception:
+            pass
+
+    loop = asyncio.get_event_loop()
+
+    async def _background():
+        total_rows = 0
+        errors = 0
+        completed_keys = []
+
+        # 1. Run migrations
+        try:
+            import glob
+            from ..services.data_loader import _db_url_to_sync
+            import psycopg
+            mig_conn = psycopg.connect(_db_url_to_sync())
+            mig_conn.autocommit = True
+            mig_cur = mig_conn.cursor()
+            for mf in sorted(glob.glob("migrations/0*.sql")):
+                try:
+                    with open(mf) as f:
+                        mig_cur.execute(f.read())
+                except Exception:
+                    pass
+            mig_conn.close()
+        except Exception as e:
+            logger.warning(f"Migration error: {e}")
+
+        # 2. Load new datasets sequentially
+        for i, key in enumerate(unloaded):
+            progress_msg = f"[{i+1}/{len(unloaded)}] Loading {key}..."
+
+            def _run_one(k=key):
+                msgs = []
+                def on_progress(msg):
+                    msgs.append(msg)
+                return run_loader(k, on_progress)
+
+            try:
+                result = await loop.run_in_executor(None, _run_one)
+                if result.get("error"):
+                    errors += 1
+                    progress_msg += f" FAIL: {result['error'][:60]}"
+                else:
+                    total_rows += result["rows"]
+                    progress_msg += f" OK: {result['rows']:,} rows"
+                completed_keys.append(key)
+            except Exception as e:
+                errors += 1
+                progress_msg += f" ERROR: {str(e)[:60]}"
+
+            # Update Redis progress
+            if redis_client:
+                try:
+                    remaining = [k for k in unloaded if k not in completed_keys]
+                    update = {
+                        "id": job_id,
+                        "source": f"batch ({len(unloaded)} new)",
+                        "status": "running",
+                        "progress": [progress_msg],
+                        "completed": len(completed_keys),
+                        "total_pending": len(unloaded),
+                        "total_rows": total_rows,
+                        "errors": errors,
+                        "current": key,
+                        "remaining": remaining[:5],
+                    }
+                    await redis_client.set("data_loader:active", json.dumps(update), ex=7200)
+                except Exception:
+                    pass
+
+        # 3. Mark complete
+        final = {
+            "id": job_id,
+            "source": f"batch ({len(unloaded)} new)",
+            "status": "completed" if errors == 0 else "completed_with_errors",
+            "rows": total_rows,
+            "errors": errors,
+            "loaded_count": len(unloaded) - errors,
+            "total_pending": len(unloaded),
+        }
+        if redis_client:
+            await redis_client.set("data_loader:active", json.dumps(final), ex=600)
+            # Flush report cache
+            try:
+                await redis_client.delete(*[
+                    k async for k in redis_client.scan_iter("report:*")
+                ] or ["_noop"])
+            except Exception:
+                pass
+
+    asyncio.create_task(_background())
+
+    return {
+        "job_id": job_id,
+        "status": "started",
+        "datasets_to_load": len(unloaded),
+        "keys": unloaded,
+    }
+
+
 # --- Feedback Management ---
 
 @router.get("/feedback", dependencies=[Depends(require_admin)])

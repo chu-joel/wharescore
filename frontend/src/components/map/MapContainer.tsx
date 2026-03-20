@@ -494,7 +494,13 @@ export function MapContainer() {
       }
 
       // Update hover highlight data (stable Source, just update data)
-      setHoverBuildingData(building as GeoJSON.Feature | null);
+      // Strip to plain GeoJSON — MapGeoJSONFeature has internal classes that
+      // can't be serialized by maplibre's web worker.
+      setHoverBuildingData(
+        building
+          ? { type: 'Feature' as const, geometry: building.geometry, properties: {} }
+          : null
+      );
 
       if (addressFeature && addressFeature.geometry.type === 'Point') {
         const props = addressFeature.properties!;
@@ -878,8 +884,8 @@ export function MapContainer() {
       {/* Legend */}
       <MapLegend />
 
-      {/* Hover tooltip */}
-      {hoverInfo && (
+      {/* Hover tooltip — hidden when property popup is active */}
+      {hoverInfo && !selectedAddress && (
         <div
           className="pointer-events-none absolute z-20 max-w-xs rounded-lg bg-background/95 backdrop-blur border border-border shadow-md px-3 py-2 text-sm"
           style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 12, transform: 'translateY(-100%)' }}

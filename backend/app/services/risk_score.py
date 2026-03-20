@@ -83,7 +83,7 @@ def school_quality_score(schools: list[dict]) -> float:
         if s.get("eqi")
     )
     # Clamp to 0-100: quality_score starts at 0 (worst), increases with good schools nearby
-    quality_score = min(100, (quality_points / MAX_QUALITY) * 100)
+    quality_score = max(0, min(100, (quality_points / MAX_QUALITY) * 100))
     # Invert: 100 = no good schools (worst), 0 = excellent schools nearby (best)
     return 100 - quality_score
 

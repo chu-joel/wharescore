@@ -79,12 +79,30 @@
 **Where:** Property report "10 things to investigate" section
 **Problem:** The schools indicator shows a score of 101/100, which looks like a bug. Scores should be capped at 100.
 
+### 13. Map popup "Building: Te Aro" tooltip overlaps with property popup
+**Where:** Map view, after clicking a property
+**Problem:** When clicking a property on the map, the property popup (with score, address, "Get the Full Report" button) appears alongside a separate "Building: Te Aro" hover tooltip. The two overlap, with the building tooltip partially covering the popup's "Risk · Rent · 27 indicators · AI summary" text.
+**Suggested fix:** Suppress the building hover tooltip when a property popup is active.
+
+### 14. ~~Mobile: "Get the Full Report" from map popup goes to pricing modal, not report~~
+**Status:** Not a bug — pricing modal is designed to pop up randomly as a conversion nudge.
+
 ---
 
 ## Summary of Changes Made
 
 | # | Issue | Status |
 |---|-------|--------|
-| 2 | slowapi `key_func` lambda parameter name | **Fixed** |
+| 1 | 3 MapContainer instances → single instance via `useBreakpoint()` hook | **Fixed** |
+| 2 | slowapi `key_func` lambda parameter name (`req` → `request`) | **Fixed** |
 | 3 | "PropertyIQ" → "WhareScore" in hero heading | **Fixed** |
-| All others | Documented for future work | Pending |
+| 4 | Search dropdown overlaps layer chips | Not a bug (z-index is correct, `z-50` > `z-10`) |
+| 5 | Next.js "1 Issue" dev overlay | **Fixed** (root cause was #8) |
+| 6 | Stray tooltip stuck on map | Likely fixed by #1 (single map instance) |
+| 8 | MapLibre serialization errors (`can't serialize unregistered class`) | **Fixed** — strip `MapGeoJSONFeature` to plain GeoJSON before `setData` |
+| 12 | Schools score 101/100 | **Fixed** — `quality_points` could go negative from EQI < 400, added `max(0, ...)` clamp. Needs backend restart. |
+| 14 | Pricing modal on map CTA | Not a bug (intentional random popup) |
+| 9 | Feedback button overlaps bottom CTA | Not a bug (only appeared with dev overlay) |
+| 13 | Building hover tooltip overlaps property popup | **Fixed** — hide hover tooltip when popup is active |
+| 7 | Mobile drawer not visible on home (peek state off-screen) | Pre-existing `vaul` drawer issue — needs investigation |
+| 10, 11 | Minor UX polish (About link, confidence indicator) | Low priority |

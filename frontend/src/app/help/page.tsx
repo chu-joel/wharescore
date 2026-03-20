@@ -8,7 +8,7 @@ export const metadata = {
 const FAQ = [
   {
     q: 'What is WhareScore?',
-    a: 'WhareScore is a free property intelligence tool for New Zealand. We aggregate government open data to show you risk scores, hazard exposure, neighbourhood quality, and fair rent analysis for any NZ address.',
+    a: 'WhareScore is a property intelligence tool for New Zealand. We aggregate 100+ government open data sources to show you risk scores, hazard exposure, neighbourhood quality, and fair rent analysis for any NZ address.',
   },
   {
     q: 'How are risk scores calculated?',
@@ -16,7 +16,7 @@ const FAQ = [
   },
   {
     q: 'Where does the data come from?',
-    a: 'All data comes from official New Zealand government sources: LINZ (addresses, parcels, building outlines), GeoNet (earthquakes), GWRC (flood zones, contaminated land), Stats NZ (deprivation, census), MBIE (rental bonds), Waka Kotahi (crashes, road noise), Wellington City Council (valuations, rates, zoning), and more. Each data point shows its source and last update date.',
+    a: 'All data comes from official New Zealand government sources: LINZ (addresses, parcels, titles), GeoNet (earthquakes), GNS Science (active faults, landslides), MBIE (rental bonds), Waka Kotahi (crashes, road noise), Stats NZ (deprivation, census), Heritage NZ, NIWA (coastal erosion), MfE (climate projections), plus council data from Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson. Over 100 datasets in total.',
   },
   {
     q: 'How accurate is the fair rent estimate?',
@@ -24,11 +24,11 @@ const FAQ = [
   },
   {
     q: 'Why is some data missing for my property?',
-    a: 'Data coverage varies by region. Some datasets (flood zones, council rates, zoning) are Wellington-specific in this POC. The coverage badge on each report shows how many data layers are available for your address.',
+    a: 'We cover Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson with council-specific data. National datasets (earthquakes, schools, crime, heritage) cover all of NZ. Some councils publish more data than others — the coverage badge on each report shows how many data layers are available for your address.',
   },
   {
-    q: 'Is WhareScore free?',
-    a: 'Yes. During beta, all reports are completely free with no account required. We plan to keep a comprehensive free tier and may offer premium deep-analysis reports in the future.',
+    q: 'How much does WhareScore cost?',
+    a: 'Every address gets a free preview with risk scores, hazard flags, and neighbourhood overview. Full PDF reports with detailed analysis, buyer/renter checklists, and AI insights are $4.99 per property — or $9.99 for a 3-pack when comparing properties. Professionals can get 30 reports/month for $49.',
   },
   {
     q: 'Can I use this data for legal or financial decisions?',

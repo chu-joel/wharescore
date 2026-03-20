@@ -6,6 +6,7 @@ from datetime import date
 
 import orjson
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
 from .. import db
 from ..deps import limiter
@@ -17,8 +18,19 @@ from ..services.market import (
     estimate_percentile,
     market_confidence_stars,
 )
+from ..services.rent_advisor import compute_rent_advice
 
 router = APIRouter()
+
+class RentAdvisorRequest(BaseModel):
+    dwelling_type: str = Field(pattern=r"^(House|Flat|Apartment|Room)$")
+    bedrooms: str = Field(pattern=r"^(1|2|3|4|5\+)$")
+    weekly_rent: int = Field(ge=50, le=10000)
+    finish_tier: str | None = Field(None, pattern=r"^(basic|standard|modern|premium|luxury)$")
+    bathrooms: str | None = Field(None, pattern=r"^(1|2|3\+)$")
+    has_parking: bool | None = None
+    has_insulation: bool | None = None
+
 
 LEGAL_DISCLAIMER = (
     "This estimate is based on publicly available government data including "
@@ -259,6 +271,34 @@ async def get_market(
         }
 
     await cache_set(cache_key, orjson.dumps(result, default=str).decode(), ex=3600)
+    return result
+
+
+# =============================================================================
+# POST /property/{address_id}/rent-advisor — Personalised rent advice
+# =============================================================================
+
+@router.post("/property/{address_id}/rent-advisor")
+@limiter.limit("20/minute")
+async def rent_advisor(request: Request, address_id: int, body: RentAdvisorRequest):
+    """Personalised rent advice with property-specific adjustments."""
+
+    async with db.pool.connection() as conn:
+        result = await compute_rent_advice(
+            conn,
+            address_id=address_id,
+            weekly_rent=body.weekly_rent,
+            dwelling_type=body.dwelling_type,
+            bedrooms=body.bedrooms,
+            finish_tier=body.finish_tier,
+            bathrooms=body.bathrooms,
+            has_parking=body.has_parking,
+            has_insulation=body.has_insulation,
+        )
+
+    if not result:
+        raise HTTPException(404, "Address not found or insufficient rental data")
+
     return result
 
 

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { RentDistributionBar } from './RentDistributionBar';
 import { formatRent } from '@/lib/format';
 import { apiFetch } from '@/lib/api';
+import { useRentInputStore } from '@/stores/rentInputStore';
 import type { MarketData, PropertyDetection, RentAssessment } from '@/lib/types';
 
 interface RentComparisonFlowProps {
@@ -49,6 +50,23 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
   bedroomsRef.current = bedrooms;
   rentValueRef.current = rentValue;
   rentValidRef.current = rentValid;
+  // Sync to shared store so RentAdvisorCard can read these values
+  const setStoreDwelling = useRentInputStore((s) => s.setDwellingType);
+  const setStoreBedrooms = useRentInputStore((s) => s.setBedrooms);
+  const setStoreRent = useRentInputStore((s) => s.setWeeklyRent);
+
+  useEffect(() => {
+    if (dwellingType) setStoreDwelling(dwellingType);
+  }, [dwellingType, setStoreDwelling]);
+
+  useEffect(() => {
+    if (bedrooms) setStoreBedrooms(bedrooms);
+  }, [bedrooms, setStoreBedrooms]);
+
+  useEffect(() => {
+    setStoreRent(rentValid ? rentValue : null);
+  }, [rentValid, rentValue, setStoreRent]);
+
   const rentOutOfBounds = rentInput.length > 0 && !isNaN(rentValue) && (rentValue < 50 || rentValue > 5000);
   const canCompare = dwellingType && bedrooms && (rentInput === '' || rentValid);
 

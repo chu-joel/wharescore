@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchStore } from '@/stores/searchStore';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { SplitView } from '@/components/layout/SplitView';
 import { MobileDrawer } from '@/components/layout/MobileDrawer';
@@ -22,48 +23,53 @@ import {
 
 export default function Home() {
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const bp = useBreakpoint();
+  const map = <MapContainer />;
 
   return (
     <>
       <AppHeader />
 
-      {/* Desktop: >= 1024px — SplitView with map + panel */}
-      <div className="hidden lg:block pt-14">
-        <SplitView
-          map={<MapContainer />}
-          panel={
-            selectedAddress ? (
+      {bp === 'desktop' && (
+        <div className="pt-14">
+          <SplitView
+            map={map}
+            panel={
+              selectedAddress ? (
+                <PropertyReport addressId={selectedAddress.addressId} />
+              ) : (
+                <LandingPanel />
+              )
+            }
+          />
+        </div>
+      )}
+
+      {bp === 'tablet' && (
+        <div className="pt-14 h-[calc(100vh-56px)]">
+          <div className="relative w-full h-full">
+            {map}
+            {selectedAddress && (
+              <TabletPanel>
+                <PropertyReport addressId={selectedAddress.addressId} />
+              </TabletPanel>
+            )}
+          </div>
+        </div>
+      )}
+
+      {bp === 'mobile' && (
+        <div className="pt-14 h-[calc(100vh-56px)] relative">
+          {map}
+          <MobileDrawer hasSelection={!!selectedAddress}>
+            {selectedAddress ? (
               <PropertyReport addressId={selectedAddress.addressId} />
             ) : (
-              <LandingPanel />
-            )
-          }
-        />
-      </div>
-
-      {/* Tablet: 640px - 1023px — Map with push panel */}
-      <div className="hidden sm:block lg:hidden pt-14 h-[calc(100vh-56px)]">
-        <div className="relative w-full h-full">
-          <MapContainer />
-          {selectedAddress && (
-            <TabletPanel>
-              <PropertyReport addressId={selectedAddress.addressId} />
-            </TabletPanel>
-          )}
+              <MobileLandingContent />
+            )}
+          </MobileDrawer>
         </div>
-      </div>
-
-      {/* Mobile: < 640px — Full map with bottom sheet */}
-      <div className="sm:hidden pt-14 h-[calc(100vh-56px)] relative">
-        <MapContainer />
-        <MobileDrawer hasSelection={!!selectedAddress}>
-          {selectedAddress ? (
-            <PropertyReport addressId={selectedAddress.addressId} />
-          ) : (
-            <MobileLandingContent />
-          )}
-        </MobileDrawer>
-      </div>
+      )}
     </>
   );
 }
@@ -126,7 +132,7 @@ function LandingPanel() {
         </div>
 
         <p className="mt-8 text-[11px] text-muted-foreground max-w-sm">
-          Powered by 12+ NZ government open data sources. Free during beta.
+          Powered by 100+ NZ government open data sources. Free preview for every address.
         </p>
       </div>
       <AppFooter />

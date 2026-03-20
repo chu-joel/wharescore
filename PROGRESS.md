@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-21 (session 53 — National data expansion: 101 loaders, 12.8M+ rows, full pipeline wiring)
+**Last Updated:** 2026-03-21 (session 54 — Rent Advisor module: personalised "is my rent fair?" engine with property-specific adjustments)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,9 +15,53 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 53 (2026-03-21) — National data expansion: 101 data loaders, 8 regions, 12.8M+ rows, full pipeline wiring.**
+**Session 54 (2026-03-21) — Rent Advisor module: personalised rent advice engine.**
 
 ### What Was Done This Session
+
+**(A) Rent Advisor — full-stack implementation:**
+
+New "Is my rent reasonable?" advisor that applies property-specific adjustments to the SA2 median rent. Appears below the existing RentComparisonFlow after the user completes a rent comparison — natural progression from "where do I sit?" to "is that fair for MY property?"
+
+**Backend (`backend/app/services/rent_advisor.py` — new):**
+- 6 multiplicative adjustment factors: size (from DB footprint), building quality (silent, from council improvement/capital ratio), finish tier (user-selected 5-tier picker: Basic→Luxury), bathrooms, parking (flats/apartments only), insulation
+- Verdict engine: below-market / fair / slightly-high / high / very-high based on % difference from adjusted median
+- Template-based advice generation mentioning top adjustment factors and dollar impact
+- Tenancy Services link for high/very-high verdicts
+- Extracted `get_sa2_rental_baseline()` shared helper for SA2 median with TLA blend fallback
+
+**Backend endpoint (`backend/app/routers/market.py` — modified):**
+- `POST /api/v1/property/{address_id}/rent-advisor` with Pydantic validation
+- Rate limited 20/min (same as market endpoint)
+
+**Frontend (`frontend/src/components/property/RentAdvisorCard.tsx` — new):**
+- Collapsible card with chevron toggle
+- Finish tier pill picker (5 tiers with hover descriptions)
+- Bathroom selector (1/2/3+), parking toggle (flats/apartments only), insulation toggle
+- Verdict banner with colour-coded background (green/yellow/red)
+- Adjustment breakdown table showing SA2 median → each factor → adjusted estimate
+- Advice text and disclaimer
+
+**Shared state (`frontend/src/stores/rentInputStore.ts` — new):**
+- Transient Zustand store (no localStorage) sharing dwelling type, bedrooms, and rent between RentComparisonFlow and RentAdvisorCard
+- RentComparisonFlow syncs to store via useEffect; RentAdvisorCard reads from store
+
+**Types (`frontend/src/lib/types.ts` — modified):**
+- Added `RentAdvisorResult` and `RentAdjustment` interfaces
+
+**Wiring (`MarketSection.tsx` — modified):**
+- `<RentAdvisorCard>` rendered after `<RentComparisonFlow>`
+- Only appears when user has set dwelling type + bedrooms + rent in the comparison flow
+
+**TypeScript compiles clean. Python imports clean.**
+
+---
+
+### Previous Session
+
+**Session 53 (2026-03-21) — National data expansion: 101 data loaders, 8 regions, 12.8M+ rows, full pipeline wiring.**
+
+### What Was Done (Session 53)
 
 **(A) Data Loaders — expanded from ~20 to 101 across 8 regions:**
 
@@ -59,7 +103,7 @@ Also loaded: Palmerston North GTFS (885 stops), New Plymouth GTFS (388 stops).
 
 **(F) Batch loader** (`backend/scripts/batch_load.py`): 15 waves, 6 workers/wave, auto-migrations, `--wave`/`--only`/`--dry-run`/`--skip-migrations` flags. Generic `_load_regional_gtfs()` for transit, `_load_rates()` for council valuations.
 
-**(G) Database totals:** 12.8M+ rows across 53 tables. Auckland rates (623K) still loading at session end.
+**(G) Database totals:** 8.7M+ rows across 53 tables (after landslide dedup). 103 data loaders.
 
 **(H) Session 45 fixes (parallel session):**
 - **Transit night bus fix** — N-bus routes (N1, N6, N22, N66, N8, N88) excluded from peak commute data in `data_loader.py`. Evening peak (4:30–6:30 PM) added alongside morning (7–9 AM). New `peak_window` column in `transit_travel_times`. Frontend shows separate AM/PM commute cards. **Note: Metlink GTFS needs reload to populate PM times.**
@@ -109,18 +153,31 @@ Remaining gaps:
 - Regional hazard grades (earthquake_hazard_index, ground_shaking_severity) have types + transform but no component renders them directly — they feed into the composite risk score instead.
 - Regional GTFS (Hamilton/Dunedin/Nelson) loads into `transit_stops` with `source` column but mode breakdown in SQL only queries `metlink_stops` + `at_stops` (generic stop count works though).
 
+**(K) Council Valuations — 988K properties across 6 councils:**
+
+| Council | Properties | Status |
+|---|---|---|
+| Auckland | 620,263 | Loaded (SRID 3857, fixed from initial 2193 error) |
+| Christchurch | 185,989 | Loaded (Point geometry, required generic geom column) |
+| Wellington | 87,819 | Existing |
+| Taranaki (New Plymouth + South Taranaki + Stratford) | 64,312 | Loaded |
+| Tasman (Richmond, Motueka, Golden Bay) | 28,845 | Loaded |
+| Dunedin | 1,000 | Loaded |
+
+All fully wired to frontend — 12+ components use CV/LV (PropertySummaryCard, MarketSection, InvestmentMetrics, yield calcs, budget tools).
+
+**Fixes applied:** `council_valuations.geom` changed from MultiPolygon to generic Geometry (to accept Points from Christchurch). Materialized view `mv_sa2_valuations` and view `v_address_valuation` dropped and recreated. Auckland SRID corrected from 2193 to 3857. Per-row error handling added for bad geometries.
+
 ### What Needs To Be Done Next
 
-- **Auckland rates** — 623K features, re-running with error handling for bad geometries
 - **Reload Metlink GTFS** — needed to populate PM peak times and remove N-bus entries
 - **Frontend TypeScript build verification** — confirm types compile clean after all changes
-- **Planning overlays card** — create UI component to render heritage/ecological/special character/mana whenua/trees/viewshaft data (data flows through but no card shows it)
-- **Regional hazard card** — render earthquake_hazard_index, ground_shaking_severity, gwrc_liquefaction per-property
 - **PDF template** — add commute time table, mode breakdown, CBD distance
-- **Risk score engine** — rules for new fields
 - **Deploy to Azure**
 
-**Not available (no public endpoint):** Auckland contaminated land, MBIE EPBs (no API), Auckland solar, Christchurch Metro GTFS (needs API key), Hamilton rates (auth-locked), BayBus/GoBay GTFS (unstable URLs), Palmerston North/Tasman/Rotorua/Whangarei/Invercargill/Queenstown (no public GIS)
+**Rates data not available (locked):** Hamilton (auth-token), Tauranga (no per-property CV endpoint), Nelson (auth-token), Napier/Hastings (no GIS endpoint). National LINZ DVR exists but requires government data agreement.
+
+**Other data not available:** Auckland contaminated land, MBIE EPBs (no API), Auckland solar, Christchurch Metro GTFS (needs API key), BayBus/GoBay GTFS (unstable URLs), Palmerston North/Rotorua/Whangarei/Invercargill/Queenstown (no public council GIS)
 
 ---
 

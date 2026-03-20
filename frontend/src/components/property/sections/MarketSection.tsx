@@ -5,6 +5,7 @@ import { IndicatorCard } from '@/components/common/IndicatorCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
 import { RentComparisonFlow } from '@/components/property/RentComparisonFlow';
+import { RentAdvisorCard } from '@/components/property/RentAdvisorCard';
 import { RentHistoryChart } from '@/components/property/RentHistoryChart';
 import { HPITrendChart } from '@/components/property/HPITrendChart';
 import { UnitComparisonTable } from '@/components/property/UnitComparisonTable';
@@ -82,6 +83,9 @@ export function MarketSection({ addressId, category, market, property, detection
         market={market}
         detection={detection}
       />
+
+      {/* Rent Advisor (personalised advice) */}
+      <RentAdvisorCard addressId={addressId} />
 
       {/* Trend data */}
       {market.trend && (
