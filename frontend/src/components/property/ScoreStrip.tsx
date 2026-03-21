@@ -10,9 +10,17 @@ interface ScoreStripProps {
   categories: CategoryScore[];
 }
 
+const SHORT_LABELS: Record<string, string> = {
+  risk: 'Risk',
+  liveability: 'Area',
+  market: 'Market',
+  transport: 'Transit',
+  planning: 'Planning',
+};
+
 export function ScoreStrip({ categories }: ScoreStripProps) {
   return (
-    <div className="relative flex justify-center gap-3 sm:gap-5">
+    <div className="relative flex justify-center gap-4 sm:gap-5">
       {/* Connecting line behind circles */}
       <div className="absolute left-[22px] right-[22px] top-[22px] h-[2px] bg-border z-0" />
       {CATEGORIES.map((meta) => {
@@ -40,7 +48,7 @@ export function ScoreStrip({ categories }: ScoreStripProps) {
                 {score}
               </div>
               <span className="text-[10px] text-muted-foreground leading-tight text-center max-w-[60px] font-medium">
-                {meta.label.split(' & ')[0]}
+                {SHORT_LABELS[meta.name] ?? meta.label.split(' & ')[0]}
               </span>
             </TooltipTrigger>
             <TooltipContent>

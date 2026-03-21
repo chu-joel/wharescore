@@ -37,6 +37,9 @@ REVALUATION_DATES = {
     "Christchurch City": "2022-08-01",
     "Taranaki": "2025-08-01",
     "Auckland": "2024-06-01",
+    "Tasman District": "2024-09-01",
+    "Buller District": "2024-09-01",
+    "Dunedin City": "2022-08-01",
 }
 
 

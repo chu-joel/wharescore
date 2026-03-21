@@ -1589,6 +1589,131 @@ tr.hh-flagged { background: #FFFBF5; }
 </div>
 {% endif %}
 
+{# ── Rent Advisor (Premium — full breakdown) ── #}
+{% if rent_advisor %}
+<h3 style="margin-top:20px;">Personalised Rent Analysis</h3>
+
+{# User's property description #}
+<div style="break-inside:avoid; margin:8px 0; padding:12px 16px; background:var(--light); border:1px solid var(--border); border-radius:8px;">
+  <p style="font-size:0.82em; color:var(--muted); margin-bottom:6px; font-weight:600;">Your property description</p>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:0.85em;">
+    {% if rent_inputs.dwelling_type %}<span>{{ rent_inputs.dwelling_type }}</span>{% endif %}
+    {% if rent_inputs.bedrooms %}<span>{{ rent_inputs.bedrooms }} bedroom{{ 's' if rent_inputs.bedrooms != '1' else '' }}</span>{% endif %}
+    {% if rent_inputs.bathrooms %}<span>{{ rent_inputs.bathrooms }} bathroom{{ 's' if rent_inputs.bathrooms != '1' else '' }}</span>{% endif %}
+    {% if rent_inputs.finish_tier %}<span style="text-transform:capitalize;">{{ rent_inputs.finish_tier }} finish</span>{% endif %}
+    {% if rent_inputs.has_parking %}<span>Parking included</span>{% endif %}
+    {% if rent_inputs.has_insulation == false %}<span style="color:var(--warn);">⚠ Not insulated</span>{% endif %}
+  </div>
+</div>
+
+{# Verdict banner #}
+<div style="break-inside:avoid; margin:10px 0; padding:14px 16px; border-radius:8px; border-left:5px solid {% if rent_advisor.verdict in ['fair','below-market'] %}var(--ok){% elif rent_advisor.verdict == 'slightly-high' %}var(--warn){% else %}var(--alert){% endif %}; background:{% if rent_advisor.verdict in ['fair','below-market'] %}#F0FDF4{% elif rent_advisor.verdict == 'slightly-high' %}#FFFBEB{% else %}#FEF2F2{% endif %};">
+  <div style="font-size:1.05em; font-weight:700; color:{% if rent_advisor.verdict in ['fair','below-market'] %}var(--ok){% elif rent_advisor.verdict == 'slightly-high' %}var(--warn){% else %}var(--alert){% endif %};">
+    {% if rent_advisor.verdict == 'below-market' %}Your rent looks below market
+    {% elif rent_advisor.verdict == 'fair' %}Your rent looks fair
+    {% elif rent_advisor.verdict == 'slightly-high' %}Your rent is slightly high
+    {% elif rent_advisor.verdict == 'high' %}Your rent is high
+    {% else %}Your rent is very high{% endif %}
+  </div>
+  <p style="font-size:0.9em; margin-top:4px;">
+    Your rent: <strong>${{ rent_advisor.your_rent }}/wk</strong> ·
+    Fair range: <strong>${{ rent_advisor.band_low }}–${{ rent_advisor.band_high }}/wk</strong> ·
+    Possible range: ${{ rent_advisor.band_low_outer }}–${{ rent_advisor.band_high_outer }}/wk
+  </p>
+  <p style="font-size:0.82em; color:var(--muted); margin-top:2px;">
+    Based on {{ rent_advisor.factors_analysed }} of {{ rent_advisor.factors_available }} factors · {{ rent_advisor.bond_count }} bonds · {{ rent_advisor.sa2_name }}
+  </p>
+</div>
+
+{# Full adjustment breakdown table #}
+{% if rent_advisor.adjustments %}
+<h4 style="margin-top:14px; font-size:0.9em;">Adjustments Applied</h4>
+<table style="width:100%; border-collapse:collapse; font-size:0.82em; margin-top:6px;">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border); text-align:left;">
+      <th style="padding:4px 8px;">Factor</th>
+      <th style="padding:4px 8px;">Adjustment</th>
+      <th style="padding:4px 8px;">$/wk Impact</th>
+      <th style="padding:4px 8px;">Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border); background:var(--light);">
+      <td style="padding:4px 8px; font-weight:600;">SA2 Median</td>
+      <td style="padding:4px 8px;">—</td>
+      <td style="padding:4px 8px; font-weight:600;">${{ rent_advisor.raw_median }}/wk</td>
+      <td style="padding:4px 8px; color:var(--muted);">{{ rent_advisor.sa2_name }} area baseline</td>
+    </tr>
+    {% for adj in rent_advisor.adjustments %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:4px 8px;">
+        {% if adj.category == 'hazard' %}<span style="color:var(--alert);">⚠</span> {% endif %}
+        {% if adj.category == 'location' %}<span style="color:#3B82F6;">◆</span> {% endif %}
+        {% if adj.category == 'property' %}<span style="color:var(--ok);">●</span> {% endif %}
+        {{ adj.label }}
+      </td>
+      <td style="padding:4px 8px; font-family:monospace; color:{% if adj.pct_high < 0 %}var(--alert){% elif adj.pct_high > 0 %}var(--ok){% else %}var(--muted){% endif %};">
+        {{ '%+.1f'|format(adj.pct_low) }}% to {{ '%+.1f'|format(adj.pct_high) }}%
+      </td>
+      <td style="padding:4px 8px; font-family:monospace;">
+        {{ '%+d'|format(adj.dollar_low) }} to {{ '%+d'|format(adj.dollar_high) }}
+      </td>
+      <td style="padding:4px 8px; color:var(--muted); font-size:0.92em;">{{ adj.reason }}</td>
+    </tr>
+    {% endfor %}
+    <tr style="border-top:2px solid var(--border); font-weight:700;">
+      <td style="padding:6px 8px;">Adjusted Fair Range</td>
+      <td style="padding:6px 8px;" colspan="2">${{ rent_advisor.band_low }}–${{ rent_advisor.band_high }}/wk</td>
+      <td style="padding:6px 8px; color:var(--muted); font-weight:400;">±3% possible: ${{ rent_advisor.band_low_outer }}–${{ rent_advisor.band_high_outer }}/wk</td>
+    </tr>
+  </tbody>
+</table>
+{% endif %}
+
+{# Area context #}
+{% if rent_advisor.area_context %}
+<h4 style="margin-top:14px; font-size:0.9em;">About This Area</h4>
+<p style="font-size:0.78em; color:var(--muted); margin-bottom:6px;">These suburb-level factors are already reflected in local rents.</p>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; font-size:0.82em;">
+  {% for ctx in rent_advisor.area_context %}
+  <div style="display:flex; align-items:center; gap:6px; padding:3px 0;">
+    <span style="color:{% if ctx.is_area_wide_hazard %}var(--alert){% elif ctx.direction == 'up' %}var(--ok){% elif ctx.direction == 'down' %}var(--warn){% else %}var(--muted){% endif %}; font-size:0.9em; width:14px; text-align:center;">
+      {% if ctx.is_area_wide_hazard %}⚠{% elif ctx.direction == 'up' %}↑{% elif ctx.direction == 'down' %}↓{% else %}–{% endif %}
+    </span>
+    <span>{{ ctx.description }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Advice & negotiation tips #}
+{% if rent_advisor.advice_lines %}
+<div style="break-inside:avoid; margin:12px 0; padding:12px 16px; border-left:4px solid var(--primary); border-radius:0 8px 8px 0; background:var(--primary-bg);">
+  <p style="font-size:0.82em; font-weight:600; color:var(--primary); margin-bottom:4px;">Analysis</p>
+  {% for line in rent_advisor.advice_lines %}
+  <p style="font-size:0.85em; color:var(--text-secondary); margin-top:4px;">{{ line }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Hazard insurance note #}
+{% set hazard_adjs = rent_advisor.adjustments | selectattr('category', 'equalto', 'hazard') | list %}
+{% if hazard_adjs %}
+<div style="break-inside:avoid; margin:8px 0; padding:10px 16px; border-left:4px solid var(--warn); border-radius:0 8px 8px 0; background:#FFFBF5;">
+  <p style="font-size:0.82em; font-weight:600; color:var(--warn); margin-bottom:4px;">Insurance Note</p>
+  <p style="font-size:0.82em; color:var(--text-secondary);">
+    This property has {{ hazard_adjs|length }} hazard flag{{ 's' if hazard_adjs|length > 1 else '' }}
+    ({{ hazard_adjs | map(attribute='label') | join(', ') }})
+    that may affect your landlord's insurance costs. NZ insurers increasingly price by individual property risk —
+    these factors should reduce what you pay in rent, not increase it.
+  </p>
+</div>
+{% endif %}
+
+<p style="font-size:0.72em; color:var(--muted); margin-top:8px;">{{ rent_advisor.disclaimer }}</p>
+
+{% endif %}
+
 {# Area Profile for renter #}
 {% if area_profile %}
 <h3>About {{ addr.suburb or addr.sa2_name or 'This Area' }}</h3>

@@ -8,6 +8,7 @@ import { RentComparisonFlow } from '@/components/property/RentComparisonFlow';
 import { RentAdvisorCard } from '@/components/property/RentAdvisorCard';
 import { RentHistoryChart } from '@/components/property/RentHistoryChart';
 import { HPITrendChart } from '@/components/property/HPITrendChart';
+import { PremiumGate } from '@/components/property/PremiumGate';
 import { UnitComparisonTable } from '@/components/property/UnitComparisonTable';
 import { MarketHeatBadge } from '@/components/property/MarketHeatBadge';
 import { formatCurrency, formatPercentChange } from '@/lib/format';
@@ -121,9 +122,13 @@ export function MarketSection({ addressId, category, market, property, detection
         </div>
       )}
 
-      {/* Charts */}
+      {/* Rent History — free (the hook for renters) */}
       <RentHistoryChart addressId={addressId} />
-      <HPITrendChart />
+
+      {/* HPI — gated (national context, low individual value) */}
+      <PremiumGate label="NZ House Price Index trend" trigger="market">
+        <HPITrendChart />
+      </PremiumGate>
 
       {/* Indicator cards */}
       {category.indicators.length > 0 && (

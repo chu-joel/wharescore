@@ -112,7 +112,11 @@ async def submit(conn, body, ip_hash: str) -> dict:
             body.bedrooms, body.reported_rent, is_outlier, ip_hash,
         ],
     )
-    await conn.commit()
+    # conn is our custom wrapper which auto-commits via psycopg defaults
+    try:
+        await conn.commit()
+    except AttributeError:
+        pass  # custom db wrapper auto-commits
 
     return {"status": "accepted", "is_outlier": is_outlier}
 

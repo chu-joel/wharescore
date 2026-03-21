@@ -75,6 +75,16 @@ async def _ensure_user_exists(user_id: str, email: str | None, name: str | None)
 
 async def require_user(request: Request) -> str:
     """FastAPI dependency — returns user_id or raises 401."""
+    # Dev mode bypass — allow unauthenticated access on localhost
+    from ..config import settings
+    if settings.ENVIRONMENT == "development":
+        token = _extract_bearer(request)
+        if not token:
+            client_ip = request.client.host if request.client else ""
+            if client_ip in ("127.0.0.1", "::1", "localhost"):
+                await _ensure_user_exists("dev-local-user", "dev@localhost", "Dev User")
+                return "dev-local-user"
+
     token = _extract_bearer(request)
     if not token:
         raise HTTPException(401, "Authentication required")

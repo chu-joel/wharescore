@@ -95,9 +95,26 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
           )}
 
           {report.coverage && (
-            <p className="text-xs text-muted-foreground text-center">
-              Confidence: {Math.round(report.coverage.percentage)}% ({formatCoverage(report.coverage.available, report.coverage.total)} indicators available)
-            </p>
+            <div className="flex items-center justify-center gap-2 py-1.5">
+              <div className="flex items-center gap-1.5 bg-piq-primary/10 text-piq-primary rounded-full px-3 py-1">
+                <svg width="16" height="16" viewBox="0 0 16 16" className="shrink-0">
+                  <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.2" />
+                  <circle
+                    cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeDasharray={`${(report.coverage.percentage / 100) * 37.7} ${37.7 - (report.coverage.percentage / 100) * 37.7}`}
+                    strokeDashoffset={37.7 / 4}
+                    strokeLinecap="round"
+                    transform="rotate(-90 8 8)"
+                  />
+                </svg>
+                <span className="text-xs font-semibold">
+                  {Math.round(report.coverage.percentage)}% confidence
+                </span>
+                <span className="text-[10px] text-piq-primary/70">
+                  ({formatCoverage(report.coverage.available, report.coverage.total)} indicators)
+                </span>
+              </div>
+            </div>
           )}
         </>
       ) : (

@@ -104,5 +104,7 @@
 | 14 | Pricing modal on map CTA | Not a bug (intentional random popup) |
 | 9 | Feedback button overlaps bottom CTA | Not a bug (only appeared with dev overlay) |
 | 13 | Building hover tooltip overlaps property popup | **Fixed** — hide hover tooltip when popup is active |
-| 7 | Mobile drawer not visible on home (peek state off-screen) | Pre-existing `vaul` drawer issue — needs investigation |
-| 10, 11 | Minor UX polish (About link, confidence indicator) | Low priority |
+| 7 | Mobile drawer not visible on home (peek state off-screen) | **Fixed** — drawer Content needs full viewport height for vaul snap calc; increased peek to 220px |
+| 10 | About link hidden on mobile | **Fixed** — changed `hidden md:` to `hidden sm:` |
+| 11 | Confidence indicator not prominent enough | **Fixed** — styled as teal pill badge with mini ring SVG |
+| 15 | Score Strip "Neighbourhood"/"Transport" labels overlap on mobile | **Fixed** — shortened to "Area"/"Transit" via SHORT_LABELS map |

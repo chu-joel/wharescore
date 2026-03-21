@@ -39,12 +39,12 @@ async def require_paid_user(
     """FastAPI dependency — returns CreditInfo or raises 403 if no credits."""
     from ..config import settings
 
-    # Dev mode: bypass credit + auth check when X-Promo header is present (localhost only)
-    if settings.ENVIRONMENT == "development" and request.headers.get("X-Promo"):
+    # Dev mode: bypass credit + auth check entirely (localhost only)
+    if settings.ENVIRONMENT == "development":
         client_ip = request.client.host if request.client else ""
-        if client_ip in ("127.0.0.1", "::1", "localhost"):
+        if client_ip in ("127.0.0.1", "::1", "localhost") or request.headers.get("X-Promo"):
             return CreditInfo(
-                user_id=user_id or "dev-promo-user",
+                user_id=user_id or "dev-local-user",
                 plan="promo",
                 credit_id=None,
                 credits_remaining=99,

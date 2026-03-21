@@ -98,7 +98,7 @@ export function AppHeader() {
         <div className="flex items-center gap-0.5 shrink-0">
           <a
             href="/about"
-            className="hidden md:inline-flex text-sm text-muted-foreground hover:text-foreground px-2.5 py-2 rounded-lg hover:bg-muted transition-colors"
+            className="hidden sm:inline-flex text-sm text-muted-foreground hover:text-foreground px-2.5 py-2 rounded-lg hover:bg-muted transition-colors"
           >
             About
           </a>

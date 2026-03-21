@@ -388,22 +388,44 @@ export interface SuburbRentalTrend {
 export interface RentAdjustment {
   factor: string;
   label: string;
-  pct: number;
-  dollar: number;
+  pct_low: number;
+  pct_high: number;
+  dollar_low: number;
+  dollar_high: number;
   reason: string;
+  category: 'property' | 'hazard' | 'location';
+  prevalence_pct?: number;
+}
+
+export interface RentAreaContext {
+  factor: string;
+  label: string;
+  value: number;
+  city_avg: number | null;
+  max_scale: number;
+  direction: 'up' | 'down' | 'neutral';
+  description: string;
+  is_area_wide_hazard?: boolean;
 }
 
 export interface RentAdvisorResult {
   verdict: 'below-market' | 'fair' | 'slightly-high' | 'high' | 'very-high';
-  adjusted_median: number;
+  band_low: number;
+  band_high: number;
+  band_low_outer: number;
+  band_high_outer: number;
   raw_median: number;
   your_rent: number;
   difference_pct: number;
   adjustments: RentAdjustment[];
+  area_context: RentAreaContext[];
+  factors_analysed: number;
+  factors_available: number;
   advice_lines: string[];
   confidence: 1 | 2 | 3 | 4 | 5;
   bond_count: number;
   data_source: string;
+  sa2_name: string;
   disclaimer: string;
 }
 

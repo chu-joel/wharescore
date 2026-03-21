@@ -24,12 +24,15 @@ router = APIRouter()
 
 class RentAdvisorRequest(BaseModel):
     dwelling_type: str = Field(pattern=r"^(House|Flat|Apartment|Room)$")
-    bedrooms: str = Field(pattern=r"^(1|2|3|4|5\+)$")
+    bedrooms: str = Field(pattern=r"^(Studio|1|2|3|4|5\+)$")
     weekly_rent: int = Field(ge=50, le=10000)
     finish_tier: str | None = Field(None, pattern=r"^(basic|standard|modern|premium|luxury)$")
     bathrooms: str | None = Field(None, pattern=r"^(1|2|3\+)$")
     has_parking: bool | None = None
     has_insulation: bool | None = None
+    is_furnished: bool | None = None
+    shared_kitchen: bool | None = None
+    utilities_included: bool | None = None
 
 
 LEGAL_DISCLAIMER = (
@@ -138,12 +141,12 @@ async def get_market(
         tr = cur.fetchone()
         trends = dict(tr) if tr else {}
 
-        # 5. Council valuation (Wellington only — other councils return None)
+        # 5. Council valuation (988K properties across 6 councils)
         cv_data = None
         cur = await conn.execute(
             """
             SELECT cv.capital_value, cv.land_value, cv.valuation_date,
-                   cv.suburb, cv.full_address
+                   cv.suburb, cv.full_address, cv.council
             FROM council_valuations cv, addresses a
             WHERE a.address_id = %s
               AND ST_Contains(cv.geom, a.geom)
@@ -153,13 +156,26 @@ async def get_market(
         )
         cv = cur.fetchone()
         if cv:
+            # Use stored valuation_date, or fall back to known revaluation dates
+            val_date = cv.get("valuation_date")
+            if not val_date:
+                from ..services.market import REVALUATION_DATES
+                # Try TA name first, then council name
+                for key in [sa2["ta_name"], cv.get("council", "")]:
+                    for reval_key, reval_date_str in REVALUATION_DATES.items():
+                        if reval_key.lower() in (key or "").lower() or (key or "").lower() in reval_key.lower():
+                            val_date = date.fromisoformat(reval_date_str)
+                            break
+                    if val_date:
+                        break
+
             cv_age_months = None
-            if cv.get("valuation_date"):
-                cv_age_months = (date.today() - cv["valuation_date"]).days // 30
+            if val_date:
+                cv_age_months = (date.today() - val_date).days // 30
             cv_data = {
                 "capital_value": cv["capital_value"],
                 "land_value": cv["land_value"],
-                "valuation_date": str(cv["valuation_date"]) if cv.get("valuation_date") else None,
+                "valuation_date": str(val_date) if val_date else None,
                 "cv_age_months": cv_age_months,
                 "uncertainty": cv_uncertainty(cv_age_months) if cv_age_months else 0.25,
             }
@@ -244,6 +260,23 @@ async def get_market(
                         "methods_agree_pct": round(agree_pct, 1) if agree_pct else None,
                     }
 
+        # 8b. Yield-only fallback when no CV exists but we have rent data
+        if not purchase_estimate and blended_median:
+            region = sa2["ta_name"].split(" ")[0]
+            yields = YIELD_TABLE.get(region, YIELD_TABLE["DEFAULT"])
+            yield_value = round((blended_median * 52) / yields["typical"])
+            yield_low = round((blended_median * 52) / yields["high"])
+            yield_high = round((blended_median * 52) / yields["low"])
+            purchase_estimate = {
+                "estimated_value": yield_value,
+                "low": yield_low,
+                "high": yield_high,
+                "hpi_adjusted": None,
+                "yield_inversion": yield_value,
+                "methods_agree_pct": None,
+                "method": "yield_only",
+            }
+
         # 9. Confidence stars
         cv_age = cv_data["cv_age_months"] if cv_data else None
         agree_pct = purchase_estimate["methods_agree_pct"] if purchase_estimate else None
@@ -283,17 +316,25 @@ async def get_market(
 async def rent_advisor(request: Request, address_id: int, body: RentAdvisorRequest):
     """Personalised rent advice with property-specific adjustments."""
 
+    # Studio maps to 1-bed for bond data (MBIE has no studio category)
+    is_studio = body.bedrooms == "Studio"
+    bond_bedrooms = "1" if is_studio else body.bedrooms
+
     async with db.pool.connection() as conn:
         result = await compute_rent_advice(
             conn,
             address_id=address_id,
             weekly_rent=body.weekly_rent,
             dwelling_type=body.dwelling_type,
-            bedrooms=body.bedrooms,
+            bedrooms=bond_bedrooms,
             finish_tier=body.finish_tier,
             bathrooms=body.bathrooms,
             has_parking=body.has_parking,
             has_insulation=body.has_insulation,
+            is_studio=is_studio,
+            is_furnished=body.is_furnished,
+            shared_kitchen=body.shared_kitchen,
+            utilities_included=body.utilities_included,
         )
 
     if not result:

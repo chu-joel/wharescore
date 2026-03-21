@@ -173,7 +173,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         )}
 
-        {/* Score Gauge — the visual hook */}
+        {/* === KEY FINDINGS — the emotional hook, show first === */}
+        <div className="section-divider">
+          <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
+        </div>
+
+        {/* Score Gauge + Strip — context after findings */}
         {hasScores && bin ? (
           <ScoreGauge
             score={report.scores.overall}
@@ -188,7 +193,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Score Strip — 5 circles, intriguing without detail */}
+        {/* Score Strip — 5 circles */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
         {/* Coverage Ring */}
@@ -215,21 +220,16 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Category Radar — visual profile */}
         {hasCategories && <CategoryRadar categories={report.scores.categories} />}
 
-        {/* === KEY FINDINGS (persona-aware, first 2 free, rest gated) === */}
+        {/* Email capture + AI Summary */}
         <div className="section-divider">
-          <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
-          {/* Email capture — registration wall before paywall */}
-          <div className="mt-3">
-            <EmailSummaryCapture
-              addressId={addressId}
-              fullAddress={report.address.full_address}
-              findingCount={findings.length}
-              riskCount={riskCount}
-            />
-          </div>
+          <EmailSummaryCapture
+            addressId={addressId}
+            fullAddress={report.address.full_address}
+            findingCount={findings.length}
+            riskCount={riskCount}
+          />
         </div>
 
-        {/* AI Summary + Area Profile */}
         <AISummaryCard
           summary={aiData?.ai_summary ?? null}
           areaProfile={aiData?.area_profile ?? null}

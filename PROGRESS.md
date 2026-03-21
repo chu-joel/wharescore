@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-21 (session 54 — Rent Advisor module: personalised "is my rent fair?" engine with property-specific adjustments)
+**Last Updated:** 2026-03-21 (session 54 — Rent Advisor: full engine + free/premium split + PDF section + UX refinements)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,45 +15,136 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 54 (2026-03-21) — Rent Advisor module: personalised rent advice engine.**
+**Session 54 (2026-03-21) — Rent Advisor: research-backed fair-rent band engine.**
 
 ### What Was Done This Session
 
-**(A) Rent Advisor — full-stack implementation:**
+**(A) Rent Advisor — full-stack "Is my rent fair?" engine:**
 
-New "Is my rent reasonable?" advisor that applies property-specific adjustments to the SA2 median rent. Appears below the existing RentComparisonFlow after the user completes a rent comparison — natural progression from "where do I sit?" to "is that fair for MY property?"
+Research-backed personalised rent advisor that outputs a **fair-rent band** (not a single point estimate) by applying property-specific adjustments to the SA2 median, scaling hazard adjustments by SA2 prevalence, comparing property location metrics to SA2 averages, and showing area characteristics as context.
 
-**Backend (`backend/app/services/rent_advisor.py` — new):**
-- 6 multiplicative adjustment factors: size (from DB footprint), building quality (silent, from council improvement/capital ratio), finish tier (user-selected 5-tier picker: Basic→Luxury), bathrooms, parking (flats/apartments only), insulation
-- Verdict engine: below-market / fair / slightly-high / high / very-high based on % difference from adjusted median
-- Template-based advice generation mentioning top adjustment factors and dollar impact
-- Tenancy Services link for high/very-high verdicts
-- Extracted `get_sa2_rental_baseline()` shared helper for SA2 median with TLA blend fallback
+**Research conducted:**
+- NZ Treasury "What Drives Rents in New Zealand" (2023) — wages and supply/demand are macro drivers
+- Hedonic pricing model literature — property features, neighbourhood, and environment are the three categories
+- Flood risk meta-analysis (37 studies) — average -4.6% discount for floodplain location
+- Noise impact studies — -0.5% to -1.8% per dB above 55dB depending on source
+- NZ Healthy Homes Standards — insulation legally required since July 2025, so insulated = baseline
+- Competitor analysis (Zillow, Redfin, Rentometer) — none factor in hazard/risk data
+
+**Backend (`backend/app/services/rent_advisor.py` — new, 400+ lines):**
+
+Three categories of adjustment, each with low/high range for the band:
+
+*Property-specific (always full weight):*
+- Size: footprint vs typical for dwelling type (houses only — skipped for apartments since building footprint ≠ unit size)
+- Quality: improvement value per room (bedrooms + bathrooms) vs SA2 median, works for both houses (imp value) and apartments (CV, since land_value=0 for units). Only triggers if 30%+ above/below area average.
+- Finish tier: 5-tier user picker (Basic -5/-10%, Standard -1/-3%, Modern 0%, Premium +4/+8%, Luxury +8/+15%)
+- Bathrooms: bedroom-aware baseline (1 bath typical for 1-2 bed, 2 bath typical for 4+ bed). Below typical = negative adjustment.
+- Parking: ±1% to ±3% for flats/apartments. Bond data mixes with/without parking so adjustment captures deviation from blended median.
+- Insulation: only adjusts DOWN (-2 to -4%) if NOT insulated. Insulated is the legal baseline since Healthy Homes Standards July 2025.
+
+*Hazard adjustments (scaled by SA2 prevalence):*
+- 11 hazard types checked via single SQL query: flood, liquefaction, tsunami, EPB, contamination, overland flow, slope failure, traffic noise, aircraft noise, wind, coastal erosion
+- Prevalence computed per detected hazard: what % of SA2 addresses share this hazard
+- Scaling: >70% prevalence = area-wide (skip, move to context); 40-70% = 0.3× scaling; <40% = full adjustment
+- Area-wide hazards shown in context section with "already reflected in local rents" messaging
+
+*Location adjustments (property vs SA2 average):*
+- Transit access: property's stops within 400m vs SA2 centroid count (queries both metlink_stops + at_stops)
+- CBD distance: property distance vs SA2 centroid distance (14 NZ city CBDs)
+- School proximity: property's schools within 1.5km vs SA2 centroid count
+- Park proximity: <200m = premium, >800m = discount
+- Nearest rail station: <500m = premium (+1 to +3%)
+- Each only adjusts if 20%+ deviation from SA2 average
+
+*Band computation:*
+- Inner band: product of all (1 + low_adj) and (1 + high_adj), widened ±1% for natural variance
+- Outer band: ±3% beyond inner band for uncertainty/deviation
+- Verdict relative to band: below-market / fair / slightly-high / high / very-high
+
+*Area context (no adjustment, explains the median):*
+- NZDep, transit, schools, noise from mv_sa2_comparisons vs mv_ta_comparisons
+- Shows suburb characteristics as directional arrows (↑/↓) with bars
 
 **Backend endpoint (`backend/app/routers/market.py` — modified):**
 - `POST /api/v1/property/{address_id}/rent-advisor` with Pydantic validation
-- Rate limited 20/min (same as market endpoint)
+- Rate limited 20/min
+
+**Frontend (`frontend/src/components/property/RentBandGauge.tsx` — new):**
+- Dual-band bar gauge: inner band (darker teal = fair range), outer band (lighter = possible range)
+- User rent marker colour-coded: green (in inner), amber (in outer), red (above both)
+- Clean label layout: outer values on edges, inner range centered, user rent below
+- Legend explaining all three visual elements
 
 **Frontend (`frontend/src/components/property/RentAdvisorCard.tsx` — new):**
-- Collapsible card with chevron toggle
-- Finish tier pill picker (5 tiers with hover descriptions)
-- Bathroom selector (1/2/3+), parking toggle (flats/apartments only), insulation toggle
-- Verdict banner with colour-coded background (green/yellow/red)
-- Adjustment breakdown table showing SA2 median → each factor → adjusted estimate
-- Advice text and disclaimer
+- Inputs always visible (no collapsible wrapper): finish tier pills, bathroom pills, parking toggle (flats/apts only), insulation as warning checkbox
+- Band gauge as hero visual
+- Verdict banner with colour-coded background and correct text for each verdict
+- Hazard flag pills (always shown free — consumer advocate positioning)
+- Adjustment rows with colour-coded dots (red=hazard, blue=location, green=property), mini magnitude bars, % ranges
+- Area context section with directional arrows and bars
+- Footer: factor count, bond count, SA2 name
+- Free tier shows top 4 adjustments, remainder gated
 
 **Shared state (`frontend/src/stores/rentInputStore.ts` — new):**
-- Transient Zustand store (no localStorage) sharing dwelling type, bedrooms, and rent between RentComparisonFlow and RentAdvisorCard
-- RentComparisonFlow syncs to store via useEffect; RentAdvisorCard reads from store
+- Zustand store persists ALL inputs within session: dwelling type, bedrooms, rent, finish tier, bathrooms, parking, not-insulated
+- RentComparisonFlow syncs to store; RentAdvisorCard reads from store
 
-**Types (`frontend/src/lib/types.ts` — modified):**
-- Added `RentAdvisorResult` and `RentAdjustment` interfaces
+**RentComparisonFlow changes:**
+- Removed Compare button — distribution bar auto-fetches when dwelling type or bedrooms change
+- Live-updates RentDistributionBar on selection change
 
-**Wiring (`MarketSection.tsx` — modified):**
-- `<RentAdvisorCard>` rendered after `<RentComparisonFlow>`
-- Only appears when user has set dwelling type + bedrooms + rent in the comparison flow
+**Other fixes:**
+- Crime trend endpoint: fixed `au2017_code` column error → uses SA2 name spatial lookup
+- Hazard detection: fixed column names (liquefaction→`liquefaction`, wind→`zone_name`, aircraft→`noise_level_dba`, slope→startswith "5")
 
-**TypeScript compiles clean. Python imports clean.**
+**Key design decisions documented:**
+- Bond data already includes a mix of with/without parking → parking adjustment is modest (±1-3%)
+- Insulated is the legal baseline → only "not insulated" adjusts (down)
+- Improvement value per room normalised by bedrooms+bathrooms → meaningful quality signal for both houses and apartments
+- SA2 median already prices in area-wide factors → NZDep, crime, transit, CBD dropped from adjustments, shown as context instead
+- Hazard prevalence scaling prevents double-counting area-wide hazards
+- Location adjustments only trigger on 20%+ deviation from SA2 average
+
+**(B) Free vs Premium split:**
+- Free on-screen: band gauge + verdict + hazard flags + top 2 adjustments only + premium CTA
+- Premium CTA ("Full breakdown in your report") triggers upgrade modal with `rent-advisor` context
+- Upgrade modal shows missing input warning: "For the best analysis, fill in: bedrooms, finish/condition" — prompts user to complete property details before purchasing
+- PDF export now sends all advisor inputs (finish_tier, bathrooms, has_parking, has_insulation) alongside dwelling_type/bedrooms/rent
+
+**(C) Premium PDF rent advisor section (property_report.html):**
+- User's property description box (dwelling type, bedrooms, bathrooms, finish tier, parking, insulation status)
+- Colour-coded verdict banner with inner band + outer band (possible range)
+- Full adjustment table: all factors with category icons (⚠ hazard, ◆ location, ● property), % range, $/wk impact, details. SA2 median as first row, adjusted fair range as last row.
+- Area context: 2-column grid with directional arrows, all suburb factors with "already reflected in local rents"
+- Analysis advice box (primary-branded insight)
+- Insurance note: hazard count + warning about risk-based pricing
+- Disclaimer
+
+**(D) Calculation refinements:**
+- **Quality adjustment redesigned**: dropped raw improvement/capital ratio (confounded by land value, size, age). Now uses `improvement_value / (bedrooms + bathrooms)` = per-room quality compared to SA2 median. Works for both houses (imp value) and apartments (CV, since land_value=0 for units). Only triggers if 30%+ above/below area average.
+- **Parking**: adjusted to ±1% to ±3% (not ±3-8%). Bond data mixes with/without parking so median is already blended — adjustment captures which side you're on.
+- **Insulation**: insulated = 0% (legally required since Healthy Homes July 2025). Only "not insulated" adjusts down (-2% to -4%). UI changed from toggle to warning checkbox: "Property is **not insulated** (required by Healthy Homes Standards)".
+- **Bathrooms**: now bedroom-aware baseline. 1 bath typical for 1-2 bed (0%), but below typical for 4+ bed (-2% to -4%). 2 bath typical for 3+ bed (0% there, +2-5% for 1-2 bed).
+- **Studio support**: added "Studio" bedroom option. Maps to beds=1 in bond query but applies -4% to -8% discount (no separate bedroom). True 1-bed gets +1% to +3% since 1-bed median includes studios.
+- **Inner band widened ±1%** for natural variance, outer band is ±3% (not ±5%) for deviation.
+
+**(E) UX improvements:**
+- Removed Compare button — RentDistributionBar auto-fetches on dwelling type / bedrooms change
+- Property type descriptions added (House: "Standalone house, townhouse...", Flat: "Part of a converted house or small block (2-4 units)", Apartment: "Purpose-built apartment building (5+ units)", Room: "Single room in a shared house")
+- Rent input label changed from "Your weekly rent (optional)" to "Your weekly rent"
+- Rent input syncs to budget calculator (weeklyRent + roomOnly flag for Room dwelling type)
+- Inputs stored in Zustand store (persist within session, not localStorage)
+- Card always expanded (no collapsible wrapper — inputs visible immediately)
+- Verdict text fixed: below-market correctly shows "below the fair range, but within possible range"
+- RentBandGauge: dual-band (inner=darker teal, outer=lighter), clean label layout (no overlapping), user rent marker colour-coded by position
+
+**(F) Bug fixes:**
+- Crime trend endpoint: `au2017_code` column doesn't exist → fixed to use SA2 name spatial lookup
+- Hazard detection: fixed column names (`liquefaction`→`liquefaction`, `zone`→`zone_name`, `noise_level`→`noise_level_dba`, slope severity values like "5 High")
+- Hooks order error: early return moved after all hooks in RentAdvisorCard
+- `band_low_outer` referenced before assignment: moved outer band computation before `_generate_advice` call
+- Size adjustment: skipped for multi-unit (building footprint ≠ unit size)
 
 ---
 

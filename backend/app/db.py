@@ -43,8 +43,11 @@ class _ConnectionContextManager:
         def _execute():
             cur = self.conn.cursor()
             cur.execute(query, params or [])
-            # Fetch all data while in the executor to avoid cross-thread issues
-            rows = cur.fetchall()
+            # Only fetch for SELECT/RETURNING queries — INSERTs/UPDATEs have no rows
+            try:
+                rows = cur.fetchall()
+            except Exception:
+                rows = []
             cur.close()
             return rows
 

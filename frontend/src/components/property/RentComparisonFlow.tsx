@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RentDistributionBar } from './RentDistributionBar';
 import { formatRent } from '@/lib/format';
 import { apiFetch } from '@/lib/api';
 import { useRentInputStore } from '@/stores/rentInputStore';
+import { useBudgetStore } from '@/stores/budgetStore';
 import type { MarketData, PropertyDetection, RentAssessment } from '@/lib/types';
 
 interface RentComparisonFlowProps {
@@ -17,10 +17,15 @@ interface RentComparisonFlowProps {
 }
 
 type DwellingType = 'House' | 'Flat' | 'Apartment' | 'Room';
-type Bedrooms = '1' | '2' | '3' | '4' | '5+';
+type Bedrooms = 'Studio' | '1' | '2' | '3' | '4' | '5+';
 
-const DWELLING_TYPES: DwellingType[] = ['House', 'Flat', 'Apartment', 'Room'];
-const BEDROOM_OPTIONS: Bedrooms[] = ['1', '2', '3', '4', '5+'];
+const DWELLING_TYPES: { value: DwellingType; description: string }[] = [
+  { value: 'House', description: 'Standalone house, townhouse, or unit with its own entrance' },
+  { value: 'Flat', description: 'Part of a converted house or small block (2–4 units)' },
+  { value: 'Apartment', description: 'Purpose-built apartment building (5+ units)' },
+  { value: 'Room', description: 'Single room in a shared house or flatting situation' },
+];
+const BEDROOM_OPTIONS: Bedrooms[] = ['Studio', '1', '2', '3', '4', '5+'];
 
 export function RentComparisonFlow({ addressId, market, detection }: RentComparisonFlowProps) {
   const [dwellingType, setDwellingType] = useState<DwellingType | null>(
@@ -63,12 +68,24 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
     if (bedrooms) setStoreBedrooms(bedrooms);
   }, [bedrooms, setStoreBedrooms]);
 
+  const updateBudgetRenter = useBudgetStore((s) => s.updateRenter);
+
   useEffect(() => {
     setStoreRent(rentValid ? rentValue : null);
-  }, [rentValid, rentValue, setStoreRent]);
+    // Sync to budget calculator too
+    if (rentValid) {
+      updateBudgetRenter(addressId, { weeklyRent: rentValue });
+    }
+  }, [rentValid, rentValue, setStoreRent, updateBudgetRenter, addressId]);
+
+  // Sync dwelling type to budget calculator (room = different cost model)
+  useEffect(() => {
+    if (dwellingType) {
+      updateBudgetRenter(addressId, { roomOnly: dwellingType === 'Room' });
+    }
+  }, [dwellingType, updateBudgetRenter, addressId]);
 
   const rentOutOfBounds = rentInput.length > 0 && !isNaN(rentValue) && (rentValue < 50 || rentValue > 5000);
-  const canCompare = dwellingType && bedrooms && (rentInput === '' || rentValid);
 
   // Handle rent input — strip non-digits
   const handleRentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,25 +94,32 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
     setError(null);
   };
 
-  const handleCompare = useCallback(async () => {
+  // Auto-fetch when dwelling type or bedrooms change
+  useEffect(() => {
     if (!dwellingType || !bedrooms) return;
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      const params = new URLSearchParams({
-        dwelling_type: dwellingType,
-        bedrooms,
-        ...(rentValid && { asking_rent: String(rentValue) }),
+    // Studio maps to 1-bed in bond data (MBIE has no studio category)
+    const bondBedrooms = bedrooms === 'Studio' ? '1' : bedrooms;
+    const params = new URLSearchParams({
+      dwelling_type: dwellingType,
+      bedrooms: bondBedrooms,
+      ...(rentValid && { asking_rent: String(rentValue) }),
+    });
+    apiFetch<{ rent_assessment: RentAssessment }>(
+      `/api/v1/property/${addressId}/market?${params}`
+    )
+      .then((result) => {
+        if (!cancelled) setAssessment(result.rent_assessment);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load market data.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      const result = await apiFetch<{ rent_assessment: RentAssessment }>(
-        `/api/v1/property/${addressId}/market?${params}`
-      );
-      setAssessment(result.rent_assessment);
-    } catch {
-      setError('Could not load market data. Try again.');
-    } finally {
-      setLoading(false);
-    }
+    return () => { cancelled = true; };
   }, [addressId, dwellingType, bedrooms, rentValid, rentValue]);
 
   // Fire-and-forget rent report on unmount
@@ -132,23 +156,29 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
       <div>
         <p className="text-xs text-muted-foreground mb-1.5">Property type</p>
         <div className="flex flex-wrap gap-1.5">
-          {DWELLING_TYPES.map((type) => (
+          {DWELLING_TYPES.map(({ value, description }) => (
             <button
-              key={type}
-              onClick={() => setDwellingType(type)}
+              key={value}
+              onClick={() => setDwellingType(value)}
               className={`rounded-full h-9 px-4 text-sm font-medium border transition-colors ${
-                dwellingType === type
+                dwellingType === value
                   ? 'bg-piq-primary text-white border-piq-primary'
                   : 'border-piq-primary text-piq-primary hover:bg-piq-primary/5'
               }`}
+              title={description}
             >
-              {type}
-              {detection?.detected_type === type.toLowerCase() && (
+              {value}
+              {detection?.detected_type === value.toLowerCase() && (
                 <span className="text-[10px] ml-1 opacity-70">(detected)</span>
               )}
             </button>
           ))}
         </div>
+        {dwellingType && (
+          <p className="text-xs text-muted-foreground mt-1.5 italic">
+            {DWELLING_TYPES.find((t) => t.value === dwellingType)?.description}
+          </p>
+        )}
       </div>
 
       {/* Bedroom Selector */}
@@ -173,7 +203,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
 
       {/* Rent Input */}
       <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Your weekly rent (optional)</p>
+        <p className="text-xs text-muted-foreground mb-1.5">Your weekly rent</p>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
@@ -195,14 +225,9 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
         )}
       </div>
 
-      {/* Compare Button */}
-      <Button
-        onClick={handleCompare}
-        disabled={!canCompare || loading}
-        className="w-full"
-      >
-        {loading ? 'Comparing...' : 'Compare'}
-      </Button>
+      {loading && (
+        <p className="text-xs text-muted-foreground text-center">Loading market data...</p>
+      )}
 
       {error && <p className="text-xs text-destructive text-center">{error}</p>}
 

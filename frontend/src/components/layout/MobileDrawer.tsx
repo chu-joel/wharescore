@@ -4,8 +4,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { Drawer } from 'vaul';
 import { useMobileBackButton } from '@/hooks/useMobileBackButton';
 
-// 3 snap points: peek (search bar visible), half (summary visible), full (full report)
-const SNAP_POINTS = ['148px', '55%', 1] as const;
+// 3 snap points: peek (search + feature chips visible), half (summary visible), full (full report)
+const SNAP_POINTS = ['220px', '55%', 1] as const;
 
 interface MobileDrawerProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ interface MobileDrawerProps {
 }
 
 export function MobileDrawer({ children, hasSelection = false }: MobileDrawerProps) {
-  const [snap, setSnap] = useState<string | number | null>('148px');
+  const [snap, setSnap] = useState<string | number | null>('220px');
   const { pushState, popState } = useMobileBackButton();
 
   // When a property is selected, auto-snap to half
@@ -22,14 +22,20 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     if (hasSelection) {
       setSnap('55%');
     } else {
-      setSnap('148px');
+      setSnap('220px');
     }
   }, [hasSelection]);
 
   const handleSnapChange = useCallback(
     (point: string | number | null) => {
+      // Never allow dismiss (null snap)
+      if (point === null) {
+        setSnap('220px');
+        return;
+      }
+
       // Enforce sequential snapping: peek -> half -> full, never peek -> full directly
-      if (snap === '148px' && point === 1) {
+      if (snap === '220px' && point === 1) {
         setSnap('55%');
         pushState();
         return;
@@ -51,7 +57,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       if (snap === 1) {
         setSnap('55%');
       } else if (snap === '55%') {
-        setSnap('148px');
+        setSnap('220px');
       }
     };
 
@@ -64,30 +70,32 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       snapPoints={[...SNAP_POINTS]}
       activeSnapPoint={snap}
       setActiveSnapPoint={handleSnapChange}
+      fadeFromIndex={2}
       modal={false}
       open
+      onOpenChange={(open) => {
+        // Never allow the drawer to close
+        if (!open) return;
+      }}
+      dismissible={false}
     >
       <Drawer.Portal>
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-30 rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.1)]"
+          className="fixed bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.1)]"
           style={{
+            height: 'calc(100vh - 56px)',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
           aria-label="Property information panel"
         >
           <Drawer.Title className="sr-only">Property Details</Drawer.Title>
           {/* Drag handle */}
-          <div className="flex justify-center pt-2 pb-1">
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
             <Drawer.Handle className="h-1.5 w-12 rounded-full bg-muted-foreground/25" />
           </div>
 
-          {/* Content */}
-          <div
-            className="overflow-y-auto overscroll-contain px-4 pb-4"
-            style={{
-              maxHeight: snap === 1 ? 'calc(100vh - 80px)' : snap === '55%' ? 'calc(55vh - 40px)' : '108px',
-            }}
-          >
+          {/* Content — scrollable, grows to fill available snap height */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
             {children}
           </div>
         </Drawer.Content>

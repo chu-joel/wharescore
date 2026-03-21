@@ -102,19 +102,27 @@ async def get_crime_trend(request: Request, address_id: int):
     """Monthly crime victimisations for the property's area unit, last 3 years.
     Cached 24h by area_unit."""
 
-    # 1. Get the area unit for this address
+    # 1. Get SA2 name for this address (used as area_unit lookup)
     async with db.pool.connection() as conn:
         cur = await conn.execute(
-            "SELECT au2017_code FROM addresses WHERE address_id = %s", [address_id]
+            """
+            SELECT sa2.sa2_name
+            FROM addresses a
+            JOIN LATERAL (
+                SELECT sa2_name FROM sa2_boundaries WHERE ST_Within(a.geom, geom) LIMIT 1
+            ) sa2 ON true
+            WHERE a.address_id = %s
+            """,
+            [address_id],
         )
         row = cur.fetchone()
-    if not row or not row.get("au2017_code"):
+    if not row or not row.get("sa2_name"):
         return []
 
-    au_code = row["au2017_code"]
+    area_unit = row["sa2_name"]
 
     # 2. Check cache
-    cache_key = f"crime-trend:{au_code}"
+    cache_key = f"crime-trend:{area_unit}"
     cached = await cache_get(cache_key)
     if cached:
         return orjson.loads(cached)
@@ -123,13 +131,15 @@ async def get_crime_trend(request: Request, address_id: int):
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT to_char(year_month, 'YYYY-MM') AS month, victimisations AS count
+            SELECT to_char(year_month, 'YYYY-MM') AS month,
+                   SUM(victimisations)::int AS count
             FROM crime
-            WHERE au2017_code = %s
+            WHERE area_unit = %s
               AND year_month >= (CURRENT_DATE - INTERVAL '3 years')
+            GROUP BY year_month
             ORDER BY year_month
             """,
-            [au_code],
+            [area_unit],
         )
         rows = cur.fetchall()
 
@@ -358,7 +368,7 @@ def _extract_summary(report: dict, address_id: int) -> dict:
 async def _generate_pdf_background(
     job_id: str, address_id: int, persona: str = "buyer",
     user_id: str | None = None, credit_id: int | None = None, is_pro: bool = False,
-    budget_inputs: dict | None = None,
+    budget_inputs: dict | None = None, rent_inputs: dict | None = None,
 ):
     """Background task to generate PDF report. Saves report + deducts credit on success."""
     try:
@@ -490,22 +500,41 @@ async def _generate_pdf_background(
         except Exception as e:
             logger.warning(f"Nearby zones query failed: {e}")
 
-        # 3e. Fetch rent history time series (10yr)
+        # 3e. Fetch rent history time series (10yr) — personalised if user provided rent inputs
         rent_history_data = []
+        user_rent_context = None
         try:
             sa2_code = (report.get("address") or {}).get("sa2_code")
             if sa2_code:
+                # Use user's dwelling/bedroom selection if provided
+                dw_type = (rent_inputs or {}).get("dwelling_type", "ALL")
+                beds = (rent_inputs or {}).get("bedrooms", "ALL")
+                weekly_rent = (rent_inputs or {}).get("weekly_rent")
+
                 async with db.pool.connection() as conn_rh:
-                    cur_rh = await conn_rh.execute("""
+                    query = """
                         SELECT time_frame, median_rent, lower_quartile_rent,
                                upper_quartile_rent, active_bonds
                         FROM bonds_detailed
-                        WHERE location_id = %s AND dwelling_type = 'ALL'
-                          AND number_of_beds = 'ALL'
+                        WHERE location_id = %s AND dwelling_type = %s
+                          AND number_of_beds = %s
                           AND time_frame >= (CURRENT_DATE - INTERVAL '10 years')
                         ORDER BY time_frame
-                    """, [sa2_code])
+                    """
+                    cur_rh = await conn_rh.execute(query, [sa2_code, dw_type, beds])
                     rent_history_data = [dict(r) for r in cur_rh.fetchall()]
+
+                    # If no results for specific type, fall back to ALL
+                    if not rent_history_data and (dw_type != "ALL" or beds != "ALL"):
+                        cur_rh = await conn_rh.execute(query, [sa2_code, "ALL", "ALL"])
+                        rent_history_data = [dict(r) for r in cur_rh.fetchall()]
+
+                if rent_inputs and (rent_inputs.get("dwelling_type") or rent_inputs.get("weekly_rent")):
+                    user_rent_context = {
+                        "dwelling_type": rent_inputs.get("dwelling_type"),
+                        "bedrooms": rent_inputs.get("bedrooms"),
+                        "weekly_rent": weekly_rent,
+                    }
         except Exception as e:
             logger.warning(f"Rent history query failed: {e}")
 
@@ -535,6 +564,29 @@ async def _generate_pdf_background(
             # TODO: Add Auckland Council rates API when available
         except Exception as e:
             logger.warning(f"Rates fetch failed: {e}")
+
+        # 3h. Run rent advisor analysis (for premium PDF)
+        rent_advisor_result = None
+        if rent_inputs and rent_inputs.get("weekly_rent") and rent_inputs.get("dwelling_type"):
+            try:
+                from ..services.rent_advisor import compute_rent_advice
+                async with db.pool.connection() as conn_ra:
+                    rent_advisor_result = await compute_rent_advice(
+                        conn_ra,
+                        address_id=address_id,
+                        weekly_rent=int(rent_inputs["weekly_rent"]),
+                        dwelling_type=rent_inputs.get("dwelling_type", "ALL"),
+                        bedrooms=rent_inputs.get("bedrooms", "ALL"),
+                        finish_tier=rent_inputs.get("finish_tier"),
+                        bathrooms=rent_inputs.get("bathrooms"),
+                        has_parking=rent_inputs.get("has_parking"),
+                        has_insulation=rent_inputs.get("has_insulation"),
+                        is_furnished=rent_inputs.get("is_furnished"),
+                        shared_kitchen=rent_inputs.get("shared_kitchen"),
+                        utilities_included=rent_inputs.get("utilities_included"),
+                    )
+            except Exception as e:
+                logger.warning(f"Rent advisor failed for PDF: {e}")
 
         # 4. Run Python insight rule engine
         python_insights = build_insights(report)
@@ -596,6 +648,9 @@ async def _generate_pdf_background(
             rates_data=rates_data,
             user_display_name=user_display_name,
             budget_inputs=budget_inputs,
+            user_rent_context=user_rent_context,
+            rent_advisor_result=rent_advisor_result,
+            rent_inputs=rent_inputs,
         )
 
         # 8a. Save report + deduct credit (after successful generation)
@@ -647,12 +702,16 @@ async def start_pdf_export(
     persona: str = "buyer",
 ):
     """Start background PDF generation. Requires authenticated user with credits."""
-    # Parse optional budget_inputs from request body
+    # Parse optional budget_inputs + rent_inputs from request body
     budget_inputs = None
+    rent_inputs = None
     try:
         body = await request.json()
-        if isinstance(body, dict) and "budget_inputs" in body:
-            budget_inputs = body["budget_inputs"]
+        if isinstance(body, dict):
+            if "budget_inputs" in body:
+                budget_inputs = body["budget_inputs"]
+            if "rent_inputs" in body:
+                rent_inputs = body["rent_inputs"]
     except Exception:
         pass
 
@@ -663,6 +722,7 @@ async def start_pdf_export(
         credit_id=credit_info.credit_id,
         is_pro=credit_info.is_pro,
         budget_inputs=budget_inputs,
+        rent_inputs=rent_inputs,
     )
     return JSONResponse({
         "job_id": job_id,

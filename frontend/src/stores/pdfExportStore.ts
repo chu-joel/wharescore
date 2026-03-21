@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { usePersonaStore } from './personaStore';
 import { useDownloadGateStore } from './downloadGateStore';
 import { useBudgetStore } from './budgetStore';
+import { useRentInputStore } from './rentInputStore';
 import { showPaymentToast } from '@/components/common/PaymentToast';
 
 interface PdfExportState {
@@ -58,9 +59,28 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
         ? { budget_inputs: { persona, ...(persona === 'buyer' ? budgetEntry.buyer : budgetEntry.renter) } }
         : {};
 
+      // Include rent comparison + advisor inputs for personalised rent analysis in PDF
+      const rentInput = useRentInputStore.getState();
+      const rentPayload = rentInput.dwellingType
+        ? {
+            rent_inputs: {
+              dwelling_type: rentInput.dwellingType,
+              bedrooms: rentInput.bedrooms,
+              weekly_rent: rentInput.weeklyRent,
+              finish_tier: rentInput.finishTier,
+              bathrooms: rentInput.bathrooms,
+              has_parking: rentInput.hasParking,
+              has_insulation: rentInput.notInsulated ? false : undefined,
+              is_furnished: rentInput.isFurnished,
+              shared_kitchen: rentInput.sharedKitchen,
+              utilities_included: rentInput.utilitiesIncluded,
+            },
+          }
+        : {};
+
       const res = await fetch(
         `/api/v1/property/${addressId}/export/pdf/start?persona=${persona}`,
-        { method: 'POST', headers, body: JSON.stringify(budgetPayload) },
+        { method: 'POST', headers, body: JSON.stringify({ ...budgetPayload, ...rentPayload }) },
       );
       if (!res.ok) {
         if (res.status === 401) {

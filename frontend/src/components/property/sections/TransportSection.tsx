@@ -100,23 +100,22 @@ export function TransportSection({ category, liveability }: TransportSectionProp
         </div>
       )}
 
-      {/* Transit travel times — AM peak: first 2 free, rest gated */}
+      {/* Transit travel times — top 3 AM free, rest gated */}
       {liveability.transit_travel_times && liveability.transit_travel_times.length > 0 && (() => {
-        const FREE_ROUTES = 2;
+        const FREE_ROUTES = 3;
         const amTimes = liveability.transit_travel_times;
         const freeTimes = amTimes.slice(0, FREE_ROUTES);
-        const hiddenAm = amTimes.length - FREE_ROUTES;
+        const hiddenCount = amTimes.length - FREE_ROUTES;
         const hasPm = liveability.transit_travel_times_pm && liveability.transit_travel_times_pm.length > 0;
 
         return (
           <div className="space-y-2">
-            {/* Free: first 2 AM destinations */}
             <div className="rounded-xl border border-border bg-card p-4 card-elevated">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-piq-primary" />
                   <p className="text-xs font-medium text-muted-foreground">
-                    Morning commute (7–9 AM)
+                    Peak commute times
                   </p>
                 </div>
                 {liveability.peak_trips_per_hour != null && (
@@ -137,34 +136,26 @@ export function TransportSection({ category, liveability }: TransportSectionProp
               )}
             </div>
 
-            {/* Gated: remaining AM routes + full PM peak */}
-            {(hiddenAm > 0 || hasPm) && (
+            {/* Gated: all remaining routes + PM peak */}
+            {(hiddenCount > 0 || hasPm) && (
               <PremiumGate
-                label={`${hiddenAm > 0 ? `${hiddenAm} more route${hiddenAm > 1 ? 's' : ''}` : ''}${hiddenAm > 0 && hasPm ? ' + ' : ''}${hasPm ? 'evening commute' : ''}`}
+                label={`All ${amTimes.length} destinations${hasPm ? ' + evening peak' : ''}`}
                 trigger="default"
               >
-                {hiddenAm > 0 && (
-                  <div className="rounded-xl border border-border bg-card p-4 card-elevated">
-                    <div className="space-y-1.5">
-                      {amTimes.slice(FREE_ROUTES).map((tt: TransitTravelTime) => (
-                        <TravelTimeRow key={tt.destination} tt={tt} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="rounded-xl border border-border bg-card p-4 card-elevated space-y-1.5">
+                  {amTimes.slice(FREE_ROUTES).map((tt: TransitTravelTime) => (
+                    <TravelTimeRow key={tt.destination} tt={tt} />
+                  ))}
+                </div>
                 {hasPm && (
-                  <div className="rounded-xl border border-border bg-card p-4 card-elevated mt-2">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="rounded-xl border border-border bg-card p-4 card-elevated mt-2 space-y-1.5">
+                    <div className="flex items-center gap-2 mb-2">
                       <Clock className="h-4 w-4 text-amber-500" />
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Evening commute (4:30–6:30 PM)
-                      </p>
+                      <p className="text-xs font-medium text-muted-foreground">Evening peak (4:30–6:30 PM)</p>
                     </div>
-                    <div className="space-y-1.5">
-                      {liveability.transit_travel_times_pm!.map((tt: TransitTravelTime) => (
-                        <TravelTimeRow key={tt.destination} tt={tt} />
-                      ))}
-                    </div>
+                    {liveability.transit_travel_times_pm!.map((tt: TransitTravelTime) => (
+                      <TravelTimeRow key={tt.destination} tt={tt} />
+                    ))}
                   </div>
                 )}
               </PremiumGate>

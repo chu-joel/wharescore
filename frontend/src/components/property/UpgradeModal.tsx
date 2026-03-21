@@ -13,6 +13,28 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useDownloadGateStore, type PlanType, type ModalTrigger } from '@/stores/downloadGateStore';
+import { useRentInputStore } from '@/stores/rentInputStore';
+
+function RentInputTip() {
+  const { dwellingType, bedrooms, weeklyRent, finishTier, bathrooms } = useRentInputStore();
+  const missing: string[] = [];
+  if (!dwellingType) missing.push('property type');
+  if (!bedrooms) missing.push('bedrooms');
+  if (!weeklyRent) missing.push('weekly rent');
+  if (!finishTier) missing.push('finish/condition');
+  if (!bathrooms) missing.push('bathrooms');
+
+  if (missing.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-piq-accent-warm/30 bg-piq-accent-warm/5 p-2.5 text-xs text-piq-accent-warm">
+      <p className="font-medium">For the best analysis, fill in: {missing.join(', ')}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">
+        Close this and enter your property details above — your report will include a personalised rent breakdown.
+      </p>
+    </div>
+  );
+}
 
 const FEATURES = [
   'Premium PDF property report',
@@ -50,6 +72,8 @@ function getHeadline(
     }
     case 'market':
       return 'Is this property fairly priced?';
+    case 'rent-advisor':
+      return 'Get your full personalised rent analysis';
     case 'comparing':
       return 'Comparing properties? Save with a 3-pack';
     default:
@@ -63,6 +87,8 @@ function getDescription(trigger: ModalTrigger): string {
       return 'Get the complete hazard analysis with maps, AI insights, and personalised recommendations.';
     case 'market':
       return 'See fair rent estimates, market trends, and how this property compares to the suburb.';
+    case 'rent-advisor':
+      return 'Your report includes all adjustment factors, area context, negotiation advice, and insurance flags. Fill in property type, bedrooms, rent, and finish details above for the most accurate analysis.';
     case 'comparing':
       return 'The 3-pack lets you compare properties side by side. One report per property, $3.33 each.';
     default:
@@ -172,6 +198,11 @@ export function UpgradeModal() {
             {description}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Rent advisor tip — prompt to fill in details */}
+        {modalTrigger === 'rent-advisor' && (
+          <RentInputTip />
+        )}
 
         {/* Feature list */}
         <ul className="space-y-1.5 py-1">

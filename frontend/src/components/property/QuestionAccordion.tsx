@@ -20,6 +20,9 @@ import {
 } from '@/components/ui/accordion';
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionSection, QuestionId } from '@/lib/reportSections';
+
+/** Questions that should be expanded by default in the accordion */
+const DEFAULT_EXPANDED: QuestionId[] = ['neighbourhood-improving', 'neighbourhood'];
 import { getQuestionSummary, getPreviewChips, type PreviewChip } from './QuestionSummary';
 import { QuestionContent } from './QuestionContent';
 
@@ -62,7 +65,7 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
   }, [questions, report]);
 
   return (
-    <Accordion className="space-y-2" defaultValue={[]}>
+    <Accordion className="space-y-2" defaultValue={questions.filter(q => DEFAULT_EXPANDED.includes(q.id)).map(q => q.id)}>
       {questions.map((q) => {
         const Icon = ICON_MAP[q.icon] ?? ShieldAlert;
         const { text: summaryText, chips } = summaries[q.id] ?? { text: '', chips: [] };

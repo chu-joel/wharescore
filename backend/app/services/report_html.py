@@ -3285,18 +3285,31 @@ def _build_healthy_homes_signals(report: dict) -> list[dict]:
 # Rent Verdict (Renter Page)
 # =============================================================================
 
-def _build_rent_verdict(report: dict, budget_inputs: dict | None) -> dict | None:
+def _build_rent_verdict(report: dict, budget_inputs: dict | None, user_rent_context: dict | None = None) -> dict | None:
     """Compare user rent to area median. Returns verdict dict or None."""
     market = report.get("market") or {}
     addr = report.get("address") or {}
     rental_list = market.get("rental_overview") or []
 
-    # Get median rent
-    all_r = next(
-        (r for r in rental_list if isinstance(r, dict)
-         and r.get("dwelling_type") == "House" and r.get("beds") == "ALL"),
-        next((r for r in rental_list if isinstance(r, dict) and r.get("beds") == "ALL"), None),
-    )
+    # Use user's dwelling/bed selection if available for more accurate median
+    target_dw = (user_rent_context or {}).get("dwelling_type")
+    target_beds = (user_rent_context or {}).get("bedrooms")
+
+    # Try to find matching rental data for user's specific type
+    all_r = None
+    if target_dw and target_dw != "ALL":
+        all_r = next(
+            (r for r in rental_list if isinstance(r, dict)
+             and r.get("dwelling_type") == target_dw
+             and (r.get("beds") == target_beds if target_beds and target_beds != "ALL" else r.get("beds") == "ALL")),
+            None,
+        )
+    if not all_r:
+        all_r = next(
+            (r for r in rental_list if isinstance(r, dict)
+             and r.get("dwelling_type") == "House" and r.get("beds") == "ALL"),
+            next((r for r in rental_list if isinstance(r, dict) and r.get("beds") == "ALL"), None),
+        )
     if not all_r or not all_r.get("median"):
         return None
 
@@ -3304,9 +3317,14 @@ def _build_rent_verdict(report: dict, budget_inputs: dict | None) -> dict | None
     uq = float(all_r.get("upper_quartile") or median * 1.2)
     bond_count = all_r.get("bond_count")
 
-    # User rent from budget inputs
+    # User rent: prefer rent_context (from rent comparison flow), fall back to budget inputs
     user_rent = None
-    if budget_inputs and budget_inputs.get("rent_weekly"):
+    if user_rent_context and user_rent_context.get("weekly_rent"):
+        try:
+            user_rent = float(user_rent_context["weekly_rent"])
+        except (TypeError, ValueError):
+            pass
+    if user_rent is None and budget_inputs and budget_inputs.get("rent_weekly"):
         try:
             user_rent = float(budget_inputs["rent_weekly"])
         except (TypeError, ValueError):
@@ -3357,6 +3375,23 @@ def _build_rent_verdict(report: dict, budget_inputs: dict | None) -> dict | None
         result["user_rent"] = None
         result["position"] = None
         result["color"] = None
+
+    # Rental income potential (for buyer persona) — what could this property rent for?
+    cv_raw = (report.get("property") or {}).get("capital_value")
+    if cv_raw and median > 0:
+        try:
+            cv = float(cv_raw)
+            annual_rent = median * 52
+            gross_yield = (annual_rent / cv) * 100
+            result["rental_potential"] = {
+                "estimated_weekly_rent": int(median),
+                "upper_estimate": int(uq),
+                "annual_rent": int(annual_rent),
+                "gross_yield_pct": round(gross_yield, 1),
+                "net_yield_estimate_pct": round(gross_yield * 0.7, 1),  # ~30% expenses
+            }
+        except (TypeError, ValueError):
+            pass
 
     return result
 
@@ -3565,6 +3600,9 @@ def render(
     rates_data: dict | None = None,
     user_display_name: str | None = None,
     budget_inputs: dict | None = None,
+    user_rent_context: dict | None = None,
+    rent_advisor_result: dict | None = None,
+    rent_inputs: dict | None = None,
 ) -> str:
     """Generate premium HTML from a property report dict.
 
@@ -3788,7 +3826,7 @@ def render(
     rag_grid = _build_rag_grid(report, persona, insurance_risk, walkability)
     active_fault_section = _build_active_fault_section(hazards)
     healthy_homes = _build_healthy_homes_signals(report)
-    rent_verdict = _build_rent_verdict(report, budget_inputs)
+    rent_verdict = _build_rent_verdict(report, budget_inputs, user_rent_context)
     section_interp = _build_section_interpretations(
         report, persona, python_insights, monthly_cost,
         trajectory, investment_cards,
@@ -3954,5 +3992,9 @@ def render(
         active_fault_section=active_fault_section,
         healthy_homes=healthy_homes,
         rent_verdict=rent_verdict,
+        user_rent_context=user_rent_context,
         section_interp=section_interp,
+        # Rent advisor (premium)
+        rent_advisor=rent_advisor_result,
+        rent_inputs=rent_inputs or {},
     )

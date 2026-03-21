@@ -31,20 +31,20 @@ export interface QuestionSection {
 
 const RENTER_QUESTIONS: QuestionSection[] = [
   {
-    id: 'safety',
-    question: 'Is it safe?',
-    dataSources: ['hazards', 'liveability'],
-    icon: 'ShieldAlert',
-    iconColor: 'text-red-500',
-    iconBg: 'bg-red-100 dark:bg-red-900/30',
-  },
-  {
     id: 'rent-fair',
     question: 'Is the rent fair?',
     dataSources: ['market'],
     icon: 'DollarSign',
     iconColor: 'text-piq-primary',
     iconBg: 'bg-teal-100 dark:bg-teal-900/30',
+  },
+  {
+    id: 'safety',
+    question: 'Is it safe?',
+    dataSources: ['hazards', 'liveability'],
+    icon: 'ShieldAlert',
+    iconColor: 'text-red-500',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
   },
   {
     id: 'daily-life',
@@ -82,20 +82,20 @@ const BUYER_QUESTIONS: QuestionSection[] = [
     iconBg: 'bg-red-100 dark:bg-red-900/30',
   },
   {
-    id: 'true-cost',
-    question: 'What will it really cost?',
-    dataSources: ['market'],
-    icon: 'Calculator',
-    iconColor: 'text-piq-primary',
-    iconBg: 'bg-teal-100 dark:bg-teal-900/30',
-  },
-  {
     id: 'investment',
     question: 'Is it a good investment?',
     dataSources: ['market'],
     icon: 'TrendingUp',
     iconColor: 'text-emerald-600',
     iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+  },
+  {
+    id: 'true-cost',
+    question: 'What will it really cost?',
+    dataSources: ['market'],
+    icon: 'Calculator',
+    iconColor: 'text-piq-primary',
+    iconBg: 'bg-teal-100 dark:bg-teal-900/30',
   },
   {
     id: 'neighbourhood',
