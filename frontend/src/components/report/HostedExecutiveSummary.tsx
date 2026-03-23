@@ -14,41 +14,44 @@ interface Props {
 
 export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, storeBedrooms }: Props) {
   const hazards = report.hazards;
-  const liveability = report.liveability as unknown as Record<string, unknown>;
-  const planning = report.planning as unknown as Record<string, unknown>;
-  const env = report.environment as unknown as Record<string, unknown>;
   const market = report.market;
   const prop = report.property;
+
+  // Access raw snapshot data for fields not in typed interfaces
+  const rawLive = (snapshot.report.liveability ?? {}) as Record<string, unknown>;
+  const rawPlan = (snapshot.report.planning ?? {}) as Record<string, unknown>;
+  const rawEnv = (snapshot.report.environment ?? {}) as Record<string, unknown>;
+  const rawProp = (snapshot.report.property ?? {}) as Record<string, unknown>;
 
   // Key stats grid
   const stats: { icon: React.ReactNode; label: string; value: string }[] = [];
 
-  const bedrooms = storeBedrooms ?? (snapshot.meta.inputs_at_purchase as unknown as Record<string, unknown>)?.bedrooms;
-  if (bedrooms) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Bedrooms', value: String(bedrooms) });
+  const bedrooms = storeBedrooms ?? String((snapshot.meta.inputs_at_purchase ?? {} as Record<string, unknown>).bedrooms ?? '');
+  if (bedrooms) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Bedrooms', value: bedrooms });
 
   if (prop.capital_value) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Capital Value', value: formatCurrency(prop.capital_value) });
   if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()}m²` });
   if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land', value: `${prop.land_area_sqm.toLocaleString()}m²` });
 
-  const rawProp = (snapshot.report.property ?? {}) as unknown as Record<string, unknown>;
-  const titleType = rawProp.title_type as string;
+  const titleType = String(rawProp.title_type ?? '');
   if (titleType && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
 
-  const zoneName = planning?.zone_name as string;
+  const zoneName = String(rawPlan.zone_name ?? '');
   if (zoneName) stats.push({ icon: <MapPin className="h-3.5 w-3.5" />, label: 'Zone', value: zoneName });
 
-  const transitStops = liveability?.transit_stops_400m as number ?? liveability?.transit_count as number;
+  const transitStops = report.liveability.transit_count;
   if (transitStops != null) stats.push({ icon: <Bus className="h-3.5 w-3.5" />, label: 'Transit (400m)', value: `${transitStops} stops` });
 
-  const cbdDist = liveability?.cbd_distance_m as number;
+  const cbdDist = report.liveability.cbd_distance_m;
   if (cbdDist) stats.push({ icon: <Navigation className="h-3.5 w-3.5" />, label: 'To CBD', value: cbdDist >= 1000 ? `${(cbdDist / 1000).toFixed(1)}km` : `${Math.round(cbdDist)}m` });
 
-  const noiseDb = env?.noise_db as number;
+  const noiseDb = report.environment.noise_db;
   if (noiseDb) stats.push({ icon: <Volume2 className="h-3.5 w-3.5" />, label: 'Road Noise', value: `${Math.round(noiseDb)} dB` });
 
-  // Walkability
-  const walkScore: number | undefined = liveability?.walkability_score != null ? Number(liveability.walkability_score) : undefined;
-  const walkLabel = walkScore ? (walkScore >= 90 ? "Walker's Paradise" : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car-Dependent') : null;
+  // Walkability — from raw snapshot since not in typed LiveabilityData
+  const walkScoreRaw = rawLive.walkability_score;
+  const walkScore: number | undefined = typeof walkScoreRaw === 'number' ? walkScoreRaw : undefined;
+  const walkLabel = walkScore != null ? (walkScore >= 90 ? "Walker's Paradise" : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car-Dependent') : null;
 
   // Insurance risk
   const insuranceFactors: string[] = [];
@@ -58,10 +61,10 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (hazards.coastal_erosion) insuranceFactors.push('Coastal erosion');
   const insuranceLevel = insuranceFactors.length === 0 ? 'Low' : insuranceFactors.length <= 2 ? 'Moderate' : 'High';
 
-  // Trajectory
-  const trajectory = liveability?.trajectory as unknown as Record<string, unknown>;
-  const trajectoryDir = trajectory?.direction as string;
-  const trajectoryLabel = trajectory?.label as string;
+  // Trajectory — from raw snapshot
+  const trajectoryRaw = rawLive.trajectory as Record<string, unknown> | undefined;
+  const trajectoryDir = String(trajectoryRaw?.direction ?? '');
+  const trajectoryLabel = String(trajectoryRaw?.label ?? '');
 
   // Area profile
   const areaProfile = report.area_profile;
@@ -69,9 +72,14 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   // Median rent
   const medianRent = market?.rent_assessment?.median;
 
+  // Multi-unit flag
+  const isMultiUnit = !!rawProp.multi_unit;
+  const cvDate = String(rawProp.cv_date ?? '');
+  const isContaminated = !!rawPlan.contaminated_listed;
+
   // EPB alert
   const epbCount = hazards.epb_count;
-  const isEpbListed = (planning?.epb_listed as boolean) || false;
+  const isEpbListed = !!rawPlan.epb_listed;
 
   // Red flags count
   const findings = report.scores?.categories?.flatMap(c => c.indicators?.filter(i => i.score >= 60) ?? []) ?? [];
@@ -133,11 +141,11 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         </div>
 
         {/* ── Property flags (buyer) ── */}
-        {persona === 'buyer' && (rawProp.multi_unit || rawProp.cv_date || (planning?.contaminated_listed)) && (
+        {persona === 'buyer' && (isMultiUnit || cvDate || isContaminated) && (
           <div className="text-xs text-muted-foreground space-y-1 mb-5">
-            {!!rawProp.multi_unit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
-            {!!planning?.contaminated_listed && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
-            {!!rawProp.cv_date && <p>Council valuation date: {new Date(String(rawProp.cv_date)).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
+            {isMultiUnit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
+            {isContaminated && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
+            {cvDate && <p>Council valuation date: {new Date(cvDate).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
           </div>
         )}
 

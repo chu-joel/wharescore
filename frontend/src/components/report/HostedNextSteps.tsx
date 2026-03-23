@@ -14,18 +14,16 @@ interface ActionCard {
 }
 
 export function HostedNextSteps({ persona, report }: Props) {
-  const hazards = (report as unknown as Record<string, unknown>).hazards as unknown as Record<string, unknown> | undefined;
-  const hasFlood = !!(hazards?.flood_zone || hazards?.flood_overlay);
-  const liqStr = String(hazards?.liquefaction_class || hazards?.gwrc_liquefaction || hazards?.liquefaction_zone || '').toLowerCase();
-  const hasLiquefaction = liqStr.includes('moderate') || liqStr.includes('high') || liqStr.includes('significant');
-  const hasSlope = !!(hazards?.slope_failure_risk || hazards?.landslide_susceptibility_rating || hazards?.gwrc_slope_severity);
+  const h = report.hazards;
+  const hasFlood = !!h.flood_zone;
+  const hasLiquefaction = !!(h.liquefaction_zone && String(h.liquefaction_zone).toLowerCase().match(/moderate|high|significant/));
+  const hasSlope = !!h.slope_failure;
   const needsGeotech = hasLiquefaction || hasSlope;
 
-  const hasEpb = !!(hazards?.epb_count && Number(hazards.epb_count) > 10);
-  const hasContamination = !!(hazards?.contamination_count && Number(hazards.contamination_count) > 0);
-  const hasTsunami = !!(hazards?.tsunami_zone || hazards?.wcc_tsunami_ranking);
-  const hasHighCrime = !!(report.liveability as unknown as Record<string, unknown>)?.crime_rate &&
-    Number((report.liveability as unknown as Record<string, unknown>).crime_rate) > 70;
+  const hasEpb = !!h.epb_rating;
+  const hasContamination = !!(h.contamination_count && h.contamination_count > 0);
+  const hasTsunami = !!h.tsunami_zone;
+  const hasHighCrime = (report.liveability.crime_rate ?? 0) > 70;
 
   const renterCards: ActionCard[] = [
     { level: 'essential', title: 'Healthy Homes Check', description: 'Request compliance statement — legal requirement since 2021' },
