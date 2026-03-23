@@ -14,9 +14,9 @@ interface Props {
 
 export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, storeBedrooms }: Props) {
   const hazards = report.hazards;
-  const liveability = report.liveability as Record<string, unknown>;
-  const planning = report.planning as Record<string, unknown>;
-  const env = report.environment as Record<string, unknown>;
+  const liveability = report.liveability as unknown as Record<string, unknown>;
+  const planning = report.planning as unknown as Record<string, unknown>;
+  const env = report.environment as unknown as Record<string, unknown>;
   const market = report.market;
   const prop = report.property;
 
@@ -137,7 +137,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
           <div className="text-xs text-muted-foreground space-y-1 mb-5">
             {rawProp.multi_unit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
             {planning?.contaminated_listed && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
-            {rawProp.cv_date && <p>Council valuation date: {new Date(rawProp.cv_date as string).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
+            {rawProp.cv_date && <p>Council valuation date: {new Date(String(rawProp.cv_date)).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
           </div>
         )}
 
