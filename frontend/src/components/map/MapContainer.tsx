@@ -258,6 +258,7 @@ export function MapContainer() {
   const activeLayerIds = useMemo(() => activeLayerEntries.map((e) => e.id), [activeLayerEntries]);
 
   // flyTo when a new address is selected (from search bar — goes straight to full popup)
+  // Offset center so popup (above pin) is visible — pad bottom for mobile drawer, top for popup height
   useEffect(() => {
     if (!selectedAddress || !mapRef.current) return;
     if (prevAddressRef.current === selectedAddress.addressId) return;
@@ -267,10 +268,17 @@ export function MapContainer() {
     setPinVisible(false);
     setShowPopup(false);
 
+    // Padding: top accounts for header+popup, bottom for mobile drawer peek
+    const isMobile = window.innerWidth < 640;
+    const padding = isMobile
+      ? { top: 60, bottom: 240, left: 20, right: 20 }   // header + drawer peek
+      : { top: 80, bottom: 40, left: 20, right: 20 };
+
     if (prefersReducedMotion()) {
       map.jumpTo({
         center: [selectedAddress.lng, selectedAddress.lat],
         zoom: 17,
+        padding,
       });
       setPinVisible(true);
       setShowPopup(true);
@@ -280,6 +288,7 @@ export function MapContainer() {
         zoom: 17,
         duration: TIMING.MAP_FLY_TO,
         essential: true,
+        padding,
       });
 
       const pinTimer = setTimeout(() => setPinVisible(true), TIMING.POST_SELECT_PIN_DELAY);
@@ -316,7 +325,10 @@ export function MapContainer() {
   const handleViewReport = useCallback(
     (addressId: number) => {
       setShowPopup(false);
-      router.push(`/property/${addressId}`);
+      // On mobile, report is already in the drawer — don't navigate away
+      if (window.innerWidth >= 640) {
+        router.push(`/property/${addressId}`);
+      }
     },
     [router],
   );
@@ -387,6 +399,15 @@ export function MapContainer() {
           setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
           setPinVisible(true);
           setShowPopup(true);
+          // Pan to center the popup in the visible area
+          const isMobile = window.innerWidth < 640;
+          map.easeTo({
+            center: [lng, lat],
+            padding: isMobile
+              ? { top: 60, bottom: 240, left: 20, right: 20 }
+              : { top: 80, bottom: 40, left: 20, right: 20 },
+            duration: 400,
+          });
           return;
         }
 
@@ -425,6 +446,15 @@ export function MapContainer() {
             setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
             setPinVisible(true);
             setShowPopup(true);
+            // Pan to center the popup in the visible area
+            const isMobileB = window.innerWidth < 640;
+            map.easeTo({
+              center: [lng, lat],
+              padding: isMobileB
+                ? { top: 60, bottom: 240, left: 20, right: 20 }
+                : { top: 80, bottom: 40, left: 20, right: 20 },
+              duration: 400,
+            });
             return;
           }
         }

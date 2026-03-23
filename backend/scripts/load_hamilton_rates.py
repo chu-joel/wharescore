@@ -205,16 +205,14 @@ def main(args):
         conn.commit()
         logger.info("Cleared.")
 
-    # Step 2: If resuming, filter out already-loaded assessment numbers
+    # Step 2: If resuming, filter out already-scraped assessment numbers
     if args.resume:
         cur_check = conn.cursor()
-        cur_check.execute("SELECT valuation_id FROM council_valuations WHERE council = 'hamilton'")
-        existing = {r["valuation_id"] for r in cur_check.fetchall() if r.get("valuation_id")}
+        cur_check.execute("SELECT assessment_number FROM council_valuations WHERE council = 'hamilton' AND assessment_number IS NOT NULL")
+        existing_ids = {r["assessment_number"] for r in cur_check.fetchall()}
         before = len(unique_parcels)
-        # We store valuation_number not assessment_number, so filter by checking existing rows
-        cur_check.execute("SELECT count(*) as cnt FROM council_valuations WHERE council = 'hamilton'")
-        existing_count = cur_check.fetchone()["cnt"]
-        logger.info(f"Resume mode: {existing_count} already loaded, skipping those assessment numbers")
+        unique_parcels = [p for p in unique_parcels if p["Assessment_Number"] not in existing_ids]
+        logger.info(f"Resume mode: {len(existing_ids)} already scraped, skipped {before - len(unique_parcels)}, {len(unique_parcels)} remaining")
 
     # Step 3: Scrape property pages for CV/LV
     total = len(unique_parcels)
@@ -222,10 +220,10 @@ def main(args):
 
     insert_sql = """
         INSERT INTO council_valuations (
-            council, valuation_id, address, full_address,
+            council, valuation_id, assessment_number, address, full_address,
             capital_value, land_value, improvements_value, title
         ) VALUES (
-            'hamilton', %s, %s, %s,
+            'hamilton', %s, %s, %s, %s,
             %s, %s, %s, %s
         )
         ON CONFLICT DO NOTHING
@@ -261,6 +259,7 @@ def main(args):
 
                 batch.append((
                     result.get("valuation_number"),
+                    parcel["Assessment_Number"],
                     address,
                     address,
                     result.get("capital_value"),

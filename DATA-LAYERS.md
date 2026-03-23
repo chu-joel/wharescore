@@ -170,11 +170,43 @@ Legend: **Y** = loaded, **-** = not available/not loaded, **P** = partial
 
 ## Loader Scripts
 
+### Hazard loaders (standalone scripts in `backend/scripts/`)
 | Script | Layers | Regions |
 |--------|--------|---------|
 | `load_christchurch_hazards.py` | flood, liquefaction, tsunami, zones, transit, contaminated, coastal | CCC/ECan |
 | `load_regional_hazards.py` | flood, liquefaction, tsunami, transit, contaminated | Auckland, Hamilton, Tauranga |
-| *(no equivalent for Wellington)* | All Wellington layers were loaded via ogr2ogr / manual SQL | GWRC/WCC |
-| `batch_load.py` | Addresses, parcels, buildings, schools, etc. | National LINZ |
 
-**Action needed:** Create equivalent loaders for Auckland, Hamilton, and Tauranga hazard data.
+### Data loader (integrated in `backend/app/services/data_loader.py`)
+Invoked via `python -m app.services.data_loader --load <key>`. Handles GTFS, rates, and council-specific datasets.
+
+| Key | Description | Tables | Travel Times? |
+|-----|-------------|--------|:---:|
+| `metlink_gtfs` | Wellington Metlink | metlink_stops, transit_travel_times | Yes (12 dests) |
+| `at_gtfs` | Auckland Transport | at_stops, at_travel_times | Yes (12 dests) |
+| `christchurch_gtfs` | Christchurch Metro | transit_stops, transit_travel_times | Yes (9 dests) — **needs API key** |
+| `hamilton_gtfs` | Hamilton BUSIT | transit_stops, transit_travel_times | Yes (7 dests) |
+| `dunedin_gtfs` | Dunedin Orbus | transit_stops, transit_travel_times | Yes (5 dests) |
+| `nelson_gtfs` | Nelson eBus | transit_stops, transit_travel_times | Yes (4 dests) |
+| `taranaki_gtfs` | New Plymouth Citylink | transit_stops, transit_travel_times | Yes (3 dests) |
+| `palmerston_north_gtfs` | Horizons Tranzit | transit_stops, transit_travel_times | Yes (4 dests) |
+
+### GTFS Feeds & API Keys
+| City | GTFS URL | Auth |
+|------|----------|------|
+| Wellington | Metlink GTFS (internal) | None |
+| Auckland | AT GTFS (internal) | None |
+| Christchurch | `https://apis.metroinfo.co.nz/rti/gtfs/v1/gtfs.zip` | **API key required** — register at `apidevelopers.metroinfo.co.nz` |
+| Hamilton | `https://wrcscheduledata.blob.core.windows.net/wrcgtfs/busit-nz-public.zip` | None |
+| Dunedin | `https://www.orc.govt.nz/transit/google_transit.zip` | None |
+| Nelson | `https://data.trilliumtransit.com/gtfs/nsn-nz/nsn-nz.zip` | None |
+| New Plymouth | `https://data.trilliumtransit.com/gtfs/trc-nz/trc-nz.zip` | None |
+| Palmerston North | `https://www.horizons.govt.nz/HRC/media/Data/files/tranzit/HRC_GTFS_Production.zip` | None |
+
+### Key Destinations (for travel time computation)
+Each city has destination points (CBD, hospital, university, etc.) defined in `REGIONAL_DESTINATIONS` dict in `data_loader.py`. Travel times are computed from every bus stop to each destination using GTFS stop_times data, for AM peak (7-9am) and PM peak (4:30-6:30pm) windows.
+
+### Other loaders
+| Script/Source | Description |
+|--------|-------------|
+| *(Wellington)* | Loaded via ogr2ogr / manual SQL (GWRC/WCC) |
+| `batch_load.py` | National LINZ data (addresses, parcels, buildings, schools, etc.) |

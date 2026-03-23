@@ -264,6 +264,8 @@
 | `backend/app/services/wdc_rates.py` | Whangarei (ArcGIS) |
 | `backend/app/services/icc_rates.py` | Invercargill (ArcGIS) |
 | `backend/app/services/qldc_rates.py` | Queenstown-Lakes (ArcGIS Online) |
+| `backend/app/services/wbop_rates.py` | Western Bay of Plenty (ArcGIS, 4-layer join) |
+| `backend/app/services/hastings_rates.py` | Hastings (ArcGIS, rates only — no CV/LV) |
 
 ### Bulk loaders (scripts)
 | File | Council | Records |
@@ -280,6 +282,8 @@
 | `backend/scripts/load_wdc_rates.py` | Whangarei | 50K |
 | `backend/scripts/load_icc_rates.py` | Invercargill | 27K |
 | `backend/scripts/load_qldc_rates.py` | Queenstown-Lakes | 33K |
+| `backend/scripts/load_wbop_rates.py` | Western Bay of Plenty | 26K |
+| `backend/scripts/load_hastings_rates.py` | Hastings | 34K |
 
 ### Migrations
 | File | Description |

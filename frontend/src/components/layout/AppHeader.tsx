@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut } from 'lucide-react';
+import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, LogIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -74,8 +74,11 @@ export function AppHeader() {
             </>
           ) : (
             <a href="/" className="flex items-center gap-1.5">
-              <span className="text-xl font-bold text-piq-primary">
+              <span className="hidden sm:inline text-xl font-bold text-piq-primary">
                 Whare<span className="text-foreground">Score</span>
+              </span>
+              <span className="sm:hidden text-lg font-bold text-piq-primary">
+                W<span className="text-foreground">S</span>
               </span>
               <span className="hidden sm:inline text-[10px] font-semibold text-piq-primary bg-piq-primary/10 px-1.5 py-0.5 rounded">
                 BETA
@@ -128,11 +131,12 @@ export function AppHeader() {
           ) : (
             <Button
               variant="ghost"
-              size="sm"
-              className="text-sm"
+              size="icon"
+              className="h-9 w-9"
               onClick={() => signIn('google')}
+              aria-label="Sign in"
             >
-              Sign in
+              <LogIn className="h-4 w-4" />
             </Button>
           )}
 

@@ -41,23 +41,23 @@ export function ScrollPrompt({ report }: ScrollPromptProps) {
       if (triggeredRef.current) return;
       const scrollPercent =
         (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight;
-      if (scrollPercent >= 0.85) {
+      if (scrollPercent >= 0.90) {
         triggeredRef.current = true;
         scrollTimer = setTimeout(() => {
           markScrollPromptShown();
           setVisible(true);
-        }, 8000);
+        }, 15000);
       }
     };
 
-    // Fallback: show after 2 min even if user hasn't scrolled deep enough
+    // Fallback: show after 3 min even if user hasn't scrolled deep enough
     const fallbackTimer = setTimeout(() => {
       if (!triggeredRef.current) {
         triggeredRef.current = true;
         markScrollPromptShown();
         setVisible(true);
       }
-    }, 120000);
+    }, 180000);
 
     window.addEventListener('scroll', handleScroll, { passive: true });
 

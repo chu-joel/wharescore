@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-23 (session 59 — Council rates data expansion: TCC, PNCC, WDC, ICC, QLDC)
+**Last Updated:** 2026-03-23 (session 59 — National data expansion: 7 new councils, hazard data for 4 cities, transit travel times for 6 cities)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,9 +17,57 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 58 (2026-03-23) — Comprehensive hosted report overhaul + PDF report fixes + UX polish.**
+**Session 59 (2026-03-23) — National data expansion: councils, hazards, transit travel times, bug fixes.**
 
 ### What Was Done This Session
+
+Major national expansion of property valuations, hazard data, and transit travel times across NZ.
+
+**(A) Council Rates — 7 new councils (208K properties):**
+- Tauranga (TCC): 63,674 — ArcGIS FeatureServer, 2-layer join (Assessment + Capital Value)
+- Whangarei (WDC): 49,752 — ArcGIS MapServer
+- Palmerston North (PNCC): 35,372 — ArcGIS Online, CC BY 4.0, string-formatted values
+- Hastings: 33,656 — rates only (no CV/LV), annual rates from RT_CurrentYear
+- Queenstown-Lakes (QLDC): 33,074 — ArcGIS Online, daily updates
+- Invercargill (ICC): 26,691 — ArcGIS MapServer, has year built + floor area
+- Western BOP (WBOP): 26,399 — 4-layer join (parcels + CV + LV + IV)
+- **Total: 1,424,000 properties across 19 councils**
+
+**(B) Hazard Data — 4 new cities (209K polygons):**
+- Christchurch: flood 30K + liquefaction 600 + tsunami 8 + zones 7.5K + transit 1.6K + contaminated 906 + coastal 5.3K
+- Auckland: flood 48K + liquefaction 1.2K + tsunami 1.2K + bus stops 1K
+- Hamilton: flood 14K (partial — timeout on remaining 7K large polygons)
+- Tauranga: flood 108K + liquefaction 422 + tsunami 1 + contaminated 2K
+- **Total: 186K flood + 2.7K liquefaction + 1.2K tsunami polygons**
+
+**(C) Transit Travel Times — 5 new cities:**
+- Upgraded `_load_regional_gtfs()` to compute AM/PM peak travel times to key destinations
+- Hamilton: 2,568 travel times to 7 destinations (CBD, hospital, university, etc.)
+- Dunedin: 2,240 to 5 destinations
+- Palmerston North: 642 to 4 destinations
+- Nelson: 580 to 4 destinations
+- New Plymouth: 269 to 3 destinations
+- Christchurch GTFS needs API key from `apidevelopers.metroinfo.co.nz`
+- Destinations defined in `REGIONAL_DESTINATIONS` dict in `data_loader.py`
+
+**(D) Normalisation & Bug Fixes:**
+- Fixed `multi_unit` detection: added `unit_value IS NOT NULL` fallback in price_advisor.py, snapshot_generator.py, and all 3 migration SQL functions (0002, 0003, 0005, 0009). Fixes bogus "property size" adjustment for units like 1/55 Parade Court.
+- Fixed CBD distance: applied migration 0009 with region-aware CBD for 14 cities (was hardcoded to Wellington)
+- Fixed district_plan_zones `council` column for 150K rows (was incorrectly set to 'WCC')
+- Fixed transit_stops NULL source/mode for 3,119 Wellington stops
+- Fixed building footprint label: shows "Building (total)" for multi-unit properties
+- Reloaded ECan bus stops (1,631, was only 1 due to pagination bug)
+
+**(E) Documentation:**
+- Created `DATA-LAYERS.md` — coverage matrix, format inconsistencies, GTFS feeds, key destinations, priority gaps
+- Updated `RATES-DATA.md` — 19 councils with endpoints and field mappings
+- Both referenced from PROGRESS.md
+
+---
+
+**Session 58 (2026-03-23) — Comprehensive hosted report overhaul + PDF report fixes + UX polish.**
+
+### What Was Done in Session 58
 
 Massive overhaul of both the PDF report template and the hosted interactive report page. The hosted report now contains ALL data from the PDF, the free on-screen report, and the snapshot — fully comprehensive for both renter and buyer personas. Snapshot generator enhanced to store recommendations, insights, lifestyle fit, nearby highlights, supermarkets, and council rates.
 
