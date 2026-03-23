@@ -325,8 +325,10 @@ export function MapContainer() {
   const handleViewReport = useCallback(
     (addressId: number) => {
       setShowPopup(false);
-      // On mobile, report is already in the drawer — don't navigate away
-      if (window.innerWidth >= 640) {
+      if (window.innerWidth < 640) {
+        // On mobile, report is already in the drawer — snap it to full
+        window.dispatchEvent(new Event('drawer:snap-full'));
+      } else {
         router.push(`/property/${addressId}`);
       }
     },

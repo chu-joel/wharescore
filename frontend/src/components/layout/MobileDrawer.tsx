@@ -51,6 +51,16 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     [snap, pushState],
   );
 
+  // Listen for "snap to full" events (e.g. from "Get Full Report" button)
+  useEffect(() => {
+    const handler = () => {
+      setSnap(1);
+      pushState();
+    };
+    window.addEventListener('drawer:snap-full', handler);
+    return () => window.removeEventListener('drawer:snap-full', handler);
+  }, [pushState]);
+
   // Handle system back button (mobile)
   useEffect(() => {
     const handlePopState = () => {

@@ -253,10 +253,10 @@ export function UpgradeModal() {
 
   return (
     <Dialog open={showUpgradeModal} onOpenChange={(open) => setShowUpgradeModal(open)}>
-      <DialogContent className="sm:max-w-md animate-in zoom-in-95 fade-in duration-200" showCloseButton={canClose}>
+      <DialogContent className="sm:max-w-md animate-in zoom-in-95 fade-in duration-200 gap-2 sm:gap-4 p-3 sm:p-4" showCloseButton={canClose}>
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-piq-primary/10">
-            <FileText className="h-6 w-6 text-piq-primary" />
+          <div className="mx-auto mb-1 sm:mb-2 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-piq-primary/10">
+            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-piq-primary" />
           </div>
           {/* Personalised greeting (+17% conversion per research) */}
           {isSignedIn && session?.user?.name && (
@@ -264,7 +264,7 @@ export function UpgradeModal() {
               Hi {session.user.name.split(' ')[0]}
             </p>
           )}
-          <DialogTitle className="text-center text-lg">
+          <DialogTitle className="text-center text-base sm:text-lg">
             {headline}
           </DialogTitle>
           <DialogDescription className="text-center">
@@ -276,31 +276,31 @@ export function UpgradeModal() {
         <InputReadinessTip persona={targetPersona} />
 
         {/* Feature list */}
-        <ul className="space-y-1.5 py-1">
+        <ul className="space-y-1 sm:space-y-1.5 py-0.5 sm:py-1">
           {FEATURES.map((feature) => (
-            <li key={feature} className="flex items-start gap-2 text-sm">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-piq-success" />
+            <li key={feature} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Check className="mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-piq-success" />
               <span>{feature}</span>
             </li>
           ))}
         </ul>
 
         {/* Pricing options */}
-        <div className="grid gap-2">
+        <div className="grid gap-1.5 sm:gap-2">
           {/* Single report */}
           <button
             onClick={() => handlePurchase('single')}
             disabled={!!loading || !allRequiredFilled}
-            className="flex items-center justify-between rounded-lg border-2 border-border p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
+            className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
-              <p className="text-sm font-semibold">Single report</p>
-              <p className="text-xs text-muted-foreground">One property</p>
+              <p className="text-xs sm:text-sm font-semibold">Single report</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">One property</p>
             </div>
             {loading === 'single' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-lg font-bold text-piq-primary">$4.99</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$4.99</span>
             )}
           </button>
 
@@ -308,19 +308,19 @@ export function UpgradeModal() {
           <button
             onClick={() => handlePurchase('pack3')}
             disabled={!!loading}
-            className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
+            className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
           >
             <div className="absolute -top-2.5 left-3 rounded-full bg-piq-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm shadow-piq-primary/30">
               Best value
             </div>
             <div>
-              <p className="text-sm font-semibold">3-pack</p>
-              <p className="text-xs text-muted-foreground">Compare properties — $3.33 each</p>
+              <p className="text-xs sm:text-sm font-semibold">3-pack</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Compare properties — $3.33 each</p>
             </div>
             {loading === 'pack3' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-lg font-bold text-piq-primary">$9.99</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$9.99</span>
             )}
           </button>
 
@@ -328,19 +328,19 @@ export function UpgradeModal() {
           <button
             onClick={() => handlePurchase('pro')}
             disabled={!!loading || !allRequiredFilled}
-            className="flex items-center justify-between rounded-lg border-2 border-border p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
+            className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
-              <p className="text-sm font-semibold">
+              <p className="text-xs sm:text-sm font-semibold">
                 Pro monthly
                 <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">For professionals</span>
               </p>
-              <p className="text-xs text-muted-foreground">30 reports/month — agents & investors</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">30 reports/month — agents & investors</p>
             </div>
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-lg font-bold text-piq-primary">$49/mo</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$49/mo</span>
             )}
           </button>
         </div>
