@@ -90,7 +90,8 @@ BEGIN
         'capital_value', cv.capital_value,
         'improvements_value', cv.improvements_value,
         'land_value', cv.land_value,
-        'valuation_date', cv.valuation_date
+        'valuation_date', cv.valuation_date,
+        'multi_unit', mu.addr_count > 4 OR addr.unit_value IS NOT NULL
       )
       FROM (SELECT 1) x
       LEFT JOIN LATERAL (
@@ -112,6 +113,12 @@ BEGIN
           AND ST_DWithin(geom::geography, addr.geom::geography, 20)
         ORDER BY geom <-> addr.geom LIMIT 1
       ) cv ON true
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS addr_count
+        FROM addresses a2
+        WHERE a2.geom && ST_Expand(addr.geom, 0.0001)
+          AND ST_DWithin(a2.geom::geography, addr.geom::geography, 5)
+      ) mu ON true
     ),
 
     -- HAZARDS (split into two jsonb_build_object calls to stay under 100-arg PG limit)

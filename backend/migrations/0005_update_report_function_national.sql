@@ -55,7 +55,7 @@ BEGIN
         'cv_land_area', cv.cv_land_area,
         'cv_date', cv.cv_date,
         'cv_council', cv.cv_council,
-        'multi_unit', mu.addr_count > 4
+        'multi_unit', mu.addr_count > 4 OR addr.unit_value IS NOT NULL
       )
       FROM (SELECT 1) x
       LEFT JOIN LATERAL (

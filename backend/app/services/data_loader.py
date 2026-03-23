@@ -72,13 +72,13 @@ def _fetch_url(url: str, timeout: int = 120) -> bytes:
     return b""
 
 
-def _fetch_arcgis(base_url: str, max_per_page: int = 1000) -> list[dict]:
+def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1") -> list[dict]:
     """Fetch all features from ArcGIS REST with pagination."""
     all_features = []
     offset = 0
     while True:
         params = {
-            "where": "1=1", "outFields": "*", "f": "json",
+            "where": where, "outFields": "*", "f": "json",
             "returnGeometry": "true",
             "resultOffset": str(offset), "resultRecordCount": str(max_per_page),
         }
@@ -2283,12 +2283,59 @@ def load_at_gtfs(conn: psycopg.Connection, log: Callable = None) -> int:
     return stop_count + tt_count
 
 
+REGIONAL_DESTINATIONS = {
+    "christchurch": {
+        "Christchurch CBD": (172.6362, -43.5321),
+        "Christchurch Airport": (172.5347, -43.4893),
+        "Christchurch Hospital": (172.6270, -43.5340),
+        "University of Canterbury": (172.5833, -43.5236),
+        "Riccarton": (172.5990, -43.5310),
+        "Papanui": (172.6130, -43.5050),
+        "Hornby": (172.5280, -43.5530),
+        "Eastgate": (172.6780, -43.5420),
+        "Northlands": (172.6220, -43.5090),
+    },
+    "hamilton": {
+        "Hamilton CBD": (175.2793, -37.7870),
+        "Waikato Hospital": (175.2950, -37.8020),
+        "The Base (Te Rapa)": (175.2590, -37.7490),
+        "University of Waikato": (175.3170, -37.7880),
+        "Hamilton Transport Centre": (175.2780, -37.7900),
+        "Chartwell": (175.3030, -37.7580),
+        "Hillcrest": (175.3090, -37.7810),
+    },
+    "dunedin": {
+        "Dunedin CBD (Octagon)": (170.5028, -45.8742),
+        "Dunedin Hospital": (170.5060, -45.8710),
+        "University of Otago": (170.5130, -45.8660),
+        "South Dunedin": (170.5050, -45.8950),
+        "Mosgiel": (170.3490, -45.8750),
+    },
+    "nelson": {
+        "Nelson CBD": (173.2840, -41.2710),
+        "Nelson Hospital": (173.2890, -41.2700),
+        "Richmond": (173.1830, -41.3370),
+        "Stoke": (173.2360, -41.3010),
+    },
+    "taranaki": {
+        "New Plymouth CBD": (174.0752, -39.0558),
+        "Taranaki Base Hospital": (174.0650, -39.0650),
+        "Bell Block": (174.0960, -39.0220),
+    },
+    "palmerston_north": {
+        "Palmerston North CBD (The Square)": (175.6120, -40.3523),
+        "Palmerston North Hospital": (175.6200, -40.3560),
+        "Massey University": (175.6180, -40.3870),
+        "Palmerston North Airport": (175.6190, -40.3200),
+    },
+}
+
+
 def _load_regional_gtfs(
     conn: psycopg.Connection, log: Callable,
     gtfs_url: str, region_name: str,
 ) -> int:
-    """Generic regional GTFS loader — loads stops into transit_stops table.
-    Lighter than full travel-time computation; gives stop counts + mode for reports."""
+    """Regional GTFS loader — loads stops + computes travel times to key destinations."""
     _progress(log, f"Downloading {region_name} GTFS...")
     zip_data = _fetch_url(gtfs_url, timeout=180)
     if not zip_data:
@@ -2331,7 +2378,7 @@ def _load_regional_gtfs(
                     except (ValueError, KeyError):
                         continue
         except KeyError:
-            pass  # no routes.txt
+            pass
 
         # Trips
         trip_route = {}
@@ -2342,29 +2389,38 @@ def _load_regional_gtfs(
         except KeyError:
             pass
 
-        # Stop → route types
+        # Stop times — build trip sequences + route type lookups
         stop_route_types = defaultdict(set)
+        trip_stops = defaultdict(list)
         try:
             with zf.open("stop_times.txt") as f:
                 reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
                 for row in reader:
-                    rid = trip_route.get(row.get("trip_id"))
+                    tid = row.get("trip_id")
+                    sid = row.get("stop_id")
+                    rid = trip_route.get(tid)
                     if rid:
                         rt = route_info.get(rid, {}).get("type")
                         if rt is not None:
-                            stop_route_types[row["stop_id"]].add(rt)
+                            stop_route_types[sid].add(rt)
+                    try:
+                        trip_stops[tid].append((int(row["stop_sequence"]), sid, _time_secs(row["arrival_time"])))
+                    except (ValueError, KeyError):
+                        continue
         except KeyError:
             pass
 
+        for tid in trip_stops:
+            trip_stops[tid].sort()
+
     cur = conn.cursor()
-    # Add source + mode_type columns if missing
     cur.execute("ALTER TABLE transit_stops ADD COLUMN IF NOT EXISTS source VARCHAR(50)")
     cur.execute("ALTER TABLE transit_stops ADD COLUMN IF NOT EXISTS mode_type VARCHAR(20)")
     conn.commit()
 
-    # Insert into generic transit_stops table
+    # Insert stops
     cur.execute("DELETE FROM transit_stops WHERE source = %s", (region_name,))
-    count = 0
+    stop_count = 0
     for sid, s in stops.items():
         rts = sorted(stop_route_types.get(sid, []))
         mode = "bus"
@@ -2378,10 +2434,125 @@ def _load_regional_gtfs(
             "ON CONFLICT DO NOTHING",
             (f"{region_name}_{sid}", s["name"], mode, region_name, s["lon"], s["lat"]),
         )
-        count += 1
+        stop_count += 1
     conn.commit()
-    _progress(log, f"{region_name} GTFS: {count} stops loaded")
-    return count
+
+    # Compute travel times if destinations are defined for this region
+    destinations = REGIONAL_DESTINATIONS.get(region_name)
+    if not destinations or not trip_stops:
+        _progress(log, f"{region_name} GTFS: {stop_count} stops loaded (no travel times — no destinations or stop_times)")
+        return stop_count
+
+    AM_START, AM_END = 7 * 3600, 9 * 3600
+    PM_START, PM_END = 16 * 3600 + 1800, 18 * 3600 + 1800
+
+    night_route_ids = {
+        rid for rid, info in route_info.items()
+        if info.get("name", "").upper().startswith("N") and info.get("name", "")[1:].isdigit()
+    }
+
+    _progress(log, f"Computing travel times for {region_name} ({len(destinations)} destinations)...")
+
+    dest_stops = {}
+    for dname, (dlon, dlat) in destinations.items():
+        dest_stops[dname] = {sid for sid, s in stops.items() if _haversine(dlon, dlat, s["lon"], s["lat"]) <= 400}
+
+    def _in_peak(secs):
+        if AM_START <= secs <= AM_END:
+            return "am"
+        if PM_START <= secs <= PM_END:
+            return "pm"
+        return None
+
+    travel_samples = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: {"times": [], "routes": set()})))
+    for tid, seq in trip_stops.items():
+        rid = trip_route.get(tid)
+        if rid in night_route_ids:
+            continue
+        rinfo = route_info.get(rid, {})
+        rname = rinfo.get("name", "?")
+        mode = {2: "train", 3: "bus", 4: "ferry", 5: "cable car"}.get(rinfo.get("type", 3), "bus")
+        stop_times_map = {sid: arr for _, sid, arr in seq}
+        for dname, dsids in dest_stops.items():
+            darrs = [stop_times_map[d] for d in dsids if d in stop_times_map]
+            if not darrs:
+                continue
+            darr = min(darrs)
+            for _, sid, arr in seq:
+                if arr >= darr:
+                    break
+                peak = _in_peak(arr)
+                if peak is None:
+                    continue
+                mins = (darr - arr) / 60
+                if mins < 1:
+                    continue
+                entry = travel_samples[sid][dname][peak]
+                entry["times"].append(mins)
+                entry["routes"].add(f"{rname} ({mode})")
+
+    # Store travel times in transit_travel_times (shared table)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS transit_travel_times (
+            id SERIAL PRIMARY KEY,
+            stop_id VARCHAR(50),
+            destination TEXT,
+            min_minutes REAL,
+            route_names TEXT[],
+            peak_window TEXT NOT NULL DEFAULT 'am',
+            UNIQUE (stop_id, destination, peak_window)
+        )
+    """)
+    cur.execute("""CREATE INDEX IF NOT EXISTS idx_ttt_stop ON transit_travel_times (stop_id)""")
+    conn.commit()
+
+    # Delete old travel times for this region
+    cur.execute("DELETE FROM transit_travel_times WHERE stop_id LIKE %s", (f"{region_name}_%",))
+
+    tt_count = 0
+    for sid, dests in travel_samples.items():
+        for dname, windows in dests.items():
+            for peak, info in windows.items():
+                times = sorted(info["times"])
+                if not times:
+                    continue
+                mid = len(times) // 2
+                median_mins = times[mid] if len(times) % 2 == 1 else (times[mid - 1] + times[mid]) / 2
+                cur.execute(
+                    "INSERT INTO transit_travel_times (stop_id, destination, min_minutes, route_names, peak_window) "
+                    "VALUES (%s,%s,%s,%s,%s) ON CONFLICT (stop_id, destination, peak_window) DO UPDATE "
+                    "SET min_minutes=EXCLUDED.min_minutes, route_names=EXCLUDED.route_names",
+                    (f"{region_name}_{sid}", dname, round(median_mins, 1), sorted(info["routes"]), peak),
+                )
+                tt_count += 1
+
+    # Peak frequency
+    stop_peak = defaultdict(set)
+    for tid, seq in trip_stops.items():
+        rid = trip_route.get(tid)
+        if rid in night_route_ids:
+            continue
+        for _, sid, arr in seq:
+            if AM_START <= arr <= AM_END:
+                stop_peak[sid].add(tid)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS transit_stop_frequency (
+            stop_id VARCHAR(50) PRIMARY KEY,
+            peak_trips_per_hour REAL
+        )
+    """)
+    conn.commit()
+    for sid, trips in stop_peak.items():
+        cur.execute(
+            "INSERT INTO transit_stop_frequency (stop_id, peak_trips_per_hour) VALUES (%s,%s) "
+            "ON CONFLICT (stop_id) DO UPDATE SET peak_trips_per_hour=EXCLUDED.peak_trips_per_hour",
+            (f"{region_name}_{sid}", round(len(trips) / 2, 1)),
+        )
+
+    conn.commit()
+    _progress(log, f"{region_name} GTFS: {stop_count} stops, {tt_count} travel times")
+    return stop_count + tt_count
 
 
 def _load_rates(
@@ -2390,6 +2561,8 @@ def _load_rates(
     cv_field: str, lv_field: str, iv_field: str | None,
     addr_field: str | None = None,
     geom_type: str = "polygon", srid: int = 2193,
+    extra_where: str | None = None,
+    page_size: int = 2000,
 ) -> int:
     """Load council valuations into council_valuations table."""
     # Add council column if not exists + fix geometry to accept any type
@@ -2405,7 +2578,8 @@ def _load_rates(
     conn.commit()
 
     _progress(log, f"Fetching {council} rates/valuations...")
-    features = _fetch_arcgis(url, 2000)
+    where = extra_where or "1=1"
+    features = _fetch_arcgis(url, page_size, where=where)
     cur.execute("DELETE FROM council_valuations WHERE council = %s", (council,))
     count = 0
     for f in features:
@@ -2450,6 +2624,12 @@ def _load_rates(
     conn.commit()
     _progress(log, f"{council} rates: {count} rows")
     return count
+
+
+def _load_uhcc(conn: psycopg.Connection, log: Callable) -> int:
+    """Load Upper Hutt rates via HTML scraping (no ArcGIS API available)."""
+    from .uhcc_scraper import load_uhcc_rates
+    return load_uhcc_rates(conn, log)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -3329,16 +3509,41 @@ DATA_SOURCES: list[DataSource] = [
             "https://gis.ccc.govt.nz/arcgis/rest/services/CorporateData/Rating/MapServer/0",
             "christchurch", "CapitalValue", "LandValue", "ImprovementsValue",
             geom_type="point")),
-    DataSource("dunedin_rates", "Dunedin Rates/Valuations",
+    DataSource("dunedin_rates", "Dunedin Rates/Valuations (58K)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,
             "https://apps.dunedin.govt.nz/arcgis/rest/services/Public/Rates/MapServer/0",
-            "dunedin", "Rateable_Value", "Rateable_Value", None, "Formatted_address")),
+            "dunedin", "Rateable_Value", None, None, "Formatted_address",
+            page_size=1000)),
     DataSource("taranaki_rates", "Taranaki Rates/Valuations (58K)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,
             "https://services.arcgis.com/MMPHUPU6MnEt0lEK/arcgis/rest/services/Property_Rating/FeatureServer/0",
             "taranaki", "Capital_Value", "Land_Value", None, "Property_Address")),
+    DataSource("uhcc_rates", "Upper Hutt Rates/Valuations (10K, scraped)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_uhcc(conn, log)),
+    DataSource("hcc_rates", "Hutt City Rates/Valuations (46K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.huttcity.govt.nz/server01/rest/services/HCC_External_Data/MapServer/1",
+            "hcc", "capital_value", "land_value", None, "prop_address")),
+    DataSource("pcc_rates", "Porirua City Rates/Valuations (24K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.poriruacity.govt.nz/server/rest/services/Property/PropertyAdminExternal/MapServer/5",
+            "PCC", "Total_Value", "Land_Value", "Imp_Value", "Address")),
+    DataSource("kcdc_rates", "Kapiti Coast Rates/Valuations (27K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.kapiticoast.govt.nz/server/rest/services/Public/Property_Public/MapServer/0",
+            "KCDC", "Capital_Value", "Land_Value", "Improvements_Value", "Location")),
+    DataSource("hdc_rates", "Horowhenua Rates/Valuations (19K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "HDC", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Horowhenua%'")),
     DataSource("tasman_rates", "Tasman Rates/Valuations (29K)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,

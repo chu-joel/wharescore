@@ -646,7 +646,7 @@ html { scroll-behavior: smooth; }
         {% if user_beds %}<div><span class="key-stat-label">Bedrooms</span><br><span class="key-stat-value">{{ user_beds }}</span></div>{% endif %}
         {% if user_baths %}<div><span class="key-stat-label">Bathrooms</span><br><span class="key-stat-value">{{ user_baths }}</span></div>{% endif %}
         {% if prop_cv %}<div><span class="key-stat-label">Capital Value</span><br><span class="key-stat-value">${{ '{:,}'.format(prop_cv) }}{% if prop.valuation_date %} <span style="font-size:0.7em; color:var(--text-muted);">({{ prop.valuation_date }})</span>{% endif %}</span></div>{% endif %}
-        {% if prop.footprint_sqm %}<div><span class="key-stat-label">Building</span><br><span class="key-stat-value">{{ prop.footprint_sqm | round | int }} m&sup2;</span></div>{% endif %}
+        {% if prop.footprint_sqm %}<div><span class="key-stat-label">{% if prop.multi_unit %}Building (total){% else %}Building{% endif %}</span><br><span class="key-stat-value">{{ prop.footprint_sqm | round | int }} m&sup2;</span></div>{% endif %}
         {% if prop.land_area_sqm %}<div><span class="key-stat-label">Land Area</span><br><span class="key-stat-value">{{ prop.land_area_sqm | round | int }} m&sup2;</span></div>{% endif %}
         {% if planning.zone_name %}<div><span class="key-stat-label">Zone</span><br><span class="key-stat-value">{{ planning.zone_name }}</span></div>{% endif %}
         {% if live.transit_stops_400m is defined and live.transit_stops_400m %}<div><span class="key-stat-label">Transit (400m)</span><br><span class="key-stat-value">{{ live.transit_stops_400m }} stops</span></div>{% endif %}
@@ -1224,7 +1224,7 @@ html { scroll-behavior: smooth; }
     {% if prop.land_area_sqm %}<div class="card" style="padding:10px 12px;"><div style="font-size:0.72em; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Land Area</div><div style="font-weight:700;">{{ prop.land_area_sqm | round | int }} m&sup2;</div></div>{% endif %}
     {% if title_type %}<div class="card" style="padding:10px 12px;"><div style="font-size:0.72em; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Title</div><div style="font-weight:700;">{{ title_type }}{% if estate_description %} &middot; {{ estate_description }}{% endif %}</div></div>{% endif %}
     {% if building_use %}<div class="card" style="padding:10px 12px;"><div style="font-size:0.72em; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Building Use</div><div style="font-weight:700;">{{ building_use }}</div></div>{% endif %}
-    {% if prop.building_footprint_sqm %}<div class="card" style="padding:10px 12px;"><div style="font-size:0.72em; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Footprint</div><div style="font-weight:700;">{{ prop.building_footprint_sqm | round | int }} m&sup2;</div></div>{% endif %}
+    {% if prop.building_footprint_sqm %}<div class="card" style="padding:10px 12px;"><div style="font-size:0.72em; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">{% if prop.multi_unit %}Footprint (total){% else %}Footprint{% endif %}</div><div style="font-weight:700;">{{ prop.building_footprint_sqm | round | int }} m&sup2;</div></div>{% endif %}
   </div>
 </div>
 

@@ -615,7 +615,38 @@ async def _generate_pdf_background(
                 from ..services.rates import fetch_wcc_rates
                 async with db.pool.connection() as conn_rates:
                     rates_data = await fetch_wcc_rates(full_address, conn_rates)
-            # TODO: Add Auckland Council rates API when available
+            elif "auckland" in city.lower():
+                from ..services.auckland_rates import fetch_auckland_rates
+                async with db.pool.connection() as conn_rates:
+                    rates_data = await fetch_auckland_rates(full_address, conn_rates)
+            elif city.lower() == "lower hutt":
+                from ..services.hcc_rates import fetch_hcc_rates
+                rates_data = await fetch_hcc_rates(full_address)
+            elif city.lower() == "porirua":
+                from ..services.pcc_rates import fetch_pcc_rates
+                rates_data = await fetch_pcc_rates(full_address)
+            elif "kapiti" in city.lower() or city.lower() in ("paraparaumu", "waikanae", "otaki", "paekakariki", "raumati"):
+                from ..services.kcdc_rates import fetch_kcdc_rates
+                rates_data = await fetch_kcdc_rates(full_address)
+            elif "horowhenua" in city.lower() or city.lower() in ("levin", "foxton", "shannon"):
+                from ..services.hdc_rates import fetch_hdc_rates
+                rates_data = await fetch_hdc_rates(full_address)
+            elif "hamilton" in city.lower():
+                from ..services.hamilton_rates import fetch_hamilton_rates
+                rates_data = await fetch_hamilton_rates(full_address)
+            elif "dunedin" in city.lower():
+                from ..services.dcc_rates import fetch_dcc_rates
+                rates_data = await fetch_dcc_rates(full_address)
+            elif "christchurch" in city.lower():
+                from ..services.ccc_rates import fetch_ccc_rates
+                async with db.pool.connection() as conn_rates:
+                    rates_data = await fetch_ccc_rates(full_address, conn_rates)
+            elif city.lower() == "new plymouth":
+                from ..services.taranaki_rates import fetch_taranaki_rates
+                rates_data = await fetch_taranaki_rates(full_address)
+            elif city.lower() in ("richmond", "motueka", "takaka", "mapua", "brightwater", "wakefield"):
+                from ..services.tasman_rates import fetch_tasman_rates
+                rates_data = await fetch_tasman_rates(full_address)
         except Exception as e:
             logger.warning(f"Rates fetch failed: {e}")
 

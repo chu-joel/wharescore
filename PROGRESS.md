@@ -1,6 +1,8 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-23 (session 58 — Comprehensive hosted report overhaul + PDF fixes + UX polish)
+**Last Updated:** 2026-03-23 (session 59 — Council rates data expansion: TCC, PNCC, WDC, ICC, QLDC)
+**Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
+**Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---

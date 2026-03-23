@@ -328,7 +328,7 @@ async def compute_price_advice(
     # 7. Property-specific adjustments (same approach as rent advisor)
     adjustments: list[dict] = []
     factors_analysed = 0
-    is_multi_unit = (prop["unit_count"] or 1) > 1
+    is_multi_unit = (prop["unit_count"] or 1) > 1 or bool(prop.get("unit_value"))
 
     # Bedrooms from user input or default
     bedrooms_num = 3  # default

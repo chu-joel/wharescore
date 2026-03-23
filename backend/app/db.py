@@ -36,7 +36,14 @@ class _ConnectionContextManager:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.conn:
+            if exc_type is None:
+                await self.loop.run_in_executor(executor, self.conn.commit)
             await self.loop.run_in_executor(executor, self.conn.close)
+
+    async def commit(self):
+        """Explicitly commit the transaction."""
+        if self.conn:
+            await self.loop.run_in_executor(executor, self.conn.commit)
 
     async def execute(self, query, params=None):
         """Execute query in thread pool and return a cursor-like object."""

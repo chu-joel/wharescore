@@ -182,6 +182,8 @@ WAVES: list[tuple[str, list[str]]] = [
     # Wave 15: Rates (large downloads — Auckland 623K, Christchurch 186K)
     ("Council rates/valuations", [
         "auckland_rates",
+        "hcc_rates",
+        "uhcc_rates",
         "chch_rates",
         "dunedin_rates",
     ]),
