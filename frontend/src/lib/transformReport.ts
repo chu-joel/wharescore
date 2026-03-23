@@ -40,8 +40,12 @@ const INDICATOR_CATEGORIES: Record<string, string> = {
   noise: 'risk', air_quality: 'risk', water_quality: 'risk',
   climate: 'risk', contaminated_land: 'risk',
   nzdep: 'liveability', schools: 'liveability', school_zone: 'liveability',
+  heritage: 'liveability',
+  transit_access: 'transport', cbd_proximity: 'transport', commute_frequency: 'transport',
+  rail_proximity: 'transport', bus_density: 'transport', road_safety: 'transport',
+  // Legacy fallback
   transit: 'transport', crashes: 'transport',
-  heritage: 'planning', zone_permissiveness: 'planning',
+  zone_permissiveness: 'planning',
   height_limit: 'planning', resource_consents: 'planning',
   infrastructure: 'planning',
 };
@@ -386,6 +390,7 @@ export function transformReport(raw: any): PropertyReport {
     title_ref: rawProp.title_no ?? null,
     cv_valuation_id: rawProp.cv_valuation_id ?? null,
     cv_address: rawProp.cv_address ?? null,
+    cv_is_per_unit: rawProp.cv_is_per_unit ?? false,
   };
 
   // Map address (backend has ta_name, frontend expects ta)

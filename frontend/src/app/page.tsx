@@ -1,6 +1,8 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useSearchStore } from '@/stores/searchStore';
+import { useMapStore } from '@/stores/mapStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { SplitView } from '@/components/layout/SplitView';
@@ -11,7 +13,10 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { RecentSearches } from '@/components/search/RecentSearches';
 import { SavedProperties } from '@/components/search/SavedProperties';
 import { PropertyReport } from '@/components/property/PropertyReport';
+import { SuburbSummaryPage } from '@/components/suburb/SuburbSummaryPage';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { MAX_ACTIVE_LAYERS } from '@/lib/constants';
+import { toast } from 'sonner';
 import {
   ShieldAlert,
   TreePine,
@@ -19,12 +24,16 @@ import {
   MapPin,
   Search,
   MousePointerClick,
+  ChevronLeft,
 } from 'lucide-react';
 
 export default function Home() {
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const selectedSuburb = useSearchStore((s) => s.selectedSuburb);
   const bp = useBreakpoint();
   const map = <MapContainer />;
+
+  const hasSelection = !!selectedAddress || !!selectedSuburb;
 
   return (
     <>
@@ -61,9 +70,11 @@ export default function Home() {
       {bp === 'mobile' && (
         <div className="pt-14 h-[calc(100vh-56px)] relative">
           {map}
-          <MobileDrawer hasSelection={!!selectedAddress}>
+          <MobileDrawer hasSelection={hasSelection}>
             {selectedAddress ? (
               <PropertyReport addressId={selectedAddress.addressId} />
+            ) : selectedSuburb ? (
+              <MobileSuburbView sa2Code={selectedSuburb.sa2Code} sa2Name={selectedSuburb.sa2Name} />
             ) : (
               <MobileLandingContent />
             )}
@@ -71,6 +82,24 @@ export default function Home() {
         </div>
       )}
     </>
+  );
+}
+
+/** Suburb info view inside mobile drawer */
+function MobileSuburbView({ sa2Code, sa2Name }: { sa2Code: string; sa2Name: string }) {
+  const clearSelection = useSearchStore((s) => s.clearSelection);
+
+  return (
+    <div className="py-2 space-y-3">
+      <button
+        onClick={clearSelection}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back to search
+      </button>
+      <SuburbSummaryPage sa2Code={sa2Code} />
+    </div>
   );
 }
 
@@ -140,8 +169,55 @@ function LandingPanel() {
   );
 }
 
+// Layer groups that map to each feature chip
+const CHIP_LAYER_GROUPS: Record<string, string[]> = {
+  Hazards: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones'],
+  Schools: ['school_zones'],
+  'Rent Check': [], // No map layers — informational
+  '27 Layers': [], // Opens layer awareness
+};
+
 /** Compact landing content for mobile bottom sheet (peek state) */
 function MobileLandingContent() {
+  const layers = useMapStore((s) => s.layers);
+  const setLayers = useMapStore((s) => s.setLayers);
+
+  const toggleGroup = useCallback(
+    (groupLayers: string[]) => {
+      if (groupLayers.length === 0) return;
+      const allActive = groupLayers.every((id) => layers[id]);
+      const updated = { ...layers };
+      if (allActive) {
+        for (const id of groupLayers) updated[id] = false;
+      } else {
+        const currentActive = Object.values(updated).filter(Boolean).length;
+        let added = 0;
+        let skipped = 0;
+        for (const id of groupLayers) {
+          if (updated[id]) continue;
+          if (currentActive + added < MAX_ACTIVE_LAYERS) {
+            updated[id] = true;
+            added++;
+          } else {
+            skipped++;
+          }
+        }
+        if (skipped > 0) {
+          toast.info(`Layer limit reached (${MAX_ACTIVE_LAYERS} max). Disable some layers first.`);
+        }
+      }
+      setLayers(updated);
+    },
+    [layers, setLayers],
+  );
+
+  const chips = [
+    { label: 'Hazards', icon: ShieldAlert, color: 'text-risk-very-high', bg: 'bg-risk-very-high/10', activeBg: 'bg-risk-very-high/25 ring-1 ring-risk-very-high/30' },
+    { label: 'Schools', icon: TreePine, color: 'text-piq-success', bg: 'bg-piq-success/10', activeBg: 'bg-piq-success/25 ring-1 ring-piq-success/30' },
+    { label: 'Rent Check', icon: TrendingUp, color: 'text-piq-primary', bg: 'bg-piq-primary/10', activeBg: '' },
+    { label: '27 Layers', icon: Search, color: 'text-piq-accent-warm', bg: 'bg-piq-accent-warm/10', activeBg: '' },
+  ];
+
   return (
     <div className="py-2 space-y-3">
       {/* Mobile search inside bottom sheet */}
@@ -153,20 +229,24 @@ function MobileLandingContent() {
       </p>
 
       <div className="grid grid-cols-2 gap-2">
-        {[
-          { label: 'Hazards', icon: ShieldAlert, color: 'text-risk-very-high', bg: 'bg-risk-very-high/10' },
-          { label: 'Schools', icon: TreePine, color: 'text-piq-success', bg: 'bg-piq-success/10' },
-          { label: 'Rent Check', icon: TrendingUp, color: 'text-piq-primary', bg: 'bg-piq-primary/10' },
-          { label: '27 Layers', icon: Search, color: 'text-piq-accent-warm', bg: 'bg-piq-accent-warm/10' },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg ${item.bg}`}
-          >
-            <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
-            <span className="text-xs font-medium">{item.label}</span>
-          </div>
-        ))}
+        {chips.map((item) => {
+          const groupLayers = CHIP_LAYER_GROUPS[item.label] ?? [];
+          const isActive = groupLayers.length > 0 && groupLayers.every((id) => layers[id]);
+          const isInteractive = groupLayers.length > 0;
+
+          return (
+            <button
+              key={item.label}
+              onClick={() => isInteractive && toggleGroup(groupLayers)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                isActive ? item.activeBg : item.bg
+              } ${isInteractive ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
+            >
+              <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+              <span className="text-xs font-medium">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <RecentSearches compact />

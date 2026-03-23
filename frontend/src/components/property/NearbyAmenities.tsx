@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { formatDistance } from '@/lib/format';
 import { ThumbsUp, AlertTriangle, Info } from 'lucide-react';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 interface AmenityItem {
   name: string;
@@ -19,11 +20,16 @@ interface HighlightsResponse {
 }
 
 export function NearbyAmenities({ addressId }: { addressId: number }) {
+  const hosted = useHostedReport();
   const { data, isLoading } = useQuery({
     queryKey: ['nearby-highlights', addressId],
     queryFn: () => apiFetch<HighlightsResponse>(`/api/v1/nearby/${addressId}/highlights`),
     staleTime: 10 * 60 * 1000,
+    enabled: !hosted, // Skip API call in hosted mode
   });
+
+  // In hosted mode, skip this component (data not in snapshot)
+  if (hosted) return null;
 
   if (isLoading) {
     return <div className="text-xs text-muted-foreground py-2">Loading nearby amenities...</div>;

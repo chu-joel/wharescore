@@ -88,6 +88,9 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
   const hasParking = useRentInputStore((s) => s.hasParking);
   const notInsulated = useRentInputStore((s) => s.notInsulated);
   const isFurnished = useRentInputStore((s) => s.isFurnished);
+  const isPartiallyFurnished = useRentInputStore((s) => s.isPartiallyFurnished);
+  const hasOutdoorSpace = useRentInputStore((s) => s.hasOutdoorSpace);
+  const isCharacterProperty = useRentInputStore((s) => s.isCharacterProperty);
   const sharedKitchen = useRentInputStore((s) => s.sharedKitchen);
   const utilitiesIncluded = useRentInputStore((s) => s.utilitiesIncluded);
   const setFinishTier = useRentInputStore((s) => s.setFinishTier);
@@ -95,6 +98,9 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
   const setHasParking = useRentInputStore((s) => s.setHasParking);
   const setNotInsulated = useRentInputStore((s) => s.setNotInsulated);
   const setIsFurnished = useRentInputStore((s) => s.setIsFurnished);
+  const setIsPartiallyFurnished = useRentInputStore((s) => s.setIsPartiallyFurnished);
+  const setHasOutdoorSpace = useRentInputStore((s) => s.setHasOutdoorSpace);
+  const setIsCharacterProperty = useRentInputStore((s) => s.setIsCharacterProperty);
   const setSharedKitchen = useRentInputStore((s) => s.setSharedKitchen);
   const setUtilitiesIncluded = useRentInputStore((s) => s.setUtilitiesIncluded);
 
@@ -118,7 +124,10 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
       if (bathroomCount) body.bathrooms = bathroomCount;
       if (hasParking !== null) body.has_parking = hasParking;
       if (notInsulated) body.has_insulation = false;
-      if (isFurnished !== null) body.is_furnished = isFurnished;
+      if (isPartiallyFurnished) body.is_partially_furnished = true;
+      else if (isFurnished !== null) body.is_furnished = isFurnished;
+      if (hasOutdoorSpace) body.has_outdoor_space = true;
+      if (isCharacterProperty) body.is_character_property = true;
       if (sharedKitchen !== null) body.shared_kitchen = sharedKitchen;
       if (utilitiesIncluded !== null) body.utilities_included = utilitiesIncluded;
 
@@ -132,10 +141,12 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
     } finally {
       setLoading(false);
     }
-  }, [addressId, dwellingType, bedrooms, weeklyRent, finishTier, bathroomCount, hasParking, notInsulated, isFurnished, sharedKitchen, utilitiesIncluded]);
+  }, [addressId, dwellingType, bedrooms, weeklyRent, finishTier, bathroomCount, hasParking, notInsulated, isFurnished, isPartiallyFurnished, hasOutdoorSpace, isCharacterProperty, sharedKitchen, utilitiesIncluded]);
 
-  // Only show if user has completed rent comparison
-  if (!dwellingType || !bedrooms || !weeklyRent) return null;
+  // Only show if user has selected dwelling type and bedrooms
+  if (!dwellingType || !bedrooms) return null;
+
+  const canAnalyse = !!weeklyRent;
 
   const vc = result ? VERDICT_CONFIG[result.verdict] : null;
 
@@ -199,10 +210,38 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
 
           {/* Furnished */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Furnished?</span>
+            <span className="text-xs text-muted-foreground">Furnishing?</span>
+            <div className="flex gap-1.5">
+              <button onClick={() => { setIsFurnished(true); setIsPartiallyFurnished(null); }} className={smallPillClass(isFurnished === true && !isPartiallyFurnished)}>
+                Furnished
+              </button>
+              <button onClick={() => { setIsPartiallyFurnished(true); setIsFurnished(null); }} className={smallPillClass(!!isPartiallyFurnished)}>
+                Partial
+              </button>
+              <button onClick={() => { setIsFurnished(false); setIsPartiallyFurnished(null); }} className={smallPillClass(isFurnished === false && !isPartiallyFurnished)}>
+                Unfurnished
+              </button>
+            </div>
+          </div>
+
+          {/* Private outdoor space */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Private outdoor space?</span>
             <div className="flex gap-1.5">
               {([true, false] as const).map((v) => (
-                <button key={String(v)} onClick={() => setIsFurnished(v)} className={smallPillClass(isFurnished === v)}>
+                <button key={String(v)} onClick={() => setHasOutdoorSpace(v)} className={smallPillClass(hasOutdoorSpace === v)}>
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Character property */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Character / unique design?</span>
+            <div className="flex gap-1.5">
+              {([true, false] as const).map((v) => (
+                <button key={String(v)} onClick={() => setIsCharacterProperty(v)} className={smallPillClass(isCharacterProperty === v)}>
                   {v ? 'Yes' : 'No'}
                 </button>
               ))}
@@ -250,8 +289,8 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
           </label>
 
           {/* Analyse button */}
-          <Button onClick={handleAnalyse} disabled={loading} className="w-full">
-            {loading ? 'Analysing...' : 'Analyse My Rent'}
+          <Button onClick={handleAnalyse} disabled={loading || !canAnalyse} className="w-full">
+            {loading ? 'Analysing...' : !canAnalyse ? 'Enter your rent to analyse' : 'Analyse My Rent'}
           </Button>
 
           {error && <p className="text-xs text-destructive text-center">{error}</p>}

@@ -232,9 +232,18 @@ WEIGHTS_ENVIRONMENT = {      # Sum = 1.0, WAM
     "climate": 0.15, "contaminated_land": 0.10,
 }
 
-WEIGHTS_LIVEABILITY = {      # Sum = 1.0, WAM
-    "crime": 0.25, "nzdep": 0.20, "schools": 0.20,
-    "transit": 0.15, "crashes": 0.10, "heritage": 0.10,
+WEIGHTS_LIVEABILITY = {      # Sum = 1.0, WAM (transit/crashes moved to transport)
+    "crime": 0.30, "nzdep": 0.25, "schools": 0.25,
+    "heritage": 0.20,
+}
+
+WEIGHTS_TRANSPORT = {        # Sum = 1.0, WAM — higher = better access
+    "transit_access": 0.25,       # stops within 400m
+    "cbd_proximity": 0.20,       # distance to CBD
+    "commute_frequency": 0.15,   # peak services/hour
+    "rail_proximity": 0.15,      # nearest train station
+    "bus_density": 0.10,         # bus stops within 800m
+    "road_safety": 0.15,         # crash rate (inverted: fewer = better)
 }
 
 WEIGHTS_MARKET = {           # Sum = 1.0, WAM
@@ -249,8 +258,8 @@ WEIGHTS_PLANNING = {         # Sum = 1.0, WAM
 
 # Cross-category composite weights
 COMPOSITE_WEIGHTS = {
-    "hazards": 0.30, "environment": 0.15, "liveability": 0.25,
-    "market": 0.15, "planning": 0.15,
+    "hazards": 0.25, "environment": 0.10, "liveability": 0.20,
+    "transport": 0.15, "market": 0.15, "planning": 0.15,
 }
 
 
@@ -290,7 +299,7 @@ def composite_score(categories: dict[str, float], weights: dict[str, float]) -> 
 # =============================================================================
 
 CATEGORY_INDICATOR_COUNTS = {
-    "hazards": 11, "environment": 5, "liveability": 6, "market": 3, "planning": 5,
+    "hazards": 11, "environment": 5, "liveability": 4, "transport": 6, "market": 3, "planning": 5,
 }
 
 
@@ -463,18 +472,36 @@ def enrich_with_scores(report: dict) -> dict:
         env.get("contam_nearest_distance_m"), env.get("contam_nearest_category")
     )
 
-    # Liveability
+    # Liveability (transit/crashes moved to transport category)
     indicators["crime"] = normalize_min_max(liv.get("crime_percentile"), 0, 100)
     indicators["nzdep"] = SEVERITY_NZDEP.get(liv.get("nzdep_decile"))
     indicators["schools"] = school_quality_score(liv.get("schools_1500m") or [])
-    indicators["transit"] = normalize_min_max(
-        liv.get("transit_stops_400m"), 0, 25, inverse=True
-    )
-    indicators["crashes"] = normalize_min_max(
-        (liv.get("crashes_300m_serious") or 0) + (liv.get("crashes_300m_fatal") or 0),
-        0, 50,
-    )
     indicators["heritage"] = log_normalize(liv.get("heritage_count_500m"), 100)
+
+    # Transport — ALL scores: higher = better access
+    # Transit access: 0 stops = 0 (bad), 25+ stops = 100 (great)
+    indicators["transit_access"] = normalize_min_max(
+        liv.get("transit_stops_400m"), 0, 25
+    )
+    # CBD proximity: 0m = 100 (great), 10km+ = 0 (far)
+    cbd_m = liv.get("cbd_distance_m")
+    if cbd_m is not None:
+        indicators["cbd_proximity"] = max(0, 100 - (float(cbd_m) / 10000) * 100)
+    # Commute frequency: 0 services/hr = 0, 30+ = 100
+    peak = liv.get("peak_trips_per_hour")
+    if peak is not None:
+        indicators["commute_frequency"] = normalize_min_max(float(peak), 0, 30)
+    # Rail proximity: 0m = 100, 5km+ = 0
+    rail_m = liv.get("nearest_train_distance_m")
+    if rail_m is not None:
+        indicators["rail_proximity"] = max(0, 100 - (float(rail_m) / 5000) * 100)
+    # Bus density: bus stops within 800m (0 = 0, 30+ = 100)
+    bus_800 = liv.get("bus_stops_800m")
+    if bus_800 is not None:
+        indicators["bus_density"] = normalize_min_max(bus_800, 0, 30)
+    # Road safety: fewer serious+fatal crashes = higher score
+    serious = (liv.get("crashes_300m_serious") or 0) + (liv.get("crashes_300m_fatal") or 0)
+    indicators["road_safety"] = max(0, 100 - normalize_min_max(serious, 0, 20))
 
     # Planning (mostly neutral for MVP — no user preference context yet)
     indicators["zone_permissiveness"] = 50
@@ -485,6 +512,24 @@ def enrich_with_scores(report: dict) -> dict:
     infra = plan.get("infrastructure_5km")
     indicators["infrastructure"] = log_normalize(len(infra) if infra else 0, 40)
     indicators["school_zone"] = 50
+
+    # Market — derive from rental overview data in report
+    market = report.get("market") or {}
+    rental_overview = market.get("rental_overview") or []
+    # Find ALL/ALL row for overall market signal
+    all_row = next((r for r in rental_overview if isinstance(r, dict) and r.get("dwelling_type") == "ALL" and r.get("beds") == "ALL"), None)
+    if all_row:
+        # rental_fairness: bond count as data richness signal (more bonds = more liquid market)
+        bonds = all_row.get("bonds") or all_row.get("active_bonds") or 0
+        indicators["rental_fairness"] = min(100, (bonds / 200) * 100) if bonds else None
+        # rental_trend: YoY% mapped to 0-100 (negative = rents falling = good for renters, bad for investors)
+        yoy = all_row.get("yoy_pct")
+        if yoy is not None:
+            indicators["rental_trend"] = normalize_min_max(abs(float(yoy)), 0, 20)
+        else:
+            indicators["rental_trend"] = 50  # neutral
+        # market_heat: bond count relative to typical (indicates demand)
+        indicators["market_heat"] = min(100, (bonds / 500) * 100) if bonds else 50
 
     # --- 2. Aggregate per category ---
     cat_scores = {}
@@ -504,6 +549,7 @@ def enrich_with_scores(report: dict) -> dict:
     for cat, weights in [
         ("environment", WEIGHTS_ENVIRONMENT),
         ("liveability", WEIGHTS_LIVEABILITY),
+        ("transport", WEIGHTS_TRANSPORT),
         ("market", WEIGHTS_MARKET),
         ("planning", WEIGHTS_PLANNING),
     ]:
@@ -512,7 +558,7 @@ def enrich_with_scores(report: dict) -> dict:
             [weights[k] for k in weights],
         )
 
-    # Market scores need asking_rent (not in base report) — leave None for now
+    # Drop market if no data available
     if cat_scores.get("market") is None:
         cat_scores.pop("market", None)
 
@@ -533,6 +579,7 @@ def enrich_with_scores(report: dict) -> dict:
         ("hazards", WEIGHTS_HAZARDS),
         ("environment", WEIGHTS_ENVIRONMENT),
         ("liveability", WEIGHTS_LIVEABILITY),
+        ("transport", WEIGHTS_TRANSPORT),
         ("market", WEIGHTS_MARKET),
         ("planning", WEIGHTS_PLANNING),
     ]:

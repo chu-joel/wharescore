@@ -63,6 +63,14 @@ const RENTER_QUESTIONS: QuestionSection[] = [
     iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
   },
   {
+    id: 'neighbourhood',
+    question: "What's the neighbourhood like?",
+    dataSources: ['liveability', 'environment'],
+    icon: 'TreePine',
+    iconColor: 'text-piq-success',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+  },
+  {
     id: 'renter-checklist',
     question: 'What should I check?',
     dataSources: ['hazards', 'planning'],
@@ -96,6 +104,14 @@ const BUYER_QUESTIONS: QuestionSection[] = [
     icon: 'Calculator',
     iconColor: 'text-piq-primary',
     iconBg: 'bg-teal-100 dark:bg-teal-900/30',
+  },
+  {
+    id: 'daily-life',
+    question: "What's daily life like?",
+    dataSources: ['liveability', 'environment'],
+    icon: 'Coffee',
+    iconColor: 'text-amber-600',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/30',
   },
   {
     id: 'neighbourhood',

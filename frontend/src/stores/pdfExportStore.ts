@@ -3,15 +3,22 @@ import { usePersonaStore } from './personaStore';
 import { useDownloadGateStore } from './downloadGateStore';
 import { useBudgetStore } from './budgetStore';
 import { useRentInputStore } from './rentInputStore';
+import { useBuyerInputStore } from './buyerInputStore';
 import { showPaymentToast } from '@/components/common/PaymentToast';
+import { useReportConfirmStore } from '@/components/property/ReportConfirmModal';
 
 interface PdfExportState {
   addressId: number | null;
   persona: string | null;
   isGenerating: boolean;
   downloadUrl: string | null;
+  shareUrl: string | null;
   error: string | null;
+  /** Pending token for after confirm modal */
+  _pendingToken: string | null;
   startExport: (addressId: number, token?: string | null) => void;
+  /** Internal: called after user confirms in the review modal */
+  _doExport: (addressId: number, token?: string | null) => void;
 }
 
 export const usePdfExportStore = create<PdfExportState>((set, get) => ({
@@ -19,18 +26,19 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
   persona: null,
   isGenerating: false,
   downloadUrl: null,
+  shareUrl: null,
   error: null,
+  _pendingToken: null,
 
-  startExport: async (addressId: number, token?: string | null) => {
+  startExport: (addressId: number, token?: string | null) => {
     const state = get();
     if (state.isGenerating) return;
 
     // --- Paywall gate ---
     const gate = useDownloadGateStore.getState();
     const persona = usePersonaStore.getState().persona;
-    const { allowed, reason } = gate.canDownload();
+    const { allowed } = gate.canDownload();
     if (!allowed) {
-      // Show upgrade modal for any blocked reason — pass address context for guest checkout
       gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
       return;
     }
@@ -41,7 +49,21 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    set({ addressId, persona, isGenerating: true, error: null, downloadUrl: null });
+    // Show confirmation modal — user reviews inputs before generating
+    set({ _pendingToken: token ?? null });
+    useReportConfirmStore.getState().show(addressId, () => {
+      get()._doExport(addressId, get()._pendingToken);
+    });
+  },
+
+  _doExport: async (addressId: number, token?: string | null) => {
+    const state = get();
+    if (state.isGenerating) return;
+
+    const gate = useDownloadGateStore.getState();
+    const persona = usePersonaStore.getState().persona;
+
+    set({ addressId, persona, isGenerating: true, error: null, downloadUrl: null, _pendingToken: null });
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -71,16 +93,33 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
               bathrooms: rentInput.bathrooms,
               has_parking: rentInput.hasParking,
               has_insulation: rentInput.notInsulated ? false : undefined,
-              is_furnished: rentInput.isFurnished,
+              is_furnished: rentInput.isPartiallyFurnished ? undefined : rentInput.isFurnished,
+              is_partially_furnished: rentInput.isPartiallyFurnished,
+              has_outdoor_space: rentInput.hasOutdoorSpace,
+              is_character_property: rentInput.isCharacterProperty,
               shared_kitchen: rentInput.sharedKitchen,
               utilities_included: rentInput.utilitiesIncluded,
             },
           }
         : {};
 
+      // Include buyer advisor inputs for personalised price analysis in PDF
+      const buyerInput = useBuyerInputStore.getState();
+      const buyerPayload = persona === 'buyer'
+        ? {
+            buyer_inputs: {
+              asking_price: buyerInput.askingPrice,
+              bedrooms: buyerInput.bedrooms,
+              finish_tier: buyerInput.finishTier,
+              bathrooms: buyerInput.bathrooms,
+              has_parking: buyerInput.hasParking,
+            },
+          }
+        : {};
+
       const res = await fetch(
         `/api/v1/property/${addressId}/export/pdf/start?persona=${persona}`,
-        { method: 'POST', headers, body: JSON.stringify({ ...budgetPayload, ...rentPayload }) },
+        { method: 'POST', headers, body: JSON.stringify({ ...budgetPayload, ...rentPayload, ...buyerPayload }) },
       );
       if (!res.ok) {
         if (res.status === 401) {
@@ -129,6 +168,10 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             }
           }
           set({ downloadUrl: download_url, isGenerating: false });
+          // If a hosted report URL is available, also store it
+          if (status.share_url) {
+            set({ shareUrl: status.share_url });
+          }
           return;
         }
 

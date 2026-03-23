@@ -25,6 +25,8 @@ import { RenterChecklistContent } from './RenterChecklistContent';
 import { BuyerChecklistContent } from './BuyerChecklistContent';
 import { BuyerBudgetCalculator } from './BuyerBudgetCalculator';
 import { RenterBudgetCalculator } from './RenterBudgetCalculator';
+import { PriceAdvisorCard } from './PriceAdvisorCard';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 interface QuestionContentProps {
   questionId: QuestionId;
@@ -37,7 +39,8 @@ function findCategory(report: PropertyReport, name: string): CategoryScore | und
 }
 
 export function QuestionContent({ questionId, report, locked = false }: QuestionContentProps) {
-  if (locked) {
+  const hosted = useHostedReport();
+  if (locked && !hosted) {
     return (
       <ReportUpsell
         addressId={report.address.address_id}
@@ -51,6 +54,20 @@ export function QuestionContent({ questionId, report, locked = false }: Question
     // Show critical findings free, gate detailed breakdown + crime behind premium
     case 'safety': {
       const riskCat = findCategory(report, 'risk');
+      if (hosted && riskCat) {
+        // Hosted: show FULL hazard breakdown (user has paid)
+        return (
+          <div className="space-y-4">
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} />
+            <CrimeCard
+              percentile={report.liveability.crime_rate}
+              victimisations={report.liveability.crime_victimisations}
+              cityMedian={report.liveability.crime_city_median}
+            />
+            <InsuranceRiskCard report={report} />
+          </div>
+        );
+      }
       const critical = riskCat?.indicators.filter((i) => i.is_available && i.score >= 60) ?? [];
       return (
         <div className="space-y-4">
@@ -95,6 +112,14 @@ export function QuestionContent({ questionId, report, locked = false }: Question
 
     case 'deal-breakers': {
       const riskCat = findCategory(report, 'risk');
+      if (hosted && riskCat) {
+        return (
+          <div className="space-y-4">
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} />
+            <InsuranceRiskCard report={report} />
+          </div>
+        );
+      }
       const critical = riskCat?.indicators.filter((i) => i.is_available && i.score >= 60) ?? [];
       return (
         <div className="space-y-4">
@@ -154,6 +179,8 @@ export function QuestionContent({ questionId, report, locked = false }: Question
     case 'true-cost': {
       return (
         <div className="space-y-4">
+          {/* Skip PriceAdvisorCard in hosted mode — HostedPriceAdvisor shown above */}
+          {!hosted && <PriceAdvisorCard addressId={report.address.address_id} />}
           <BuyerBudgetCalculator report={report} />
           <InsuranceRiskCard report={report} />
         </div>

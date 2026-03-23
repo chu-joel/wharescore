@@ -3,6 +3,7 @@
 import { Lock, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { Finding } from './FindingCard';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 /**
  * Shows blurred/ghosted versions of hidden findings.
@@ -16,6 +17,8 @@ export function BlurredFindingCards({
   findings: Finding[];
   addressId: number;
 }) {
+  const hosted = useHostedReport();
+  if (hosted) return null; // User has paid — no blurred cards
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
 
   if (findings.length === 0) return null;

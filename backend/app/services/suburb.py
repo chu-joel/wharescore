@@ -9,7 +9,9 @@ async def search_suburbs(query: str, limit: int = 8) -> list[dict]:
         # Try fast prefix match first
         cur = await conn.execute(
             """
-            SELECT sa2_code, sa2_name, ta_name
+            SELECT sa2_code, sa2_name, ta_name,
+                   ST_X(ST_Centroid(ST_Transform(geom, 4326))) AS lng,
+                   ST_Y(ST_Centroid(ST_Transform(geom, 4326))) AS lat
             FROM sa2_boundaries
             WHERE sa2_name ILIKE %s
             ORDER BY sa2_name
@@ -24,7 +26,9 @@ async def search_suburbs(query: str, limit: int = 8) -> list[dict]:
         # Fallback: contains match (still indexed via pg_trgm GIN)
         cur = await conn.execute(
             """
-            SELECT sa2_code, sa2_name, ta_name
+            SELECT sa2_code, sa2_name, ta_name,
+                   ST_X(ST_Centroid(ST_Transform(geom, 4326))) AS lng,
+                   ST_Y(ST_Centroid(ST_Transform(geom, 4326))) AS lat
             FROM sa2_boundaries
             WHERE sa2_name ILIKE %s
             ORDER BY sa2_name
@@ -85,7 +89,15 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
         city_avg = None
         if ta_name:
             cur = await conn.execute(
-                "SELECT * FROM mv_ta_comparisons WHERE ta_name = %s LIMIT 1",
+                """
+                SELECT ta_name,
+                       avg_nzdep,
+                       avg_school_count_1500m AS school_count_1500m,
+                       avg_transit_count_400m AS transit_count_400m,
+                       avg_noise_db AS max_noise_db,
+                       avg_epb_count_300m AS epb_count_300m
+                FROM mv_ta_comparisons WHERE ta_name = %s LIMIT 1
+                """,
                 [ta_name],
             )
             city_avg = cur.fetchone()
@@ -95,12 +107,18 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
         if ta_name:
             cur = await conn.execute(
                 """
-                SELECT ta_name, total_offences, offence_rate_per_10k
-                FROM mv_crime_ta WHERE ta_name = %s LIMIT 1
+                SELECT ta, victimisations_3yr, avg_victimisations_per_au
+                FROM mv_crime_ta WHERE ta = %s LIMIT 1
                 """,
                 [ta_name],
             )
-            crime = cur.fetchone()
+            row = cur.fetchone()
+            if row:
+                crime = {
+                    "ta_name": ta_name,
+                    "total_offences": row["victimisations_3yr"],
+                    "offence_rate_per_10k": round(float(row["avg_victimisations_per_au"] or 0), 1),
+                }
 
         # -- Area profile --
         cur = await conn.execute(
@@ -113,10 +131,15 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
         # -- Rental overview --
         cur = await conn.execute(
             """
-            SELECT dwelling_type, bedrooms, median_rent, bond_count, lower_quartile, upper_quartile
+            SELECT dwelling_type,
+                   number_of_beds AS bedrooms,
+                   median_rent,
+                   total_bonds AS bond_count,
+                   lower_quartile_rent AS lower_quartile,
+                   upper_quartile_rent AS upper_quartile
             FROM mv_rental_market
             WHERE sa2_code = %s
-            ORDER BY dwelling_type, bedrooms
+            ORDER BY dwelling_type, number_of_beds
             """,
             [sa2_code],
         )
@@ -125,10 +148,14 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
         # -- Rental trends --
         cur = await conn.execute(
             """
-            SELECT dwelling_type, bedrooms, cagr_1yr, cagr_5yr, cagr_10yr
+            SELECT dwelling_type,
+                   number_of_beds AS bedrooms,
+                   yoy_pct / 100.0 AS cagr_1yr,
+                   cagr_5yr / 100.0 AS cagr_5yr,
+                   cagr_10yr / 100.0 AS cagr_10yr
             FROM mv_rental_trends
             WHERE sa2_code = %s
-            ORDER BY dwelling_type, bedrooms
+            ORDER BY dwelling_type, number_of_beds
             """,
             [sa2_code],
         )

@@ -16,6 +16,7 @@ import { BetaBanner } from './BetaBanner';
 import { ReportCTABanner } from './ReportCTABanner';
 import { FloatingReportButton } from './FloatingReportButton';
 import { UpgradeModal } from './UpgradeModal';
+import { ReportConfirmModal } from './ReportConfirmModal';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ReportDisclaimer } from '@/components/common/ReportDisclaimer';
 import { AppFooter } from '@/components/layout/AppFooter';
@@ -116,10 +117,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     : undefined;
   const hasCategories = Array.isArray(report.scores?.categories) && report.scores.categories.length > 0;
 
-  const heroQuestion = questions[0];
+  // For renters, first question (safety) is promoted as hero (always expanded).
+  // For buyers, all questions go in the accordion (deal-breakers starts expanded via DEFAULT_EXPANDED).
+  const heroQuestion = persona === 'buyer' ? null : questions[0];
   // Daily life / neighbourhood is promoted to its own section, so exclude from accordion
   const promotedIds = new Set(['daily-life', 'neighbourhood']);
-  const accordionQuestions = questions.slice(1).filter((q) => !promotedIds.has(q.id));
+  const accordionQuestions = (persona === 'buyer' ? questions : questions.slice(1)).filter((q) => !promotedIds.has(q.id));
 
   return (
     <div className="flex flex-col min-h-full" key={`${addressId}-${persona}`}>
@@ -292,6 +295,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
       {/* Paywall modal — shown when free user clicks download */}
       <UpgradeModal />
+      {/* Confirm inputs modal — shown before generating report */}
+      <ReportConfirmModal />
     </div>
   );
 }

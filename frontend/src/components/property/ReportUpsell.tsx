@@ -3,6 +3,7 @@
 import { Lock, Download, Loader2, TrendingUp, Brain, ClipboardCheck, BarChart3, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 interface ReportUpsellProps {
   addressId: number;
@@ -88,6 +89,8 @@ function getTeaser(feature: ReportUpsellProps['feature'], hiddenCount?: number, 
 }
 
 export function ReportUpsell({ addressId, feature, hiddenCount, criticalCount, warningCount }: ReportUpsellProps) {
+  const hosted = useHostedReport();
+  if (hosted) return null; // User has paid — no upsell needed
   const config = FEATURE_CONFIG[feature];
   const teaser = getTeaser(feature, hiddenCount, criticalCount, warningCount);
   const Icon = config.icon;

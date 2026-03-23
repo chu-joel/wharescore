@@ -24,7 +24,7 @@ interface UserCredits {
 }
 
 /** Context for why the upgrade modal was triggered — drives headline copy */
-export type ModalTrigger = 'default' | 'risk' | 'market' | 'rent-advisor' | 'no_credits' | 'daily_limit' | 'monthly_limit' | 'comparing';
+export type ModalTrigger = 'default' | 'risk' | 'market' | 'rent-advisor' | 'price-advisor' | 'no_credits' | 'daily_limit' | 'monthly_limit' | 'comparing';
 
 interface DownloadGateState {
   /** Whether user is authenticated */

@@ -30,6 +30,45 @@ from ..services.pdf_jobs import (
 router = APIRouter()
 
 
+async def _fix_unit_cv(report: dict, address_id: int) -> None:
+    """Fix unit CV from rates cache. Spatial match in council_valuations often
+    returns a random unit's CV (e.g. parking space). The rates cache has the
+    correct per-unit data matched by unit identifier."""
+    try:
+        async with db.pool.connection() as conn_cv:
+            cur_cv = await conn_cv.execute(
+                "SELECT unit_value, address_number, road_name, road_type_name FROM addresses WHERE address_id = %s",
+                [address_id],
+            )
+            addr_row = cur_cv.fetchone()
+            if addr_row and addr_row.get("unit_value"):
+                uv = addr_row["unit_value"]
+                street = f"{addr_row.get('address_number', '')} {addr_row.get('road_name', '')}"
+                if addr_row.get("road_type_name"):
+                    street += f" {addr_row['road_type_name']}"
+                street = street.strip()
+                if street:
+                    cur_cv = await conn_cv.execute(
+                        """
+                        SELECT capital_value, land_value, improvements_value
+                        FROM wcc_rates_cache
+                        WHERE capital_value > 0
+                          AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
+                        LIMIT 1
+                        """,
+                        [f"Unit {uv} {street}%", f"Apt {uv} {street}%", f"Flat {uv} {street}%"],
+                    )
+                    rates = cur_cv.fetchone()
+                    if rates and report.get("property"):
+                        report["property"]["capital_value"] = rates["capital_value"]
+                        report["property"]["land_value"] = rates["land_value"] or 0
+                        report["property"]["improvements_value"] = rates["improvements_value"] or 0
+                        report["property"]["cv_is_per_unit"] = True
+    except Exception:
+        pass  # non-critical fallback
+    report["_cv_from_rates"] = True
+
+
 @router.get("/property/{address_id}/report")
 @limiter.limit("20/minute", key_func=lambda request: _extract_bearer(request) or get_remote_address(request))
 @limiter.limit("5/minute", key_func=get_remote_address)
@@ -46,9 +85,16 @@ async def get_report(request: Request, address_id: int):
     cached = await cache_get(cache_key)
     if cached:
         report = orjson.loads(cached)
+        dirty = False
         # Re-enrich if scores are missing (stale cache from before scoring was added)
         if not (report.get("scores") or {}).get("composite"):
             report = enrich_with_scores(report)
+            dirty = True
+        # Re-run unit CV fix if not yet applied (stale cache from before rates cache fix)
+        if not report.get("_cv_from_rates"):
+            await _fix_unit_cv(report, address_id)
+            dirty = True
+        if dirty:
             await cache_set(cache_key, orjson.dumps(report), ex=86400)
         return report
 
@@ -87,6 +133,9 @@ async def get_report(request: Request, address_id: int):
         report["property_detection"] = detection
     report["area_profile"] = area_profile
     report["ai_summary"] = None  # fetched separately via /ai-summary
+
+    # Unit CV from rates cache
+    await _fix_unit_cv(report, address_id)
 
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
@@ -369,6 +418,7 @@ async def _generate_pdf_background(
     job_id: str, address_id: int, persona: str = "buyer",
     user_id: str | None = None, credit_id: int | None = None, is_pro: bool = False,
     budget_inputs: dict | None = None, rent_inputs: dict | None = None,
+    buyer_inputs: dict | None = None,
 ):
     """Background task to generate PDF report. Saves report + deducts credit on success."""
     try:
@@ -389,6 +439,10 @@ async def _generate_pdf_background(
                 await set_job_failed(job_id, "Address not found")
                 return
             report = enrich_with_scores(row["report"])
+
+        # Fix unit CV from rates cache (same fix as report endpoint)
+        if not report.get("_cv_from_rates"):
+            await _fix_unit_cv(report, address_id)
 
         # 2. Get area profile
         area_profile = report.get("area_profile")
@@ -567,14 +621,14 @@ async def _generate_pdf_background(
 
         # 3h. Run rent advisor analysis (for premium PDF)
         rent_advisor_result = None
-        if rent_inputs and rent_inputs.get("weekly_rent") and rent_inputs.get("dwelling_type"):
+        if rent_inputs and rent_inputs.get("dwelling_type"):
             try:
                 from ..services.rent_advisor import compute_rent_advice
                 async with db.pool.connection() as conn_ra:
                     rent_advisor_result = await compute_rent_advice(
                         conn_ra,
                         address_id=address_id,
-                        weekly_rent=int(rent_inputs["weekly_rent"]),
+                        weekly_rent=int(rent_inputs["weekly_rent"]) if rent_inputs.get("weekly_rent") else None,
                         dwelling_type=rent_inputs.get("dwelling_type", "ALL"),
                         bedrooms=rent_inputs.get("bedrooms", "ALL"),
                         finish_tier=rent_inputs.get("finish_tier"),
@@ -587,6 +641,25 @@ async def _generate_pdf_background(
                     )
             except Exception as e:
                 logger.warning(f"Rent advisor failed for PDF: {e}")
+
+        # 3i. Run price advisor analysis (for premium PDF — buyer persona)
+        price_advisor_result = None
+        if persona == "buyer":
+            try:
+                from ..services.price_advisor import compute_price_advice
+                bi = buyer_inputs or {}
+                async with db.pool.connection() as conn_pa:
+                    price_advisor_result = await compute_price_advice(
+                        conn_pa,
+                        address_id=address_id,
+                        asking_price=bi.get("asking_price"),
+                        bedrooms=bi.get("bedrooms"),
+                        finish_tier=bi.get("finish_tier"),
+                        bathrooms=bi.get("bathrooms"),
+                        has_parking=bi.get("has_parking"),
+                    )
+            except Exception as e:
+                logger.warning(f"Price advisor failed for PDF: {e}")
 
         # 4. Run Python insight rule engine
         python_insights = build_insights(report)
@@ -651,6 +724,8 @@ async def _generate_pdf_background(
             user_rent_context=user_rent_context,
             rent_advisor_result=rent_advisor_result,
             rent_inputs=rent_inputs,
+            price_advisor_result=price_advisor_result,
+            buyer_inputs=buyer_inputs,
         )
 
         # 8a. Save report + deduct credit (after successful generation)
@@ -679,8 +754,28 @@ async def _generate_pdf_background(
             except Exception as e:
                 logger.error(f"Failed to save report/deduct credit for {user_id}: {e}")
 
-        # 8b. Mark job as completed
-        await set_job_completed(job_id, html)
+        # 8b. Generate hosted report snapshot
+        share_token = None
+        try:
+            from ..services.snapshot_generator import create_report_snapshot
+            # Determine dwelling type from rent inputs or default
+            dw_type = (rent_inputs or {}).get("dwelling_type", "House")
+            async with db.pool.connection() as conn_snap:
+                share_token = await create_report_snapshot(
+                    conn_snap,
+                    address_id=address_id,
+                    persona=persona,
+                    dwelling_type=dw_type,
+                    user_id=user_id,
+                    inputs_at_purchase={**(rent_inputs or {}), **(buyer_inputs or {})},
+                )
+            if share_token:
+                logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
+        except Exception as e:
+            logger.warning(f"Snapshot generation failed (non-critical): {e}")
+
+        # 8c. Mark job as completed
+        await set_job_completed(job_id, html, share_token=share_token)
 
     except Exception as e:
         import traceback
@@ -705,6 +800,7 @@ async def start_pdf_export(
     # Parse optional budget_inputs + rent_inputs from request body
     budget_inputs = None
     rent_inputs = None
+    buyer_inputs = None
     try:
         body = await request.json()
         if isinstance(body, dict):
@@ -712,6 +808,8 @@ async def start_pdf_export(
                 budget_inputs = body["budget_inputs"]
             if "rent_inputs" in body:
                 rent_inputs = body["rent_inputs"]
+            if "buyer_inputs" in body:
+                buyer_inputs = body["buyer_inputs"]
     except Exception:
         pass
 
@@ -723,6 +821,7 @@ async def start_pdf_export(
         is_pro=credit_info.is_pro,
         budget_inputs=budget_inputs,
         rent_inputs=rent_inputs,
+        buyer_inputs=buyer_inputs,
     )
     return JSONResponse({
         "job_id": job_id,
@@ -770,6 +869,22 @@ async def start_guest_pdf_export(
             "download_url": f"/api/v1/property/{address_id}/export/pdf/download/{row['job_id']}",
         })
 
+    # Parse optional inputs from request body (saved by frontend before Stripe redirect)
+    budget_inputs = None
+    rent_inputs = None
+    buyer_inputs = None
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            if "budget_inputs" in body:
+                budget_inputs = body["budget_inputs"]
+            if "rent_inputs" in body:
+                rent_inputs = body["rent_inputs"]
+            if "buyer_inputs" in body:
+                buyer_inputs = body["buyer_inputs"]
+    except Exception:
+        pass
+
     job_id = await create_job(address_id)
 
     # Store job_id in guest_purchases
@@ -781,6 +896,9 @@ async def start_guest_pdf_export(
 
     background_tasks.add_task(
         _generate_pdf_background, job_id, address_id, row["persona"],
+        budget_inputs=budget_inputs,
+        rent_inputs=rent_inputs,
+        buyer_inputs=buyer_inputs,
     )
 
     return JSONResponse({

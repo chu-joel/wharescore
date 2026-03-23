@@ -1,6 +1,6 @@
 'use client';
 
-import { Bookmark, MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
+import { Bookmark, MapPin, Download, Loader2, Eye, ExternalLink, FileCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,7 +58,7 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
   const bin = hasScore ? getRatingBin(scores.overall) : null;
   const persona = usePersonaStore((s) => s.persona);
 
-  const pdf = usePdfExport(address.address_id);
+  const pdf = usePdfExport(address.address_id, persona);
 
   // Persona-specific headline metric
   const personaHeadline = (() => {
@@ -70,9 +70,11 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
       const isMulti = !!report.property_detection?.is_multi_unit;
       const units = report.property_detection?.unit_count ?? 1;
       const cv = property.capital_value;
-      const effectiveCv = (isMulti && cv && units > 1) ? Math.round(cv / units) : cv;
+      const alreadyPerUnit = !!property.cv_is_per_unit;
+      const effectiveCv = (isMulti && cv && units > 1 && !alreadyPerUnit) ? Math.round(cv / units) : cv;
       if (effectiveCv) {
-        parts.push(`${isMulti && units > 1 ? '~' : 'CV: '}$${(effectiveCv / 1000).toFixed(0)}k${isMulti && units > 1 ? ' est.' : ''}`);
+        const isEstimated = isMulti && units > 1 && !alreadyPerUnit;
+        parts.push(`${isEstimated ? '~' : 'CV: '}$${(effectiveCv / 1000).toFixed(0)}k${isEstimated ? ' est.' : ''}`);
       }
       if (market.rent_assessment?.median && effectiveCv) {
         const annualRent = market.rent_assessment.median * 52;
@@ -101,19 +103,32 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
             </p>
           </div>
           <div className="flex gap-1.5 shrink-0 items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-medium"
-              onClick={pdf.startExport}
-              disabled={pdf.isGenerating}
-            >
-              {pdf.isGenerating ? (
-                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
-              ) : (
-                <><Download className="h-3.5 w-3.5" /> Download PDF</>
-              )}
-            </Button>
+            {pdf.shareUrl ? (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-medium"
+                onClick={() => window.open(pdf.shareUrl!, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> View Report
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-medium"
+                onClick={pdf.startExport}
+                disabled={pdf.isGenerating}
+              >
+                {pdf.isGenerating ? (
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
+                ) : pdf.downloadUrl ? (
+                  <><FileCheck className="h-3.5 w-3.5" /> Open Report</>
+                ) : (
+                  <><Download className="h-3.5 w-3.5" /> Get Report</>
+                )}
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Save property">
               <Bookmark className="h-4 w-4" />
             </Button>
@@ -161,12 +176,13 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
             {property.capital_value && (() => {
               const isMulti = !!report.property_detection?.is_multi_unit;
               const units = report.property_detection?.unit_count ?? 1;
-              const perUnit = isMulti && units > 1 ? Math.round(property.capital_value / units) : null;
+              const alreadyPerUnit = !!property.cv_is_per_unit;
+              const perUnit = (isMulti && units > 1 && !alreadyPerUnit) ? Math.round(property.capital_value / units) : null;
               return (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
                   {perUnit
                     ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
-                    : <>CV {formatCurrency(property.capital_value)}</>}
+                    : <>CV {formatCurrency(property.capital_value)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
                 </span>
               );
             })()}

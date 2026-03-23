@@ -6,8 +6,11 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
 import { RentComparisonFlow } from '@/components/property/RentComparisonFlow';
 import { RentAdvisorCard } from '@/components/property/RentAdvisorCard';
+import { PriceAdvisorCard } from '@/components/property/PriceAdvisorCard';
 import { RentHistoryChart } from '@/components/property/RentHistoryChart';
+import { usePersonaStore } from '@/stores/personaStore';
 import { HPITrendChart } from '@/components/property/HPITrendChart';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 import { PremiumGate } from '@/components/property/PremiumGate';
 import { UnitComparisonTable } from '@/components/property/UnitComparisonTable';
 import { MarketHeatBadge } from '@/components/property/MarketHeatBadge';
@@ -23,6 +26,8 @@ interface MarketSectionProps {
 }
 
 export function MarketSection({ addressId, category, market, property, detection }: MarketSectionProps) {
+  const hosted = useHostedReport();
+  const persona = usePersonaStore((s) => s.persona);
   const isMultiUnit = detection?.is_multi_unit ?? false;
   const hasSiblings = (detection?.sibling_valuations?.length ?? 0) >= 2;
 
@@ -78,15 +83,21 @@ export function MarketSection({ addressId, category, market, property, detection
         />
       )}
 
-      {/* Rent Comparison Flow (3-state) */}
-      <RentComparisonFlow
-        addressId={addressId}
-        market={market}
-        detection={detection}
-      />
-
-      {/* Rent Advisor (personalised advice) */}
-      <RentAdvisorCard addressId={addressId} />
+      {/* Persona-aware advisor section — skip API-calling components in hosted mode */}
+      {!hosted && (
+        persona === 'buyer' ? (
+          <PriceAdvisorCard addressId={addressId} />
+        ) : (
+          <>
+            <RentComparisonFlow
+              addressId={addressId}
+              market={market}
+              detection={detection}
+            />
+            <RentAdvisorCard addressId={addressId} />
+          </>
+        )
+      )}
 
       {/* Trend data */}
       {market.trend && (
@@ -122,13 +133,15 @@ export function MarketSection({ addressId, category, market, property, detection
         </div>
       )}
 
-      {/* Rent History — free (the hook for renters) */}
-      <RentHistoryChart addressId={addressId} />
+      {/* Rent History — skip in hosted mode (calls API) */}
+      {!hosted && <RentHistoryChart addressId={addressId} />}
 
-      {/* HPI — gated (national context, low individual value) */}
-      <PremiumGate label="NZ House Price Index trend" trigger="market">
-        <HPITrendChart />
-      </PremiumGate>
+      {/* HPI — gated on free UI, shown in hosted */}
+      {!hosted ? (
+        <PremiumGate label="NZ House Price Index trend" trigger="market">
+          <HPITrendChart />
+        </PremiumGate>
+      ) : null}
 
       {/* Indicator cards */}
       {category.indicators.length > 0 && (

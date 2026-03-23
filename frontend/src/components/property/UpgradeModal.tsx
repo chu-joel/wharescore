@@ -14,23 +14,63 @@ import {
 } from '@/components/ui/dialog';
 import { useDownloadGateStore, type PlanType, type ModalTrigger } from '@/stores/downloadGateStore';
 import { useRentInputStore } from '@/stores/rentInputStore';
+import { useBuyerInputStore } from '@/stores/buyerInputStore';
+import { useBudgetStore } from '@/stores/budgetStore';
 
-function RentInputTip() {
-  const { dwellingType, bedrooms, weeklyRent, finishTier, bathrooms } = useRentInputStore();
-  const missing: string[] = [];
-  if (!dwellingType) missing.push('property type');
-  if (!bedrooms) missing.push('bedrooms');
-  if (!weeklyRent) missing.push('weekly rent');
-  if (!finishTier) missing.push('finish/condition');
-  if (!bathrooms) missing.push('bathrooms');
+function useInputReadiness(persona: string) {
+  const rent = useRentInputStore();
+  const buyer = useBuyerInputStore();
 
-  if (missing.length === 0) return null;
+  if (persona === 'renter') {
+    const required: { field: string; label: string; filled: boolean }[] = [
+      { field: 'dwellingType', label: 'Property type', filled: !!rent.dwellingType },
+      { field: 'bedrooms', label: 'Bedrooms', filled: !!rent.bedrooms },
+    ];
+    const optional: { field: string; label: string; filled: boolean }[] = [
+      { field: 'weeklyRent', label: 'Weekly rent', filled: !!rent.weeklyRent },
+      { field: 'finishTier', label: 'Finish/condition', filled: !!rent.finishTier },
+      { field: 'bathrooms', label: 'Bathrooms', filled: !!rent.bathrooms },
+    ];
+    return { required, optional, allRequiredFilled: required.every(r => r.filled) };
+  }
+
+  // buyer
+  const required: { field: string; label: string; filled: boolean }[] = [
+    { field: 'bedrooms', label: 'Bedrooms', filled: !!buyer.bedrooms },
+  ];
+  const optional: { field: string; label: string; filled: boolean }[] = [
+    { field: 'askingPrice', label: 'Asking price', filled: !!buyer.askingPrice },
+    { field: 'finishTier', label: 'Finish/condition', filled: !!buyer.finishTier },
+    { field: 'bathrooms', label: 'Bathrooms', filled: !!buyer.bathrooms },
+  ];
+  return { required, optional, allRequiredFilled: required.every(r => r.filled) };
+}
+
+function InputReadinessTip({ persona }: { persona: string }) {
+  const { required, optional, allRequiredFilled } = useInputReadiness(persona);
+  const missingRequired = required.filter(r => !r.filled);
+  const missingOptional = optional.filter(r => !r.filled);
+
+  if (missingRequired.length === 0 && missingOptional.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-piq-accent-warm/30 bg-piq-accent-warm/5 p-2.5 text-xs text-piq-accent-warm">
-      <p className="font-medium">For the best analysis, fill in: {missing.join(', ')}</p>
+    <div className={`rounded-lg border p-2.5 text-xs ${
+      missingRequired.length > 0
+        ? 'border-risk-high/30 bg-risk-high/5 text-risk-high'
+        : 'border-piq-accent-warm/30 bg-piq-accent-warm/5 text-piq-accent-warm'
+    }`}>
+      {missingRequired.length > 0 && (
+        <p className="font-semibold">
+          Required: {missingRequired.map(r => r.label).join(', ')}
+        </p>
+      )}
+      {missingOptional.length > 0 && (
+        <p className={missingRequired.length > 0 ? 'mt-1 text-piq-accent-warm' : 'font-medium'}>
+          For best results, also fill in: {missingOptional.map(r => r.label).join(', ')}
+        </p>
+      )}
       <p className="text-[10px] text-muted-foreground mt-0.5">
-        Close this and enter your property details above — your report will include a personalised rent breakdown.
+        Close this and enter your details above — your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
       </p>
     </div>
   );
@@ -110,6 +150,7 @@ export function UpgradeModal() {
   const { getToken } = useAuthToken();
   const [loading, setLoading] = useState<string | null>(null);
   const [canClose, setCanClose] = useState(false);
+  const { allRequiredFilled } = useInputReadiness(targetPersona);
 
   // Delayed close button — force 3s look at modal (research: improves conversion)
   useEffect(() => {
@@ -168,6 +209,38 @@ export function UpgradeModal() {
         throw new Error(err.detail || 'Checkout failed');
       }
       const { checkout_url } = await res.json();
+      // Save user inputs to localStorage so guest download page can include them in PDF
+      try {
+        const rentInput = useRentInputStore.getState();
+        const buyerInput = useBuyerInputStore.getState();
+        const budgetEntry = useBudgetStore.getState().entries[targetAddressId];
+        localStorage.setItem('wharescore-guest-inputs', JSON.stringify({
+          persona: targetPersona,
+          rent_inputs: rentInput.dwellingType ? {
+            dwelling_type: rentInput.dwellingType,
+            bedrooms: rentInput.bedrooms,
+            weekly_rent: rentInput.weeklyRent,
+            finish_tier: rentInput.finishTier,
+            bathrooms: rentInput.bathrooms,
+            has_parking: rentInput.hasParking,
+            has_insulation: rentInput.notInsulated ? false : undefined,
+            is_furnished: rentInput.isFurnished,
+            shared_kitchen: rentInput.sharedKitchen,
+            utilities_included: rentInput.utilitiesIncluded,
+          } : undefined,
+          buyer_inputs: targetPersona === 'buyer' ? {
+            asking_price: buyerInput.askingPrice,
+            bedrooms: buyerInput.bedrooms,
+            finish_tier: buyerInput.finishTier,
+            bathrooms: buyerInput.bathrooms,
+            has_parking: buyerInput.hasParking,
+          } : undefined,
+          budget_inputs: budgetEntry?.hasInteracted ? {
+            persona: targetPersona,
+            ...(targetPersona === 'buyer' ? budgetEntry.buyer : budgetEntry.renter),
+          } : undefined,
+        }));
+      } catch { /* non-critical */ }
       window.location.href = checkout_url;
     } catch (err) {
       console.error('Guest checkout error:', err);
@@ -199,10 +272,8 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Rent advisor tip — prompt to fill in details */}
-        {modalTrigger === 'rent-advisor' && (
-          <RentInputTip />
-        )}
+        {/* Input readiness tip — prompt to fill in required details */}
+        <InputReadinessTip persona={targetPersona} />
 
         {/* Feature list */}
         <ul className="space-y-1.5 py-1">
@@ -219,7 +290,7 @@ export function UpgradeModal() {
           {/* Single report */}
           <button
             onClick={() => handlePurchase('single')}
-            disabled={!!loading}
+            disabled={!!loading || !allRequiredFilled}
             className="flex items-center justify-between rounded-lg border-2 border-border p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
@@ -256,7 +327,7 @@ export function UpgradeModal() {
           {/* Pro monthly */}
           <button
             onClick={() => handlePurchase('pro')}
-            disabled={!!loading}
+            disabled={!!loading || !allRequiredFilled}
             className="flex items-center justify-between rounded-lg border-2 border-border p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
@@ -279,7 +350,7 @@ export function UpgradeModal() {
           <div className="border-t border-border pt-3">
             <button
               onClick={handleGuestCheckout}
-              disabled={!!loading}
+              disabled={!!loading || !allRequiredFilled}
               className="w-full rounded-lg border border-dashed border-muted-foreground/30 p-2.5 text-center text-sm text-muted-foreground transition-all hover:border-piq-primary hover:text-piq-primary disabled:opacity-60"
             >
               {loading === 'guest' ? (

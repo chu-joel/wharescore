@@ -1,0 +1,60 @@
+@media print {
+  /* Hide interactive elements */
+  aside,
+  [class*="print:hidden"],
+  header,
+  button,
+  input,
+  [data-slot="accordion-trigger"] {
+    display: none !important;
+  }
+
+  /* Force light mode */
+  :root {
+    color-scheme: light !important;
+  }
+
+  body {
+    background: white !important;
+    color: #111827 !important;
+  }
+
+  /* A4 margins */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* Expand all sections */
+  details {
+    display: block !important;
+  }
+  details > summary {
+    display: none !important;
+  }
+
+  /* Page breaks */
+  .card-elevated,
+  .rounded-xl {
+    break-inside: avoid;
+  }
+
+  /* Full width (no sidebar) */
+  main {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Reduce spacing */
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  /* Footer */
+  @bottom-center {
+    content: "WhareScore Property Report";
+    font-size: 8pt;
+    color: #9CA3AF;
+  }
+}

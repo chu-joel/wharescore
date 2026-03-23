@@ -120,8 +120,9 @@ app.include_router(nearby.router, prefix="/api/v1")
 app.include_router(market.router, prefix="/api/v1")
 app.include_router(rates.router, prefix="/api/v1")
 
-from .routers import admin
+from .routers import admin, reports
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 from .routers import suburb
 app.include_router(suburb.router, prefix="/api/v1")

@@ -83,12 +83,16 @@ async def get_job_status(job_id: str) -> Optional[Dict[str, Any]]:
     job = await _get_job(job_id)
     if not job:
         return None
-    return {
+    result = {
         "job_id": job["id"],
         "address_id": job["address_id"],
         "status": job["status"],
         "error": job.get("error"),
     }
+    if job.get("share_token"):
+        result["share_token"] = job["share_token"]
+        result["share_url"] = f"/report/{job['share_token']}"
+    return result
 
 
 async def set_job_generating(job_id: str) -> bool:
@@ -100,13 +104,15 @@ async def set_job_generating(job_id: str) -> bool:
     return await _set_job(job_id, job)
 
 
-async def set_job_completed(job_id: str, html: str) -> bool:
-    """Mark a job as completed with the generated HTML."""
+async def set_job_completed(job_id: str, html: str, share_token: str | None = None) -> bool:
+    """Mark a job as completed with the generated HTML and optional share token."""
     job = await _get_job(job_id)
     if not job:
         return False
     job["status"] = STATE_COMPLETED
-    logger.info(f"PDF job {job_id} completed")
+    if share_token:
+        job["share_token"] = share_token
+    logger.info(f"PDF job {job_id} completed{' (share: /report/' + share_token + ')' if share_token else ''}")
     client = _client()
     if client:
         try:

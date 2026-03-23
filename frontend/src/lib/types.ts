@@ -52,6 +52,7 @@ export interface PropertyInfo {
   title_ref: string | null;
   cv_valuation_id: string | null;
   cv_address: string | null;
+  cv_is_per_unit?: boolean;
 }
 
 // --- Scores ---
@@ -351,6 +352,8 @@ export interface SuburbSearchResult {
   sa2_code: string;
   sa2_name: string;
   ta_name: string;
+  lng: number;
+  lat: number;
 }
 
 export interface SuburbSummary {
@@ -427,6 +430,131 @@ export interface RentAdvisorResult {
   data_source: string;
   sa2_name: string;
   disclaimer: string;
+}
+
+// --- Price Advisor ---
+export interface PriceMethodologyStep {
+  step: number;
+  label: string;
+  value: number;
+  detail: string;
+}
+
+export interface PriceAdjustment {
+  factor: string;
+  label: string;
+  pct_low: number;
+  pct_high: number;
+  dollar_low: number;
+  dollar_high: number;
+  reason: string;
+  category: 'property';
+}
+
+export interface HazardCostFlag {
+  hazard: string;
+  label: string;
+  insurance_uplift_pct_low: number;
+  insurance_uplift_pct_high: number;
+  description: string;
+  action: string;
+  strengthening_cost_low?: number;
+  strengthening_cost_high?: number;
+}
+
+export interface OwnershipCosts {
+  rates_annual: number | null;
+  insurance_annual_low: number;
+  insurance_annual_high: number;
+  insurance_base: number;
+  insurance_hazard_uplift_pct: [number, number];
+  body_corp_annual: number | null;
+}
+
+export interface PriceAdvisorResult {
+  estimated_value: number;
+  band_low: number;
+  band_high: number;
+  band_low_outer: number;
+  band_high_outer: number;
+  cv: number | null;
+  cv_date: string | null;
+  cv_age_months: number | null;
+  hpi_adjusted: number | null;
+  yield_inversion: number | null;
+  method: 'ensemble' | 'hpi_only' | 'yield_only' | 'cv_only' | null;
+  methods_agree_pct: number | null;
+  methodology_steps: PriceMethodologyStep[];
+  adjustments: PriceAdjustment[];
+  hazard_cost_flags: HazardCostFlag[];
+  hazard_count: number;
+  ownership_costs: OwnershipCosts;
+  asking_price: number | null;
+  asking_verdict: 'well-below' | 'below' | 'fair' | 'above' | 'well-above' | null;
+  asking_diff_pct: number | null;
+  area_context: RentAreaContext[];
+  factors_analysed: number;
+  confidence: 1 | 2 | 3 | 4 | 5;
+  bond_count: number;
+  sa2_name: string;
+  ta_name: string;
+  is_multi_unit: boolean;
+  disclaimer: string;
+}
+
+// --- Report Snapshot (hosted interactive report) ---
+export interface RentBaseline {
+  raw_median: number;
+  bond_count: number;
+  data_source: string;
+  band_low: number;
+  band_high: number;
+  band_low_outer: number;
+  band_high_outer: number;
+  adjustments: RentAdjustment[];
+  area_context: RentAreaContext[];
+}
+
+export interface DeltaEntry {
+  pct_low: number;
+  pct_high: number;
+}
+
+export interface DeltaTables {
+  finish_deltas: Record<string, DeltaEntry>;
+  bathroom_deltas: Record<string, DeltaEntry>;
+  toggle_deltas: Record<string, DeltaEntry>;
+}
+
+export interface SnapshotMeta {
+  schema_version: number;
+  generated_at: string;
+  address_id: number;
+  full_address: string;
+  persona: 'buyer' | 'renter';
+  dwelling_type: string;
+  inputs_at_purchase: Record<string, unknown> | null;
+  sa2_name: string;
+  ta_name: string;
+}
+
+export interface ReportSnapshot {
+  report: Record<string, unknown>;
+  rent_baselines: Record<string, RentBaseline>;
+  price_advisor: PriceAdvisorResult | null;
+  deltas: DeltaTables;
+  recommendations: Array<Record<string, unknown>>;
+  insights: Record<string, unknown>;
+  ai_insights: Record<string, unknown> | null;
+  lifestyle_personas: Array<Record<string, unknown>>;
+  lifestyle_tips: string[];
+  rent_history: Array<Record<string, unknown>>;
+  hpi_data: Array<Record<string, unknown>>;
+  crime_trend: Array<{ month: string; count: number }>;
+  nearby_highlights: { good: Array<Record<string, unknown>>; caution: Array<Record<string, unknown>>; info: Array<Record<string, unknown>> };
+  nearby_supermarkets: Array<Record<string, unknown>>;
+  rates_data: Record<string, unknown> | null;
+  meta: SnapshotMeta;
 }
 
 // --- Feedback ---

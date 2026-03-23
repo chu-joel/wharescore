@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { TrendIndicator } from '@/components/common/TrendIndicator';
 import { apiFetch } from '@/lib/api';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 interface CrimeTrendPoint {
   month: string;
@@ -15,25 +16,30 @@ interface CrimeTrendSparklineProps {
 }
 
 export function CrimeTrendSparkline({ addressId }: CrimeTrendSparklineProps) {
+  const hosted = useHostedReport();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['crime-trend', addressId],
     queryFn: () => apiFetch<CrimeTrendPoint[]>(`/api/v1/property/${addressId}/crime-trend`),
+    enabled: !hosted, // Skip API call in hosted mode
     staleTime: 24 * 60 * 60 * 1000,
     retry: false,
   });
 
+  // Use snapshot data in hosted mode
+  const chartData = hosted?.snapshot?.crime_trend ?? data;
+
   // Don't show anything while loading or on error — this is a supplementary widget
-  if (isLoading || isError) return null;
-  if (!data || !Array.isArray(data) || data.length < 3) return null;
+  if (!hosted && (isLoading || isError)) return null;
+  if (!chartData || !Array.isArray(chartData) || chartData.length < 3) return null;
 
   // Calculate trend direction
-  const recentAvg = data.slice(-6).reduce((s, d) => s + d.count, 0) / Math.min(6, data.length);
-  const olderAvg = data.slice(0, 6).reduce((s, d) => s + d.count, 0) / Math.min(6, data.length);
+  const recentAvg = chartData.slice(-6).reduce((s, d) => s + d.count, 0) / Math.min(6, chartData.length);
+  const olderAvg = chartData.slice(0, 6).reduce((s, d) => s + d.count, 0) / Math.min(6, chartData.length);
   const changePct = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
 
   const direction = changePct < -10 ? 'improving' as const : changePct > 10 ? 'worsening' as const : 'stable' as const;
   const label = Math.abs(changePct) >= 10
-    ? `Crime ${direction === 'improving' ? 'down' : 'up'} ${Math.abs(Math.round(changePct))}% over ${Math.round(data.length / 12)} years`
+    ? `Crime ${direction === 'improving' ? 'down' : 'up'} ${Math.abs(Math.round(changePct))}% over ${Math.round(chartData.length / 12)} years`
     : 'Crime rates stable';
 
   return (
@@ -43,7 +49,7 @@ export function CrimeTrendSparkline({ addressId }: CrimeTrendSparklineProps) {
         <TrendIndicator direction={direction} label={label} />
       </div>
       <ResponsiveContainer width="100%" height={48}>
-        <AreaChart data={data}>
+        <AreaChart data={chartData}>
           <defs>
             <linearGradient id="crimeFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#0D7377" stopOpacity={0.2} />

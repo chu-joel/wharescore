@@ -18,9 +18,18 @@ from ..services.market import (
     estimate_percentile,
     market_confidence_stars,
 )
+from ..services.price_advisor import compute_price_advice
 from ..services.rent_advisor import compute_rent_advice
 
 router = APIRouter()
+
+class PriceAdvisorRequest(BaseModel):
+    asking_price: int | None = Field(None, ge=10000, le=50000000)
+    bedrooms: str | None = Field(None, pattern=r"^(1|2|3|4|5\+)$")
+    finish_tier: str | None = Field(None, pattern=r"^(basic|standard|modern|premium|luxury)$")
+    bathrooms: str | None = Field(None, pattern=r"^(1|2|3\+)$")
+    has_parking: bool | None = None
+
 
 class RentAdvisorRequest(BaseModel):
     dwelling_type: str = Field(pattern=r"^(House|Flat|Apartment|Room)$")
@@ -31,6 +40,9 @@ class RentAdvisorRequest(BaseModel):
     has_parking: bool | None = None
     has_insulation: bool | None = None
     is_furnished: bool | None = None
+    is_partially_furnished: bool | None = None
+    has_outdoor_space: bool | None = None
+    is_character_property: bool | None = None
     shared_kitchen: bool | None = None
     utilities_included: bool | None = None
 
@@ -146,16 +158,50 @@ async def get_market(
         cur = await conn.execute(
             """
             SELECT cv.capital_value, cv.land_value, cv.valuation_date,
-                   cv.suburb, cv.full_address, cv.council
-            FROM council_valuations cv, addresses a
+                   cv.suburb, cv.full_address, cv.council,
+                   a.unit_value, a.address_number, a.road_name, a.road_type_name
+            FROM council_valuations cv
+            RIGHT JOIN addresses a ON ST_Contains(cv.geom, a.geom)
             WHERE a.address_id = %s
-              AND ST_Contains(cv.geom, a.geom)
             LIMIT 1
             """,
             [address_id],
         )
         cv = cur.fetchone()
-        if cv:
+
+        # For units, always try wcc_rates_cache — spatial match can return
+        # a random unit's CV (e.g. parking space) instead of the actual unit
+        if cv and cv.get("unit_value"):
+            unit_val = cv["unit_value"]
+            street = f"{cv.get('address_number', '')} {cv.get('road_name', '')}"
+            if cv.get("road_type_name"):
+                street += f" {cv['road_type_name']}"
+            street = street.strip()
+            if street:
+                cur2 = await conn.execute(
+                    """
+                    SELECT capital_value, land_value, improvements_value, valuation_date
+                    FROM wcc_rates_cache
+                    WHERE capital_value > 0
+                      AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
+                    LIMIT 1
+                    """,
+                    [
+                        f"Unit {unit_val} {street}%",
+                        f"Apt {unit_val} {street}%",
+                        f"Flat {unit_val} {street}%",
+                    ],
+                )
+                rates_row = cur2.fetchone()
+                if rates_row:
+                    # Merge rates data into cv result
+                    cv = dict(cv)
+                    cv["capital_value"] = rates_row["capital_value"]
+                    cv["land_value"] = rates_row["land_value"] or 0
+                    cv["valuation_date"] = rates_row.get("valuation_date") or cv.get("valuation_date")
+                    cv["council"] = "wcc"
+
+        if cv and cv.get("capital_value"):
             # Use stored valuation_date, or fall back to known revaluation dates
             val_date = cv.get("valuation_date")
             if not val_date:
@@ -333,12 +379,41 @@ async def rent_advisor(request: Request, address_id: int, body: RentAdvisorReque
             has_insulation=body.has_insulation,
             is_studio=is_studio,
             is_furnished=body.is_furnished,
+            is_partially_furnished=body.is_partially_furnished,
+            has_outdoor_space=body.has_outdoor_space,
+            is_character_property=body.is_character_property,
             shared_kitchen=body.shared_kitchen,
             utilities_included=body.utilities_included,
         )
 
     if not result:
         raise HTTPException(404, "Address not found or insufficient rental data")
+
+    return result
+
+
+# =============================================================================
+# POST /property/{address_id}/price-advisor — Personalised price advice
+# =============================================================================
+
+@router.post("/property/{address_id}/price-advisor")
+@limiter.limit("20/minute")
+async def price_advisor(request: Request, address_id: int, body: PriceAdvisorRequest):
+    """Personalised price advice: CV + HPI + yield ensemble with property adjustments."""
+
+    async with db.pool.connection() as conn:
+        result = await compute_price_advice(
+            conn,
+            address_id=address_id,
+            asking_price=body.asking_price,
+            bedrooms=body.bedrooms,
+            finish_tier=body.finish_tier,
+            bathrooms=body.bathrooms,
+            has_parking=body.has_parking,
+        )
+
+    if not result:
+        raise HTTPException(404, "Address not found or insufficient valuation data")
 
     return result
 

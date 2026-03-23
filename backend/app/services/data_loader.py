@@ -41,10 +41,10 @@ def _db_url_to_sync() -> str:
     return url.replace("postgresql+asyncpg://", "postgresql://")
 
 
-def _fetch_url(url: str, timeout: int = 60) -> bytes:
+def _fetch_url(url: str, timeout: int = 120) -> bytes:
     """Fetch URL with SSL fallback (dev only — prod always verifies)."""
     req = urllib.request.Request(url, headers={"User-Agent": "WhareScore/1.0"})
-    for attempt in range(3):
+    for attempt in range(4):
         try:
             ctx = _SSL_CTX if attempt == 0 else _SSL_NOVERIFY
             with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
@@ -57,9 +57,16 @@ def _fetch_url(url: str, timeout: int = 60) -> bytes:
                 logger.error(f"SSL verification failed for {url} — using unverified (dev only)")
                 continue
             raise
+        except (TimeoutError, urllib.error.URLError) as e:
+            if attempt < 3:
+                wait = (attempt + 1) * 5
+                logger.warning(f"Timeout/error fetching {url} (attempt {attempt+1}/4), retrying in {wait}s: {e}")
+                time.sleep(wait)
+                continue
+            raise
         except Exception as e:
-            if attempt < 2:
-                time.sleep(2)
+            if attempt < 3:
+                time.sleep(3)
                 continue
             raise
     return b""

@@ -10,7 +10,8 @@ import asyncio
 import json
 import logging
 import urllib.parse
-import urllib.request
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -187,17 +188,11 @@ async def _fetch_json(url: str, timeout: int = 5) -> dict | None:
         return None
 
 
-class _RedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Handle 308 Permanent Redirect (not handled by default in older Python)."""
-    http_error_308 = urllib.request.HTTPRedirectHandler.http_error_302
-
-
 def _sync_fetch(url: str, timeout: int) -> dict:
-    """Synchronous HTTP fetch (run in thread pool)."""
-    opener = urllib.request.build_opener(_RedirectHandler)
-    req = urllib.request.Request(url, headers={"User-Agent": "WhareScore/1.0"})
-    resp = opener.open(req, timeout=timeout)
-    return json.loads(resp.read())
+    """Synchronous HTTP fetch (run in thread pool). Handles 308 redirects."""
+    resp = requests.get(url, headers={"User-Agent": "WhareScore/1.0"}, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
 
 
 async def _get_cached(address: str, conn) -> dict | None:

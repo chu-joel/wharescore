@@ -8,10 +8,17 @@ import { usePdfExportStore } from '@/stores/pdfExportStore';
  * Shared hook for PDF export — all instances share the same Zustand store,
  * so generating from one button updates all buttons across the page.
  */
-export function usePdfExport(addressId: number) {
+export function usePdfExport(addressId: number, persona?: string) {
   const isGenerating = usePdfExportStore((s) => s.isGenerating);
-  const downloadUrl = usePdfExportStore((s) => s.addressId === addressId ? s.downloadUrl : null);
-  const error = usePdfExportStore((s) => s.addressId === addressId ? s.error : null);
+  const downloadUrl = usePdfExportStore((s) =>
+    s.addressId === addressId && (!persona || s.persona === persona) ? s.downloadUrl : null
+  );
+  const shareUrl = usePdfExportStore((s) =>
+    s.addressId === addressId && (!persona || s.persona === persona) ? s.shareUrl : null
+  );
+  const error = usePdfExportStore((s) =>
+    s.addressId === addressId && (!persona || s.persona === persona) ? s.error : null
+  );
   const _startExport = usePdfExportStore((s) => s.startExport);
   const { getToken } = useAuthToken();
 
@@ -20,5 +27,5 @@ export function usePdfExport(addressId: number) {
     _startExport(addressId, token);
   }, [addressId, _startExport, getToken]);
 
-  return { isGenerating, downloadUrl, error, startExport };
+  return { isGenerating, downloadUrl, shareUrl, error, startExport };
 }

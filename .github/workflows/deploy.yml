@@ -81,71 +81,60 @@ jobs:
             $COMPOSE logs --tail 100 api web nginx
             exit 1
 
-      - name: Run migrations + load new datasets
+      - name: Kick off data sync (background on VM)
         if: success()
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: wharescore
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 120m
+          command_timeout: 30s
           script: |
             COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.prod"
             cd /home/wharescore/app
 
-            echo "==> Running migrations + loading new datasets"
-            $COMPOSE exec -T api python -c "
-            import sys, glob, psycopg
+            # Get the running API container ID
+            API_CONTAINER=$($COMPOSE ps -q api)
+            if [ -z "$API_CONTAINER" ]; then
+              echo "==> ERROR: API container not running, skipping data sync"
+              exit 1
+            fi
+
+            # Run data sync detached inside the container — survives SSH disconnect
+            docker exec -d "$API_CONTAINER" python -c "
+            import sys, logging
+            logging.basicConfig(filename='/tmp/data-sync.log', level=logging.INFO, format='%(asctime)s %(message)s')
+            log = logging.getLogger('data-sync')
+
             from app.services.data_loader import DATA_SOURCES, run_loader, _db_url_to_sync
+            import psycopg
 
             conn = psycopg.connect(_db_url_to_sync())
-            conn.autocommit = True
-            cur = conn.cursor()
-
-            # 1. Run pending SQL migrations
-            print('=== Running migrations ===')
-            for mf in sorted(glob.glob('migrations/0*.sql')):
-                try:
-                    with open(mf) as f:
-                        cur.execute(f.read())
-                    print(f'  OK: {mf}')
-                except Exception as e:
-                    print(f'  Skip: {mf} — {str(e).split(chr(10))[0][:80]}')
-
-            # 2. Find datasets never loaded (not in data_versions)
-            print()
-            print('=== Checking for new datasets ===')
             try:
+                cur = conn.cursor()
                 cur.execute('SELECT source FROM data_versions')
                 loaded = {r[0] for r in cur.fetchall()}
             except Exception:
                 loaded = set()
-            conn.close()
+            finally:
+                conn.close()
 
             unloaded = [s.key for s in DATA_SOURCES if s.key not in loaded]
             if not unloaded:
-                print('All %d datasets already loaded.' % len(DATA_SOURCES))
+                log.info(f'All {len(DATA_SOURCES)} datasets already loaded.')
                 sys.exit(0)
 
-            print('Found %d new datasets to load:' % len(unloaded))
-            for k in unloaded:
-                print(f'  - {k}')
-            print()
-
-            # 3. Load new datasets (sequentially to avoid overloading the VM)
-            total_rows = 0
-            errors = 0
+            log.info(f'Loading {len(unloaded)} new datasets...')
             for key in unloaded:
-                print(f'Loading {key}...')
-                result = run_loader(key, lambda msg: print(f'  {msg}'))
-                if result.get('error'):
-                    print(f'  FAIL: {result[\"error\"][:80]}')
-                    errors += 1
-                else:
-                    print(f'  OK: {result[\"rows\"]:,} rows')
-                    total_rows += result['rows']
+                try:
+                    result = run_loader(key, lambda msg: log.info(f'  [{key}] {msg}'))
+                    status = 'OK' if not result.get('error') else f'FAIL: {result[\"error\"][:60]}'
+                    log.info(f'  {key}: {status} ({result[\"rows\"]:,} rows)')
+                except Exception as e:
+                    log.info(f'  {key}: ERROR {e}')
+            log.info('Data sync complete.')
+            "
 
-            print()
-            print(f'Done: {total_rows:,} rows loaded, {errors} errors, {len(unloaded)} datasets')
-            " 2>&1 | tail -200
-            echo "==> Data sync complete"
+            echo "==> Data sync started detached in container $API_CONTAINER"
+            echo "==> Monitor with: docker exec $API_CONTAINER cat /tmp/data-sync.log"
+            echo "==> Deploy complete"

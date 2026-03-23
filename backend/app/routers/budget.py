@@ -62,17 +62,20 @@ async def save_budget_input(request: Request, body: BudgetInput):
                LIMIT 1""",
             (body.address_id, body.persona, ip_h, cutoff),
         )
-        if await row.fetchone():
+        if row.fetchone():
             return JSONResponse({"status": "duplicate"}, status_code=200)
 
-        # Look up sa2_code
+        # Look up sa2_code via spatial join
         sa2_row = await conn.execute(
-            "SELECT sa2_code FROM addresses WHERE address_id = %s", (body.address_id,)
+            """SELECT s.sa2_code FROM addresses a
+               JOIN sa2_boundaries s ON ST_Within(a.geom, s.geom)
+               WHERE a.address_id = %s LIMIT 1""",
+            (body.address_id,)
         )
         sa2 = None
-        r = await sa2_row.fetchone()
+        r = sa2_row.fetchone()
         if r:
-            sa2 = r[0]
+            sa2 = r["sa2_code"]
 
         await conn.execute(
             """INSERT INTO user_budget_inputs (

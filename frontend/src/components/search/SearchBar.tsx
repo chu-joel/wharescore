@@ -7,6 +7,7 @@ import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useSearch } from '@/hooks/useSearch';
 import { useSuburbSearch } from '@/hooks/useSuburbReport';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRouter } from 'next/navigation';
 
 const MAX_QUERY_LENGTH = 200;
@@ -19,7 +20,10 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const query = useSearchStore((s) => s.query);
   const setQuery = useSearchStore((s) => s.setQuery);
   const selectAddress = useSearchStore((s) => s.selectAddress);
+  const selectSuburb = useSearchStore((s) => s.selectSuburb);
   const selectProperty = useMapStore((s) => s.selectProperty);
+  const setViewport = useMapStore((s) => s.setViewport);
+  const bp = useBreakpoint();
   const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -48,12 +52,24 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   );
 
   const handleSelectSuburb = useCallback(
-    (sa2Code: string) => {
+    (result: { sa2_code: string; sa2_name: string; ta_name: string; lng: number; lat: number }) => {
       setIsOpen(false);
       setActiveIndex(-1);
-      router.push(`/suburb/${sa2Code}`);
+      if (bp === 'mobile') {
+        // On mobile: fly the map to the suburb and show suburb info in the drawer
+        selectSuburb({
+          sa2Code: result.sa2_code,
+          sa2Name: result.sa2_name,
+          taName: result.ta_name,
+          lng: result.lng,
+          lat: result.lat,
+        });
+        setViewport({ longitude: result.lng, latitude: result.lat, zoom: 14 });
+      } else {
+        router.push(`/suburb/${result.sa2_code}`);
+      }
     },
-    [router]
+    [bp, router, selectSuburb, setViewport]
   );
 
   useEffect(() => {
@@ -95,7 +111,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         e.preventDefault();
         if (activeIndex >= 0 && activeIndex < totalResults) {
           if (activeIndex < suburbResults.length) {
-            handleSelectSuburb(suburbResults[activeIndex].sa2_code);
+            handleSelectSuburb(suburbResults[activeIndex]);
           } else {
             handleSelectAddress(addressResults[activeIndex - suburbResults.length]);
           }
@@ -171,7 +187,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
                   id={`search-result-${i}`}
                   role="option"
                   aria-selected={i === activeIndex}
-                  onClick={() => handleSelectSuburb(r.sa2_code)}
+                  onClick={() => handleSelectSuburb(r)}
                   className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
                     i === activeIndex ? 'bg-muted' : 'hover:bg-muted'
                   }`}

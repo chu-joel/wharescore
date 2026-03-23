@@ -288,6 +288,16 @@ async def redeem_promo(request: Request, user_id: str = Depends(require_user)):
         raise HTTPException(400, "Invalid promo code")
 
     async with db.pool.connection() as conn:
+        # Ensure user exists (dev-local-user or first-time user)
+        await conn.execute(
+            """
+            INSERT INTO users (user_id, email, display_name, plan)
+            VALUES (%s, '', NULL, 'free')
+            ON CONFLICT (user_id) DO NOTHING
+            """,
+            [user_id],
+        )
+
         # Check how many times this user has redeemed this code
         cur = await conn.execute(
             "SELECT COUNT(*) AS cnt FROM promo_redemptions WHERE user_id = %s AND code = %s",

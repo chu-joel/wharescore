@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def _get_env() -> Environment:
     template_dir = Path(__file__).parent.parent / "templates" / "report"
-    return Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+    return Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True, trim_blocks=True, lstrip_blocks=True)
 
 
 # =============================================================================
@@ -1952,12 +1952,12 @@ def _build_comparison_bars(report: dict, suburb_name: str = "") -> list[dict]:
                 insight = f"{d} dB {'louder' if is_more else 'quieter'} than {area} average"
             elif "nzdep" in m["label"].lower() or "deprivation" in m["label"].lower():
                 if is_more:
-                    insight = "More deprived than {area} average"
+                    insight = f"More deprived than {area} average"
                 else:
-                    insight = "Less deprived than {area} average"
+                    insight = f"Less deprived than {area} average"
             elif "epb" in m["label"].lower():
                 if prop_val == 0:
-                    insight = "None nearby — better than {area} average"
+                    insight = f"None nearby — better than {area} average"
                     sentiment = "positive"
                 else:
                     d = round(abs_diff)
@@ -2533,9 +2533,20 @@ def _build_amenity_breakdown(amenities_500m: dict) -> list[dict]:
     if not amenities_500m or not isinstance(amenities_500m, dict):
         return []
 
+    # Exclude street furniture and non-useful categories
+    _EXCLUDED_AMENITIES = {
+        "bench", "waste_basket", "waste basket", "loading_dock", "loading dock",
+        "bicycle_parking", "bicycle parking", "parking", "toilets", "telephone",
+        "post_box", "post box", "recycling", "shelter", "drinking_water",
+        "drinking water", "vending_machine", "vending machine", "clock",
+        "hunting_stand", "hunting stand", "bbq", "fountain",
+    }
+
     items = []
     for cat, cnt in amenities_500m.items():
         if cnt and isinstance(cnt, (int, float)) and cnt > 0:
+            if cat.lower().strip() in _EXCLUDED_AMENITIES:
+                continue
             items.append({"name": cat.replace("_", " ").title(), "count": int(cnt)})
 
     if not items:
@@ -3603,6 +3614,8 @@ def render(
     user_rent_context: dict | None = None,
     rent_advisor_result: dict | None = None,
     rent_inputs: dict | None = None,
+    price_advisor_result: dict | None = None,
+    buyer_inputs: dict | None = None,
 ) -> str:
     """Generate premium HTML from a property report dict.
 
@@ -3771,7 +3784,7 @@ def render(
 
     env_jinja = Environment(loader=FileSystemLoader(
         str(Path(__file__).parent.parent / "templates" / "report")
-    ), autoescape=True)
+    ), autoescape=True, trim_blocks=True, lstrip_blocks=True)
     template = env_jinja.get_template("property_report.html")
 
     # Persona-specific computed values
@@ -3997,4 +4010,7 @@ def render(
         # Rent advisor (premium)
         rent_advisor=rent_advisor_result,
         rent_inputs=rent_inputs or {},
+        # Price advisor (premium — buyer)
+        price_advisor=price_advisor_result,
+        buyer_inputs=buyer_inputs or {},
     )

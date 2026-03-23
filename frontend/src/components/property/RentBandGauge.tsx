@@ -76,16 +76,18 @@ export function RentBandGauge({
           className="absolute top-1 bottom-1 w-px bg-piq-primary/60"
           style={{ left: `${medianPct}%` }}
         />
-        {/* User rent marker */}
-        <div
-          className="absolute w-0.5 rounded-full"
-          style={{
-            left: `${userPct}%`,
-            top: '-4px',
-            bottom: '-4px',
-            backgroundColor: markerColor,
-          }}
-        />
+        {/* User rent marker — only show when user has entered a rent */}
+        {userRent > 0 && (
+          <div
+            className="absolute w-0.5 rounded-full"
+            style={{
+              left: `${userPct}%`,
+              top: '-4px',
+              bottom: '-4px',
+              backgroundColor: markerColor,
+            }}
+          />
+        )}
       </div>
 
       {/* Labels — only inner band edges + user rent, positioned above/below to avoid overlap */}
@@ -99,9 +101,15 @@ export function RentBandGauge({
 
       {/* User rent callout */}
       <div className="text-center">
-        <span className="text-xs font-semibold tabular-nums" style={{ color: markerColor }}>
-          Your rent: {formatRent(userRent)}
-        </span>
+        {userRent > 0 ? (
+          <span className="text-xs font-semibold tabular-nums" style={{ color: markerColor }}>
+            Your rent: {formatRent(userRent)}
+          </span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground italic">
+            Enter your rent to compare
+          </span>
+        )}
       </div>
 
       {/* Legend */}

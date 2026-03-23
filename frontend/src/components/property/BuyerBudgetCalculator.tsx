@@ -53,13 +53,13 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
   const unitCount = report.property_detection?.unit_count ?? 1;
 
   // For multi-unit, estimate per-unit CV if the CV looks like a whole-building value
-  const estimatedUnitCv = (isMultiUnit && cv && unitCount > 1) ? Math.round(cv / unitCount) : cv;
+  const alreadyPerUnit = !!report.property.cv_is_per_unit;
+  const estimatedUnitCv = (isMultiUnit && cv && unitCount > 1 && !alreadyPerUnit) ? Math.round(cv / unitCount) : cv;
 
   const hydrated = useStoreHydrated();
   const { getEntry, updateBuyer } = useBudgetStore();
   const entry = getEntry(addressId, estimatedUnitCv);
   const b = entry.buyer;
-
   const [overridesOpen, setOverridesOpen] = useState(false);
   const [incomeOpen, setIncomeOpen] = useState(false);
   const sentRef = useRef(false);
@@ -279,7 +279,9 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
 
       <p className="text-[10px] text-muted-foreground">
         {isMultiUnit && unitCount > 1
-          ? `Building CV ${formatCurrency(cv!)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
+          ? alreadyPerUnit
+            ? `Unit CV ${formatCurrency(estimatedUnitCv!)} (from rates). `
+            : `Building CV ${formatCurrency(cv!)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
           : `Based on CV of ${formatCurrency(cv!)}. `}
         P&I mortgage. Rates, insurance{isMultiUnit ? ', body corp' : ''} &amp; utilities are estimates — adjust sliders to match.
       </p>

@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-21 (session 54 — Rent Advisor: full engine + free/premium split + PDF section + UX refinements)
+**Last Updated:** 2026-03-23 (session 58 — Comprehensive hosted report overhaul + PDF fixes + UX polish)
 **Purpose:** Resume the proof-of-concept setup in a new context window.
 
 ---
@@ -15,9 +15,381 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 54 (2026-03-21) — Rent Advisor: research-backed fair-rent band engine.**
+**Session 58 (2026-03-23) — Comprehensive hosted report overhaul + PDF report fixes + UX polish.**
 
 ### What Was Done This Session
+
+Massive overhaul of both the PDF report template and the hosted interactive report page. The hosted report now contains ALL data from the PDF, the free on-screen report, and the snapshot — fully comprehensive for both renter and buyer personas. Snapshot generator enhanced to store recommendations, insights, lifestyle fit, nearby highlights, supermarkets, and council rates.
+
+**(A) PDF Report Fixes (9 items):**
+
+- TOC: fixed broken `</a>` tag (was `</div>`), removed duplicate methodology entry, added missing "Your Next Steps" entry
+- Added `id="sec-next-steps"` anchor to section 8
+- Added `trim_blocks=True, lstrip_blocks=True` to Jinja2 Environment (43→1 excessive blank lines)
+- Temperature: `+1.06...°C` → `+1.1°C` (added `| round(1)` filter, also rounded rainfall)
+- Amenities: filtered out useless categories (Bench, Waste Basket, Loading Dock, Bicycle Parking, etc.)
+- Area comparison: fixed 3 missing f-string prefixes (`{area}` literal → actual area name)
+- Rent advisor: eliminated duplicate label/reason ("near contaminated site (Near contaminated site)" → "near contaminated site")
+- Commute routes: stripped "(bus)"/"(train)"/"(ferry)" from route names
+- Climate precipitation: also rounded to 1 decimal place
+
+**(B) Hosted Report — New Components (13 files created):**
+
+- `HostedExecutiveSummary.tsx` — key stats grid (bedrooms, CV, building, land, title type, zone, transit, CBD, noise), walkability gauge, insurance risk card, EPB alert, trajectory arrow, property flags (multi-unit, contaminated, CV date), expected rent (dynamic for buyers), area profile
+- `HostedAtAGlance.tsx` — RAG status grid (Hazard Risk, Insurance, Crime, Noise, Walkability, Schools, Transport, Rent) with colored badges
+- `HostedRentHistory.tsx` — 10yr rent chart with 5yr/10yr/All range selector, CAGR label, defaults to 5yr
+- `HostedHPIChart.tsx` — national HPI trend with peak marker and "% from peak" label
+- `HostedHealthyHomes.tsx` — 5-area compliance table (Heating, Insulation, Ventilation, Moisture, Draught) with hazard-based flagging
+- `HostedNextSteps.tsx` — hazard-aware persona-specific action cards (renter: 4-7 cards, buyer: 4-8 cards with conditional geotech/environmental/seismic)
+- `HostedMethodology.tsx` — collapsible methodology section with score scale, category weights, data sources
+- `HostedSchools.tsx` — full school table with in-zone badge, name, type, EQI scores (color-coded), distances
+- `HostedInfrastructure.tsx` — nearby projects with sector badges (Transport, Community, Water, etc.) and status
+- `HostedNeighbourhoodStats.tsx` — comprehensive: nearest essentials (GP, pharmacy, supermarket, park, reserve), road safety (crash counts with fatal/serious), air quality (PM10/PM2.5 trends), water quality (nutrient/ammonia grades), contaminated land (name, distance, category), heritage & overlays (heritage-listed, count, planning overlays), corrosion zone, amenities within 500m (horizontal bar chart), climate projections, solar potential
+- `HostedPriceAdvisor.tsx` — already existed from session 57
+- `HostedRentAdvisor.tsx` — already existed, fixed duplicate label/reason bug
+
+**(C) Hosted Report — Bug Fixes & UX Improvements:**
+
+- Wide-screen layout: content was pushed right — fixed with `lg:pr-80` wrapper
+- Duplicate label/reason in HostedRentAdvisor: only shows reason when different from label
+- CrimeTrendSparkline: now uses `snapshot.crime_trend` in hosted mode (was skipped)
+- Rent band gauge sync: main content gauge uses sidebar's `weeklyRent` instead of raw_median
+- HPI Chart TypeError: `value.toFixed is not a function` fixed with `Number(value)` cast
+- NearbyAmenities: gracefully skips in hosted mode (was hanging on API call)
+- PriceAdvisorCard: hidden in "What will it really cost?" question when in hosted mode (prevents double-up)
+- Water Quality description: was incorrectly showing "Air quality concerns" due to matching order
+- Earthquake description: added missing pattern for standalone "Earthquake" indicator
+- Rent band gauge: hides "Your rent: $0/week" when no rent entered, shows "Enter your rent to compare"
+- `crime_trend` added to `ReportSnapshot` TypeScript interface
+
+**(D) Human-Readable Indicator Descriptions:**
+
+- Added plain English descriptions to ALL indicator cards (30+ patterns covering: flood, tsunami, liquefaction, EPB, slope, crime, noise, transit, crash, wind, wildfire, coastal erosion, air quality, water quality, climate, ground shaking, contamination, NZDep, schools, heritage, height limits, infrastructure, resource consents, zone permissiveness, earthquake)
+- Each description explains what the score means for the user and what action to take
+- Score bars made more subtle (thinner, smaller number)
+
+**(E) Persona Parity — Both Personas Now Have:**
+
+- Buyer report: added "What's daily life like?" section (walkability, transport, commute times, noise) — was renter-only
+- Renter report: added "What's the neighbourhood like?" section (NZDep, crime card, indicators) — was buyer-only
+- Sidebar toggles: "Furnished?", "Shared kitchen?", "Utilities included?" now hidden for buyer persona
+- Buyer expected rent: dynamic rent band calculation from snapshot baselines, updates when sidebar inputs change. Shows "$731–$845/wk ($40,976/yr)" with yield calculation
+- Buyer exec summary: shows "Unit Title", multi-unit building flag, CV date, contaminated register flag
+- Buyer next steps: conditional geotechnical report (liquefaction), environmental assessment (contamination), seismic status (EPBs)
+- Renter next steps: conditional EPB check, tsunami evacuation, security check (high crime)
+
+**(F) Other Changes:**
+
+- Rent history chart: defaults to 5yr, label says "Area-level" instead of "SA2-level"
+- `report_html.py`: both Jinja2 Environment instances now use trim_blocks + lstrip_blocks
+
+### What Needs To Be Done Next
+
+- **Fix unit CV bug in snapshot generator** — `_fix_unit_cv()` not applied during snapshot generation. Causes price advisor to use parking space CV ($86K) instead of actual unit CV ($600K). The fix is in `property.py` but not in `snapshot_generator.py`'s `prefetch_property_data()`
+- **Deploy to Azure** with new frontend components and PDF template fixes
+- **Add table of contents / section navigation** to hosted report — sticky jump-to links
+- **Consider collapsible question sections** — long report could benefit from accordions
+- **Print/PDF styling** for hosted report — @media print rules for save-as-PDF button
+- **Mobile sidebar duplicate** — on mobile, sidebar renders inline before question sections, creating some duplication with the rent advisor card below it
+
+---
+
+### Previous Session
+
+**Session 57 (2026-03-22/23) — Price Advisor full-stack + Hosted Interactive Report + PDF comprehensive audit + unit CV pipeline fix.**
+
+### What Was Done This Session
+
+This was a massive session covering: Price Advisor (buyer-persona value estimator), hosted interactive report page with snapshot architecture, comprehensive PDF audit and fixes, unit CV pipeline fix, required fields, and multiple UX improvements.
+
+**(A) Price Advisor — full-stack buyer-persona value estimator:**
+
+- `backend/app/services/price_advisor.py` (new, 400+ lines): CV + HPI + yield ensemble, property adjustments, hazard cost flags (NOT % discounts — avoids double-counting), ownership costs, asking price verdict, methodology steps
+- `backend/app/routers/market.py`: `POST /api/v1/property/{address_id}/price-advisor` endpoint
+- `frontend/src/components/property/PriceAdvisorCard.tsx` (new): Asking price input, bedrooms, finish, bathrooms, parking, band gauge, verdict, methodology steps, hazard cost flags, ownership costs, premium CTA
+- `frontend/src/components/property/PriceBandGauge.tsx` (new): Band gauge for property values ($850K format)
+- `frontend/src/stores/buyerInputStore.ts` (new): Zustand store for buyer inputs
+- Types: `PriceAdvisorResult`, `PriceMethodologyStep`, `PriceAdjustment`, `HazardCostFlag`, `OwnershipCosts`
+- MarketSection: persona-aware — PriceAdvisorCard for buyer, RentComparisonFlow + RentAdvisorCard for renter
+- RentComparisonFlow hidden for buyer persona
+
+**(B) Unit CV Pipeline Fix ($86K parking space → $600K actual unit):**
+
+- Root cause: `council_valuations` spatial match returns random unit from building polygon (parking spaces $47-86K)
+- `_fix_unit_cv()` helper in `property.py` — runs on cache-hit, cache-miss, AND PDF generation paths
+- `cv_is_per_unit` flag prevents frontend double-dividing by unit_count
+- `transformReport.ts` — added `cv_is_per_unit` mapping (was missing)
+- Fixed in: report endpoint, market endpoint, PDF generation, PropertySummaryCard, BuyerBudgetCalculator
+
+**(C) Hosted Interactive Report Page (`/report/{token}`):**
+
+**Architecture:** At purchase time, pre-compute all variant combinations and store as JSONB snapshot (~143KB). Hosted page loads snapshot (zero API calls), lets users change inputs (bedrooms, bathrooms, finish, toggles) which swap pre-computed results client-side.
+
+Backend:
+- `backend/migrations/0014_report_snapshots.sql` — new table, migrated
+- `backend/app/services/snapshot_generator.py` (new, 650 lines): `prefetch_property_data()` runs 10 property-level queries once. `compute_rent_baselines()` runs 5 baseline queries per dwelling type. `compute_price_snapshot()` runs price advisor once. `build_delta_tables()` exports constants for client-side recalculation. Total: ~85 queries, ~3 seconds.
+- `backend/app/routers/reports.py` (new): `GET /api/v1/report/{share_token}` public endpoint, no auth, Redis-cached
+- `backend/app/services/pdf_jobs.py`: share_token in job status response
+- `backend/app/routers/property.py`: `_generate_pdf_background` now generates snapshot alongside PDF
+
+Frontend:
+- `frontend/src/app/report/[token]/page.tsx` — Next.js route
+- `frontend/src/components/report/HostedReport.tsx` — branded cover section, score gauge, key stats strip, score strip, radar, all key findings (ungated), hazard summary, neighbourhood snapshot, interactive sidebar (desktop: fixed right, mobile: inline), print button
+- `frontend/src/components/report/ReportSidebar.tsx` — bedrooms/bathrooms/finish pills, toggles (parking, furnished, insulation, utilities, shared kitchen), rent/asking price input, live band gauge with verdict
+- `frontend/src/components/report/HostedRentAdvisor.tsx` — client-side rent band computation with plain English factors
+- `frontend/src/components/report/HostedPriceAdvisor.tsx` — frozen price estimate with methodology, hazard cost flags, ownership costs, client-side asking price comparison
+- `frontend/src/hooks/useReportSnapshot.ts` — TanStack Query (staleTime: Infinity)
+- `frontend/src/stores/hostedReportStore.ts` — Zustand store + `computeRentBand()` pure function
+- `frontend/src/app/report/[token]/print.css` — @media print hides sidebar, forces light mode, A4 margins
+- Test snapshot: `/report/xszWWKAYY2xJxF7q` for 8G/30 Taranaki Street
+
+Key design: snapshot is immutable (works forever). Client-side variant computation uses pre-computed delta tables — no API calls, deterministic, schema-versioned (`schema_version: 1`). Each purchase = one snapshot. New data = new purchase.
+
+**(D) PDF Comprehensive Audit & Fixes:**
+
+- Price advisor section was inside renter `{% else %}` block — moved to Money section (Page 3)
+- Added SVG band gauge bars to BOTH price advisor and rent advisor PDF sections
+- Rent advisor rewritten: plain English ("Adding value: ...", "Reducing value: ...") instead of technical adjustment table. Removed SA2 Median row, "8 of 27 factors", engineering details.
+- Healthy Homes: only shows flagged items with actionable guidance. Generic "? Ask Landlord" rows removed.
+- Added to PDF: commute times AM/PM tables, CBD distance, nearest park, heritage overlay, special character areas, ecological areas, mana whenua sites, notable trees, height variation limits, overland flow, aircraft noise dBA, council coastal erosion table
+- Added bedrooms/bathrooms/building footprint/CBD distance/valuation date to executive dashboard stats
+- Added "Your search parameters" box to buyer price advisor section
+- Fixed `&mdash;` double-escaping (replaced HTML entities in Jinja expressions with Unicode `—`)
+- Fixed icon rendering (`|safe` filter for `{% set %}` HTML entity variables)
+- Clickable table of contents with `<a href="#sec-xxx">` links + smooth scrolling + hover effects
+- `buyer_inputs` now passed through render() → template
+
+**(E) Required Fields + Input Wiring:**
+
+- `InputReadinessTip` replaces `RentInputTip` — works for both personas
+- Required: Renter = property type + bedrooms; Buyer = bedrooms
+- All purchase buttons disabled until required fields filled (single, pro, guest)
+- `ReportConfirmModal`: buyer fields use `useBuyerInputStore`, shows required asterisks, blocks Generate button, finish tier descriptions shown on selection
+- Added parking/furnished/shared kitchen/utilities toggles to renter confirm modal
+- Asking price ↔ purchase price sync (one-directional: PriceAdvisorCard → budgetStore)
+
+**(F) Other Fixes:**
+
+- `QuestionAccordion`: `multiple` prop so multiple sections open simultaneously
+- `RentAdvisorCard`: shows without weekly rent (guard changed to dwellingType + bedrooms only)
+- `rent_advisor.py`: `weekly_rent` now optional. Without rent: computes fair range band, skips verdict
+- Guest PDF: inputs saved to localStorage before Stripe redirect, read on download page
+- PDF template `%+,d` format error fixed (Jinja2 `%` formatting doesn't support comma)
+- `budget.py`: removed `await` from sync `fetchone()` calls
+- Flushed all stale Redis caches multiple times during session
+
+### What Needs To Be Done Next
+
+- **Test hosted report page end-to-end** — start servers, navigate to `/report/xszWWKAYY2xJxF7q`, verify layout/sidebar/interactivity
+- **Add more sections to hosted report** — currently shows: cover, scores, findings, rent/price advisor, hazard summary, neighbourhood stats. Missing: full hazard breakdown, school list, transit commute times, market data, investment metrics, planning restrictions, checklist. These need hosted-page versions that read from snapshot data instead of calling APIs.
+- **PDF template full restructure** — reorder pages per persona (buyer: value first; renter: rent first)
+- **Cover page** for PDF — property photo/satellite, branding, score, date
+- **Deploy to Azure** with new migration
+
+---
+
+### Previous Session
+
+**Session 56 (2026-03-22) — PDF report comprehensive redesign + deploy fire-and-forget + rent advisor improvements + report confirm modal.**
+
+### What Was Done This Session
+
+**(A) PDF Report Comprehensive Redesign:**
+
+Full rewrite of `backend/app/templates/report/property_report.html` (2,243 → 2,459 lines):
+
+- **Title page** — branded landing with large WhareScore logo, address as hero text, semicircular score gauge (replaced circle), persona badge, map image, report date, "Prepared for" personalisation
+- **Table of Contents** — new page after title with numbered section list, persona-aware descriptions
+- **Brand design system** — Inter font (Google Fonts), consistent CSS variables (`--brand`, `--brand-dark`, `--brand-light`, `--brand-bg`), 12px border-radius cards, subtle shadows, professional typography (11pt body, 800-weight headings)
+- **Page section headers** — full-width teal gradient bars with numbered section badges and white titles
+- **Page structure** — proper `page-break-before: always` for each major section, A4 with 18mm margins
+- **PDF footer** — 3-part footer on every page (except title): "WhareScore · {address}" left, "wharescore.co.nz" center (teal), "Page X of Y" right. Uses CSS `@page` with `@bottom-left/center/right`
+- **WCAG accessibility fixes** — `--text-muted` contrast fixed (#94A3B8 → #64748B, 4.88:1 ratio), SVG alt text/aria-labels on all 15+ charts, RAG grid dots now include text icons (✓/⚠/✕/—) for colorblind users
+- **New sections**: "Key Takeaways" box (AI top 3, brand gradient), "Insurance Impact" callout after hazards, "Your Next Steps" page (persona-specific action cards with estimated costs)
+- **Visual improvements** — hazard rows as individual cards, tables in rounded wrappers, insight boxes as white cards with colored borders, increased card padding (20px/24px)
+- **Rendered previously-unused data** — `healthy_homes` table now fully rendered for renters, `rent_verdict` confirmed rendering
+
+**(B) Deploy Workflow Fix — Fire-and-forget data sync:**
+
+- Changed `.github/workflows/deploy.yml` step 2 from `nohup docker compose exec ... &` to `docker exec -d` (detached mode)
+- `docker exec -d` survives SSH disconnect natively — no nohup needed
+- Logging inside container to `/tmp/data-sync.log` via Python logging module
+- `command_timeout: 30s` (was 2m) — just enough to start detached process
+- GH Actions now finishes in ~4 minutes instead of 20+ minutes
+- Saves GitHub Actions minutes (2,000/month free plan)
+
+**(C) Rent Advisor Improvements:**
+
+- **EPB distinction**: Split "Earthquake-prone building" into two separate adjustments:
+  - `epb_self` (within 5m = this building): -10% to -15% discount
+  - `epb_nearby` (within 50m): -1% to -3% discount
+  - Query now runs two distance checks (5m and 50m)
+- **Near contaminated site**: Reduced from -2%/-4% to -1%/-2%
+- **New adjustment factors added**:
+  - Partially furnished (appliances): -1% to +2% — neutral since most rentals include whiteware
+  - Private outdoor space: +2% to +5% — rare for apartments, commands premium
+  - Character property: +3% to +7% — unique architecture, heritage features
+- **Backend**: New params on `compute_rent_advice()` and `RentAdvisorRequest` Pydantic model
+- **Frontend**: 3-option furnishing toggle (Furnished/Partial/Unfurnished), outdoor space toggle, character property toggle in `RentAdvisorCard.tsx`
+- **Store**: `rentInputStore.ts` updated with `isPartiallyFurnished`, `hasOutdoorSpace`, `isCharacterProperty`
+- **PDF export**: New fields passed through `pdfExportStore.ts` → backend
+
+**(D) Report Confirm Modal — Editable pre-download review:**
+
+- New `ReportConfirmModal.tsx` — shown before PDF generation, after paywall check
+- Pulls address from react-query cache, shows "Review your details for {address}"
+- **Renter fields**: property type, bedrooms, weekly rent, finish, bathrooms + annual income + expandable monthly cost overrides (utilities, insurance, transport, food)
+- **Buyer fields**: property type, bedrooms, bathrooms, finish, asking price, purchase price, deposit, interest rate, loan term, annual income + expandable monthly cost overrides
+- All fields edit their respective stores directly (rentInputStore, budgetStore, buyerInputStore)
+- Required fields enforced: renter = property type + bedrooms, buyer = bedrooms
+- Generate button disabled until required fields filled
+- Persona-aware descriptions: "These details drive your rent prediction" / "your affordability analysis"
+
+**(E) Persona Reset Fix:**
+
+- `usePdfExport` hook now checks both `addressId` AND `persona` — switching buyer↔renter resets the "Open Report" button instead of showing stale PDF
+- Updated in: FloatingReportButton, PropertySummaryCard, ReportCTABanner
+
+**(F) Bug Fixes:**
+
+- `rent_advisor.py` line 664: `report.get("address")` → `prop.get("unit_value")` — NameError fix
+- `account.py` `redeem_promo`: upsert user before inserting credits (FK violation fix for dev-local-user)
+- `rates.py`: Replaced `urllib` with `requests` library — fixes HTTP 308 redirect from WCC property search API
+- Multi-unit address detection: now uses `prop.get("address_number")` instead of undefined `report` variable
+
+**(G) VM Data Loading:**
+
+- 24/103 datasets loaded on Azure VM as of session end
+- `auckland_landslide` loader hanging — needs investigation (large download or dead URL)
+- Data sync process survives GH Action cancellation (confirmed PID persists)
+
+### Design Decisions (PDF Report)
+
+**Color palette:**
+- Brand: `#0D7377` (teal), Dark: `#094B4E`, Light: `#E0F2F1`, Background: `#F8FAFB`
+- Risk scale: `#0D7377` → `#56B4E9` → `#E69F00` → `#D55E00` → `#C42D2D`
+- Semantic: Success `#16A34A`, Warning `#D97706`, Danger `#DC2626`, Info `#2563EB`
+
+**Typography:** Inter (Google Fonts), 11pt body, 1.6 line-height, 800-weight headings
+
+**Page structure (both personas):**
+1. Title Page (branded, no footer)
+2. Table of Contents + Executive Summary
+3. Safety & Hazards (hazard cards, crime, insurance impact)
+4. Market & Money (rent/price analysis, budget breakdown)
+5. Neighbourhood & Liveability (schools, transit, amenities)
+6. Growth & Trajectory (investment cards, HPI chart)
+7. Planning/Living Guide (persona-specific)
+8. Due Diligence (checklists, action items)
+9. Your Next Steps (new — actionable cards with costs)
+10. Methodology & Sources + Disclaimer
+
+**Footer:** 3-part CSS `@page` footer — brand+address left, domain center, page numbers right. Suppressed on title page via `@page :first`.
+
+**Key design principles (from research):**
+- Premium feel via Inter font, generous whitespace (20-24px card padding), consistent 12px border-radius
+- Accessibility: WCAG AA contrast (4.5:1+), icons alongside colors for colorblind users, SVG alt text
+- Progressive disclosure: summary first, then detail
+- Hero statistics pattern: one large number per section with context beneath
+- NZ-specific: LIM references, Healthy Homes compliance, insurance implications for hazard zones
+
+### What Needs To Be Done Next
+
+- **Test PDF report end-to-end** — generate buyer and renter PDFs, verify all sections render correctly with the new design
+- **Fix `auckland_landslide` loader** — hanging on download, skip or fix URL
+- **Complete VM data sync** — 79/103 datasets remaining
+- **Deploy updated code** — push all changes (deploy.yml, rent advisor, PDF template, confirm modal)
+- **QR code on title page** — link to live wharescore.co.nz/property/{id}
+- **Comparable sales** — research if any free NZ data source exists
+- **Font loading in PDF** — verify Inter loads correctly in print-to-PDF (may need @font-face fallback)
+
+---
+
+### Previous Session
+
+**Session 55 (2026-03-22) — Price Advisor built full-stack + PDF audit + unit CV fix + required fields + band gauges.**
+
+### What Was Done (Session 55)
+
+**(A) Price Advisor — full-stack buyer-persona value estimator:**
+
+**Backend (`backend/app/services/price_advisor.py` — new, 400+ lines):**
+- CV + HPI forward adjustment + yield inversion ensemble blend
+- HPI weighting by CV freshness (newer CV = more HPI weight)
+- Property-specific adjustments reused from rent advisor (size, quality per room, finish tier, bathrooms, parking)
+- Hazards as COST FLAGS (insurance uplift %, strengthening costs) — NOT percentage discounts — to avoid double-counting since CVs already price in hazards
+- Ownership cost estimates: rates, insurance (base + hazard uplift), body corp
+- Asking price verdict (well-below / below / fair / above / well-above)
+- Methodology steps for transparency, area context reused from rent advisor
+- Endpoint: `POST /api/v1/property/{address_id}/price-advisor`
+
+**Frontend:**
+- `PriceBandGauge.tsx` — Band gauge adapted for property values ($850K format) with asking price marker
+- `PriceAdvisorCard.tsx` — Full card with asking price input, bedrooms, finish tier, bathrooms, parking, band gauge, verdict, methodology steps, hazard cost flags, ownership costs, premium CTA
+- `buyerInputStore.ts` — Zustand store for buyer inputs
+- `MarketSection.tsx` — Persona-aware: PriceAdvisorCard for buyer, RentComparisonFlow + RentAdvisorCard for renter
+- `downloadGateStore.ts` — Added 'price-advisor' to ModalTrigger type
+- `types.ts` — PriceAdvisorResult, PriceMethodologyStep, PriceAdjustment, HazardCostFlag, OwnershipCosts types
+
+**(B) Unit CV Pipeline Fix — $86K parking space → $600K actual unit:**
+- Root cause: `council_valuations` spatial match (`ST_Contains`) returns random unit from building polygon (parking spaces $47-86K instead of actual apartments $590-750K)
+- `_fix_unit_cv()` helper extracted in `property.py` — runs on BOTH cache-hit and cache-miss paths
+- `_cv_from_rates` version marker prevents re-running on already-fixed cache
+- `cv_is_per_unit` flag tells frontend NOT to divide by unit_count again
+- `transformReport.ts` — Added `cv_is_per_unit` mapping (was missing, causing frontend to still divide)
+- Fixed in: report endpoint, market endpoint, PDF generation, PropertySummaryCard, BuyerBudgetCalculator
+- Flushed all stale Redis caches
+
+**(C) PDF Comprehensive Audit — template misplacement + band gauges + advisor wiring:**
+- Price advisor section was inside renter `{% else %}` block — never rendered for buyers. Moved to Money section (Page 3)
+- Added SVG band gauge bars to BOTH price advisor and rent advisor PDF sections (inner band, outer band, markers, legends)
+- Price advisor PDF shows: estimated value hero, asking price verdict, methodology table, property adjustments, hazard cost flags with insurance uplift, annual ownership costs, area context
+- Rent advisor now works without `weekly_rent` (optional) — shows "Estimated Fair Rent Range" without verdict
+- Buyer inputs (`buyer_inputs`) now sent from `pdfExportStore` → backend PDF endpoint
+- Guest checkout saves inputs to localStorage before Stripe redirect, reads them on download page
+- Full end-to-end test: buyer PDF renders all 6 price advisor sections, renter PDF renders all 6 rent advisor sections
+
+**(D) Required Fields + Upgrade Modal Redesign:**
+- `InputReadinessTip` component replaces `RentInputTip` — works for both personas
+- Required fields: Renter = property type + bedrooms; Buyer = bedrooms
+- Purchase buttons (single, pro, guest) disabled until required fields filled
+- `ReportConfirmModal` — "Review your details" modal uses buyer store for buyer fields, shows required asterisks, blocks Generate button
+- Buyer fields now use `useBuyerInputStore` (bedrooms, bathrooms, finish, asking price) instead of rent store
+
+**(E) Accordion Fix:**
+- `QuestionAccordion` was `multiple={false}` (only one panel open at a time) — changed to `multiple`
+- DEFAULT_EXPANDED includes: deal-breakers, true-cost, rent-fair, neighbourhood
+
+**(F) RentAdvisorCard Guard Fix:**
+- Changed from requiring dwellingType + bedrooms + weeklyRent to just dwellingType + bedrooms
+- Button shows "Enter your rent to analyse" when rent not provided
+
+### PDF Redesign Plan (Not Yet Implemented)
+
+Comprehensive audit completed. Current template has ~2,150 lines, 100+ template variables, 300+ sub-properties. Proposed restructure:
+
+**Buyer Report (10 pages):** Cover → Executive Summary → Value Estimate → Cost of Ownership → Risk Assessment → Neighbourhood → Investment Outlook → Planning → Due Diligence → Methodology
+
+**Renter Report (8 pages):** Cover → Executive Summary → Rent Analysis → Budget → Safety → Daily Life → Healthy Homes/Checklist → Methodology
+
+Key improvements needed: cover page with branding, page numbers/headers on every page, remove `<details>` collapsibles for PDF, consistent visual hierarchy, less text-heavy hazard display, persona-optimized section ordering.
+
+### What Needs To Be Done Next
+
+- **PDF template restructure** — implement the page-by-page redesign above
+- **Cover page** — property photo/satellite, branding, score, date, "prepared for" name
+- **Page headers/footers** — address + page numbers on every page
+- **Comparable sales** — if we can source them (currently not in DB)
+- **Frontend TypeScript build verification on deploy**
+- **Deploy to Azure**
+
+---
+
+### Previous Session
+
+**Session 54 (2026-03-21) — Rent Advisor: research-backed fair-rent band engine.**
+
+### What Was Done (Session 54)
 
 **(A) Rent Advisor — full-stack "Is my rent fair?" engine:**
 
@@ -145,6 +517,72 @@ Three categories of adjustment, each with low/high range for the band:
 - Hooks order error: early return moved after all hooks in RentAdvisorCard
 - `band_low_outer` referenced before assignment: moved outer band computation before `_generate_advice` call
 - Size adjustment: skipped for multi-unit (building footprint ≠ unit size)
+
+**(G) CV data fixes:**
+- **Unit CV from rates cache**: WCC council_valuations spatial match (`ST_Contains`) returns random unit from building polygon (often a parking space at $47-86K instead of the actual apartment). Fixed: for any address with `unit_value`, always try `wcc_rates_cache` using LINZ unit identifier → WCC address match (`Unit {uv}`, `Apt {uv}`, `Flat {uv}`). Applied to report endpoint, market endpoint, and rent advisor.
+- **Example**: 9E/30 Taranaki was showing CV=$86K (parking space) → now correctly shows CV=$730K, LV=$220K, IV=$510K from rates cache.
+- **Purchase estimation unlocked for 988K properties**: Auckland (620K), Christchurch (186K), WCC (88K), Taranaki (64K), Tasman (29K), Dunedin (1K). Fixed by falling back to `REVALUATION_DATES` when `valuation_date` is NULL in council_valuations.
+- **Yield-only fallback**: when no CV exists at all, purchase estimate now uses yield inversion from rent data with yield range for the band. Works for any property with SA2 bond data nationally.
+
+**(H) Price Advisor — DESIGNED, NOT YET BUILT (next session):**
+
+Buyer-persona equivalent of the rent advisor. Key design decisions from research:
+
+**Core insight: CVs already price in hazards.** Council valuations are based on sales evidence — if flood zone properties sell for less, the CV reflects that. Applying blanket hazard discounts on top = double-counting. Instead:
+
+**Methodology (transparent to user):**
+1. Start with CV
+2. Adjust forward with HPI (national house price index since revaluation date)
+3. Cross-check with yield inversion (SA2 median rent × 52 / regional yield)
+4. Ensemble blend (weight HPI more for fresh CVs)
+5. Apply property-specific adjustments (finish, bathrooms, quality per room — same as rent advisor)
+6. Band = inner ±1%, outer ±3%
+
+**Hazards are COST FLAGS, not percentage adjustments:**
+- Since CV already prices in known hazards, don't double-discount
+- Instead show ownership cost impact: insurance premium uplift, strengthening costs, rates
+- Scale by CV age: fresh CV (2024) = hazards priced in; old CV (2022) = may not reflect post-Gabrielle awareness shift
+
+**Research-backed NZ hazard purchase discounts (for reference):**
+- Flood zone: 5-10% on purchase price (NZ Flood guide, Dunedin study)
+- EPB commercial: 45% average (Motu study); residential estimated 15-25%
+- Liquefaction TC3 (Christchurch): 12.2-12.5% (Salience study)
+- Buyer discounts are ~2-3× rent discounts (buyer owns capital risk)
+
+**FE free report shows:**
+- Estimated value range + band gauge
+- Asking price comparison (if entered)
+- Top 2 methodology steps (CV → blended estimate)
+- Hazard cost flags (always free — consumer advocate)
+- "Full breakdown in your report →" CTA triggering upgrade modal
+
+**Premium PDF shows:**
+- Full methodology table: CV → HPI → yield → blend → adjustments → range
+- All property-specific adjustments with $/impact
+- Historical CV changes (previous vs current from rates cache `valuations` array)
+- Hazard cost analysis: insurance premium estimates, strengthening costs, 10yr total
+- Annual ownership costs: rates (from rates cache), insurance, body corp
+- Asking price comparison with advice
+- Area context (same as rent advisor)
+
+**Backend: `price_advisor.py` (to be created)**
+- Mirrors rent_advisor.py structure
+- Reuses: hazard detection, prevalence, location metrics, area context, quality per room
+- New: CV + HPI + yield ensemble, ownership cost computation, hazard cost flags
+- Endpoint: `POST /api/v1/property/{address_id}/price-advisor`
+
+**Frontend: `PriceAdvisorCard.tsx` (to be created)**
+- Same input pattern as RentAdvisorCard (bedrooms, bathrooms, finish, parking)
+- Plus optional asking price input
+- Band gauge showing estimated range + asking price marker
+- Methodology steps (abbreviated for free)
+- Hazard cost flags
+- Ownership cost summary
+- Premium CTA
+
+**Shared store: extend `rentInputStore` or create `buyerInputStore`**
+- Asking price, bedrooms, bathrooms, finish, parking
+- Syncs to budget calculator
 
 ---
 

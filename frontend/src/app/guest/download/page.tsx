@@ -80,9 +80,23 @@ function GuestDownloadContent() {
   const startPdfGeneration = async (addrId: number, tkn: string) => {
     setStage('generating');
 
+    // Read saved user inputs from localStorage (saved before Stripe redirect)
+    let inputsBody: string | undefined;
+    try {
+      const saved = localStorage.getItem('wharescore-guest-inputs');
+      if (saved) {
+        inputsBody = saved;
+        localStorage.removeItem('wharescore-guest-inputs'); // one-time use
+      }
+    } catch { /* localStorage may be unavailable */ }
+
     const startRes = await fetch(
       `/api/v1/property/${addrId}/export/pdf/guest-start?token=${encodeURIComponent(tkn)}`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+        headers: inputsBody ? { 'Content-Type': 'application/json' } : undefined,
+        body: inputsBody,
+      },
     );
     if (!startRes.ok) {
       const body = await startRes.json().catch(() => ({ detail: 'Failed to start report generation' }));

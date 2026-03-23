@@ -11,6 +11,9 @@ interface RentInputState {
   hasParking: boolean | null;
   notInsulated: boolean;
   isFurnished: boolean | null;
+  isPartiallyFurnished: boolean | null;
+  hasOutdoorSpace: boolean | null;
+  isCharacterProperty: boolean | null;
   sharedKitchen: boolean | null;
   utilitiesIncluded: boolean | null;
   // Setters
@@ -22,6 +25,9 @@ interface RentInputState {
   setHasParking: (p: boolean | null) => void;
   setNotInsulated: (v: boolean) => void;
   setIsFurnished: (v: boolean | null) => void;
+  setIsPartiallyFurnished: (v: boolean | null) => void;
+  setHasOutdoorSpace: (v: boolean | null) => void;
+  setIsCharacterProperty: (v: boolean | null) => void;
   setSharedKitchen: (v: boolean | null) => void;
   setUtilitiesIncluded: (v: boolean | null) => void;
 }
@@ -35,6 +41,9 @@ export const useRentInputStore = create<RentInputState>()((set) => ({
   hasParking: null,
   notInsulated: false,
   isFurnished: null,
+  isPartiallyFurnished: null,
+  hasOutdoorSpace: null,
+  isCharacterProperty: null,
   sharedKitchen: null,
   utilitiesIncluded: null,
   setDwellingType: (dwellingType) => set({ dwellingType }),
@@ -45,6 +54,9 @@ export const useRentInputStore = create<RentInputState>()((set) => ({
   setHasParking: (hasParking) => set({ hasParking }),
   setNotInsulated: (notInsulated) => set({ notInsulated }),
   setIsFurnished: (isFurnished) => set({ isFurnished }),
+  setIsPartiallyFurnished: (isPartiallyFurnished) => set({ isPartiallyFurnished }),
+  setHasOutdoorSpace: (hasOutdoorSpace) => set({ hasOutdoorSpace }),
+  setIsCharacterProperty: (isCharacterProperty) => set({ isCharacterProperty }),
   setSharedKitchen: (sharedKitchen) => set({ sharedKitchen }),
   setUtilitiesIncluded: (utilitiesIncluded) => set({ utilitiesIncluded }),
 }));

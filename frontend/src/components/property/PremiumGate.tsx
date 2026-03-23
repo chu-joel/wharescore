@@ -2,6 +2,7 @@
 
 import { Lock } from 'lucide-react';
 import { useDownloadGateStore, type ModalTrigger } from '@/stores/downloadGateStore';
+import { useHostedReport } from '@/components/report/HostedReportContext';
 
 interface PremiumGateProps {
   children: React.ReactNode;
@@ -25,7 +26,13 @@ export function PremiumGate({
   trigger = 'default',
   context = {},
 }: PremiumGateProps) {
+  const hosted = useHostedReport();
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
+
+  // In hosted report mode, user has paid — show content ungated
+  if (hosted) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="relative">

@@ -62,8 +62,9 @@ HAZARD_ADJ = {
     "flood": {"label": "Flood zone", "low": -0.03, "high": -0.06},
     "liquefaction": {"label": "High liquefaction", "low": -0.02, "high": -0.04},
     "tsunami": {"label": "Tsunami zone", "low": -0.01, "high": -0.03},
-    "epb": {"label": "Earthquake-prone building", "low": -0.08, "high": -0.12},
-    "contamination": {"label": "Near contaminated site", "low": -0.02, "high": -0.04},
+    "epb_self": {"label": "Earthquake-prone building (this property)", "low": -0.10, "high": -0.15},
+    "epb_nearby": {"label": "Near earthquake-prone building", "low": -0.01, "high": -0.03},
+    "contamination": {"label": "Near contaminated site", "low": -0.01, "high": -0.02},
     "overland_flow": {"label": "Overland flow path", "low": -0.005, "high": -0.02},
     "slope_failure": {"label": "Landslide risk", "low": -0.01, "high": -0.03},
     "noise_high": {"label": "High traffic noise", "low": -0.01, "high": -0.02},
@@ -111,7 +112,7 @@ async def get_sa2_rental_baseline(
     """Shared helper: get SA2 median rent with TLA fallback."""
     bonds_query = """
         SELECT bd.median_rent, bd.lower_quartile_rent, bd.upper_quartile_rent,
-               bd.active_bonds, bd.log_std_dev_weekly_rent
+               bd.active_bonds, bd.log_std_dev_weekly_rent, bd.time_frame
         FROM bonds_detailed bd
         WHERE bd.location_id = %s
     """
@@ -157,6 +158,7 @@ async def get_sa2_rental_baseline(
         "upper_quartile": float(bonds["upper_quartile_rent"]) if bonds and bonds.get("upper_quartile_rent") else None,
         "sigma": float(bonds["log_std_dev_weekly_rent"]) if bonds and bonds.get("log_std_dev_weekly_rent") else None,
         "data_source": data_source,
+        "period": str(bonds["time_frame"]) if bonds and bonds.get("time_frame") else None,
     }
 
 
@@ -176,7 +178,9 @@ async def _detect_hazards(conn, address_id: int) -> dict:
             (SELECT tz.zone_class::text FROM tsunami_zones tz
              WHERE ST_Intersects(tz.geom, a.geom) LIMIT 1) AS tsunami_zone,
             (SELECT COUNT(*)::int FROM earthquake_prone_buildings epb
-             WHERE ST_DWithin(a.geom::geography, epb.geom::geography, 50)) AS epb_count,
+             WHERE ST_DWithin(a.geom::geography, epb.geom::geography, 5)) AS epb_self_count,
+            (SELECT COUNT(*)::int FROM earthquake_prone_buildings epb
+             WHERE ST_DWithin(a.geom::geography, epb.geom::geography, 50)) AS epb_nearby_count,
             (SELECT wz.zone_name FROM wind_zones wz
              WHERE ST_Intersects(wz.geom, a.geom) LIMIT 1) AS wind_zone,
             (SELECT nc.laeq24h::int FROM noise_contours nc
@@ -227,6 +231,49 @@ async def _compute_prevalence(conn, sa2_code: str, detected_keys: set[str]) -> d
 
     total = row["total"]
     return {key: row[f"{key}_count"] / total for key in keys_with_sql}
+
+
+# ---------------------------------------------------------------------------
+# Unit CV fallback — match LINZ unit to WCC rates cache
+# ---------------------------------------------------------------------------
+
+async def _get_unit_cv_from_rates(conn, prop: dict) -> dict | None:
+    """Try to find unit-level CV from wcc_rates_cache when council_valuations has NULL.
+    WCC uses prefixes: 'Unit', 'Apt', 'Flat' + unit_value + street address."""
+    unit_value = prop.get("unit_value")
+    if not unit_value:
+        return None
+
+    street = f"{prop.get('address_number', '')} {prop.get('road_name', '')}"
+    if prop.get("road_type_name"):
+        street += f" {prop['road_type_name']}"
+    street = street.strip()
+    if not street:
+        return None
+
+    # Try all WCC unit prefixes
+    cur = await conn.execute(
+        """
+        SELECT capital_value, land_value, improvements_value
+        FROM wcc_rates_cache
+        WHERE capital_value > 0
+          AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
+        LIMIT 1
+        """,
+        [
+            f"Unit {unit_value} {street}%",
+            f"Apt {unit_value} {street}%",
+            f"Flat {unit_value} {street}%",
+        ],
+    )
+    row = cur.fetchone()
+    if row:
+        return {
+            "capital_value": row["capital_value"],
+            "land_value": row["land_value"] or 0,
+            "improvements_value": row["improvements_value"] or 0,
+        }
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -501,7 +548,7 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
 async def compute_rent_advice(
     conn,
     address_id: int,
-    weekly_rent: int,
+    weekly_rent: int | None,
     dwelling_type: str,
     bedrooms: str,
     finish_tier: str | None = None,
@@ -510,6 +557,9 @@ async def compute_rent_advice(
     has_insulation: bool | None = None,
     is_studio: bool = False,
     is_furnished: bool | None = None,
+    is_partially_furnished: bool | None = None,
+    has_outdoor_space: bool | None = None,
+    is_character_property: bool | None = None,
     shared_kitchen: bool | None = None,
     utilities_included: bool | None = None,
 ) -> dict | None:
@@ -550,6 +600,7 @@ async def compute_rent_advice(
     cur = await conn.execute(
         """
         SELECT
+            a.unit_value, a.road_name, a.road_type_name, a.address_number,
             (SELECT round(ST_Area(b.geom::geography)::numeric, 1)
              FROM building_outlines b
              WHERE b.geom && ST_Expand(a.geom, 0.0005)
@@ -569,6 +620,15 @@ async def compute_rent_advice(
         [address_id],
     )
     prop = cur.fetchone()
+
+    # For units, always try wcc_rates_cache — spatial match can return
+    # a random unit's CV (e.g. parking space) instead of the actual unit
+    if prop and prop.get("unit_value"):
+        prop = dict(prop)  # make mutable
+        rates_cv = await _get_unit_cv_from_rates(conn, prop)
+        if rates_cv:
+            prop["capital_value"] = rates_cv["capital_value"]
+            prop["land_value"] = rates_cv["land_value"]
 
     # --- Property-specific adjustments (always full weight) ---
 
@@ -606,12 +666,12 @@ async def compute_rent_advice(
     is_multi_unit = (prop["unit_count"] or 1) > 1 if prop else False
 
     # Also detect A/B/C style subdivisions from the address itself
-    if not is_multi_unit:
+    if not is_multi_unit and prop:
         import re
-        full_addr = (report.get("address") or {}).get("full_address", "")
-        unit_val = (report.get("address") or {}).get("unit_value")
-        # Match "9A ", "12B ", "45C " at start of address OR unit_value is set
-        if unit_val or re.match(r"^\d+[A-Za-z]\s", full_addr):
+        unit_val = prop.get("unit_value")
+        addr_num = str(prop.get("address_number") or "")
+        # Match "9A", "12B", "45C" style address numbers OR unit_value is set
+        if unit_val or re.match(r"^\d+[A-Za-z]$", addr_num):
             is_multi_unit = True
 
     if is_multi_unit and dwelling_type == "House":
@@ -805,7 +865,21 @@ async def compute_rent_advice(
 
     # Furnished vs unfurnished — bond data mixes both, so median is blended.
     # Furnished = premium over blend, unfurnished = discount vs blend.
-    if is_furnished is not None:
+    # Partially furnished (appliances only) = small premium.
+    if is_partially_furnished:
+        factors_analysed += 1
+        lo, hi = -0.01, 0.02
+        adjustments.append({
+            "factor": "furnished",
+            "label": "Partially furnished (appliances)",
+            "pct_low": round(lo * 100, 1),
+            "pct_high": round(hi * 100, 1),
+            "dollar_low": round(raw_median * lo),
+            "dollar_high": round(raw_median * hi),
+            "reason": "Includes whiteware/appliances but not full furnishing",
+            "category": "property",
+        })
+    elif is_furnished is not None:
         factors_analysed += 1
         if is_furnished:
             lo, hi = 0.03, 0.08
@@ -819,6 +893,36 @@ async def compute_rent_advice(
             "dollar_low": round(raw_median * lo),
             "dollar_high": round(raw_median * hi),
             "reason": "Median includes a mix of furnished/unfurnished",
+            "category": "property",
+        })
+
+    # Private outdoor space — rare for apartments, adds premium
+    if has_outdoor_space and dwelling_type in ("Flat", "Apartment"):
+        factors_analysed += 1
+        lo, hi = 0.02, 0.05
+        adjustments.append({
+            "factor": "outdoor_space",
+            "label": "Private outdoor space",
+            "pct_low": round(lo * 100, 1),
+            "pct_high": round(hi * 100, 1),
+            "dollar_low": round(raw_median * lo),
+            "dollar_high": round(raw_median * hi),
+            "reason": "Deck/balcony/courtyard — uncommon for apartments",
+            "category": "property",
+        })
+
+    # Character property — unique architectural features command a premium
+    if is_character_property:
+        factors_analysed += 1
+        lo, hi = 0.03, 0.07
+        adjustments.append({
+            "factor": "character",
+            "label": "Character property",
+            "pct_low": round(lo * 100, 1),
+            "pct_high": round(hi * 100, 1),
+            "dollar_low": round(raw_median * lo),
+            "dollar_high": round(raw_median * hi),
+            "reason": "Distinctive architectural features, heritage character, or unique design",
             "category": "property",
         })
 
@@ -867,8 +971,10 @@ async def compute_rent_advice(
         detected_keys.add("liquefaction")
     if hazards.get("tsunami_zone"):
         detected_keys.add("tsunami")
-    if hazards.get("epb_count") and hazards["epb_count"] > 0:
-        detected_keys.add("epb")
+    if hazards.get("epb_self_count") and hazards["epb_self_count"] > 0:
+        detected_keys.add("epb_self")
+    elif hazards.get("epb_nearby_count") and hazards["epb_nearby_count"] > 0:
+        detected_keys.add("epb_nearby")
     if hazards.get("contam_count") and hazards["contam_count"] > 0:
         detected_keys.add("contamination")
     if hazards.get("on_overland_flow"):
@@ -1061,7 +1167,10 @@ async def compute_rent_advice(
     band_high = round(raw_median * max(product_low, product_high) * 1.01)
 
     # --- Verdict (relative to band) ---
-    if weekly_rent < band_low:
+    if weekly_rent is None:
+        verdict = None
+        diff_pct = None
+    elif weekly_rent < band_low:
         diff_below = band_low - weekly_rent
         diff_pct = -round(diff_below / band_low * 100, 1)
         verdict = "below-market"
@@ -1100,10 +1209,16 @@ async def compute_rent_advice(
     band_high_outer = round(band_high * 1.03)
 
     # --- Advice lines ---
-    advice_lines = _generate_advice(
-        verdict, diff_pct, weekly_rent, band_low, band_high,
-        band_low_outer, band_high_outer, raw_median, adjustments
-    )
+    if verdict and weekly_rent is not None:
+        advice_lines = _generate_advice(
+            verdict, diff_pct, weekly_rent, band_low, band_high,
+            band_low_outer, band_high_outer, raw_median, adjustments
+        )
+    else:
+        advice_lines = [
+            f"Fair rent range for this property: ${band_low}–${band_high}/wk "
+            f"(possible range ${band_low_outer}–${band_high_outer}/wk)."
+        ]
 
     # --- Confidence ---
     stars = market_confidence_stars(baseline["bond_count"], None, None)

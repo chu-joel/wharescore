@@ -48,8 +48,8 @@ function getSubheadline(persona: 'buyer' | 'renter', capitalValue?: number | nul
 }
 
 export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRent }: ReportCTABannerProps) {
-  const pdf = usePdfExport(addressId);
   const persona = usePersonaStore((s) => s.persona);
+  const pdf = usePdfExport(addressId, persona);
   const contents = persona === 'renter' ? RENTER_CONTENTS : BUYER_CONTENTS;
 
   return (
