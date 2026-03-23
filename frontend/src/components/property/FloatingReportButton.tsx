@@ -21,6 +21,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const containerRef = useRef<HTMLDivElement | null>(null);
   const credits = useDownloadGateStore((s) => s.credits);
   const isAuthenticated = useDownloadGateStore((s) => s.isAuthenticated);
+  const showUpgradeModal = useDownloadGateStore((s) => s.showUpgradeModal);
 
   useEffect(() => {
     const id = 'floating-report-btn';
@@ -40,7 +41,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     };
   }, []);
 
-  if (!mounted || !containerRef.current) return null;
+  if (!mounted || !containerRef.current || showUpgradeModal) return null;
 
   const router = useRouter();
 
