@@ -18,6 +18,7 @@ Legend: **Y** = loaded, **-** = not available/not loaded, **P** = partial
 | **Wind zones** | `wind_zone_speed` | Y (GWRC) | - | - | - | - | - | - |
 | **District plan zones** | `zone_name`, `zone_code` | Y (WCC, 2.7K) | Y (CCC, 7.5K) | Y (139K) | Y (1K) | Y (2.7K) | Y (208) | - |
 | **Transit stops** | `transit_stops_400m` | Y (Metlink, 3.1K) | Y (ECan, 1.6K) | Y (AT, 1K) | Y (1.6K) | - | Y (903) | 8.1K total |
+| **Transit travel times** | `transit_travel_times` | Y (Metlink, 12 dests) | Needs API key | Y (AT, 12 dests) | Y (7 dests, 2.6K) | - | Y (5 dests, 2.2K) | 6 cities |
 | **Contaminated land** | `contam_nearest` | Y (GWRC, 2.4K) | Y (CCC, 906) | - | - | Y (TCC, 2K) | - | 6K total |
 | **Coastal erosion** | `coastal_erosion` | Y (national CSI, 1.8K) | Y (CCC, 5.3K) | Y (1.2K) | - | Y (215) | - | - |
 | **Earthquakes** | `earthquake_count_30km` | Y | Y | Y | Y | Y | Y | Y (GeoNet) |
@@ -119,6 +120,8 @@ Legend: **Y** = loaded, **-** = not available/not loaded, **P** = partial
 | `wind_zones` | ~171 | GWRC only |
 | `district_plan_zones` | ~161K | WCC, CCC, Auckland, Hamilton, Tauranga, Dunedin |
 | `transit_stops` | **8,100** | Metlink (3.1K), ECan (1.6K), AT (1K), Hamilton (1.6K), Dunedin, Taranaki, PN, Nelson |
+| `transit_travel_times` | **~12K** | Metlink (Wellington), AT (Auckland), Hamilton (2.6K), Dunedin (2.2K), Nelson (580), Taranaki (269), PN (642) |
+| `transit_stop_frequency` | **~6K** | Same sources as travel times — peak AM trips/hour per stop |
 | `contaminated_land` | **5,980** | GWRC (2.4K), CCC (906), Tauranga (2K), Hawke's Bay (678) |
 | `coastal_erosion` | ~14K | National CSI (1.8K), CCC (5.3K), Auckland (1.2K), Tauranga (215) |
 | `council_valuations` | ~1,424,000 | 19 councils |
