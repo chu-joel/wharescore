@@ -7,10 +7,10 @@ interface Props {
 }
 
 export function HostedNeighbourhoodStats({ rawReport }: Props) {
-  const live = (rawReport.liveability ?? {}) as Record<string, unknown>;
-  const env = (rawReport.environment ?? {}) as Record<string, unknown>;
-  const hazards = (rawReport.hazards ?? {}) as Record<string, unknown>;
-  const planning = (rawReport.planning ?? {}) as Record<string, unknown>;
+  const live = (rawReport.liveability ?? {}) as unknown as Record<string, unknown>;
+  const env = (rawReport.environment ?? {}) as unknown as Record<string, unknown>;
+  const hazards = (rawReport.hazards ?? {}) as unknown as Record<string, unknown>;
+  const planning = (rawReport.planning ?? {}) as unknown as Record<string, unknown>;
 
   // Nearest essentials
   const essentials: { label: string; value: string }[] = [];

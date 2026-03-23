@@ -23,14 +23,14 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   // Key stats grid
   const stats: { icon: React.ReactNode; label: string; value: string }[] = [];
 
-  const bedrooms = storeBedrooms ?? (snapshot.meta.inputs_at_purchase as Record<string, unknown>)?.bedrooms;
+  const bedrooms = storeBedrooms ?? (snapshot.meta.inputs_at_purchase as unknown as Record<string, unknown>)?.bedrooms;
   if (bedrooms) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Bedrooms', value: String(bedrooms) });
 
   if (prop.capital_value) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Capital Value', value: formatCurrency(prop.capital_value) });
   if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()}m²` });
   if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land', value: `${prop.land_area_sqm.toLocaleString()}m²` });
 
-  const rawProp = (snapshot.report.property ?? {}) as Record<string, unknown>;
+  const rawProp = (snapshot.report.property ?? {}) as unknown as Record<string, unknown>;
   const titleType = rawProp.title_type as string;
   if (titleType && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
 
@@ -47,7 +47,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (noiseDb) stats.push({ icon: <Volume2 className="h-3.5 w-3.5" />, label: 'Road Noise', value: `${Math.round(noiseDb)} dB` });
 
   // Walkability
-  const walkScore = liveability?.walkability_score as number;
+  const walkScore: number | undefined = liveability?.walkability_score != null ? Number(liveability.walkability_score) : undefined;
   const walkLabel = walkScore ? (walkScore >= 90 ? "Walker's Paradise" : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car-Dependent') : null;
 
   // Insurance risk
@@ -59,7 +59,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   const insuranceLevel = insuranceFactors.length === 0 ? 'Low' : insuranceFactors.length <= 2 ? 'Moderate' : 'High';
 
   // Trajectory
-  const trajectory = liveability?.trajectory as Record<string, unknown>;
+  const trajectory = liveability?.trajectory as unknown as Record<string, unknown>;
   const trajectoryDir = trajectory?.direction as string;
   const trajectoryLabel = trajectory?.label as string;
 
@@ -93,9 +93,9 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
           ))}
         </div>
 
-        {/* ── Walkability + Insurance side by side ── */}
+        {/* Walkability + Insurance side by side */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-          {walkScore != null && (
+          {typeof walkScore === 'number' && (
             <div className="rounded-lg border border-border p-3 flex items-center gap-3">
               <div className="shrink-0">
                 <div className="relative w-14 h-14">
@@ -135,9 +135,9 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         {/* ── Property flags (buyer) ── */}
         {persona === 'buyer' && (rawProp.multi_unit || rawProp.cv_date || (planning?.contaminated_listed)) && (
           <div className="text-xs text-muted-foreground space-y-1 mb-5">
-            {rawProp.multi_unit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
-            {planning?.contaminated_listed && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
-            {rawProp.cv_date && <p>Council valuation date: {new Date(String(rawProp.cv_date)).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
+            {!!rawProp.multi_unit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
+            {!!planning?.contaminated_listed && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
+            {!!rawProp.cv_date && <p>Council valuation date: {new Date(String(rawProp.cv_date)).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
           </div>
         )}
 

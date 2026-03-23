@@ -75,7 +75,7 @@ export function HostedRentHistory({ snapshot }: Props) {
             <XAxis dataKey="period" tick={{ fontSize: 10, fill: '#94A3B8' }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(v) => `$${v}`} width={50} />
             <Tooltip
-              formatter={(value: number) => [`$${value}/wk`, 'Median rent']}
+              formatter={(value: unknown) => [`$${value}/wk`, 'Median rent']}
               labelStyle={{ fontSize: 11, color: '#64748B' }}
               contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
             />

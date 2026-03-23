@@ -15,7 +15,7 @@ interface HHRow {
 }
 
 export function HostedHealthyHomes({ report }: Props) {
-  const hazards = (report as Record<string, unknown>).hazards as Record<string, unknown> | undefined;
+  const hazards = (report as unknown as Record<string, unknown>).hazards as Record<string, unknown> | undefined;
   if (!hazards) return null;
 
   const windZone = String(hazards.wind_zone || '').toUpperCase();

@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function HostedSchools({ rawReport }: Props) {
-  const live = (rawReport.liveability ?? {}) as Record<string, unknown>;
+  const live = (rawReport.liveability ?? {}) as unknown as Record<string, unknown>;
   const schools = (live.schools_1500m ?? []) as School[];
   const inZone = (live.in_zone_schools ?? []) as School[];
 

@@ -22,9 +22,9 @@ export function HostedNearbyHighlights({ snapshot }: Props) {
   const highlights = snapshot.nearby_highlights;
   if (!highlights) return null;
 
-  const good = ((highlights.good ?? []) as AmenityItem[]).slice(0, 10);
-  const caution = ((highlights.caution ?? []) as AmenityItem[]).slice(0, 8);
-  const info = ((highlights.info ?? []) as AmenityItem[]).slice(0, 6);
+  const good = ((highlights.good ?? []) as unknown as AmenityItem[]).slice(0, 10);
+  const caution = ((highlights.caution ?? []) as unknown as AmenityItem[]).slice(0, 8);
+  const info = ((highlights.info ?? []) as unknown as AmenityItem[]).slice(0, 6);
 
   if (good.length === 0 && caution.length === 0 && info.length === 0) return null;
 

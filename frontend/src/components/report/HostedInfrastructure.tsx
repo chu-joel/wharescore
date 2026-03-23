@@ -23,7 +23,7 @@ const SECTOR_COLORS: Record<string, string> = {
 };
 
 export function HostedInfrastructure({ rawReport }: Props) {
-  const planning = (rawReport.planning ?? {}) as Record<string, unknown>;
+  const planning = (rawReport.planning ?? {}) as unknown as Record<string, unknown>;
   const projects = (planning.infrastructure_5km ?? planning.infrastructure_projects ?? []) as Project[];
 
   if (!Array.isArray(projects) || projects.length === 0) return null;

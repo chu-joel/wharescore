@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function HostedAISummary({ snapshot }: Props) {
-  const ai = snapshot.ai_insights as Record<string, unknown> | null;
+  const ai = snapshot.ai_insights as unknown as Record<string, unknown> | null;
   if (!ai) return null;
 
   const summary = ai.executive_summary as string;

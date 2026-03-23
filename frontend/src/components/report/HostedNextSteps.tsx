@@ -14,7 +14,7 @@ interface ActionCard {
 }
 
 export function HostedNextSteps({ persona, report }: Props) {
-  const hazards = (report as Record<string, unknown>).hazards as Record<string, unknown> | undefined;
+  const hazards = (report as unknown as Record<string, unknown>).hazards as unknown as Record<string, unknown> | undefined;
   const hasFlood = !!(hazards?.flood_zone || hazards?.flood_overlay);
   const liqStr = String(hazards?.liquefaction_class || hazards?.gwrc_liquefaction || hazards?.liquefaction_zone || '').toLowerCase();
   const hasLiquefaction = liqStr.includes('moderate') || liqStr.includes('high') || liqStr.includes('significant');
@@ -24,8 +24,8 @@ export function HostedNextSteps({ persona, report }: Props) {
   const hasEpb = !!(hazards?.epb_count && Number(hazards.epb_count) > 10);
   const hasContamination = !!(hazards?.contamination_count && Number(hazards.contamination_count) > 0);
   const hasTsunami = !!(hazards?.tsunami_zone || hazards?.wcc_tsunami_ranking);
-  const hasHighCrime = !!(report.liveability as Record<string, unknown>)?.crime_rate &&
-    Number((report.liveability as Record<string, unknown>).crime_rate) > 70;
+  const hasHighCrime = !!(report.liveability as unknown as Record<string, unknown>)?.crime_rate &&
+    Number((report.liveability as unknown as Record<string, unknown>).crime_rate) > 70;
 
   const renterCards: ActionCard[] = [
     { level: 'essential', title: 'Healthy Homes Check', description: 'Request compliance statement — legal requirement since 2021' },

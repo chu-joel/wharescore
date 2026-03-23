@@ -36,7 +36,7 @@ const RENTER_ONLY_TITLES = new Set([
 ]);
 
 export function HostedRecommendations({ snapshot, persona }: Props) {
-  const allRecs = (snapshot.recommendations ?? []) as Recommendation[];
+  const allRecs = (snapshot.recommendations ?? []) as unknown as Recommendation[];
   if (allRecs.length === 0) return null;
 
   // Filter by persona
