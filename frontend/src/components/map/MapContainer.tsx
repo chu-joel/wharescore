@@ -211,6 +211,7 @@ export function MapContainer() {
   const setViewport = useMapStore((s) => s.setViewport);
   const activeLayers = useMapStore((s) => s.layers);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const selectedSuburb = useSearchStore((s) => s.selectedSuburb);
   const selectAddress = useSearchStore((s) => s.selectAddress);
   const selectProperty = useMapStore((s) => s.selectProperty);
   const selectedPropertyId = useMapStore((s) => s.selectedPropertyId);
@@ -302,6 +303,18 @@ export function MapContainer() {
       };
     }
   }, [selectedAddress]);
+
+  // flyTo when a suburb is selected (from search bar on mobile)
+  useEffect(() => {
+    if (!selectedSuburb || !mapRef.current) return;
+    const map = mapRef.current.getMap();
+    map.flyTo({
+      center: [selectedSuburb.lng, selectedSuburb.lat],
+      zoom: 14,
+      duration: TIMING.MAP_FLY_TO,
+      essential: true,
+    });
+  }, [selectedSuburb]);
 
   // Update Zustand only when interaction ends — keeps drag/zoom fully native speed
   const onMoveEnd = useCallback(

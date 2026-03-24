@@ -1,6 +1,7 @@
 'use client';
 
 import { useMapStore } from '@/stores/mapStore';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { TILE_LAYERS, MAX_ACTIVE_LAYERS } from '@/lib/constants';
 import { toast } from 'sonner';
 import {
@@ -95,6 +96,7 @@ export function MapLayerPicker() {
   const layers = useMapStore((s) => s.layers);
   const toggleLayer = useMapStore((s) => s.toggleLayer);
   const setLayers = useMapStore((s) => s.setLayers);
+  const showUpgradeModal = useDownloadGateStore((s) => s.showUpgradeModal);
 
   const activeCount = TILE_LAYERS.filter((l) => layers[l.id]).length;
   const atCap = activeCount >= MAX_ACTIVE_LAYERS;
@@ -140,10 +142,11 @@ export function MapLayerPicker() {
   };
 
   return (
-    <Dialog>
+    <Dialog open={showUpgradeModal ? false : undefined}>
       <DialogTrigger
         data-layer-picker-trigger
         className="shrink-0 flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border bg-background/95 backdrop-blur-sm text-muted-foreground border-border hover:bg-muted hover:text-foreground transition-all active:scale-95"
+        disabled={showUpgradeModal}
       >
         <Layers className="h-3.5 w-3.5" />
         <span>Layers</span>
