@@ -181,6 +181,7 @@ const CHIP_LAYER_GROUPS: Record<string, string[]> = {
 function MobileLandingContent() {
   const layers = useMapStore((s) => s.layers);
   const setLayers = useMapStore((s) => s.setLayers);
+  const zoom = useMapStore((s) => s.viewport.zoom);
 
   const toggleGroup = useCallback(
     (groupLayers: string[]) => {
@@ -225,7 +226,9 @@ function MobileLandingContent() {
 
       <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
         <MousePointerClick className="h-3 w-3" />
-        Or tap a property on the map
+        {zoom < 11
+          ? 'Zoom in closer to see properties'
+          : 'Or tap a property on the map'}
       </p>
 
       <div className="grid grid-cols-2 gap-2">

@@ -27,9 +27,9 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const bp = useBreakpoint();
   const router = useRouter();
 
-  // On mobile, suppress the header (compact) dropdown when no property is selected,
-  // because the drawer's full-size SearchBar handles the dropdown instead.
-  const suppressDropdown = compact && bp === 'mobile' && !selectedAddress;
+  // On mobile, suppress the drawer (non-compact) search dropdown because
+  // the header search bar always handles the dropdown results.
+  const suppressDropdown = !compact && bp === 'mobile';
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
