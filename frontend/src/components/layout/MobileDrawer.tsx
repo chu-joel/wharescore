@@ -22,6 +22,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
   // Vaul caches drawer height on mount and doesn't recalculate snap positions.
   const [drawerKey, setDrawerKey] = useState(0);
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     let prevHeight = window.innerHeight;
     const onResize = () => {
       const delta = Math.abs(window.innerHeight - prevHeight);

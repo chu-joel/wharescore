@@ -27,6 +27,7 @@ import { MapPopup } from './MapPopup';
 import { MapControls } from './MapControls';
 import { MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface HoverInfo {
   x: number;
@@ -215,6 +216,7 @@ export function MapContainer() {
   const selectedPropertyId = useMapStore((s) => s.selectedPropertyId);
   const baseStyleId = useMapStore((s) => s.baseStyleId);
   const router = useRouter();
+  const bp = useBreakpoint();
 
   const currentBasemap = getBasemapStyle(baseStyleId);
 
@@ -881,7 +883,7 @@ export function MapContainer() {
         )}
 
         {/* Property popup — hidden on mobile where the bottom drawer shows the report */}
-        {showPopup && selectedAddress && window.innerWidth >= 640 && (
+        {showPopup && selectedAddress && bp !== 'mobile' && (
           <Popup
             longitude={selectedAddress.lng}
             latitude={selectedAddress.lat}

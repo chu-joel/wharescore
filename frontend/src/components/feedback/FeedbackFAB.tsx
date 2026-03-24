@@ -13,7 +13,7 @@ export function FeedbackFAB() {
       <Button
         onClick={() => setOpen(true)}
         size="icon"
-        className="fixed bottom-4 right-4 z-40 h-12 w-12 rounded-full shadow-lg"
+        className="fixed bottom-4 right-4 z-20 h-12 w-12 rounded-full shadow-lg"
         aria-label="Send feedback"
       >
         <MessageSquarePlus className="h-5 w-5" />
