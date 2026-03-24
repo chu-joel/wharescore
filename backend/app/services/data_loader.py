@@ -607,6 +607,48 @@ def load_resource_consents(conn: psycopg.Connection, log: Callable = None) -> in
     return count
 
 
+def _load_ecan_consents(conn: psycopg.Connection, log: Callable = None) -> int:
+    """ECan (Canterbury) resource consents — ~115K active consents."""
+    url = "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Resource_Consents/MapServer/0"
+    _progress(log, "Fetching ECan resource consents (Canterbury)...")
+    features = _fetch_arcgis(url, 2000, where="ConsentStatus = 'Active'")
+    cur = conn.cursor()
+    # Don't truncate — append alongside GWRC consents. Delete only ECan rows.
+    cur.execute("DELETE FROM resource_consents WHERE consent_id LIKE 'CRC%'")
+    conn.commit()
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        x, y = geom.get("x"), geom.get("y")
+        if x is None or y is None:
+            continue
+        cur.execute(
+            "INSERT INTO resource_consents "
+            "(consent_id, file_no, consent_type, application_type, status, "
+            "commencement_date, expired_date, purpose_desc, geom) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s, "
+            "ST_Transform(ST_SetSRID(ST_MakePoint(%s, %s), 2193), 4326))",
+            (_clean(a.get("ConsentNo")),
+             _clean(a.get("FileNo")),
+             _clean(a.get("ConsentType")),
+             _clean(a.get("PermitType")),
+             _clean(a.get("ConsentStatus")),
+             _clean(a.get("fmDateText")),
+             _clean(a.get("toDateText")),
+             _clean(a.get("ActivityText")),
+             x, y),
+        )
+        count += 1
+        if count % 5000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"ECan resource consents: {count} rows")
+    return count
+
+
 def load_district_plan_zones(conn: psycopg.Connection, log: Callable = None) -> int:
     """WCC 2024 District Plan Zones."""
     url = "https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer/122"
@@ -3544,11 +3586,96 @@ DATA_SOURCES: list[DataSource] = [
             "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
             "HDC", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
             extra_where="TerritorialAuthority LIKE '%Horowhenua%'")),
+    DataSource("whanganui_rates", "Whanganui Rates/Valuations (~25K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "whanganui", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Whanganui%'")),
+    DataSource("manawatu_rates", "Manawatu District Rates/Valuations (~15K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "manawatu", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Manawatu%'")),
+    DataSource("rangitikei_rates", "Rangitikei District Rates/Valuations (~10K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "rangitikei", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Rangitikei%'")),
+    DataSource("tararua_rates", "Tararua District Rates/Valuations (~10K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "tararua", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Tararua%'")),
+    DataSource("ruapehu_rates", "Ruapehu District Rates/Valuations (~8K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://maps.horizons.govt.nz/arcgis/rest/services/LocalMapsPublic/Public_Property/MapServer/1",
+            "ruapehu", "VnzCapitalValue", "VnzLandValue", None, "VnzLocation",
+            extra_where="TerritorialAuthority LIKE '%Ruapehu%'")),
     DataSource("tasman_rates", "Tasman Rates/Valuations (29K)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,
             "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Property/MapServer/0",
             "tasman", "CapitalValue", "LandValue", "ImprovementsValue", "PropertyLocation")),
+    # ── Canterbury region councils (ECan Property_Details/MapServer/2) ──
+    # TLA codes: 058=Hurunui, 059=Waimakariri, 062=Selwyn, 063=Ashburton,
+    #            064=Timaru, 065=Mackenzie, 066=Waimate, 068=Waitaki
+    DataSource("selwyn_rates", "Selwyn Rates/Valuations (~30K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "selwyn", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '062'", page_size=1000)),
+    DataSource("waimakariri_rates", "Waimakariri Rates/Valuations (~30K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "waimakariri", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '059'", page_size=1000)),
+    DataSource("ashburton_rates", "Ashburton Rates/Valuations (~20K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "ashburton", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '063'", page_size=1000)),
+    DataSource("timaru_rates", "Timaru Rates/Valuations (~25K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "timaru", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '064'", page_size=1000)),
+    DataSource("hurunui_rates", "Hurunui Rates/Valuations (~8K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "hurunui", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '058'", page_size=1000)),
+    DataSource("waimate_rates", "Waimate Rates/Valuations (~5K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "waimate", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '066'", page_size=1000)),
+    DataSource("mackenzie_rates", "Mackenzie Rates/Valuations (~4K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "mackenzie", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '065'", page_size=1000)),
+    DataSource("waitaki_rates", "Waitaki Rates/Valuations (~15K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Property_Details/MapServer/2",
+            "waitaki", "CapitalValue", "LandValue", "ImprovementsValue", "StreetAddress",
+            extra_where="TLA = '068'", page_size=1000)),
+    # ── ECan resource consents ────────────────────────────────
+    DataSource("ecan_resource_consents", "ECan Resource Consents (Canterbury, ~115K)",
+        ["resource_consents"],
+        lambda conn, log=None: _load_ecan_consents(conn, log)),
     # ── Hamilton heritage + trees ────────────────────────────
     DataSource("hamilton_heritage", "Hamilton Built Heritage",
         ["historic_heritage_overlay"],
