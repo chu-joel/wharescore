@@ -72,9 +72,12 @@ def _fetch_url(url: str, timeout: int = 120) -> bytes:
     return b""
 
 
-def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1") -> list[dict]:
-    """Fetch all features from ArcGIS REST with pagination."""
-    all_features = []
+def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
+    """Fetch all features from ArcGIS REST with pagination (streaming generator).
+
+    Yields features one at a time — constant memory regardless of dataset size.
+    Callers iterate with ``for f in _fetch_arcgis(...):`` exactly as before.
+    """
     offset = 0
     while True:
         params = {
@@ -87,12 +90,11 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1") -
         features = data.get("features", [])
         if not features:
             break
-        all_features.extend(features)
+        yield from features
         offset += len(features)
         if len(features) < max_per_page:
             break
         time.sleep(0.3)
-    return all_features
 
 
 def _mp_wkt(geom: dict) -> str | None:
@@ -1293,12 +1295,18 @@ def _load_council_arcgis(
             continue
         vals = extract(a)
         placeholders = ", ".join(["%s"] * len(cols))
-        cur.execute(
-            f"INSERT INTO {table} ({', '.join(cols)}, source_council, geom) "
-            f"VALUES ({placeholders}, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), {srid}), 4326))",
-            (*vals, council, wkt),
-        )
-        count += 1
+        try:
+            cur.execute(
+                f"INSERT INTO {table} ({', '.join(cols)}, source_council, geom) "
+                f"VALUES ({placeholders}, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), {srid}), 4326))",
+                (*vals, council, wkt),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
     conn.commit()
     _progress(log, f"  {table} ({council}): {count} rows")
     return count
