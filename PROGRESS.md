@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-23 (session 59 — National data expansion: 7 new councils, hazard data for 4 cities, transit travel times for 6 cities)
+**Last Updated:** 2026-03-24 (session 63 — Mobile UX fixes + massive data expansion: 13 new councils, hazard tables, ECan consents)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -16,6 +16,117 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 ---
 
 ## Current Status
+
+**Session 63 (2026-03-24) — Mobile UX fixes + massive data expansion.**
+
+### What Was Done This Session
+
+**(A) Mobile UX Fixes (6 commits):**
+- Search bar hidden by logo on mobile — shortened to "WS", added visible border
+- Sign-in text replaced with LogIn icon
+- Map centering: flyTo + click both now pad for header/drawer so popup is visible
+- "Get Full Report" on mobile: snaps drawer to full instead of navigating away
+- Upgrade modal: raised to z-[9999], made scrollable + compact on mobile (smaller fonts/padding/gaps)
+- Floating report button hides when upgrade modal is open
+- Scroll upgrade prompt delayed (90% scroll + 15s, 3min fallback)
+
+**(B) Data Expansion — 13 new councils loaded (~197K properties):**
+
+Horizons region (5 councils):
+- Whanganui: 22,904
+- Manawatu: 15,859
+- Rangitikei: 8,675
+- Tararua: 10,773
+- Ruapehu: 9,650
+
+Canterbury region via ECan (8 councils):
+- Selwyn: 37,222
+- Waimakariri: 30,536
+- Ashburton: 17,214
+- Timaru: 24,400
+- Hurunui: 9,255
+- Waimate: 4,454
+- Mackenzie: 4,372
+- Waitaki: 12,295
+
+**Total council valuations now: ~1,310,000 properties across 32 councils**
+
+**(C) Previously Empty Hazard Tables Populated:**
+- GWRC earthquake hazard: 14,962 rows
+- GWRC ground shaking: 253 rows
+- GWRC liquefaction detail: 502 rows
+- GWRC slope failure: 4,682 rows
+- WCC fault zones + flood hazard + tsunami hazard: 464 rows
+- GNS active faults: 10,269 rows
+
+**(D) Other Data Loaded:**
+- Hamilton flood: 1,000 rows
+- UHCC rates: 9,019 rows
+- HCC rates: 46,594 rows
+- PCC rates: 23,685 rows
+- KCDC rates: 27,379 rows
+- HDC rates: 19,427 rows
+- Palmerston North GTFS: 1,527 rows
+
+**(E) Issues Found:**
+- Auckland landslide data: ArcGIS FeatureServer very slow, causes OOM on VM
+- Christchurch GTFS: needs API key (401 error)
+- Auckland overland flow: DNS resolution failure after 380K rows (VM OOM)
+- GNS fault avoidance zones: WFS endpoint returns invalid JSON
+- VM went OOM during heavy data load — all containers stopped, recovered by restarting with prod compose
+
+### What Needs To Be Done Next
+
+- **ECan resource consents** — retry in progress, may need different approach if 0 rows again
+- **Auckland rates full reload** — was in progress session 62 (~6,500 of 578K), needs resuming
+- **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
+- **Auckland landslide** — try with smaller page sizes or spatial partitioning to avoid OOM
+- **More councils** — Nelson (MagiqCloud scraper), Rotorua, Napier, New Plymouth, Gisborne, Waikato DC, Marlborough, South Waikato, Thames-Coromandel
+- **More hazard data** — national noise contours (Waka Kotahi), Canterbury fault zones, slope hazard tables
+- **Fix unit CV bug in snapshot generator** (carried over from session 58)
+
+---
+
+### Previous Session
+
+**Session 60 (2026-03-24) — Domain registration + deployment planning.**
+
+### What Was Done This Session
+
+**(A) Domain Registration (Regery) — $42.49 USD total:**
+- `wharescore.co.nz` — primary domain ($14.99/yr)
+- `wharescore.nz` — brand protection, will 301 redirect to .co.nz ($14.99/yr)
+- `wharescore.com` — brand protection, will 301 redirect to .co.nz ($10.99/yr)
+- Registrar: Regery (via Stripe), consistent renewal pricing, no upsells
+- DNS: Regery NS (default) — will add Azure A records when deploying
+
+### What Needs To Be Done Next
+
+**Deployment Checklist (in order):**
+1. **Sign up for Microsoft for Startups** at microsoft.com/startups → get $1,000 USD credits instantly (describe as PropTech SaaS)
+2. **Complete business verification** (~7 business days) → unlock $5,000 USD total credits
+3. **Create Azure Free Account** → stack $200 USD credit (30-day expiry — don't do this until ready to deploy)
+4. **Create Azure VM (B2ms)** per `AZURE-HOSTING-PLAN.md` Section 4A
+5. **Configure VM** — mount data disk, install Docker (Section 4B)
+6. **Deploy Docker Compose** (Section 4C)
+7. **Restore database dump** (Section 4D)
+8. **Apply PostGIS tuning** (Section 4E)
+9. **Set up Cloudflare** (free plan) — point nameservers, add DNS records (Section 7)
+10. **Configure NSG** — only allow Cloudflare IPs on 80/443 (Section 7)
+11. **Set up URL forwarding** — `wharescore.nz` and `wharescore.com` → `wharescore.co.nz`
+12. **Set up UptimeRobot** monitors (Section 9)
+13. **Set up GitHub Actions deploy** (Section 8)
+
+**Still Outstanding (from previous sessions):**
+- Fix unit CV bug in snapshot generator (`_fix_unit_cv()` not in `snapshot_generator.py`)
+- Test hosted report page end-to-end
+- Add table of contents / section navigation to hosted report
+- Mobile sidebar duplicate issue
+- PDF template full restructure (persona-specific page ordering)
+
+---
+
+### Previous Session
 
 **Session 59 (2026-03-23) — National data expansion: councils, hazards, transit travel times, bug fixes.**
 
