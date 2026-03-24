@@ -44,7 +44,37 @@
 | 18 | Hastings | HASTINGS | 33,656 | HDC ArcGIS MapServer | **No** | Yes | Rates only (RT_CurrentYear), no CV/LV in API. `gismaps.hdc.govt.nz/.../Property/Property_Data/MapServer/0` |
 | 19 | Western Bay of Plenty | WBOP | 26,399 | WBOP ArcGIS MapServer | Yes | No | 4-layer join (parcels + CV + LV + IV). `map.westernbay.govt.nz/arcgisext/rest/services/Property/MapServer` |
 
-**Total: ~1,424,000 properties across 19 councils**
+| 20 | Selwyn | selwyn | 37,222 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='062'. Canterbury Maps regional endpoint |
+| 21 | Waimakariri | waimakariri | 30,536 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='059' |
+| 22 | Thames-Coromandel | thames_coromandel | 29,634 | WRC Properties FeatureServer | Yes | No | Suburb-filtered from Waikato Regional endpoint |
+| 23 | Waipa | waipa | 25,105 | WRC Properties FeatureServer | Yes | No | Cambridge, Te Awamutu, etc. |
+| 24 | Waikato DC | waikato_dc | 24,476 | WRC Properties FeatureServer | Yes | No | Huntly, Ngaruawahia, Raglan, Tuakau, etc. |
+| 25 | Timaru | timaru | 24,400 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='064' |
+| 26 | Whanganui | whanganui | 22,904 | Horizons Regional ArcGIS | Yes | No | `TerritorialAuthority LIKE '%Whanganui%'` |
+| 27 | Ashburton | ashburton | 17,214 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='063' |
+| 28 | Manawatu | manawatu | 15,859 | Horizons Regional ArcGIS | Yes | No | `TerritorialAuthority LIKE '%Manawatu%'` |
+| 29 | Matamata-Piako | matamata_piako | 15,485 | WRC Properties FeatureServer | Yes | No | Matamata, Morrinsville, Te Aroha |
+| 30 | Waitaki | waitaki | 12,295 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='068' |
+| 31 | Hauraki | hauraki | 11,001 | WRC Properties FeatureServer | Yes | No | Waihi, Paeroa, Ngatea |
+| 32 | Tararua | tararua | 10,773 | Horizons Regional ArcGIS | Yes | No | `TerritorialAuthority LIKE '%Tararua%'` |
+| 33 | South Waikato | south_waikato | 10,356 | WRC Properties FeatureServer | Yes | No | Tokoroa, Putaruru, Tirau |
+| 34 | Ruapehu | ruapehu | 9,650 | Horizons Regional ArcGIS | Yes | No | `TerritorialAuthority LIKE '%Ruapehu%'` |
+| 35 | Rangitikei | rangitikei | 8,675 | Horizons Regional ArcGIS | Yes | No | `TerritorialAuthority LIKE '%Rangitikei%'` |
+| 36 | Hurunui | hurunui | 9,255 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='058' |
+| 37 | Waimate | waimate | 4,454 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='066' |
+| 38 | Mackenzie | mackenzie | 4,372 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='065' |
+
+| 39 | Marlborough | marlborough | 27,099 | MDC ArcGIS MapServer/2 | Yes + IV | Yes (levy) | No address field — spatial join only. `gis.marlborough.govt.nz/.../RatingInformation/MapServer/2` |
+
+**Total: ~1,465,000 properties across 39 councils**
+
+### Regional Endpoint Discovery (Session 63)
+
+Three regional endpoints cover multiple councils each:
+
+1. **Horizons Regional** (`maps.horizons.govt.nz/.../Public_Property/MapServer/1`) — Filter by `TerritorialAuthority`. Covers: Horowhenua, Whanganui, Manawatu, Rangitikei, Tararua, Ruapehu. ~123K total records.
+2. **Canterbury Maps/ECan** (`gis.ecan.govt.nz/.../Property_Details/MapServer/2`) — Filter by `TLA` code. Covers: Selwyn (062), Waimakariri (059), Ashburton (063), Timaru (064), Hurunui (058), Waimate (066), Mackenzie (065), Waitaki (068). CCC (060) already loaded separately. ~329K total.
+3. **Waikato Regional** (`services.arcgis.com/2bzQ0Ix3iO7MItUa/.../WDP_PROPERTIES_WRC_EXT/FeatureServer/0`) — Filter by `PREDICTED_SITUATION_MAJOR_NAME` (town names). Covers: Waikato DC, Thames-Coromandel, South Waikato, Matamata-Piako, Waipa, Hauraki. ~236K total.
 
 ---
 

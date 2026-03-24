@@ -3429,6 +3429,65 @@ DATA_SOURCES: list[DataSource] = [
             ),
         ),
     ),
+    # ── Queenstown-Lakes (QLDC) hazards ─────────────────────
+    DataSource(
+        "qldc_flood", "QLDC Flood Hazard Area",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Flooding/MapServer/3",
+            "flood_hazard", "queenstown_lakes",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Source")) or "Flood Hazard Area",
+                _clean(a.get("HazardLevel")) or _clean(a.get("Category")) or "Medium",
+                "ORC Flood Hazard",
+            ),
+        ),
+    ),
+    DataSource(
+        "qldc_liquefaction", "QLDC Liquefaction (GNS 2019)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Liquefaction/FeatureServer/3",
+            "liquefaction_detail", "queenstown_lakes",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("Susceptibility")) or _clean(a.get("LIQ_CLASS")) or _clean(a.get("Liquefaction_Susceptibility")),
+                _clean(a.get("Domain")) or _clean(a.get("Geology")),
+            ),
+        ),
+    ),
+    DataSource(
+        "qldc_landslide", "QLDC Landslide Areas",
+        ["landslide_areas"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/3",
+            "landslide_areas", "queenstown_lakes",
+            ["name", "source", "certainty"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Description")) or "Landslide Area",
+                _clean(a.get("Source")) or "ORC",
+                _clean(a.get("Certainty")) or _clean(a.get("Category")),
+            ),
+        ),
+    ),
+    DataSource(
+        "otago_liquefaction", "Otago Region Liquefaction (GNS 2019)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://maps.orc.govt.nz/arcgis/rest/services/Seismic_LiquefactionOtago_2019/MapServer/0",
+            "liquefaction_detail", "otago",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("Susceptibility")) or _clean(a.get("LIQ_CLASS")),
+                _clean(a.get("DOMAIN")) or _clean(a.get("GEOLOGY")),
+            ),
+        ),
+    ),
     # ── HBRC extras ──────────────────────────────────────────
     DataSource(
         "hbrc_contaminated", "Hawke's Bay Contaminated Sites",
@@ -3621,6 +3680,12 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_rates(conn, log,
             "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Property/MapServer/0",
             "tasman", "CapitalValue", "LandValue", "ImprovementsValue", "PropertyLocation")),
+    DataSource("marlborough_rates", "Marlborough Rates/Valuations (27K)",
+        ["council_valuations"],
+        lambda conn, log=None: _load_rates(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/RatingInformation/MapServer/2",
+            "marlborough", "CapitalValue", "LandValue", "ImprovementValue", None,
+            page_size=1000)),
     # ── Waikato region councils (WRC Properties FeatureServer) ──
     # Uses PREDICTED_SITUATION_MAJOR_NAME to filter by town
     DataSource("waikato_dc_rates", "Waikato District Rates/Valuations (~21K)",

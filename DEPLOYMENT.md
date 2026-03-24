@@ -524,6 +524,27 @@ rm -rf /home/wharescore/app.old /home/wharescore/.env.prod.backup
 
 Volume mounts (`/data/postgres`, `/etc/letsencrypt`) use absolute paths — unaffected by the transition.
 
+### Deploy downtime & auto-sync OOM (session 63)
+
+**Deploy causes ~2-3 min downtime** because `deploy.yml` runs `docker compose down` (stops all containers including postgres), then `build --no-cache` (rebuilds from scratch). Breakdown:
+- `down` + image prune: ~15-20s
+- `build --no-cache api web`: ~60-90s
+- postgres startup + health: ~30s
+- API startup + health: ~15-30s
+- nginx: ~5s
+
+**Auto-sync OOM issue:** After every deploy, the workflow runs a data-sync step that tries to load all datasets not in `data_versions`. Some datasets (`auckland_landslide`, `auckland_overland_flow`) fetch 300K+ ArcGIS features into memory, causing OOM on the 8GB VM → all containers crash.
+
+**Fix (session 63):** Added SKIP set in deploy.yml auto-sync: `{'auckland_landslide', 'auckland_overland_flow', 'christchurch_gtfs', 'ecan_resource_consents'}`. Also inserted dummy rows into `data_versions` for these sources (row_count=0) so the auto-sync skips them.
+
+**Manual restart after OOM:**
+```bash
+cd ~/app
+sudo docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+```
+
+**TODO:** Reduce deploy downtime — use `--no-deps` rebuilds, keep postgres running during deploys, use Docker layer caching instead of `--no-cache`.
+
 ### Post-deploy fixes (session 33)
 
 1. **Bot detection 429 blocking all users** — Fixed: added `_get_client_ip()` that reads `X-Forwarded-For`/`X-Real-IP` headers.

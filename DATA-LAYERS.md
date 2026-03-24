@@ -150,21 +150,63 @@ Legend: **Y** = loaded, **-** = not available/not loaded, **P** = partial
 - ~~Christchurch all hazards~~ — flood 30K + liquefaction 600 + tsunami 8 + zones 7.5K + transit 1.6K + contaminated 906 + coastal 5.3K
 - ~~Normalisation fixes~~ — district_plan_zones council column, transit_stops source/mode, CBD distance
 
+### Completed (session 63)
+- ~~GWRC earthquake hazard~~ — **14,962 rows** (Combined Hazard Index)
+- ~~GWRC ground shaking~~ — **253 rows** (amplification zones)
+- ~~GWRC liquefaction detail~~ — **502 rows** (4-level susceptibility)
+- ~~GWRC slope failure~~ — **4,682 rows** (landslide susceptibility)
+- ~~WCC fault zones~~ — fault zone polygons from 2024 District Plan
+- ~~WCC flood hazard~~ — inundation, overland flowpath, stream corridor from District Plan
+- ~~WCC tsunami hazard~~ — 3 return periods (100yr, 500yr, 1000yr)
+- ~~GNS active faults~~ — **10,269 fault traces** (national, FAZ layer unavailable)
+
+### High Priority — Discovered Hazard Endpoints (ready to write loaders)
+
+**Queenstown-Lakes (QLDC)** — 7 hazard services at `gis.qldc.govt.nz`:
+1. Flooding: `Hazards/Flooding/MapServer` — 11 layers (ORC flood hazard area, Wanaka flood depths, Glenorchy)
+2. Liquefaction: `Hazards/Liquefaction/FeatureServer` — 7 layers (GNS regional 2019, BECA local 2020, T+T 2012, Glenorchy 2022)
+3. Seismic: `Hazards/Seismic/MapServer` — Active faults + folds (2019 GNS)
+4. Other Land Hazards: `Hazards/Other_Land_Hazards/MapServer` — Avalanche, debris flow/rockfall, erosion, landslide
+5. Alluvial Fans: `Hazards/Alluvial_Fans` — fan hazard areas
+6. Sites: `Hazards/Sites` — site-specific hazard records
+7. General: `Hazards/Hazards` — combined service
+
+**Otago Regional Council (ORC)** — covers Dunedin + Queenstown + Central Otago:
+1. Liquefaction: `maps.orc.govt.nz/.../Seismic_LiquefactionOtago_2019/MapServer` — GNS 4-class susceptibility (entire Otago)
+2. Tsunami: `Tsunami_AffectedArea_Final` (FeatureServer + MapServer)
+3. Storm surge: `Stormsurge_PotentialInundation_50cm` and `Stormsurge_Affectedareas_allscenarios`
+4. Coastal: `Coastal_Management_Area_Tidal_DRAFT`
+5. Flooding: Multiple (Taieri, Dart-Rees, Waitaki, flood banks)
+
+**Waikato Regional Council (WRC)** — covers Hamilton + Waikato DC + Thames-Coromandel + South Waikato + Waipa + etc:
+1. Flood hazard: `services.arcgis.com/2bzQ0Ix3iO7MItUa/.../Regional_Flood_Hazard_Update/FeatureServer/0`
+   - Has `TA` field for territorial authority filtering
+   - 27 fields including flood type, river/catchment, flood protection, historical floods, data quality
+   - SRID 2193 (NZTM), polygon geometry
+2. Liquefaction: Published on Waikato Regional Hazards Portal, endpoint TBC
+3. Ground shaking: Already loaded (waikato_ground_shaking, 1,208 rows)
+
+**Northland Regional Council (NRC)** — covers Whangarei + Kaipara + Far North:
+- Web map viewer at `nrcgis.maps.arcgis.com` — flood, coastal erosion, geotechnical
+- REST endpoints not yet confirmed — needs direct investigation of `gis.nrc.govt.nz`
+
+**Taranaki Regional Council (TRC)** — covers New Plymouth + South Taranaki:
+- Open data hub: `data-trcnz.opendata.arcgis.com`
+- Hazard data available but specific REST endpoints not yet confirmed
+
 ### Medium Priority (remaining)
-1. **Canterbury resource consents** — ECan has 115K records, API available at `gis.ecan.govt.nz/.../Resource_Consents/MapServer/45`
-2. **Auckland bus stops (full)** — AT has 5,572 stops, only got 1,000 due to pagination. Re-fetch with proper paging.
-3. **Hamilton remaining flood** — 7K polygons timed out. Retry with smaller page size.
-4. **National noise contours** — Waka Kotahi has national data, only Wellington loaded.
-5. **Slope hazard table** — CCC (139), Tauranga (5,122) data available but no dedicated table.
-6. **Fault zones table** — ECan data (1K polygons) available but no dedicated table.
-7. **Tauranga contaminated (full)** — Only got 2K of 2,607. Re-fetch remaining pages.
+1. **Canterbury resource consents** — ECan endpoint returns 0 rows (may need auth or different approach)
+2. **Auckland bus stops (full)** — AT has 5,572 stops, only got 1,000 due to pagination
+3. **Hamilton remaining flood** — 7K polygons timed out, retry with smaller page size
+4. **National noise contours** — Waka Kotahi national data, only Wellington loaded
+5. **Slope hazard table** — CCC (139), Tauranga (5,122) data available but no dedicated table
+6. **Tauranga contaminated (full)** — Only got 2K of 2,607, re-fetch remaining pages
 
 ### Low Priority
-8. **Solar potential** — GeoTIFF exists but not loaded.
-9. **Wind zones for other regions** — Only GWRC loaded.
-10. **Height controls** — Only WCC has spatial data. CCC has CBD height restrictions (55 polygons).
-11. **Auckland contaminated land** — Not publicly available (council charges $128-228/report).
-12. **Dunedin/other city hazards** — Lower population, lower priority.
+7. **Solar potential** — GeoTIFF exists but not loaded
+8. **Wind zones for other regions** — Only GWRC loaded
+9. **Height controls** — Only WCC has spatial data
+10. **Auckland contaminated land** — Not publicly available (council charges $128-228/report)
 
 ---
 
