@@ -17,6 +17,23 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
   const [snap, setSnap] = useState<string | number | null>('220px');
   const { pushState, popState } = useMobileBackButton();
 
+  // Force Vaul to remount when viewport height changes significantly
+  // (orientation change, mobile toolbar show/hide, browser resize).
+  // Vaul caches drawer height on mount and doesn't recalculate snap positions.
+  const [drawerKey, setDrawerKey] = useState(0);
+  useEffect(() => {
+    let prevHeight = window.innerHeight;
+    const onResize = () => {
+      const delta = Math.abs(window.innerHeight - prevHeight);
+      if (delta > 50) {
+        prevHeight = window.innerHeight;
+        setDrawerKey((k) => k + 1);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   // When a property is selected, auto-snap to half
   useEffect(() => {
     if (hasSelection) {
@@ -77,6 +94,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
   return (
     <Drawer.Root
+      key={drawerKey}
       snapPoints={[...SNAP_POINTS]}
       activeSnapPoint={snap}
       setActiveSnapPoint={handleSnapChange}
