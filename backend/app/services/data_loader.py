@@ -611,10 +611,10 @@ def _load_ecan_consents(conn: psycopg.Connection, log: Callable = None) -> int:
     """ECan (Canterbury) resource consents — ~115K active consents."""
     url = "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Resource_Consents/MapServer/0"
     _progress(log, "Fetching ECan resource consents (Canterbury)...")
-    features = _fetch_arcgis(url, 2000, where="ConsentStatus = 'Active'")
+    features = _fetch_arcgis(url, 2000, where="1=1")
     cur = conn.cursor()
-    # Don't truncate — append alongside GWRC consents. Delete only ECan rows.
-    cur.execute("DELETE FROM resource_consents WHERE consent_id LIKE 'CRC%'")
+    # Don't truncate — append alongside GWRC consents. Delete ECan rows (CRC prefix).
+    cur.execute("DELETE FROM resource_consents WHERE consent_id LIKE 'CRC%' OR consent_id LIKE 'RC%'")
     conn.commit()
     count = 0
     for f in features:
