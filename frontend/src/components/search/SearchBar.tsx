@@ -21,10 +21,15 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const setQuery = useSearchStore((s) => s.setQuery);
   const selectAddress = useSearchStore((s) => s.selectAddress);
   const selectSuburb = useSearchStore((s) => s.selectSuburb);
+  const selectedAddress = useSearchStore((s) => s.selectedAddress);
   const selectProperty = useMapStore((s) => s.selectProperty);
   const setViewport = useMapStore((s) => s.setViewport);
   const bp = useBreakpoint();
   const router = useRouter();
+
+  // On mobile, suppress the header (compact) dropdown when no property is selected,
+  // because the drawer's full-size SearchBar handles the dropdown instead.
+  const suppressDropdown = compact && bp === 'mobile' && !selectedAddress;
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -73,9 +78,9 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   );
 
   useEffect(() => {
-    setIsOpen(query.length >= 2 && totalResults > 0);
+    setIsOpen(!suppressDropdown && query.length >= 2 && totalResults > 0);
     setActiveIndex(-1);
-  }, [query, totalResults]);
+  }, [query, totalResults, suppressDropdown]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

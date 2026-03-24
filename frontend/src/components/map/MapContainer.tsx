@@ -880,8 +880,8 @@ export function MapContainer() {
           </Marker>
         )}
 
-        {/* Property popup */}
-        {showPopup && selectedAddress && (
+        {/* Property popup — hidden on mobile where the bottom drawer shows the report */}
+        {showPopup && selectedAddress && window.innerWidth >= 640 && (
           <Popup
             longitude={selectedAddress.lng}
             latitude={selectedAddress.lat}
@@ -933,9 +933,9 @@ export function MapContainer() {
         </div>
       )}
 
-      {/* Zoom hint — contextual based on zoom level */}
+      {/* Zoom hint — contextual based on zoom level, positioned above mobile drawer */}
       {(viewport.zoom < 14 && !selectedAddress) && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
+        <div className="absolute bottom-60 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
           {viewport.zoom < 8
             ? 'Zoom in or search for an address to get started'
             : viewport.zoom < 11
