@@ -119,7 +119,9 @@ jobs:
             finally:
                 conn.close()
 
-            unloaded = [s.key for s in DATA_SOURCES if s.key not in loaded]
+            # Skip datasets that cause OOM or need API keys
+            SKIP = {'auckland_landslide', 'auckland_overland_flow', 'christchurch_gtfs', 'ecan_resource_consents'}
+            unloaded = [s.key for s in DATA_SOURCES if s.key not in loaded and s.key not in SKIP]
             if not unloaded:
                 log.info(f'All {len(DATA_SOURCES)} datasets already loaded.')
                 sys.exit(0)
