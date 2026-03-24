@@ -186,27 +186,62 @@ Legend: **Y** = loaded, **-** = not available/not loaded, **P** = partial
 2. Liquefaction: Published on Waikato Regional Hazards Portal, endpoint TBC
 3. Ground shaking: Already loaded (waikato_ground_shaking, 1,208 rows)
 
-**Northland Regional Council (NRC)** — covers Whangarei + Kaipara + Far North:
-- Web map viewer at `nrcgis.maps.arcgis.com` — flood, coastal erosion, geotechnical
-- REST endpoints not yet confirmed — needs direct investigation of `gis.nrc.govt.nz`
+**Whangarei District Council (WDC)** — excellent REST endpoints at `geo.wdc.govt.nz`:
+1. Flood: `Floods/MapServer/0` — Flood Susceptible areas
+2. Liquefaction: `Liquefaction/MapServer/1` — Tonkin & Taylor 2020 vulnerability categories
+3. Land stability: `Land_Stability/MapServer/1` — landslide susceptibility
+4. District Plan hazards: `District_Plan_District_Wide_Matters/MapServer` — layers 20-21 (coastal/flood), 31-34 (heritage/Maori), 50-58 (noise/vibration)
+5. Acid sulphate: `Acid_Sulphate/MapServer`
 
-**Taranaki Regional Council (TRC)** — covers New Plymouth + South Taranaki:
-- Open data hub: `data-trcnz.opendata.arcgis.com`
-- Hazard data available but specific REST endpoints not yet confirmed
+**Northland Regional Council (NRC)** — at `data-nrcgis.opendata.arcgis.com`:
+1. Tsunami evacuation zones (simplified)
+2. Coastal flood hazard zones (current, 50yr, 100yr)
+
+**Taranaki Regional Council (TRC)** — at `maps.trc.govt.nz`:
+1. Emergency Management MapServer: `LocalMaps/EmergencyManagement/MapServer`
+   - Layer 1: Active faultlines
+   - Layer 2: Tsunami evacuation zones
+   - Layer 3: Volcanic hazard zones
+   - Layer 4: Volcanic evacuation zones
+
+**New Plymouth District Council (NPDC)** — via GeoHub:
+1. Flood: `geohub.npdc.govt.nz` — District Plan Hazard Flood
+2. Liquefaction: 3-category vulnerability assessment
+
+**Christchurch (CCC)** — fill slope + fault gaps:
+1. Slope hazard: `gis.ccc.govt.nz/.../OpenData/LandCharacteristic/FeatureServer/1` — rockfall, cliff collapse, mass movement
+2. Fault zones (ECan): `gis.ecan.govt.nz/.../Public/EarthquakeFaults/MapServer` — Layer 25: Canterbury Fault Awareness Areas 2024
+
+**Tauranga (TCC)** — fill heritage + noise gaps:
+1. Heritage: `gis.tauranga.govt.nz/.../ePlan/ePlan_Sections1to3/MapServer` — layers 7-10
+2. Noise: `gis.tauranga.govt.nz/.../ePlan/ePlan_Section5/MapServer` — port + airport noise contours
+
+**ORC** — contaminated land for Dunedin:
+1. HAIL sites: `maps.orc.govt.nz/.../ORCHAILService/FeatureServer`
+
+**Invercargill/Southland** — via Environment Southland open data:
+1. Liquefaction: `data-esgis.opendata.arcgis.com/datasets/southland-liquefaction-risk-2006-2012`
+2. Tsunami: `data-esgis.opendata.arcgis.com/datasets/southland-tsunami-evacuation-zones`
+
+**Nelson** — mostly ArcGIS Online/Experience apps, needs URL extraction:
+1. Tsunami: via Top of the South Maps MapServer
+2. Liquefaction: ArcGIS item `583689d7e9324b1e914c99490d2bbf3d`
+
+**Rotorua** — large Planning MapServer with 260+ layers:
+1. Fault Avoidance Zone: `gis.rdc.govt.nz/.../Core/Planning_and_Development/MapServer/260`
+2. Geothermal hazard zones (unique to Rotorua)
 
 ### Medium Priority (remaining)
-1. **Canterbury resource consents** — ECan endpoint returns 0 rows (may need auth or different approach)
-2. **Auckland bus stops (full)** — AT has 5,572 stops, only got 1,000 due to pagination
-3. **Hamilton remaining flood** — 7K polygons timed out, retry with smaller page size
-4. **National noise contours** — Waka Kotahi national data, only Wellington loaded
-5. **Slope hazard table** — CCC (139), Tauranga (5,122) data available but no dedicated table
-6. **Tauranga contaminated (full)** — Only got 2K of 2,607, re-fetch remaining pages
+1. **Canterbury resource consents** — ECan endpoint returns 0 rows (may need auth)
+2. **Hamilton hazards** — WRC server was down, retry when available (liquefaction, contaminated land)
+3. **National noise contours** — Waka Kotahi national data, only Wellington loaded
+4. **HBRC HazardPortal** — rich data but some endpoints return 403
 
 ### Low Priority
-7. **Solar potential** — GeoTIFF exists but not loaded
-8. **Wind zones for other regions** — Only GWRC loaded
-9. **Height controls** — Only WCC has spatial data
-10. **Auckland contaminated land** — Not publicly available (council charges $128-228/report)
+5. **Solar potential** — GeoTIFF exists but not loaded
+6. **Wind zones for other regions** — Only GWRC loaded
+7. **Height controls** — Only WCC has spatial data
+8. **Auckland contaminated land** — Not publicly available (council charges $128-228/report)
 
 ---
 

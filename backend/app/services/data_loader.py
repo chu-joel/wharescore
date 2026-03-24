@@ -3488,6 +3488,174 @@ DATA_SOURCES: list[DataSource] = [
             ),
         ),
     ),
+    # ── ORC contaminated land (Dunedin/Otago HAIL) ──────────
+    DataSource(
+        "orc_hail", "Otago Region Contaminated Sites (HAIL)",
+        ["contaminated_land"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://maps.orc.govt.nz/arcgis/rest/services/ORCHAILService/FeatureServer/0",
+            "contaminated_land", "otago",
+            ["site_name", "category", "site_history"],
+            lambda a: (
+                _clean(a.get("SiteName")) or _clean(a.get("Name")) or _clean(a.get("SITE_NAME")),
+                _clean(a.get("Category")) or _clean(a.get("HAIL_CATEGORY")),
+                _clean(a.get("Description")) or _clean(a.get("Activity")),
+            ),
+        ),
+    ),
+    # ── Whangarei District hazards ────────────────────────────
+    DataSource(
+        "whangarei_flood", "Whangarei Flood Susceptible Areas",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://geo.wdc.govt.nz/server/rest/services/Floods/MapServer/0",
+            "flood_hazard", "whangarei",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Description")) or "Flood Susceptible",
+                _clean(a.get("Category")) or "Medium",
+                "Flood Susceptible",
+            ),
+        ),
+    ),
+    DataSource(
+        "whangarei_liquefaction", "Whangarei Liquefaction Vulnerability (T+T 2020)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://geo.wdc.govt.nz/server/rest/services/Liquefaction/MapServer/1",
+            "liquefaction_detail", "whangarei",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_VULN_CATEGORY")) or _clean(a.get("Category")) or _clean(a.get("Vulnerability")),
+                _clean(a.get("GEOLOGY")) or _clean(a.get("Description")),
+            ),
+        ),
+    ),
+    DataSource(
+        "whangarei_land_stability", "Whangarei Land Instability",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://geo.wdc.govt.nz/server/rest/services/Land_Stability/MapServer/1",
+            "slope_failure", "whangarei",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("Category")) or _clean(a.get("Name")) or "Land Instability",
+                _clean(a.get("Susceptibility")) or _clean(a.get("Risk")),
+            ),
+        ),
+    ),
+    # ── Taranaki hazards (TRC Emergency Management) ──────────
+    DataSource(
+        "taranaki_faults", "Taranaki Active Faultlines",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/1",
+            "active_faults", "taranaki",
+            ["name", "fault_type", "slip_rate"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("FAULT_NAME")) or "Active Fault",
+                _clean(a.get("Type")) or _clean(a.get("FAULT_TYPE")),
+                _clean(a.get("SlipRate")) or _clean(a.get("SLIP_RATE")),
+            ),
+            geom_type="line",
+        ),
+    ),
+    DataSource(
+        "taranaki_tsunami", "Taranaki Tsunami Evacuation Zones",
+        ["tsunami_zones"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/2",
+            "tsunami_zones", "taranaki",
+            ["evac_zone", "zone_class"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Zone")) or "Tsunami Zone",
+                _clean(a.get("Class")) or 1,
+            ),
+        ),
+    ),
+    DataSource(
+        "taranaki_volcanic", "Taranaki Volcanic Hazard Zones",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/3",
+            "flood_hazard", "taranaki_volcanic",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Zone")) or "Volcanic Hazard",
+                _clean(a.get("Category")) or "High",
+                "Volcanic",
+            ),
+        ),
+    ),
+    # ── Christchurch slope + Canterbury faults ────────────────
+    DataSource(
+        "chch_slope_hazard", "Christchurch Slope Hazard (CCC)",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.ccc.govt.nz/server/rest/services/OpenData/LandCharacteristic/FeatureServer/1",
+            "slope_failure", "christchurch",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("Type")) or _clean(a.get("Name")) or "Slope Hazard",
+                _clean(a.get("Category")) or _clean(a.get("Risk")),
+            ),
+        ),
+    ),
+    DataSource(
+        "canterbury_faults", "Canterbury Fault Awareness Areas (ECan 2024)",
+        ["fault_zones"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/EarthquakeFaults/MapServer/25",
+            "fault_zones", "canterbury",
+            ["name", "hazard_ranking", "fault_complexity"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("FaultName")) or "Canterbury Fault",
+                _clean(a.get("Status")) or _clean(a.get("Classification")),
+                _clean(a.get("Type")) or _clean(a.get("Complexity")),
+            ),
+        ),
+    ),
+    # ── Tauranga heritage + noise ─────────────────────────────
+    DataSource(
+        "tauranga_heritage", "Tauranga Built Heritage Sites",
+        ["heritage_sites"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Sections1to3/MapServer/7",
+            "heritage_sites", "tauranga",
+            ["name", "heritage_type", "nzha_id"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Heritage_Name")) or "Heritage Site",
+                _clean(a.get("Category")) or _clean(a.get("Type")),
+                _clean(a.get("NZAA_No")) or _clean(a.get("SiteNumber")),
+            ),
+            geom_type="point",
+        ),
+    ),
+    DataSource(
+        "tauranga_noise", "Tauranga Airport + Port Noise Contours",
+        ["noise_contours"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Section5/MapServer/9",
+            "noise_contours", "tauranga",
+            ["description", "noise_level_db", "source"],
+            lambda a: (
+                _clean(a.get("Name")) or _clean(a.get("Description")) or "Noise Contour",
+                _clean(a.get("NoiseLevel")) or _clean(a.get("dBA")),
+                "Airport",
+            ),
+        ),
+    ),
     # ── HBRC extras ──────────────────────────────────────────
     DataSource(
         "hbrc_contaminated", "Hawke's Bay Contaminated Sites",
