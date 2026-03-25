@@ -3,14 +3,15 @@
 -- also populated by council-specific loaders via _load_council_arcgis.
 -- Safe to re-run (ADD COLUMN IF NOT EXISTS).
 
-ALTER TABLE active_faults ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE active_folds ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE tsunami_zones ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE heritage_sites ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE flood_zones ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE liquefaction_zones ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT;
-ALTER TABLE contaminated_land ADD COLUMN IF NOT EXISTS source_council TEXT;
+-- Wrap each ALTER in a DO block so missing tables don't abort the migration
+DO $$ BEGIN ALTER TABLE active_faults ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE active_folds ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE tsunami_zones ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE heritage_sites ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE flood_zones ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE liquefaction_zones ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER TABLE contaminated_land ADD COLUMN IF NOT EXISTS source_council TEXT; EXCEPTION WHEN undefined_table THEN NULL; END $$;
 
 -- Create tables for DOC data loaders
 CREATE TABLE IF NOT EXISTS doc_huts (
