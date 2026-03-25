@@ -174,7 +174,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         <ul
           id={listboxId}
           role="listbox"
-          className="fixed sm:absolute left-2 right-2 sm:left-0 sm:right-0 top-[3.75rem] sm:top-full mt-1 bg-background border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+          className="fixed sm:absolute left-0 right-0 sm:left-0 sm:right-0 top-[3.5rem] sm:top-full mt-0 sm:mt-1 bg-background border-b sm:border border-border sm:rounded-lg shadow-lg z-50 max-h-[calc(100dvh-3.5rem)] sm:max-h-80 overflow-y-auto"
         >
           {isLoading && (
             <li className="px-4 py-3 text-sm text-muted-foreground" role="option" aria-selected={false}>Searching...</li>

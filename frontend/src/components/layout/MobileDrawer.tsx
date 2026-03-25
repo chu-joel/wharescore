@@ -165,6 +165,11 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     }
   }, [snapId]);
 
+  // Stop touch events from passing through the drawer to the map
+  const stopPropagation = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return (
     <div
       ref={sheetRef}
@@ -181,6 +186,9 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onTouchStart={stopPropagation}
+      onTouchMove={stopPropagation}
+      onTouchEnd={stopPropagation}
     >
       {/* Drag handle */}
       <div
