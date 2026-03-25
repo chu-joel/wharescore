@@ -251,7 +251,6 @@ export function UpgradeModal() {
   const { getToken } = useAuthToken();
   const [loading, setLoading] = useState<string | null>(null);
   const [canClose, setCanClose] = useState(false);
-  const { allRequiredFilled } = useInputReadiness(targetPersona);
 
   // Delayed close button — force 3s look at modal (research: improves conversion)
   useEffect(() => {
@@ -373,9 +372,6 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Input readiness tip — prompt to fill in required details */}
-        <InputReadinessTip persona={targetPersona} />
-
         {/* Feature list */}
         <ul className="space-y-1 sm:space-y-1.5 py-0.5 sm:py-1">
           {FEATURES.map((feature) => (
@@ -391,7 +387,7 @@ export function UpgradeModal() {
           {/* Single report */}
           <button
             onClick={() => handlePurchase('single')}
-            disabled={!!loading || !allRequiredFilled}
+            disabled={!!loading}
             className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
@@ -428,7 +424,7 @@ export function UpgradeModal() {
           {/* Pro monthly */}
           <button
             onClick={() => handlePurchase('pro')}
-            disabled={!!loading || !allRequiredFilled}
+            disabled={!!loading}
             className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
@@ -451,7 +447,7 @@ export function UpgradeModal() {
           <div className="border-t border-border pt-3">
             <button
               onClick={handleGuestCheckout}
-              disabled={!!loading || !allRequiredFilled}
+              disabled={!!loading}
               className="w-full rounded-lg border border-dashed border-muted-foreground/30 p-2.5 text-center text-sm text-muted-foreground transition-all hover:border-piq-primary hover:text-piq-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-muted-foreground/30 disabled:hover:text-muted-foreground"
             >
               {loading === 'guest' ? (
