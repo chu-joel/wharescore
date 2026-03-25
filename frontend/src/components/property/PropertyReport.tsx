@@ -15,8 +15,6 @@ import { KeyTakeaways } from './KeyTakeaways';
 import { BetaBanner } from './BetaBanner';
 import { ReportCTABanner } from './ReportCTABanner';
 import { FloatingReportButton } from './FloatingReportButton';
-import { UpgradeModal } from './UpgradeModal';
-import { ReportConfirmModal } from './ReportConfirmModal';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ReportDisclaimer } from '@/components/common/ReportDisclaimer';
 import { AppFooter } from '@/components/layout/AppFooter';
@@ -292,11 +290,6 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
       {/* Scroll-triggered upgrade prompt */}
       <ScrollPrompt report={report} />
-
-      {/* Paywall modal — shown when free user clicks download */}
-      <UpgradeModal />
-      {/* Confirm inputs modal — shown before generating report */}
-      <ReportConfirmModal />
     </div>
   );
 }

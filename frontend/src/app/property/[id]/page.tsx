@@ -5,6 +5,8 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { SplitView } from '@/components/layout/SplitView';
 import { MapContainer } from '@/components/map/MapContainer';
 import { PropertyReport } from '@/components/property/PropertyReport';
+import { UpgradeModal } from '@/components/property/UpgradeModal';
+import { ReportConfirmModal } from '@/components/property/ReportConfirmModal';
 import { ErrorState } from '@/components/common/ErrorState';
 
 export default function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +50,10 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
       <div className="sm:hidden pt-14">
         <PropertyReport addressId={addressId} />
       </div>
+
+      {/* Modals — rendered once regardless of layout breakpoint */}
+      <UpgradeModal />
+      <ReportConfirmModal />
     </>
   );
 }

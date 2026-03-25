@@ -46,10 +46,22 @@ function useInputReadiness(persona: string) {
   return { required, optional, allRequiredFilled: required.every(r => r.filled) };
 }
 
+const DWELLING_TYPES = [
+  { value: 'house', label: 'House' },
+  { value: 'flat', label: 'Flat' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'room', label: 'Room' },
+] as const;
+
+const BEDROOM_OPTIONS = ['Studio', '1', '2', '3', '4', '5+'] as const;
+
 function InputReadinessTip({ persona }: { persona: string }) {
   const { required, optional, allRequiredFilled } = useInputReadiness(persona);
   const missingRequired = required.filter(r => !r.filled);
   const missingOptional = optional.filter(r => !r.filled);
+
+  const rentStore = useRentInputStore();
+  const buyerStore = useBuyerInputStore();
 
   if (missingRequired.length === 0 && missingOptional.length === 0) return null;
 
@@ -59,19 +71,58 @@ function InputReadinessTip({ persona }: { persona: string }) {
         ? 'border-risk-high/30 bg-risk-high/5 text-risk-high'
         : 'border-piq-accent-warm/30 bg-piq-accent-warm/5 text-piq-accent-warm'
     }`}>
+      {/* Inline inputs for missing required fields */}
       {missingRequired.length > 0 && (
-        <p className="font-semibold">
-          Required: {missingRequired.map(r => r.label).join(', ')}
-        </p>
+        <div className="space-y-2">
+          {persona === 'renter' && !rentStore.dwellingType && (
+            <div>
+              <p className="font-semibold mb-1">Property type</p>
+              <div className="flex flex-wrap gap-1">
+                {DWELLING_TYPES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => rentStore.setDwellingType(value)}
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {((persona === 'renter' && !rentStore.bedrooms) || (persona === 'buyer' && !buyerStore.bedrooms)) && (
+            <div>
+              <p className="font-semibold mb-1">Bedrooms</p>
+              <div className="flex flex-wrap gap-1">
+                {BEDROOM_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      if (persona === 'renter') rentStore.setBedrooms(opt);
+                      else buyerStore.setBedrooms(opt);
+                    }}
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {missingOptional.length > 0 && (
-        <p className={missingRequired.length > 0 ? 'mt-1 text-piq-accent-warm' : 'font-medium'}>
+        <p className={missingRequired.length > 0 ? 'mt-2 text-piq-accent-warm' : 'font-medium'}>
           For best results, also fill in: {missingOptional.map(r => r.label).join(', ')}
         </p>
       )}
-      <p className="text-[10px] text-muted-foreground mt-0.5">
-        Close this and enter your details above — your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
-      </p>
+      {missingRequired.length === 0 && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          Close this and enter your details above — your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
+        </p>
+      )}
     </div>
   );
 }
