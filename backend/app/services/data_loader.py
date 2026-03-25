@@ -77,24 +77,90 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
 
     Yields features one at a time — constant memory regardless of dataset size.
     Callers iterate with ``for f in _fetch_arcgis(...):`` exactly as before.
+
+    Handles two pagination strategies:
+    1. Offset-based (if server supports resultOffset) — default
+    2. ObjectID-based (fallback for MapServer layers that don't support offset)
+       Uses ``where=OBJECTID > {last_oid}`` with ``orderByFields=OBJECTID ASC``
     """
-    offset = 0
-    while True:
-        params = {
-            "where": where, "outFields": "*", "f": "json",
-            "returnGeometry": "true",
-            "resultOffset": str(offset), "resultRecordCount": str(max_per_page),
-        }
-        url = f"{base_url}/query?{urllib.parse.urlencode(params)}"
-        data = json.loads(_fetch_url(url))
-        features = data.get("features", [])
-        if not features:
-            break
-        yield from features
-        offset += len(features)
-        if len(features) < max_per_page:
-            break
-        time.sleep(0.3)
+    # ── Check if the service supports offset pagination ──────
+    supports_pagination = True
+    try:
+        meta_url = f"{base_url}?f=json"
+        meta = json.loads(_fetch_url(meta_url, timeout=30))
+        # FeatureServer layers expose advancedQueryCapabilities
+        adv = meta.get("advancedQueryCapabilities", {})
+        if adv:
+            supports_pagination = adv.get("supportsPagination", True)
+        else:
+            # MapServer layers: check supportsResultOffset or supportsPagination
+            supports_pagination = meta.get("supportsPagination", meta.get("supportsResultOffset", False))
+    except Exception:
+        # If metadata fetch fails, try offset first and fall back if needed
+        pass
+
+    if supports_pagination:
+        # ── Strategy 1: offset-based pagination ──────────────
+        offset = 0
+        while True:
+            params = {
+                "where": where, "outFields": "*", "f": "json",
+                "returnGeometry": "true",
+                "resultOffset": str(offset), "resultRecordCount": str(max_per_page),
+            }
+            url = f"{base_url}/query?{urllib.parse.urlencode(params)}"
+            data = json.loads(_fetch_url(url))
+            features = data.get("features", [])
+            if not features:
+                break
+            yield from features
+            offset += len(features)
+            # Check exceededTransferLimit — if true, there are more records
+            if data.get("exceededTransferLimit"):
+                time.sleep(0.3)
+                continue
+            if len(features) < max_per_page:
+                break
+            time.sleep(0.3)
+    else:
+        # ── Strategy 2: ObjectID-based pagination ────────────
+        # For MapServer layers that don't support resultOffset
+        logger.info(f"Using ObjectID-based pagination for {base_url}")
+        last_oid = -1
+        while True:
+            oid_where = f"OBJECTID > {last_oid}"
+            if where and where != "1=1":
+                oid_where = f"({where}) AND {oid_where}"
+            params = {
+                "where": oid_where, "outFields": "*", "f": "json",
+                "returnGeometry": "true",
+                "resultRecordCount": str(max_per_page),
+                "orderByFields": "OBJECTID ASC",
+            }
+            url = f"{base_url}/query?{urllib.parse.urlencode(params)}"
+            data = json.loads(_fetch_url(url))
+            features = data.get("features", [])
+            if not features:
+                break
+            yield from features
+            # Track the last OBJECTID we received
+            last_oid = max(
+                f.get("attributes", {}).get("OBJECTID") or
+                f.get("attributes", {}).get("objectid") or
+                f.get("attributes", {}).get("FID") or 0
+                for f in features
+            )
+            if last_oid <= 0:
+                # No OBJECTID field found — can't paginate further
+                logger.warning(f"No OBJECTID field found in features from {base_url}, stopping after first page")
+                break
+            # Check exceededTransferLimit — if true, there are more records
+            if data.get("exceededTransferLimit"):
+                time.sleep(0.3)
+                continue
+            if len(features) < max_per_page:
+                break
+            time.sleep(0.3)
 
 
 def _mp_wkt(geom: dict) -> str | None:
@@ -2931,6 +2997,319 @@ def load_tauranga_noise(conn: psycopg.Connection, log: Callable = None) -> int:
     return count
 
 
+# ── DOC Huts ─────────────────────────────────────────────────
+
+def load_doc_huts(conn: psycopg.Connection, log: Callable = None) -> int:
+    """DOC backcountry huts (national)."""
+    url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/Huts/MapServer/0"
+    _progress(log, "Fetching DOC huts...")
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS doc_huts (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            status TEXT,
+            category TEXT,
+            equipment TEXT,
+            geom GEOMETRY(Point, 4326)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_huts_geom ON doc_huts USING GIST(geom)")
+    cur.execute("TRUNCATE doc_huts RESTART IDENTITY")
+    conn.commit()
+    features = _fetch_arcgis(url, 2000)
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        x, y = geom.get("x"), geom.get("y")
+        if x is None or y is None:
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO doc_huts (name, status, category, equipment, geom) "
+                "VALUES (%s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_MakePoint(%s, %s), 2193), 4326))",
+                (
+                    _clean(a.get("DESCRIPTION")),
+                    _clean(a.get("STATUS")),
+                    _clean(a.get("CATEGORY_DESCRIPTION")),
+                    _clean(a.get("EQUIPMENT")),
+                    x, y,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"DOC huts: {count} rows")
+    return count
+
+
+# ── DOC Tracks ───────────────────────────────────────────────
+
+def load_doc_tracks(conn: psycopg.Connection, log: Callable = None) -> int:
+    """DOC tracks (national)."""
+    url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/AllTracks/MapServer/0"
+    _progress(log, "Fetching DOC tracks...")
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS doc_tracks (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            status TEXT,
+            category TEXT,
+            track_type TEXT,
+            url TEXT,
+            geom GEOMETRY(MultiLineString, 4326)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_tracks_geom ON doc_tracks USING GIST(geom)")
+    cur.execute("TRUNCATE doc_tracks RESTART IDENTITY")
+    conn.commit()
+    features = _fetch_arcgis(url, 2000)
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("paths"):
+            continue
+        wkt = _ml_wkt(geom)
+        if not wkt:
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO doc_tracks (name, status, category, track_type, url, geom) "
+                "VALUES (%s, %s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (
+                    _clean(a.get("DESCRIPTION")),
+                    _clean(a.get("STATUS")),
+                    _clean(a.get("CATEGORY_DESCRIPTION")),
+                    _clean(a.get("OBJECT_TYPE_DESCRIPTION")),
+                    _clean(a.get("URL")),
+                    wkt,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"DOC tracks: {count} rows")
+    return count
+
+
+# ── DOC Campsites ────────────────────────────────────────────
+
+def load_doc_campsites(conn: psycopg.Connection, log: Callable = None) -> int:
+    """DOC campsites (national)."""
+    url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/Campsites/MapServer/0"
+    _progress(log, "Fetching DOC campsites...")
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS doc_campsites (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            status TEXT,
+            category TEXT,
+            equipment TEXT,
+            geom GEOMETRY(Point, 4326)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_campsites_geom ON doc_campsites USING GIST(geom)")
+    cur.execute("TRUNCATE doc_campsites RESTART IDENTITY")
+    conn.commit()
+    features = _fetch_arcgis(url, 2000)
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        x, y = geom.get("x"), geom.get("y")
+        if x is None or y is None:
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO doc_campsites (name, status, category, equipment, geom) "
+                "VALUES (%s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_MakePoint(%s, %s), 2193), 4326))",
+                (
+                    _clean(a.get("DESCRIPTION")),
+                    _clean(a.get("STATUS")),
+                    _clean(a.get("CATEGORY_DESCRIPTION")),
+                    _clean(a.get("EQUIPMENT")),
+                    x, y,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"DOC campsites: {count} rows")
+    return count
+
+
+# ── School Enrolment Zones ───────────────────────────────────
+
+def load_school_zones(conn: psycopg.Connection, log: Callable = None) -> int:
+    """MoE school enrolment zone boundaries (national)."""
+    url = "https://services.arcgis.com/XTtANUDT8Va4DLwI/arcgis/rest/services/NZ_School_Zone_boundaries/FeatureServer/0"
+    _progress(log, "Fetching school enrolment zones...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("TRUNCATE school_zones RESTART IDENTITY")
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        school_id = a.get("School_ID")
+        try:
+            school_id = int(school_id) if school_id else None
+        except (ValueError, TypeError):
+            school_id = None
+        try:
+            cur.execute(
+                "INSERT INTO school_zones (school_id, school_name, institution_type, geom) "
+                "VALUES (%s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (
+                    school_id,
+                    _clean(a.get("School_name")),
+                    _clean(a.get("Institution_type")),
+                    wkt,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"School zones: {count} rows")
+    return count
+
+
+# ── NZTA National Road Noise Contours ────────────────────────
+
+def load_nzta_noise_contours(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Waka Kotahi national road noise contours."""
+    url = "https://services.arcgis.com/CXBb7LAjgIIdcsPt/arcgis/rest/services/Road_Noise_Contours/FeatureServer/0"
+    _progress(log, "Fetching NZTA national road noise contours...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    # Ensure source_council column exists
+    try:
+        cur.execute("ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    cur.execute("DELETE FROM noise_contours WHERE source_council = %s", ("nzta_national",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        laeq_raw = a.get("LAeq24h")
+        try:
+            laeq = int(float(laeq_raw)) if laeq_raw is not None else None
+        except (ValueError, TypeError):
+            laeq = None
+        try:
+            cur.execute(
+                "INSERT INTO noise_contours (laeq24h, source_council, geom) "
+                "VALUES (%s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (laeq, "nzta_national", wkt),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  noise_contours (nzta_national): {count} rows")
+    return count
+
+
+# ── Northland Regional Council Contaminated Land ─────────────
+
+def load_nrc_contaminated_land(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Northland Regional Council contaminated land (IRIS SLUs) — point geometry."""
+    url = "https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/IRIS_SLUs/FeatureServer/0"
+    _progress(log, "Fetching NRC contaminated land (IRIS SLUs)...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    # Ensure source_council column exists on contaminated_land
+    try:
+        cur.execute("ALTER TABLE contaminated_land ADD COLUMN IF NOT EXISTS source_council TEXT")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    cur.execute("DELETE FROM contaminated_land WHERE source_council = %s", ("northland",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        x, y = geom.get("x"), geom.get("y")
+        if x is None or y is None:
+            continue
+        # Map NRC fields to contaminated_land columns
+        site_id = _clean(a.get("IRISID"))
+        category = _clean(a.get("Classification"))
+        hail_cats = _clean(a.get("HailCategories"))
+        status = _clean(a.get("CurrentStatus"))
+        try:
+            cur.execute(
+                "INSERT INTO contaminated_land "
+                "(site_id, site_name, category, anzecc_category, site_history, source_council, geom) "
+                "VALUES (%s, %s, %s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_MakePoint(%s, %s), 2193), 4326))",
+                (
+                    site_id,
+                    f"IRIS {site_id}" if site_id else None,
+                    category,
+                    hail_cats,
+                    status,
+                    "northland",
+                    x, y,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  contaminated_land (northland): {count} rows")
+    return count
+
+
 # ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
@@ -3652,11 +4031,10 @@ DATA_SOURCES: list[DataSource] = [
             conn, log,
             "https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/3",
             "landslide_areas", "queenstown_lakes",
-            ["name", "source", "certainty"],
+            ["name", "feature_type"],
             lambda a: (
                 _clean(a.get("Name")) or _clean(a.get("Description")) or "Landslide Area",
-                _clean(a.get("Source")) or "ORC",
-                _clean(a.get("Certainty")) or _clean(a.get("Category")),
+                _clean(a.get("Certainty")) or _clean(a.get("Category")) or "Landslide Area",
             ),
         ),
     ),
@@ -3675,6 +4053,10 @@ DATA_SOURCES: list[DataSource] = [
         ),
     ),
     # ── ORC contaminated land (Dunedin/Otago HAIL) ──────────
+    # NOTE: As of 2026-03, this endpoint returns "Token Required" (error 499).
+    # ORC appears to have restricted public access. Loader will return 0 rows
+    # until the endpoint is made public again or an auth token is configured.
+    # Geometry type is likely Point (similar to other HAIL/contaminated land services).
     DataSource(
         "orc_hail", "Otago Region Contaminated Sites (HAIL)",
         ["contaminated_land"],
@@ -3688,6 +4070,8 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Category")) or _clean(a.get("HAIL_CATEGORY")),
                 _clean(a.get("Description")) or _clean(a.get("Activity")),
             ),
+            geom_type="point",
+            srid=4326,
         ),
     ),
     # ── Whangarei District hazards ────────────────────────────
@@ -4314,6 +4698,755 @@ DATA_SOURCES: list[DataSource] = [
             geom_type="point",
             srid=4326,
         ),
+    ),
+    # ══════════════════════════════════════════════════════════
+    # QUEENSTOWN-LAKES (QLDC) — expanded hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("qldc_active_faults", "QLDC Active Faults (GNS 2019)",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Seismic/MapServer/1",
+            "active_faults", "queenstown_lakes",
+            ["fault_name", "fault_type", "slip_rate_mm_yr", "data_source"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Active Fault",
+                _clean(a.get("ZONE")),
+                _clean(a.get("DOWN_QUAD")),
+                "GNS 2019 via QLDC",
+            ),
+            geom_type="line")),
+    DataSource("qldc_active_folds", "QLDC Active Folds (GNS 2019)",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Seismic/MapServer/0",
+            "active_faults", "queenstown_lakes_folds",
+            ["fault_name", "fault_type", "slip_rate_mm_yr", "data_source"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Active Fold",
+                _clean(a.get("TYPE")) or "fold",
+                _clean(a.get("FACING")),
+                "GNS 2019 via QLDC",
+            ),
+            geom_type="line")),
+    DataSource("qldc_avalanche", "QLDC Avalanche Areas",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/0",
+            "slope_failure", "queenstown_avalanche",
+            ["lskey", "severity"],
+            lambda a: (
+                "Avalanche Area",
+                _clean(a.get("HAZ_CODE")) or "High",
+            ))),
+    DataSource("qldc_debris_rockfall", "QLDC Debris Flow & Rockfall Risk (BECA 2020)",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/1",
+            "slope_failure", "queenstown_debris_rockfall",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("Description")) or "Debris Flow / Rockfall",
+                "High",
+            ))),
+    DataSource("qldc_erosion", "QLDC Erosion Areas (Opus 2002)",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/2",
+            "coastal_erosion", "queenstown_lakes",
+            ["name", "coast_type", "scenario"],
+            lambda a: (
+                _clean(a.get("HAZ_TYPE")) or "Erosion Area",
+                _clean(a.get("HAZ_CAT")) or "Land",
+                _clean(a.get("COMMENTS")),
+            ))),
+    DataSource("qldc_alluvial_fans", "QLDC Alluvial Fan Areas (ORC 2011)",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Alluvial_Fans/MapServer/1",
+            "slope_failure", "queenstown_alluvial",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("FAN_NAME")) or "Alluvial Fan",
+                _clean(a.get("FAN_HAZARD")) or _clean(a.get("ADVISORY")) or "High",
+            ))),
+    DataSource("qldc_damburst", "QLDC Damburst Flooding (ORC 2002)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Flooding/MapServer/2",
+            "flood_hazard", "queenstown_damburst",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                "Damburst Flood Zone",
+                "High",
+                "Flood Due to Damburst",
+            ))),
+    DataSource("qldc_rainfall_flood", "QLDC Rainfall Flooding (ORC 2012)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.qldc.govt.nz/server/rest/services/Hazards/Flooding/MapServer/1",
+            "flood_hazard", "queenstown_rainfall",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("DESCRIPTIO")) or "Rainfall Flooding",
+                _clean(a.get("CLASS")) or "Medium",
+                _clean(a.get("HAZ_TYPE")) or "Rainfall Flood",
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # CANTERBURY (ECan) — expanded hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("ecan_liquefaction_ashburton", "Ashburton Liquefaction Vulnerability 2024",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/31",
+            "liquefaction_detail", "ashburton",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_mackenzie", "Mackenzie Liquefaction Vulnerability 2023",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/29",
+            "liquefaction_detail", "mackenzie",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_waitaki", "Waitaki Liquefaction Vulnerability 2023",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/30",
+            "liquefaction_detail", "waitaki",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_waimate", "Waimate Liquefaction Vulnerability 2022",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/28",
+            "liquefaction_detail", "waimate",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_timaru", "Timaru Liquefaction Vulnerability 2020",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/9",
+            "liquefaction_detail", "timaru",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_kaikoura", "Kaikoura Liquefaction Vulnerability 2019",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/20",
+            "liquefaction_detail", "kaikoura",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_waimakariri", "Waimakariri Liquefaction Susceptibility 2009",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/6",
+            "liquefaction_detail", "waimakariri",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or _clean(a.get("SUSCEPTIBILITY")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_selwyn", "Selwyn Liquefaction Susceptibility 2006",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/7",
+            "liquefaction_detail", "selwyn",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or _clean(a.get("SUSCEPTIBILITY")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_liquefaction_hurunui", "Hurunui Liquefaction (Eastern Canterbury 2012)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/3",
+            "liquefaction_detail", "hurunui",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Unknown",
+                _clean(a.get("DESCRIP")) or _clean(a.get("DETAIL")),
+            ))),
+    DataSource("ecan_tsunami", "Canterbury Tsunami Evacuation Zones",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/4",
+            "tsunami_hazard", "canterbury",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                _clean(a.get("Description")) or "Tsunami Evacuation Zone",
+                _clean(a.get("Status")) or "High",
+                _clean(a.get("District")) or "Canterbury",
+            ))),
+    DataSource("ecan_coastal_hazard", "Canterbury Coastal Hazard Zones",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Public/RPS_RCEP_Coastal_Erosion/MapServer/3",
+            "coastal_erosion", "canterbury",
+            ["name", "coast_type", "scenario"],
+            lambda a: (
+                _clean(a.get("Hazard_Zone")) or "Coastal Hazard Zone",
+                "Coastal",
+                _clean(a.get("DISTRICT")) or _clean(a.get("STATUS")),
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # ENVIRONMENT SOUTHLAND — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("southland_liquefaction", "Southland Liquefaction Risk",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/11",
+            "liquefaction_detail", "southland",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_RISK")) or _clean(a.get("Description")) or "Unknown",
+                _clean(a.get("Description")),
+            ))),
+    DataSource("southland_shaking", "Southland Shaking Amplification",
+        ["ground_shaking"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/10",
+            "ground_shaking", "southland",
+            ["zone", "severity"],
+            lambda a: (
+                _clean(a.get("AMP_CODE")) or _clean(a.get("GroundClass")),
+                _clean(a.get("Description")) or _clean(a.get("AMP_CODE")),
+            ))),
+    DataSource("southland_tsunami", "Southland Tsunami Evacuation Zones",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/8",
+            "tsunami_hazard", "southland",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                _clean(a.get("Name")) or "Tsunami Evacuation Zone",
+                _clean(a.get("Zone")) or "High",
+                _clean(a.get("Type")) or _clean(a.get("ZoneText")) or "Tsunami",
+            ))),
+    DataSource("southland_floodplains", "Southland Significant Floodplains",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/7",
+            "flood_hazard", "southland",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Region")) or "Significant Floodplain",
+                "High",
+                "Significant Floodplain",
+            ))),
+    DataSource("southland_active_faults", "Southland Active Faults",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/2",
+            "active_faults", "southland",
+            ["fault_name", "fault_type", "slip_rate_mm_yr", "data_source"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Active Fault",
+                _clean(a.get("ZONE")),
+                None,
+                "Environment Southland",
+            ),
+            geom_type="line")),
+    # ══════════════════════════════════════════════════════════
+    # NORTHLAND (NRC) — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("northland_tsunami", "Northland Tsunami Inundation Zones 2024",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services9.arcgis.com/QYNojhn6G3lxeEgh/arcgis/rest/services/Tsunami_Inundation_Zones_2024__Public_/FeatureServer/0",
+            "tsunami_hazard", "northland",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Tsunami Inundation Zone",
+                _clean(a.get("Zone")) or "High",
+                _clean(a.get("Zone")) or "Tsunami",
+            ),
+            srid=2193)),
+    DataSource("northland_flood_50yr", "Northland River Flood 50yr (Regionwide)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Simplified_River_Flood_Hazard_Zone_Regionwide_Model_50_year_Extent/FeatureServer/0",
+            "flood_hazard", "northland_50yr",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                "River Flood Zone (50yr)",
+                "Medium",
+                "River Flood 50yr ARI",
+            ),
+            srid=2193)),
+    DataSource("northland_flood_10yr", "Northland River Flood 10yr (Regionwide)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Simplified_River_Flood_Hazard_Zone_Regionwide_Model_10_year_Extent/FeatureServer/0",
+            "flood_hazard", "northland_10yr",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                "River Flood Zone (10yr)",
+                "High",
+                "River Flood 10yr ARI",
+            ),
+            srid=2193)),
+    DataSource("northland_coastal_flood", "Northland Coastal Flood (Current)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Simplified_Coastal_Flood_Hazard_Zone_Zone0_Current/FeatureServer/0",
+            "flood_hazard", "northland_coastal",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or "Coastal Flood Zone",
+                "High",
+                f"Coastal Flood (CFHZ0={a.get('CFHZ0') or '?'}m)",
+            ),
+            srid=2193)),
+    # ══════════════════════════════════════════════════════════
+    # BAY OF PLENTY REGIONAL COUNCIL — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("bop_tsunami_evac", "BOP Tsunami Evacuation Zones 2023",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/6",
+            "tsunami_hazard", "bay_of_plenty",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Tsunami Evacuation Zone",
+                "High",
+                _clean(a.get("AreaType")) or _clean(a.get("TA")) or "BOP Evacuation",
+            ))),
+    DataSource("bop_tsunami_2500yr", "BOP Tsunami Inundation 2500yr ARI",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/105",
+            "tsunami_hazard", "bop_2500yr",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Tsunami Inundation (2500yr ARI)",
+                _clean(a.get("Zone")) or "High",
+                "2500yr ARI max depth",
+            ))),
+    DataSource("bop_liquefaction_a", "BOP Liquefaction Level A (Desktop)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/10",
+            "liquefaction_detail", "bay_of_plenty",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LiquefactionVulnerabilityCatego")) or "Unknown",
+                _clean(a.get("Terrain")) or _clean(a.get("SubTerrain")),
+            ))),
+    DataSource("bop_liquefaction_b", "BOP Liquefaction Level B (Detailed)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/11",
+            "liquefaction_detail", "bop_level_b",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LiquefactionVulnerabilityCatego")) or "Unknown",
+                _clean(a.get("Terrain")) or _clean(a.get("SubTerrain")),
+            ))),
+    DataSource("bop_active_faults", "BOP Active Faults (GNS)",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/1",
+            "active_faults", "bay_of_plenty",
+            ["fault_name", "fault_type", "slip_rate_mm_yr", "data_source"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Active Fault",
+                _clean(a.get("ACTIVITY")),
+                _clean(a.get("TOTAL_SLIP")),
+                "GNS via BoPRC",
+            ),
+            geom_type="line")),
+    DataSource("bop_historic_floods", "BOP Historic Flood Extents",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/5",
+            "flood_hazard", "bay_of_plenty",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("FloodingType")) or "Historic Flood",
+                "High",
+                f"Historic Flood ({_clean(a.get('CaptureDate')) or '?'})",
+            ))),
+    DataSource("bop_calderas", "BOP Volcanic Calderas (GNS)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/0",
+            "flood_hazard", "bop_volcanic",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or "Volcanic Caldera",
+                "High",
+                "Volcanic Caldera",
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # WAIKATO REGIONAL — expanded hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("waikato_tsunami", "Waikato Tsunami Hazard Classification",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_MOD_TSUNAMI_HAZARD_CLASS/FeatureServer/12",
+            "tsunami_hazard", "waikato",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Tsunami Hazard Zone",
+                _clean(a.get("HAZARD_CLASS")) or "Medium",
+                _clean(a.get("HAZARD_CLASS")) or "Tsunami",
+            ),
+            srid=2193)),
+    DataSource("waikato_tsunami_inundation", "Waikato Tsunami Inundation Zones",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/WAIKATO_HAZ_TSUNAMI_DATA_Apr_2021/FeatureServer/28",
+            "tsunami_hazard", "waikato_inundation",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                _clean(a.get("MODEL_AREA")) or "Tsunami Inundation Zone",
+                "High",
+                _clean(a.get("REGION")) or _clean(a.get("MODEL_TYPE")) or "Tsunami Inundation",
+            ),
+            srid=2193)),
+    DataSource("waikato_regional_flood", "Waikato Regional Flood Hazard Update",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/Regional_Flood_Hazard_Update/FeatureServer/0",
+            "flood_hazard", "waikato_regional",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("AREA_NAME")) or _clean(a.get("FLOOD_HZD_NAME")) or "Regional Flood",
+                "High" if _clean(a.get("WORKS_DESIGN_STANDARD")) in ("1%", "2%") else "Medium",
+                _clean(a.get("FLOOD_TYPE")) or "Flooding",
+            ),
+            srid=2193)),
+    DataSource("waikato_flood_depth", "Waikato Local Flood Depth Model",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_MOD_LOCAL_FLOOD_DEPTH/FeatureServer/0",
+            "flood_hazard", "waikato_depth",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("LOCATION")) or "Flood Depth Zone",
+                "High" if ">1" in str(a.get("FLOOD_DEPTH_GROUP_M") or "") else
+                "Medium" if ">0.5" in str(a.get("FLOOD_DEPTH_GROUP_M") or "") else "Low",
+                f"Flood Depth {_clean(a.get('FLOOD_DEPTH_GROUP_M')) or '?'}m",
+            ),
+            srid=2193)),
+    # ══════════════════════════════════════════════════════════
+    # GISBORNE DISTRICT — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("gisborne_flood", "Gisborne Flood Hazard Overlays",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_flood_hazard/FeatureServer/0",
+            "flood_hazard", "gisborne",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("ZONE")) or "Flood Hazard",
+                "High",
+                _clean(a.get("DISTPLAN_T")) or "Flood",
+            ),
+            srid=2193)),
+    DataSource("gisborne_tsunami", "Gisborne Tsunami Evacuation Zones 2019",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/Updated_Tsunami_Evacuation_Zones_2019/FeatureServer/3",
+            "tsunami_hazard", "gisborne",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Tsunami Evacuation Zone",
+                _clean(a.get("ZONE")) or "High",
+                _clean(a.get("Description")) or _clean(a.get("ZONE")) or "Tsunami",
+            ),
+            srid=2193)),
+    DataSource("gisborne_liquefaction", "Gisborne Liquefaction",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/liquefaction/FeatureServer/0",
+            "liquefaction_detail", "gisborne",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("Class")) or "Unknown",
+                None,
+            ),
+            srid=2193)),
+    DataSource("gisborne_coastal_hazard", "Gisborne Coastal Hazard Overlays",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_coastal_hazard/FeatureServer/0",
+            "coastal_erosion", "gisborne",
+            ["name", "coast_type", "scenario"],
+            lambda a: (
+                _clean(a.get("CODE")) or "Coastal Hazard",
+                "Coastal",
+                _clean(a.get("DISTPLAN_T")),
+            ),
+            srid=2193)),
+    DataSource("gisborne_stability", "Gisborne Stability Alert Areas",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_stability_alert/FeatureServer/0",
+            "slope_failure", "gisborne",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("TEXT")) or _clean(a.get("LABEL")) or "Stability Alert",
+                "High",
+            ),
+            srid=2193)),
+    DataSource("gisborne_coastal_flooding", "Gisborne Coastal Storm Flooding (1% AEP + 2m SLR)",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/coastal_flooding/FeatureServer/1",
+            "flood_hazard", "gisborne_coastal",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Coastal Storm Flood",
+                "High",
+                "Coastal Storm 1% AEP + 2m SLR",
+            ),
+            srid=2193)),
+    # ══════════════════════════════════════════════════════════
+    # NELSON — expanded hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("nelson_flood_future", "Nelson Future Flooding 2130",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/1",
+            "flood_hazard", "nelson_2130",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Type")) or "Future Flooding",
+                "High" if _clean(a.get("AnnualExceedanceProbablity")) in ("1%", "2%") else "Medium",
+                f"Future Flood 2130 ({_clean(a.get('AnnualExceedanceProbablity')) or '?'} AEP)",
+            ))),
+    DataSource("nelson_floodway", "Nelson Floodway",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/2",
+            "flood_hazard", "nelson_floodway",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Type")) or "Floodway",
+                "High",
+                "Floodway",
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # MARLBOROUGH — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("marlborough_tsunami", "Marlborough Tsunami Inundation (GNS)",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/22",
+            "tsunami_hazard", "marlborough",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Tsunami Inundation Zone",
+                _clean(a.get("EvacuationZone")) or "High",
+                _clean(a.get("Label")) or _clean(a.get("EvacuationZone")) or "Tsunami",
+            ))),
+    DataSource("marlborough_slr", "Marlborough Sea Level Rise Modelling",
+        ["coastal_inundation"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Hazard/MapServer/4",
+            "coastal_inundation", "marlborough",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                f"SLR {_clean(a.get('Type')) or 'Inundation'}",
+                "High" if _clean(a.get("Scenario")) and "8.5" in str(a.get("Scenario")) else "Medium",
+                f"{_clean(a.get('Scenario')) or '?'} {a.get('Year') or '?'}",
+            ))),
+    DataSource("marlborough_liquefaction_a", "Marlborough Liquefaction Investigation Zone A",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/31",
+            "liquefaction_detail", "marlborough_a",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ A — High Vulnerability",
+                "LIZ A",
+            ))),
+    DataSource("marlborough_liquefaction_b", "Marlborough Liquefaction Investigation Zone B",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/30",
+            "liquefaction_detail", "marlborough_b",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ B — Moderate Vulnerability",
+                "LIZ B",
+            ))),
+    DataSource("marlborough_liquefaction_c", "Marlborough Liquefaction Investigation Zone C",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/32",
+            "liquefaction_detail", "marlborough_c",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ C",
+                "LIZ C",
+            ))),
+    DataSource("marlborough_liquefaction_d", "Marlborough Liquefaction Investigation Zone D",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/33",
+            "liquefaction_detail", "marlborough_d",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ D",
+                "LIZ D",
+            ))),
+    DataSource("marlborough_liquefaction_e", "Marlborough Liquefaction Investigation Zone E",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/34",
+            "liquefaction_detail", "marlborough_e",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ E",
+                "LIZ E",
+            ))),
+    DataSource("marlborough_liquefaction_f", "Marlborough Liquefaction Investigation Zone F",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/35",
+            "liquefaction_detail", "marlborough_f",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("ZoneName")) or "LIZ F",
+                "LIZ F",
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # TASMAN — hazards
+    # ══════════════════════════════════════════════════════════
+    DataSource("tasman_liquefaction", "Tasman Liquefaction Vulnerability (Level A)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/8",
+            "liquefaction_detail", "tasman",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LiquefactionCategory")) or "Unknown",
+                _clean(a.get("Date")),
+            ))),
+    DataSource("tasman_coastal_slr_present", "Tasman Coastal SLR Present Day (1% AEP)",
+        ["coastal_inundation"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/3",
+            "coastal_inundation", "tasman_present",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Coastal SLR (Present Day)",
+                "Medium",
+                f"1% AEP, SLR={a.get('SLR') or 0}m, Elev={a.get('SLRElevation') or '?'}m",
+            ))),
+    DataSource("tasman_coastal_slr_1m", "Tasman Coastal SLR +1.0m Scenario",
+        ["coastal_inundation"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/5",
+            "coastal_inundation", "tasman_1m",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Coastal SLR (+1.0m)",
+                "High",
+                f"1% AEP, SLR=1.0m, Elev={a.get('SLRElevation') or '?'}m",
+            ))),
+    DataSource("tasman_coastal_slr_2m", "Tasman Coastal SLR +2.0m Scenario",
+        ["coastal_inundation"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/7",
+            "coastal_inundation", "tasman_2m",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                "Coastal SLR (+2.0m)",
+                "High",
+                f"1% AEP, SLR=2.0m, Elev={a.get('SLRElevation') or '?'}m",
+            ))),
+    DataSource("tasman_faults", "Tasman Active & Capable Faultlines",
+        ["active_faults"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards_LimitedAccess/MapServer/0",
+            "active_faults", "tasman",
+            ["fault_name", "fault_type", "slip_rate_mm_yr", "data_source"],
+            lambda a: (
+                _clean(a.get("Name")) or "Active Fault",
+                _clean(a.get("Type")) or "active",
+                None,
+                _clean(a.get("DataSource")) or "Tasman DC",
+            ),
+            geom_type="line")),
+    DataSource("tasman_historic_floods", "Tasman Historic Flood Patterns",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards_LimitedAccess/MapServer/1",
+            "flood_hazard", "tasman",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Event")) or _clean(a.get("Location")) or "Historic Flood",
+                "High",
+                f"Historic Flood ({a.get('Year') or '?'})",
+            ))),
+    # ══════════════════════════════════════════════════════════
+    # TARANAKI — volcanic evacuation zones (addition)
+    # ══════════════════════════════════════════════════════════
+    DataSource("taranaki_volcanic_evac", "Taranaki Volcanic Evacuation Zones",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/4",
+            "flood_hazard", "taranaki_volcanic_evac",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Description")) or f"Volcanic Evacuation Zone {a.get('Zone') or ''}",
+                "High",
+                "Volcanic Evacuation",
+            ))),
+    # ── National (DOC) ────────────────────────────────────────
+    DataSource(
+        "doc_huts", "DOC Huts (National)",
+        ["doc_huts"],
+        load_doc_huts,
+    ),
+    DataSource(
+        "doc_tracks", "DOC Tracks (National)",
+        ["doc_tracks"],
+        load_doc_tracks,
+    ),
+    DataSource(
+        "doc_campsites", "DOC Campsites (National)",
+        ["doc_campsites"],
+        load_doc_campsites,
+    ),
+    # ── National (MoE) ────────────────────────────────────────
+    DataSource(
+        "school_zones", "School Enrolment Zones (National)",
+        ["school_zones"],
+        load_school_zones,
+    ),
+    # ── National (Waka Kotahi) ────────────────────────────────
+    DataSource(
+        "nzta_noise_contours", "NZTA National Road Noise Contours",
+        ["noise_contours"],
+        load_nzta_noise_contours,
+    ),
+    # ── Northland ─────────────────────────────────────────────
+    DataSource(
+        "nrc_contaminated_land", "NRC Contaminated Land (Northland)",
+        ["contaminated_land"],
+        load_nrc_contaminated_land,
     ),
 ]
 

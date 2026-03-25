@@ -282,7 +282,9 @@ async def _get_unit_cv_from_rates(conn, prop: dict) -> dict | None:
 
 # CBD coordinates for NZ cities (matches report function)
 _CBD_COORDS = {
+    # Major cities
     "auckland": (174.7685, -36.8442),
+    "wellington": (174.7762, -41.2865),
     "christchurch": (172.6362, -43.5321),
     "hamilton": (175.2793, -37.7870),
     "tauranga": (176.1654, -37.6878),
@@ -296,7 +298,59 @@ _CBD_COORDS = {
     "new plymouth": (174.0752, -39.0556),
     "whangarei": (174.3239, -35.7275),
     "palmerston north": (175.6113, -40.3523),
-    "wellington": (174.7762, -41.2865),
+    # Greater Wellington
+    "lower hutt": (174.9076, -41.2092),
+    "upper hutt": (175.0706, -41.1244),
+    "porirua": (174.8410, -41.1337),
+    "paraparaumu": (174.9507, -40.9147),  # Kapiti Coast
+    "kapiti": (174.9507, -40.9147),
+    # Horizons / Manawatu-Whanganui
+    "whanganui": (175.0479, -39.9301),
+    "levin": (175.2750, -40.6218),  # Horowhenua
+    "feilding": (175.5662, -40.2240),  # Manawatu DC
+    # Wairarapa
+    "masterton": (175.6578, -40.9597),
+    "carterton": (175.5280, -41.0249),
+    "greytown": (175.4581, -41.0810),  # South Wairarapa
+    # Waikato region
+    "cambridge": (175.4710, -37.8847),  # Waipa
+    "te awamutu": (175.3232, -38.0069),  # Waipa
+    "tokoroa": (175.8651, -38.2232),  # South Waikato
+    "matamata": (175.7723, -37.8100),  # Matamata-Piako
+    "huntly": (175.3140, -37.5560),  # Waikato DC
+    "thames": (175.5392, -37.1404),  # Thames-Coromandel
+    "paeroa": (175.6717, -37.3711),  # Hauraki
+    "taupo": (176.0702, -38.6857),
+    "te kuiti": (175.1614, -38.3335),  # Waitomo
+    "otorohanga": (175.2121, -38.1815),
+    # Bay of Plenty
+    "whakatane": (176.9910, -37.9553),
+    "mount maunganui": (176.1703, -37.6341),
+    # Canterbury region
+    "timaru": (171.2540, -44.3931),
+    "ashburton": (171.7476, -43.9007),
+    "rangiora": (172.5969, -43.3068),  # Waimakariri
+    "rolleston": (172.3792, -43.5914),  # Selwyn
+    "kaikoura": (173.6814, -42.3998),
+    "oamaru": (170.9745, -45.0966),  # Waitaki
+    # Top of the South
+    "blenheim": (173.9613, -41.5138),  # Marlborough
+    "richmond": (173.1825, -41.3371),  # Tasman
+    # West Coast
+    "greymouth": (171.2108, -42.4500),
+    "westport": (171.6006, -41.7540),  # Buller
+    # Otago
+    "alexandra": (169.3792, -45.2486),  # Central Otago
+    "balclutha": (169.7320, -46.2348),  # Clutha
+    "wanaka": (169.1320, -44.6996),
+    "cromwell": (169.1981, -45.0382),
+    # Southland
+    "gore": (168.9446, -46.1011),
+    # Gisborne
+    "gisborne": (178.0176, -38.6623),
+    # Northland
+    "kerikeri": (176.1656, -35.2271),
+    "whangarei": (174.3239, -35.7275),
 }
 
 

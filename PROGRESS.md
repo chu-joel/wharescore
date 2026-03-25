@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-24 (session 63 — Mobile UX fixes + massive data expansion: 13 new councils, hazard tables, ECan consents)
+**Last Updated:** 2026-03-25 (session 64 — Council rates expansion + Auckland hazard data)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,9 +17,80 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 63 (2026-03-24) — Mobile UX fixes + massive data expansion.**
+**Session 64 (2026-03-25) — Council rates expansion + Auckland hazard data.**
 
 ### What Was Done This Session
+
+**(A) New Council Rates — 6 councils added with loaders + services:**
+
+| Council | Code | Records | Source | Service File |
+|---------|------|---------|--------|-------------|
+| Porirua | PCC | 21,081 | PCC ArcGIS MapServer | `pcc_rates.py` |
+| Kapiti Coast | KCDC | 27,191 | KCDC ArcGIS MapServer | `kcdc_rates.py` |
+| Horowhenua | HDC | 19,303 | Horizons Regional ArcGIS | `hdc_rates.py` |
+| Dunedin | dunedin | 58,461 | DCC ArcGIS MapServer (1K/page, OBJECTID pagination) | `dcc_rates.py` |
+| Hamilton | hamilton | 44,546 | Web scrape (no public API) | `hamilton_rates.py` |
+| (13 more councils loaded from existing data_loader entries — see session 63) |
+
+- All 6 have standalone loader scripts in `backend/scripts/`
+- All 6 have real-time lookup services in `backend/app/services/`
+- All 6 wired into `property.py` router + `snapshot_generator.py` for CV fix
+- Hamilton: 51K assessment numbers from ArcGIS Online, scraped property pages at ~2.6 req/s, took ~14 hours total
+
+**(B) Existing Councils — proper loaders + services created:**
+
+| Council | Records | What was done |
+|---------|---------|--------------|
+| Christchurch | 185,579 | New `load_chch_rates.py` + `ccc_rates.py` service. Fixed NZGD2000→WGS84 coordinate transform |
+| Taranaki | 58,213 | New `load_taranaki_rates.py` + `taranaki_rates.py` service. Has district + regional rates split |
+| Tasman | 28,386 | New `load_tasman_rates.py` + `tasman_rates.py` service. Excellent data — WGS84 coords, titles, rates links |
+
+**(C) 13 more councils loaded from existing data_loader entries:**
+- Horizons region: Whanganui (22,904), Manawatu (15,859), Rangitikei (8,675), Tararua (10,773), Ruapehu (9,650)
+- Canterbury/ECan: Selwyn (37,222), Waimakariri (30,536), Ashburton (17,214), Timaru (24,400), Hurunui (9,255), Waimate (4,454), Mackenzie (4,372), Waitaki (12,295)
+
+**(D) Auckland Hazard Data — 16 datasets loaded (~270K rows):**
+- Flood hazard: 35,339
+- Liquefaction: 1,034
+- Tsunami zones: 1,176
+- Notable trees: 3,714
+- Viewshafts: 119
+- Flood sensitive areas: 859
+- Coastal erosion: 1,197
+- Special character areas: 153
+- Ecological areas: 3,642
+- Height variation control: 618
+- Mana whenua sites: 116
+- Geotech reports: 75,807
+- Schools: 554
+- Parks: 4,753
+- Heritage extent: 1,961
+- District plan zones: 139,331
+
+**(E) Data Loader Infrastructure improvements:**
+- Added `extra_where` parameter to `_load_rates()` and `_fetch_arcgis()` for TA filtering (Horizons, ECan)
+- Added `page_size` parameter to `_load_rates()` for servers with strict limits (Dunedin: 1000/page)
+- Fixed Dunedin: was only loading 1,000 rows (max page size = resultRecordCount), now loads all 58,461 via OBJECTID pagination
+
+**Total council valuations: ~1,683,000 properties across 32 councils**
+
+### What Needs To Be Done Next
+
+- **Auckland rates full reload** — was in progress session 62 (~6,500 of 578K), needs resuming
+- **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
+- **More councils** — Nelson (MagiqCloud scraper pattern proven with UHCC), Rotorua (IntraMaps, hard), Napier (web scrape needed), Gisborne, Waikato DC, Marlborough, South Waikato, Thames-Coromandel
+- **More hazard data** — national noise contours (Waka Kotahi), Canterbury fault zones
+- **Google OAuth** — OAuth consent screen error blocking sign-in, needs fixing in Google Cloud Console
+- **Fix unit CV bug in snapshot generator** (carried over from session 58)
+- **RATES-DATA.md** — update with all new councils and final row counts
+
+---
+
+### Previous Session
+
+**Session 63 (2026-03-24) — Mobile UX fixes + massive data expansion.**
+
+### What Was Done
 
 **(A) Mobile UX Fixes (6 commits):**
 - Search bar hidden by logo on mobile — shortened to "WS", added visible border
@@ -30,28 +101,7 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 - Floating report button hides when upgrade modal is open
 - Scroll upgrade prompt delayed (90% scroll + 15s, 3min fallback)
 
-**(B) Data Expansion — 13 new councils loaded (~197K properties):**
-
-Horizons region (5 councils):
-- Whanganui: 22,904
-- Manawatu: 15,859
-- Rangitikei: 8,675
-- Tararua: 10,773
-- Ruapehu: 9,650
-
-Canterbury region via ECan (8 councils):
-- Selwyn: 37,222
-- Waimakariri: 30,536
-- Ashburton: 17,214
-- Timaru: 24,400
-- Hurunui: 9,255
-- Waimate: 4,454
-- Mackenzie: 4,372
-- Waitaki: 12,295
-
-**Total council valuations now: ~1,310,000 properties across 32 councils**
-
-**(C) Previously Empty Hazard Tables Populated:**
+**(B) Previously Empty Hazard Tables Populated:**
 - GWRC earthquake hazard: 14,962 rows
 - GWRC ground shaking: 253 rows
 - GWRC liquefaction detail: 502 rows
@@ -59,31 +109,12 @@ Canterbury region via ECan (8 councils):
 - WCC fault zones + flood hazard + tsunami hazard: 464 rows
 - GNS active faults: 10,269 rows
 
-**(D) Other Data Loaded:**
-- Hamilton flood: 1,000 rows
-- UHCC rates: 9,019 rows
-- HCC rates: 46,594 rows
-- PCC rates: 23,685 rows
-- KCDC rates: 27,379 rows
-- HDC rates: 19,427 rows
-- Palmerston North GTFS: 1,527 rows
-
-**(E) Issues Found:**
+**(C) Issues Found:**
 - Auckland landslide data: ArcGIS FeatureServer very slow, causes OOM on VM
 - Christchurch GTFS: needs API key (401 error)
 - Auckland overland flow: DNS resolution failure after 380K rows (VM OOM)
 - GNS fault avoidance zones: WFS endpoint returns invalid JSON
 - VM went OOM during heavy data load — all containers stopped, recovered by restarting with prod compose
-
-### What Needs To Be Done Next
-
-- **ECan resource consents** — retry in progress, may need different approach if 0 rows again
-- **Auckland rates full reload** — was in progress session 62 (~6,500 of 578K), needs resuming
-- **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
-- **Auckland landslide** — try with smaller page sizes or spatial partitioning to avoid OOM
-- **More councils** — Nelson (MagiqCloud scraper), Rotorua, Napier, New Plymouth, Gisborne, Waikato DC, Marlborough, South Waikato, Thames-Coromandel
-- **More hazard data** — national noise contours (Waka Kotahi), Canterbury fault zones, slope hazard tables
-- **Fix unit CV bug in snapshot generator** (carried over from session 58)
 
 ---
 

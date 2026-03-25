@@ -24,6 +24,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const isAuthenticated = useDownloadGateStore((s) => s.isAuthenticated);
   const showUpgradeModal = useDownloadGateStore((s) => s.showUpgradeModal);
   const showConfirmModal = useReportConfirmStore((s) => s.open);
+  const router = useRouter();
 
   useEffect(() => {
     const id = 'floating-report-btn';
@@ -44,8 +45,6 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   }, []);
 
   if (!mounted || !containerRef.current || showUpgradeModal || showConfirmModal) return null;
-
-  const router = useRouter();
 
   const handleClick = () => {
     if (pdf.shareUrl) {

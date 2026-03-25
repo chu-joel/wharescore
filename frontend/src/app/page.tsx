@@ -15,6 +15,7 @@ import { SavedProperties } from '@/components/search/SavedProperties';
 import { PropertyReport } from '@/components/property/PropertyReport';
 import { SuburbSummaryPage } from '@/components/suburb/SuburbSummaryPage';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { UpgradeModal } from '@/components/property/UpgradeModal';
 import { MAX_ACTIVE_LAYERS } from '@/lib/constants';
 import { toast } from 'sonner';
 import {
@@ -38,6 +39,7 @@ export default function Home() {
   return (
     <>
       <AppHeader />
+      <UpgradeModal />
 
       {bp === 'desktop' && (
         <div className="pt-14">

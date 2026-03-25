@@ -25,42 +25,8 @@ BEGIN
     FROM sa2_boundaries
     WHERE ST_Within(addr.geom, geom) LIMIT 1;
 
-  -- 3. Region-aware CBD point
-  v_cbd_point := CASE
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%auckland%'
-      THEN ST_SetSRID(ST_MakePoint(174.7685, -36.8442), 4326)  -- Britomart
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%christchurch%'
-      THEN ST_SetSRID(ST_MakePoint(172.6362, -43.5321), 4326)  -- Cathedral Square
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%hamilton%'
-      THEN ST_SetSRID(ST_MakePoint(175.2793, -37.7870), 4326)  -- Garden Place
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%tauranga%'
-      THEN ST_SetSRID(ST_MakePoint(176.1654, -37.6878), 4326)  -- CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%dunedin%'
-      THEN ST_SetSRID(ST_MakePoint(170.5036, -45.8788), 4326)  -- Octagon
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%napier%'
-      THEN ST_SetSRID(ST_MakePoint(176.9120, -39.4928), 4326)  -- Napier CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%hastings%'
-      THEN ST_SetSRID(ST_MakePoint(176.8418, -39.6381), 4326)  -- Hastings CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%nelson%'
-      THEN ST_SetSRID(ST_MakePoint(173.2840, -41.2706), 4326)  -- Nelson CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%invercargill%'
-      THEN ST_SetSRID(ST_MakePoint(168.3538, -46.4132), 4326)  -- Invercargill CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%queenstown%'
-      THEN ST_SetSRID(ST_MakePoint(168.6626, -45.0312), 4326)  -- Queenstown CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%rotorua%'
-      THEN ST_SetSRID(ST_MakePoint(176.2497, -38.1368), 4326)  -- Rotorua CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%new plymouth%'
-      THEN ST_SetSRID(ST_MakePoint(174.0752, -39.0556), 4326)  -- New Plymouth CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%whangarei%' OR lower(coalesce(addr.town_city, '')) LIKE '%whang%rei%'
-      THEN ST_SetSRID(ST_MakePoint(174.3234, -35.7251), 4326)  -- Whangarei CBD
-    WHEN lower(coalesce(addr.town_city, '')) LIKE '%palmerston%'
-      THEN ST_SetSRID(ST_MakePoint(175.6113, -40.3523), 4326)  -- Palmerston North CBD
-    WHEN lower(coalesce(v_ta_name, '')) LIKE '%auckland%'
-      THEN ST_SetSRID(ST_MakePoint(174.7685, -36.8442), 4326)
-    WHEN lower(coalesce(v_ta_name, '')) LIKE '%christchurch%'
-      THEN ST_SetSRID(ST_MakePoint(172.6362, -43.5321), 4326)
-    ELSE ST_SetSRID(ST_MakePoint(174.7762, -41.2865), 4326)    -- Wellington (default)
-  END;
+  -- 3. Region-aware CBD point (uses helper function from migration 0016)
+  v_cbd_point := get_nearest_cbd_point(addr.town_city, v_ta_name);
 
   -- 4. Build report
   result := jsonb_build_object(

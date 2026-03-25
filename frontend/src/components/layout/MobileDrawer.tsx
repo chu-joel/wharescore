@@ -1,134 +1,204 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Drawer } from 'vaul';
-import { useMobileBackButton } from '@/hooks/useMobileBackButton';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 
-// 3 snap points: peek (search + feature chips visible), half (summary visible), full (full report)
-const SNAP_POINTS = ['220px', '55%', 1] as const;
+/**
+ * Custom mobile bottom-sheet drawer.
+ *
+ * Two snap points:
+ *   peek = 220 px from bottom  (search bar + chips visible)
+ *   full = 100 % of viewport minus header (full report)
+ */
 
+// ─── snap helpers ──────────────────────────────────────────────
+type SnapId = 'peek' | 'full';
+
+const HEADER_HEIGHT = 56; // px — AppHeader height
+
+function snapToPx(id: SnapId, vh: number): number {
+  const maxHeight = vh - HEADER_HEIGHT;
+  switch (id) {
+    case 'peek':
+      return Math.min(220, maxHeight);
+    case 'full':
+      return maxHeight;
+  }
+}
+
+// ─── component ─────────────────────────────────────────────────
 interface MobileDrawerProps {
-  children: React.ReactNode;
-  /** Whether a property is selected — controls initial snap position */
+  children: ReactNode;
   hasSelection?: boolean;
 }
 
 export function MobileDrawer({ children, hasSelection = false }: MobileDrawerProps) {
-  const [snap, setSnap] = useState<string | number | null>('220px');
-  const { pushState, popState } = useMobileBackButton();
+  const [snapId, setSnapId] = useState<SnapId>('peek');
+  const [vh, setVh] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 800,
+  );
 
-  // Force Vaul to remount when viewport height changes significantly
-  // (orientation change, mobile toolbar show/hide, browser resize).
-  // Vaul caches drawer height on mount and doesn't recalculate snap positions.
-  const [drawerKey, setDrawerKey] = useState(0);
+  // Track viewport height for snap calculations
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    let prevHeight = window.innerHeight;
-    const onResize = () => {
-      const delta = Math.abs(window.innerHeight - prevHeight);
-      if (delta > 50) {
-        prevHeight = window.innerHeight;
-        setDrawerKey((k) => k + 1);
-      }
-    };
+    const onResize = () => setVh(window.innerHeight);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // When a property is selected, auto-snap to half
+  // When a property is selected, auto-snap to full
   useEffect(() => {
-    if (hasSelection) {
-      setSnap('55%');
-    } else {
-      setSnap('220px');
-    }
+    setSnapId(hasSelection ? 'full' : 'peek');
   }, [hasSelection]);
 
-  const handleSnapChange = useCallback(
-    (point: string | number | null) => {
-      // Never allow dismiss (null snap)
-      if (point === null) {
-        setSnap('220px');
-        return;
-      }
-
-      // Enforce sequential snapping: peek -> half -> full, never peek -> full directly
-      if (snap === '220px' && point === 1) {
-        setSnap('55%');
-        pushState();
-        return;
-      }
-
-      // Track navigation state for back button
-      if (typeof point === 'number' && point === 1) {
-        pushState();
-      }
-
-      setSnap(point);
-    },
-    [snap, pushState],
-  );
-
-  // Listen for "snap to full" events (e.g. from "Get Full Report" button)
+  // Listen for "snap to full" events
   useEffect(() => {
-    const handler = () => {
-      setSnap(1);
-      pushState();
-    };
+    const handler = () => setSnapId('full');
     window.addEventListener('drawer:snap-full', handler);
     return () => window.removeEventListener('drawer:snap-full', handler);
-  }, [pushState]);
+  }, []);
 
-  // Handle system back button (mobile)
+  // Back button support
   useEffect(() => {
     const handlePopState = () => {
-      if (snap === 1) {
-        setSnap('55%');
-      } else if (snap === '55%') {
-        setSnap('220px');
-      }
+      setSnapId('peek');
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [snap]);
+  }, []);
+
+  // ── drag handling ──
+  const dragging = useRef(false);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
+  const currentHeight = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const visibleHeight = snapToPx(snapId, vh);
+  const maxHeight = vh - HEADER_HEIGHT;
+
+  const hasMoved = useRef(false);
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-drawer-handle]')) return;
+
+      dragging.current = true;
+      hasMoved.current = false;
+      startY.current = e.clientY;
+      startHeight.current = snapToPx(snapId, vh);
+      currentHeight.current = startHeight.current;
+
+      if (sheetRef.current) {
+        sheetRef.current.style.transition = 'none';
+      }
+
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [snapId, vh],
+  );
+
+  const onPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!dragging.current || !sheetRef.current) return;
+
+      const dy = startY.current - e.clientY; // positive = dragging up
+      if (Math.abs(dy) > 5) hasMoved.current = true;
+
+      let newHeight = startHeight.current + dy;
+
+      // Clamp: never go below peek or above full
+      const peekPx = snapToPx('peek', vh);
+      newHeight = Math.max(peekPx, Math.min(maxHeight, newHeight));
+
+      currentHeight.current = newHeight;
+      sheetRef.current.style.height = `${newHeight}px`;
+    },
+    [vh, maxHeight],
+  );
+
+  const onPointerUp = useCallback(() => {
+    if (!dragging.current || !sheetRef.current) return;
+    dragging.current = false;
+
+    // Re-enable transition
+    sheetRef.current.style.transition = '';
+    sheetRef.current.style.height = '';
+
+    // Tap without drag — toggle between peek and full
+    if (!hasMoved.current) {
+      setSnapId((prev) => (prev === 'peek' ? 'full' : 'peek'));
+      return;
+    }
+
+    const h = currentHeight.current;
+    const peekPx = snapToPx('peek', vh);
+    const fullPx = snapToPx('full', vh);
+    const midpoint = (peekPx + fullPx) / 2;
+
+    // Also factor in drag direction for responsiveness
+    const dragDelta = h - startHeight.current;
+
+    let target: SnapId;
+    if (Math.abs(dragDelta) > 60) {
+      // Intentional drag — follow direction
+      target = dragDelta > 0 ? 'full' : 'peek';
+    } else {
+      // Small drag — snap to nearest
+      target = h > midpoint ? 'full' : 'peek';
+    }
+
+    setSnapId(target);
+  }, [vh]);
+
+  // Push history state when going to full
+  useEffect(() => {
+    if (snapId === 'full') {
+      window.history.pushState({ drawer: 'full' }, '');
+    }
+  }, [snapId]);
 
   return (
-    <Drawer.Root
-      key={drawerKey}
-      snapPoints={[...SNAP_POINTS]}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={handleSnapChange}
-      fadeFromIndex={2}
-      modal={false}
-      open
-      onOpenChange={(open) => {
-        // Never allow the drawer to close
-        if (!open) return;
+    <div
+      ref={sheetRef}
+      role="dialog"
+      aria-label="Property information panel"
+      className="fixed bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.3)]"
+      style={{
+        height: `${visibleHeight}px`,
+        transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        touchAction: 'none',
       }}
-      dismissible={false}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
-      <Drawer.Portal>
-        <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.1)]"
-          style={{
-            height: 'calc(100vh - 56px)',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
-          aria-label="Property information panel"
-        >
-          <Drawer.Title className="sr-only">Property Details</Drawer.Title>
-          {/* Drag handle */}
-          <div className="flex justify-center pt-2 pb-1 shrink-0">
-            <Drawer.Handle className="h-1.5 w-12 rounded-full bg-muted-foreground/25" />
-          </div>
+      {/* Drag handle */}
+      <div
+        data-drawer-handle
+        className="flex flex-col items-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing select-none"
+      >
+        <div className="h-1.5 w-10 rounded-full bg-muted-foreground/50" />
+      </div>
 
-          {/* Content — scrollable, grows to fill available snap height */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-            {children}
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+      {/* Scrollable content */}
+      <div
+        ref={contentRef}
+        className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
+        style={{ touchAction: 'pan-y' }}
+      >
+        <h2 className="sr-only">Property Details</h2>
+        {children}
+      </div>
+    </div>
   );
 }
