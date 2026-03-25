@@ -123,7 +123,7 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
                 {pdf.isGenerating ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
                 ) : pdf.downloadUrl ? (
-                  <><FileCheck className="h-3.5 w-3.5" /> Open Report</>
+                  <><ExternalLink className="h-3.5 w-3.5" /> View Report</>
                 ) : (
                   <><Download className="h-3.5 w-3.5" /> Get Report</>
                 )}

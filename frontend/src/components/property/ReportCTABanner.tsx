@@ -79,7 +79,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
         {pdf.isGenerating ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating Report...</>
         ) : (
-          <><Download className="h-4 w-4 mr-1.5" /> Download Full Report — $4.99</>
+          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — $4.99</>
         )}
       </Button>
       <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">

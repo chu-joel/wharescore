@@ -68,9 +68,9 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   let ctaIcon = <Download className="h-5 w-5" />;
   const hasCredits = isAuthenticated && credits && credits.plan !== 'free';
 
-  if (!pdf.isGenerating && !pdf.downloadUrl) {
+  if (!pdf.isGenerating && !pdf.shareUrl && !pdf.downloadUrl) {
     if (hasCredits) {
-      ctaText = 'Download Report';
+      ctaText = 'Get Report';
     } else if (riskCount && riskCount >= 3) {
       ctaText = `${riskCount} risks — get full report`;
       ctaIcon = <ShieldAlert className="h-5 w-5" />;
@@ -112,8 +112,8 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
           </>
         ) : pdf.downloadUrl ? (
           <>
-            <FileCheck className="h-5 w-5" />
-            <span className="text-sm font-semibold">Open Report</span>
+            <ExternalLink className="h-5 w-5" />
+            <span className="text-sm font-semibold">View Report</span>
           </>
         ) : (
           <>

@@ -43,10 +43,16 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // If we already have a download URL for this address+persona, just open it
-    if (state.downloadUrl && state.addressId === addressId && state.persona === persona) {
-      window.open(state.downloadUrl, '_blank', 'noopener,noreferrer');
-      return;
+    // If we already have a report for this address+persona, open it (prefer hosted report)
+    if (state.addressId === addressId && state.persona === persona) {
+      if (state.shareUrl) {
+        window.open(state.shareUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (state.downloadUrl) {
+        window.open(state.downloadUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
     }
 
     // Show confirmation modal — user reviews inputs before generating
