@@ -6,6 +6,7 @@ import { usePdfExport } from '@/hooks/usePdfExport';
 import { useEffect, useState, useRef } from 'react';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useReportConfirmStore } from './ReportConfirmModal';
 import { useRouter } from 'next/navigation';
 
 interface FloatingReportButtonProps {
@@ -22,6 +23,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const credits = useDownloadGateStore((s) => s.credits);
   const isAuthenticated = useDownloadGateStore((s) => s.isAuthenticated);
   const showUpgradeModal = useDownloadGateStore((s) => s.showUpgradeModal);
+  const showConfirmModal = useReportConfirmStore((s) => s.open);
 
   useEffect(() => {
     const id = 'floating-report-btn';
@@ -41,7 +43,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     };
   }, []);
 
-  if (!mounted || !containerRef.current || showUpgradeModal) return null;
+  if (!mounted || !containerRef.current || showUpgradeModal || showConfirmModal) return null;
 
   const router = useRouter();
 

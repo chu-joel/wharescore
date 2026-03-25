@@ -25,11 +25,11 @@ function useInputReadiness(persona: string) {
     const required: { field: string; label: string; filled: boolean }[] = [
       { field: 'dwellingType', label: 'Property type', filled: !!rent.dwellingType },
       { field: 'bedrooms', label: 'Bedrooms', filled: !!rent.bedrooms },
+      { field: 'finishTier', label: 'Finish/condition', filled: !!rent.finishTier },
+      { field: 'bathrooms', label: 'Bathrooms', filled: !!rent.bathrooms },
     ];
     const optional: { field: string; label: string; filled: boolean }[] = [
       { field: 'weeklyRent', label: 'Weekly rent', filled: !!rent.weeklyRent },
-      { field: 'finishTier', label: 'Finish/condition', filled: !!rent.finishTier },
-      { field: 'bathrooms', label: 'Bathrooms', filled: !!rent.bathrooms },
     ];
     return { required, optional, allRequiredFilled: required.every(r => r.filled) };
   }
@@ -37,11 +37,11 @@ function useInputReadiness(persona: string) {
   // buyer
   const required: { field: string; label: string; filled: boolean }[] = [
     { field: 'bedrooms', label: 'Bedrooms', filled: !!buyer.bedrooms },
+    { field: 'finishTier', label: 'Finish/condition', filled: !!buyer.finishTier },
+    { field: 'bathrooms', label: 'Bathrooms', filled: !!buyer.bathrooms },
   ];
   const optional: { field: string; label: string; filled: boolean }[] = [
     { field: 'askingPrice', label: 'Asking price', filled: !!buyer.askingPrice },
-    { field: 'finishTier', label: 'Finish/condition', filled: !!buyer.finishTier },
-    { field: 'bathrooms', label: 'Bathrooms', filled: !!buyer.bathrooms },
   ];
   return { required, optional, allRequiredFilled: required.every(r => r.filled) };
 }
@@ -54,6 +54,16 @@ const DWELLING_TYPES = [
 ] as const;
 
 const BEDROOM_OPTIONS = ['Studio', '1', '2', '3', '4', '5+'] as const;
+
+const FINISH_TIERS = [
+  { value: 'basic', label: 'Basic' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'modern', label: 'Modern' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'luxury', label: 'Luxury' },
+] as const;
+
+const BATHROOM_OPTIONS = ['1', '2', '3+'] as const;
 
 function InputReadinessTip({ persona }: { persona: string }) {
   const { required, optional, allRequiredFilled } = useInputReadiness(persona);
@@ -102,6 +112,46 @@ function InputReadinessTip({ persona }: { persona: string }) {
                     onClick={() => {
                       if (persona === 'renter') rentStore.setBedrooms(opt);
                       else buyerStore.setBedrooms(opt);
+                    }}
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {((persona === 'renter' && !rentStore.finishTier) || (persona === 'buyer' && !buyerStore.finishTier)) && (
+            <div>
+              <p className="font-semibold mb-1">Finish / condition</p>
+              <div className="flex flex-wrap gap-1">
+                {FINISH_TIERS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      if (persona === 'renter') rentStore.setFinishTier(value);
+                      else buyerStore.setFinishTier(value);
+                    }}
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {((persona === 'renter' && !rentStore.bathrooms) || (persona === 'buyer' && !buyerStore.bathrooms)) && (
+            <div>
+              <p className="font-semibold mb-1">Bathrooms</p>
+              <div className="flex flex-wrap gap-1">
+                {BATHROOM_OPTIONS.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      if (persona === 'renter') rentStore.setBathrooms(opt);
+                      else buyerStore.setBathrooms(opt);
                     }}
                     className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
                   >
