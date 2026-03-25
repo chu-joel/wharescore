@@ -949,7 +949,7 @@ async def start_guest_pdf_export(
 # =============================================================================
 
 @router.get("/property/{address_id}/export/pdf/status/{job_id}")
-@limiter.limit("30/minute")
+@limiter.limit("120/minute")
 async def check_pdf_status(request: Request, address_id: int, job_id: str):
     """Check the status of a PDF generation job."""
     status = await get_job_status(job_id)

@@ -141,13 +141,14 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
       const { job_id, download_url } = await res.json();
 
-      // Poll for completion
-      for (let i = 0; i < 120; i++) {
-        await new Promise(r => setTimeout(r, 1000));
+      // Poll for completion (every 2s, up to 90 attempts = 3 min max)
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 2000));
 
         const statusRes = await fetch(
           `/api/v1/property/${addressId}/export/pdf/status/${job_id}`,
         );
+        if (statusRes.status === 429) continue; // rate limited — skip and retry
         if (!statusRes.ok) throw new Error('Failed to check PDF status');
 
         const status = await statusRes.json();
