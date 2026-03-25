@@ -2754,6 +2754,184 @@ def load_christchurch_flood(conn: psycopg.Connection, log: Callable = None) -> i
 
 
 # ═══════════════════════════════════════════════════════════════
+# CUSTOM LOADERS FOR NATIONAL-SCHEMA TABLES (no source_council)
+# ═══════════════════════════════════════════════════════════════
+
+def load_taranaki_faults(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Taranaki active faultlines → active_faults table (national schema)."""
+    url = "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/1"
+    _progress(log, "Fetching active_faults (taranaki)...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM active_faults WHERE data_source = %s", ("Taranaki Regional Council",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("paths"):
+            continue
+        wkt = _ml_wkt(geom)
+        if not wkt:
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO active_faults "
+                "(fault_name, fault_type, slip_rate_mm_yr, data_source, geom) "
+                "VALUES (%s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (
+                    _clean(a.get("Name")) or _clean(a.get("FAULT_NAME")) or "Active Fault",
+                    _clean(a.get("Type")) or _clean(a.get("FAULT_TYPE")),
+                    _clean(a.get("SlipRate")) or _clean(a.get("SLIP_RATE")),
+                    "Taranaki Regional Council",
+                    wkt,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  active_faults (taranaki): {count} rows")
+    return count
+
+
+def load_taranaki_tsunami(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Taranaki tsunami evacuation zones → tsunami_zones table (national schema)."""
+    url = "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/2"
+    _progress(log, "Fetching tsunami_zones (taranaki)...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tsunami_zones WHERE location = %s", ("Taranaki",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        try:
+            cur.execute(
+                "INSERT INTO tsunami_zones "
+                "(evac_zone, zone_class, location, geom) "
+                "VALUES (%s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (
+                    _clean(a.get("Name")) or _clean(a.get("Zone")) or "Tsunami Zone",
+                    _clean(a.get("Class")) or 1,
+                    "Taranaki",
+                    wkt,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  tsunami_zones (taranaki): {count} rows")
+    return count
+
+
+def load_tauranga_heritage(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Tauranga built heritage sites → heritage_sites table (national schema)."""
+    url = "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Sections1to3/MapServer/7"
+    _progress(log, "Fetching heritage_sites (tauranga)...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM heritage_sites WHERE district_council = %s", ("Tauranga",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        x, y = geom.get("x"), geom.get("y")
+        if x is None or y is None:
+            continue
+        wkt = f"POINT({x} {y})"
+        try:
+            cur.execute(
+                "INSERT INTO heritage_sites "
+                "(name, list_entry_type, list_number, district_council, geom) "
+                "VALUES (%s, %s, %s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (
+                    _clean(a.get("Name")) or _clean(a.get("Heritage_Name")) or "Heritage Site",
+                    _clean(a.get("Category")) or _clean(a.get("Type")),
+                    int(v) if (v := (_clean(a.get("NZAA_No")) or _clean(a.get("SiteNumber")))) and v.isdigit() else None,
+                    "Tauranga",
+                    wkt,
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  heritage_sites (tauranga): {count} rows")
+    return count
+
+
+def load_tauranga_noise(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Tauranga airport + port noise contours → noise_contours table (national schema)."""
+    url = "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Section5/MapServer/9"
+    _progress(log, "Fetching noise_contours (tauranga)...")
+    features = _fetch_arcgis(url, 2000)
+    cur = conn.cursor()
+    # Delete any previously loaded Tauranga contours by checking for non-null laeq24h
+    # from this source. Since laeq24h is the only data column, we tag with a negative
+    # value range or use a separate approach. Safest: delete where ogc_fid matches
+    # a known range. But simplest: add source_council column if missing, then use it.
+    try:
+        cur.execute(
+            "ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT"
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    cur.execute("DELETE FROM noise_contours WHERE source_council = %s", ("tauranga",))
+    count = 0
+    for f in features:
+        a = f.get("attributes", {})
+        geom = f.get("geometry")
+        if not geom or not geom.get("rings"):
+            continue
+        wkt = _mp_wkt(geom)
+        if not wkt:
+            continue
+        noise_level = _clean(a.get("NoiseLevel")) or _clean(a.get("dBA"))
+        try:
+            laeq = int(noise_level) if noise_level else None
+        except (ValueError, TypeError):
+            laeq = None
+        try:
+            cur.execute(
+                "INSERT INTO noise_contours "
+                "(laeq24h, source_council, geom) "
+                "VALUES (%s, %s, "
+                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (laeq, "tauranga", wkt),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  noise_contours (tauranga): {count} rows")
+    return count
+
+
+# ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
 
@@ -3560,32 +3738,12 @@ DATA_SOURCES: list[DataSource] = [
     DataSource(
         "taranaki_faults", "Taranaki Active Faultlines",
         ["active_faults"],
-        lambda conn, log=None: _load_council_arcgis(
-            conn, log,
-            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/1",
-            "active_faults", "taranaki",
-            ["name", "fault_type", "slip_rate"],
-            lambda a: (
-                _clean(a.get("Name")) or _clean(a.get("FAULT_NAME")) or "Active Fault",
-                _clean(a.get("Type")) or _clean(a.get("FAULT_TYPE")),
-                _clean(a.get("SlipRate")) or _clean(a.get("SLIP_RATE")),
-            ),
-            geom_type="line",
-        ),
+        load_taranaki_faults,
     ),
     DataSource(
         "taranaki_tsunami", "Taranaki Tsunami Evacuation Zones",
         ["tsunami_zones"],
-        lambda conn, log=None: _load_council_arcgis(
-            conn, log,
-            "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/2",
-            "tsunami_zones", "taranaki",
-            ["evac_zone", "zone_class"],
-            lambda a: (
-                _clean(a.get("Name")) or _clean(a.get("Zone")) or "Tsunami Zone",
-                _clean(a.get("Class")) or 1,
-            ),
-        ),
+        load_taranaki_tsunami,
     ),
     DataSource(
         "taranaki_volcanic", "Taranaki Volcanic Hazard Zones",
@@ -3636,33 +3794,12 @@ DATA_SOURCES: list[DataSource] = [
     DataSource(
         "tauranga_heritage", "Tauranga Built Heritage Sites",
         ["heritage_sites"],
-        lambda conn, log=None: _load_council_arcgis(
-            conn, log,
-            "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Sections1to3/MapServer/7",
-            "heritage_sites", "tauranga",
-            ["name", "heritage_type", "nzha_id"],
-            lambda a: (
-                _clean(a.get("Name")) or _clean(a.get("Heritage_Name")) or "Heritage Site",
-                _clean(a.get("Category")) or _clean(a.get("Type")),
-                _clean(a.get("NZAA_No")) or _clean(a.get("SiteNumber")),
-            ),
-            geom_type="point",
-        ),
+        load_tauranga_heritage,
     ),
     DataSource(
         "tauranga_noise", "Tauranga Airport + Port Noise Contours",
         ["noise_contours"],
-        lambda conn, log=None: _load_council_arcgis(
-            conn, log,
-            "https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Section5/MapServer/9",
-            "noise_contours", "tauranga",
-            ["description", "noise_level_db", "source"],
-            lambda a: (
-                _clean(a.get("Name")) or _clean(a.get("Description")) or "Noise Contour",
-                _clean(a.get("NoiseLevel")) or _clean(a.get("dBA")),
-                "Airport",
-            ),
-        ),
+        load_tauranga_noise,
     ),
     # ── HBRC extras ──────────────────────────────────────────
     DataSource(
