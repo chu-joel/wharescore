@@ -73,9 +73,29 @@
 | 45 | Buller | buller | ~7,787 | WCRC PropertyPublic/MapServer/0 | Yes + IV | Yes | Dedicated layer. Has rates + typo: `ImprovemntsValue` |
 | 46 | Grey + Westland | grey_westland | ~24,341 | WCRC PropertyPublic/MapServer/1 | Yes + IV | No | Combined layer, no TA filter — loads together |
 
-**Total: ~1,625,000+ properties across 46+ councils**
+| 47 | Taupo | taupo | ~19,728 | WRC Properties FeatureServer | Yes | No | `VG_NUMBER LIKE '073%'`. Partial — only WRC boundary |
+| 48 | Whakatane | whakatane | ~17,149 | WDC Geocortex MapServer/2 | Yes | No | `gis.whakatane.govt.nz/.../PropertyRoadSearch/MapServer/2` |
+| 49 | Masterton | masterton | ~13,859 | Wairarapa shared MapServer/0 | Yes + IV | Yes | `gis.mstn.govt.nz/.../PropertyPublic/MapServer/0` |
+| 50 | South Wairarapa | south_wairarapa | ~7,855 | Wairarapa shared MapServer/2 | Yes + IV | Yes | Same server, layer 2 |
+| 51 | Carterton | carterton | ~5,245 | Wairarapa shared MapServer/1 | Yes + IV | Yes | Same server, layer 1 |
+| 52 | Waitomo | waitomo | ~2,812 | WRC Properties FeatureServer | Yes | No | `VG_NUMBER LIKE '056%'`. Partial |
+| 53 | Otorohanga | otorohanga | ~2,595 | WRC Properties FeatureServer | Yes | No | `VG_NUMBER LIKE '055%'`. Partial |
+
+**Total: ~1,694,000+ properties across 53+ councils**
+
+### Regional Endpoint Discovery — New (Session 63)
+
+4. **Wairarapa shared** (`gis.mstn.govt.nz/.../PropertyPublic/MapServer`) — 3 layers for Masterton (0), Carterton (1), South Wairarapa (2). Has CV + LV + IV + TotalRates.
+5. **ORC PropertyExternal** (`maps.orc.govt.nz/.../PropertyExternal/MapServer/0`) — Filter by `RatingAuthority`. Covers Central Otago, Clutha, Dunedin, Queenstown-Lakes. ~189K total.
+6. **West Coast Regional** (`gis.westcoast.govt.nz/.../PropertyPublic/MapServer`) — Layer 0: Buller (7.8K). Layer 1: Grey+Westland (24K combined).
 
 ### Not Yet Available (need scraping or data request)
+- Rotorua Lakes (~35K) — Auth-gated BOP Regional, RID portal only
+- Napier City (~30K) — WFS only (no CV/LV confirmed), eServices scraping needed
+- Far North District (~35K) — No public ArcGIS REST for valuations
+- Kaipara District (~12K) — LocalMaps only, no REST endpoint
+- Opotiki District (~5K) — BOP has parcels only, no CV/LV
+- Central Hawke's Bay (~8K) — No server discovered
 - Southland District (~20K) — Geocortex only, no ArcGIS REST
 - Gore District (~8K) — Experience Builder app, no public REST
 - Nelson City (~25K) — ArcGIS auth-gated; MagiqCloud scraper possible
