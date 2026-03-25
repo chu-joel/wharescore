@@ -10,6 +10,7 @@ import { showPaymentToast } from '@/components/common/PaymentToast';
 export default function PaymentSuccessPage() {
   const { getToken } = useAuthToken();
   const setUser = useDownloadGateStore((s) => s.setUser);
+  const targetAddressId = useDownloadGateStore((s) => s.targetAddressId);
   const [creditsLoaded, setCreditsLoaded] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
 
@@ -90,7 +91,7 @@ export default function PaymentSuccessPage() {
 
         <div className="space-y-3">
           <a
-            href="/"
+            href={targetAddressId ? `/property/${targetAddressId}` : '/'}
             className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
           >
             Download your report now

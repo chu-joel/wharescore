@@ -77,11 +77,20 @@ export default function AccountPage() {
 
   const handleViewReport = async (reportId: number) => {
     const token = await getToken();
-    window.open(
-      `/api/v1/account/saved-reports/${reportId}/download`,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    try {
+      const res = await fetch(`/api/v1/account/saved-reports/${reportId}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to load report');
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      // Clean up blob URL after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error('Failed to view report:', err);
+    }
   };
 
   // Credit balance display
