@@ -152,6 +152,9 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
         credentials: 'include',
         body: JSON.stringify({ code }),
       });
+      if (res.status === 401 || res.status === 403) {
+        return { success: false, message: 'Please sign in to use a promo code.' };
+      }
       const data = await res.json();
       if (!res.ok) {
         return { success: false, message: data.detail || 'Invalid promo code' };

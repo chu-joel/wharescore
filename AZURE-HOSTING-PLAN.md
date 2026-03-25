@@ -426,9 +426,10 @@ Cost: Azure Blob Cool tier = ~$0.01/GB/mo. A 3GB daily backup × 30 days = ~$0.9
 
 ### Cloudflare Setup (Free Tier)
 
-1. **Register domains:**
-   - `wharescore.co.nz` via Metaname or 1st Domains (~$25 NZD/yr)
-   - `wharescore.com` via Cloudflare Registrar (~$10 USD/yr)
+1. **Register domains:** ✅ Done (2026-03-24, Regery)
+   - `wharescore.co.nz` ($14.99 USD/yr)
+   - `wharescore.nz` ($14.99 USD/yr — brand protection, 301 redirect)
+   - `wharescore.com` ($10.99 USD/yr — brand protection, 301 redirect)
 
 2. **Add to Cloudflare (free plan):**
    - Point nameservers to Cloudflare
@@ -633,7 +634,7 @@ Monthly cost at Stage 4: ~$300-500/mo. Only worth it with paying customers.
 
 1. [ ] Sign up at [microsoft.com/startups](https://www.microsoft.com/en-us/startups) → get $1,000 credits
 2. [ ] Complete business verification → unlock $5,000 credits
-3. [ ] Register `wharescore.co.nz` + `wharescore.com` domains
+3. [x] Register `wharescore.co.nz` + `wharescore.nz` + `wharescore.com` domains (Regery, $42.49 USD, 2026-03-24)
 4. [ ] Add domains to Cloudflare (free plan)
 5. [ ] Create Azure resource group + B2ms VM (Section 4A)
 6. [ ] Configure VM: mount data disk, install Docker (Section 4B)

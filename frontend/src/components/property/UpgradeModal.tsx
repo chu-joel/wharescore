@@ -351,7 +351,7 @@ export function UpgradeModal() {
             <button
               onClick={handleGuestCheckout}
               disabled={!!loading || !allRequiredFilled}
-              className="w-full rounded-lg border border-dashed border-muted-foreground/30 p-2.5 text-center text-sm text-muted-foreground transition-all hover:border-piq-primary hover:text-piq-primary disabled:opacity-60"
+              className="w-full rounded-lg border border-dashed border-muted-foreground/30 p-2.5 text-center text-sm text-muted-foreground transition-all hover:border-piq-primary hover:text-piq-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-muted-foreground/30 disabled:hover:text-muted-foreground"
             >
               {loading === 'guest' ? (
                 <span className="flex items-center justify-center gap-2">
