@@ -4095,6 +4095,41 @@ DATA_SOURCES: list[DataSource] = [
         ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
         lambda conn, log=None: _load_regional_gtfs(conn, log,
             "https://www.horizons.govt.nz/HRC/media/Data/files/tranzit/HRC_GTFS_Production.zip", "palmerston_north")),
+    # ══════════════════════════════════════════════════════════
+    # ADDITIONAL CONTAMINATED LAND REGISTERS (regional)
+    # ══════════════════════════════════════════════════════════
+    DataSource("southland_hail", "Southland Contaminated Land Register",
+        ["contaminated_land"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://services1.arcgis.com/bkGMdMdLQmSKFLDY/arcgis/rest/services/Southland_Contaminated_Land_Register/FeatureServer/0",
+            "contaminated_land", "southland",
+            ["site_name", "category", "site_history"],
+            lambda a: (
+                _clean(a.get("SiteName")) or _clean(a.get("Name")),
+                _clean(a.get("Category")) or _clean(a.get("LandUseCategory")),
+                _clean(a.get("Activity")) or _clean(a.get("Description")),
+            ),
+            geom_type="point",
+            srid=4326,
+        ),
+    ),
+    DataSource("taranaki_hail", "Taranaki Selected Land Use Register",
+        ["contaminated_land"],
+        lambda conn, log=None: _load_council_arcgis(
+            conn, log,
+            "https://services1.arcgis.com/R6s0QqCMQdwKY6yp/arcgis/rest/services/Selected_Land_Use/FeatureServer/0",
+            "contaminated_land", "taranaki",
+            ["site_name", "category", "site_history"],
+            lambda a: (
+                _clean(a.get("SiteName")) or _clean(a.get("Site_Name")) or _clean(a.get("Name")),
+                _clean(a.get("Category")) or _clean(a.get("HAIL_Category")),
+                _clean(a.get("Activity")) or _clean(a.get("Land_Use")),
+            ),
+            geom_type="point",
+            srid=4326,
+        ),
+    ),
 ]
 
 DATA_SOURCES_BY_KEY = {s.key: s for s in DATA_SOURCES}
