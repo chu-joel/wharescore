@@ -2952,17 +2952,6 @@ def load_tauranga_noise(conn: psycopg.Connection, log: Callable = None) -> int:
     _progress(log, "Fetching noise_contours (tauranga)...")
     features = _fetch_arcgis(url, 2000)
     cur = conn.cursor()
-    # Delete any previously loaded Tauranga contours by checking for non-null laeq24h
-    # from this source. Since laeq24h is the only data column, we tag with a negative
-    # value range or use a separate approach. Safest: delete where ogc_fid matches
-    # a known range. But simplest: add source_council column if missing, then use it.
-    try:
-        cur.execute(
-            "ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT"
-        )
-        conn.commit()
-    except Exception:
-        conn.rollback()
     cur.execute("DELETE FROM noise_contours WHERE source_council = %s", ("tauranga",))
     count = 0
     for f in features:
@@ -3004,17 +2993,6 @@ def load_doc_huts(conn: psycopg.Connection, log: Callable = None) -> int:
     url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/Huts/MapServer/0"
     _progress(log, "Fetching DOC huts...")
     cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS doc_huts (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            status TEXT,
-            category TEXT,
-            equipment TEXT,
-            geom GEOMETRY(Point, 4326)
-        )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_huts_geom ON doc_huts USING GIST(geom)")
     cur.execute("TRUNCATE doc_huts RESTART IDENTITY")
     conn.commit()
     features = _fetch_arcgis(url, 2000)
@@ -3058,18 +3036,6 @@ def load_doc_tracks(conn: psycopg.Connection, log: Callable = None) -> int:
     url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/AllTracks/MapServer/0"
     _progress(log, "Fetching DOC tracks...")
     cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS doc_tracks (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            status TEXT,
-            category TEXT,
-            track_type TEXT,
-            url TEXT,
-            geom GEOMETRY(MultiLineString, 4326)
-        )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_tracks_geom ON doc_tracks USING GIST(geom)")
     cur.execute("TRUNCATE doc_tracks RESTART IDENTITY")
     conn.commit()
     features = _fetch_arcgis(url, 2000)
@@ -3114,17 +3080,6 @@ def load_doc_campsites(conn: psycopg.Connection, log: Callable = None) -> int:
     url = "https://mapserver.doc.govt.nz/arcgis/rest/services/DTO/Campsites/MapServer/0"
     _progress(log, "Fetching DOC campsites...")
     cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS doc_campsites (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            status TEXT,
-            category TEXT,
-            equipment TEXT,
-            geom GEOMETRY(Point, 4326)
-        )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_doc_campsites_geom ON doc_campsites USING GIST(geom)")
     cur.execute("TRUNCATE doc_campsites RESTART IDENTITY")
     conn.commit()
     features = _fetch_arcgis(url, 2000)
@@ -3215,12 +3170,6 @@ def load_nzta_noise_contours(conn: psycopg.Connection, log: Callable = None) -> 
     _progress(log, "Fetching NZTA national road noise contours...")
     features = _fetch_arcgis(url, 2000)
     cur = conn.cursor()
-    # Ensure source_council column exists
-    try:
-        cur.execute("ALTER TABLE noise_contours ADD COLUMN IF NOT EXISTS source_council TEXT")
-        conn.commit()
-    except Exception:
-        conn.rollback()
     cur.execute("DELETE FROM noise_contours WHERE source_council = %s", ("nzta_national",))
     count = 0
     for f in features:
@@ -3262,12 +3211,6 @@ def load_nrc_contaminated_land(conn: psycopg.Connection, log: Callable = None) -
     _progress(log, "Fetching NRC contaminated land (IRIS SLUs)...")
     features = _fetch_arcgis(url, 2000)
     cur = conn.cursor()
-    # Ensure source_council column exists on contaminated_land
-    try:
-        cur.execute("ALTER TABLE contaminated_land ADD COLUMN IF NOT EXISTS source_council TEXT")
-        conn.commit()
-    except Exception:
-        conn.rollback()
     cur.execute("DELETE FROM contaminated_land WHERE source_council = %s", ("northland",))
     count = 0
     for f in features:
