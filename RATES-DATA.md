@@ -65,8 +65,20 @@
 | 38 | Mackenzie | mackenzie | 4,372 | ECan Property_Details/MapServer/2 | Yes + IV | No | TLA='065' |
 
 | 39 | Marlborough | marlborough | 27,099 | MDC ArcGIS MapServer/2 | Yes + IV | Yes (levy) | No address field — spatial join only. `gis.marlborough.govt.nz/.../RatingInformation/MapServer/2` |
+| 40 | Kaikoura | kaikoura | ~3,467 | ECan Property_Details/MapServer/2 | Yes + IV | No | `LocalCouncil LIKE '%Kaikoura%'` |
+| 41 | Central Otago | central_otago | ~18,403 | ORC PropertyExternal/MapServer/0 | Yes | No | `RatingAuthority = 'Central Otago District'`. No IV, no address field |
+| 42 | Clutha | clutha | ~15,447 | ORC PropertyExternal/MapServer/0 | Yes | No | `RatingAuthority = 'Clutha District'` |
+| 43 | Dunedin (ORC) | dunedin | ~58K | ORC PropertyExternal/MapServer/0 | Yes | No | `RatingAuthority = 'Dunedin City'`. Replaces old 1K-row load |
+| 44 | Queenstown-Lakes (ORC) | queenstown_lakes | ~33K | ORC PropertyExternal/MapServer/0 | Yes | No | `RatingAuthority = 'Queenstown Lakes District'` |
+| 45 | Buller | buller | ~7,787 | WCRC PropertyPublic/MapServer/0 | Yes + IV | Yes | Dedicated layer. Has rates + typo: `ImprovemntsValue` |
+| 46 | Grey + Westland | grey_westland | ~24,341 | WCRC PropertyPublic/MapServer/1 | Yes + IV | No | Combined layer, no TA filter — loads together |
 
-**Total: ~1,465,000 properties across 39 councils**
+**Total: ~1,625,000+ properties across 46+ councils**
+
+### Not Yet Available (need scraping or data request)
+- Southland District (~20K) — Geocortex only, no ArcGIS REST
+- Gore District (~8K) — Experience Builder app, no public REST
+- Nelson City (~25K) — ArcGIS auth-gated; MagiqCloud scraper possible
 
 ### Regional Endpoint Discovery (Session 63)
 
