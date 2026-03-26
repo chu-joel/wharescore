@@ -5398,7 +5398,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/65",
-            "plan_zones", "whangarei_residential",
+            "district_plan_zones", "whangarei_residential",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or _clean(a.get("ePlanDisplayField")) or "Residential",
@@ -5408,7 +5408,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/67",
-            "plan_zones", "whangarei_commercial",
+            "district_plan_zones", "whangarei_commercial",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Commercial/Mixed Use",
@@ -5418,7 +5418,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/66",
-            "plan_zones", "whangarei_rural",
+            "district_plan_zones", "whangarei_rural",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Rural",
@@ -5428,7 +5428,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/68",
-            "plan_zones", "whangarei_industrial",
+            "district_plan_zones", "whangarei_industrial",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Industrial",
@@ -5438,7 +5438,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/49",
-            "plan_zones", "invercargill",
+            "district_plan_zones", "invercargill",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("FINAL")) or _clean(a.get("NEW_ZONE")) or "Zone",
@@ -5448,7 +5448,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Zones/MapServer/0",
-            "plan_zones", "kapiti_coast",
+            "district_plan_zones", "kapiti_coast",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ePlan_Zone")) or _clean(a.get("PDP_ZONE")) or "Zone",
@@ -5458,7 +5458,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/19",
-            "plan_zones", "porirua",
+            "district_plan_zones", "porirua",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Zone",
@@ -5468,7 +5468,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_PlanningZones/FeatureServer/0",
-            "plan_zones", "palmerston_north",
+            "district_plan_zones", "palmerston_north",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Zone",
@@ -5479,7 +5479,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.qldc.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/37",
-            "plan_zones", "queenstown_lakes",
+            "district_plan_zones", "queenstown_lakes",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Zone_Name")) or _clean(a.get("ZONE")) or "Zone",
@@ -5489,7 +5489,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services6.arcgis.com/NIWVPpy3nWPIOE2J/arcgis/rest/services/Zoning/FeatureServer/0",
-            "plan_zones", "rotorua",
+            "district_plan_zones", "rotorua",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Description")) or _clean(a.get("Type")) or "Zone",
@@ -5500,7 +5500,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services7.arcgis.com/S7DHOirgbYgdtrbR/arcgis/rest/services/Zone_NPS_view/FeatureServer/0",
-            "plan_zones", "taupo",
+            "district_plan_zones", "taupo",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Zone")) or "Zone",
@@ -5511,7 +5511,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/57",
-            "plan_zones", "timaru",
+            "district_plan_zones", "timaru",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE_NAME")) or "Zone",
@@ -5521,7 +5521,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/0",
-            "plan_zones", "waimakariri",
+            "district_plan_zones", "waimakariri",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("NAME")) or "Zone",
@@ -5531,7 +5531,7 @@ DATA_SOURCES: list[DataSource] = [
         ["plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_flood_hazard/FeatureServer/0",
-            "plan_zones", "gisborne",
+            "district_plan_zones", "gisborne",
             ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("ZONE")) or "Zone",
@@ -5545,8 +5545,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/31",
-            "heritage", "whangarei",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "whangarei",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("DESCRIPTIO")) or _clean(a.get("ePlanDisplayField")) or "Heritage Item",
                 _clean(a.get("LABEL")),
@@ -5557,8 +5557,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/8",
-            "heritage", "invercargill",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "invercargill",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("DESCRIPTION")) or "Heritage Site",
                 _clean(a.get("CLASS")) or _clean(a.get("CATEGORY")),
@@ -5569,8 +5569,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/14",
-            "heritage", "kapiti_coast",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "kapiti_coast",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("LOCATION")) or "Heritage Place",
                 _clean(a.get("SIGNIFICANCE")),
@@ -5581,8 +5581,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/1",
-            "heritage", "porirua",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "porirua",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("NAME")) or _clean(a.get("FEATURE_DE")) or "Heritage Building",
                 _clean(a.get("NZHPT_OR_A")),
@@ -5593,8 +5593,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_HeritageSites/FeatureServer/0",
-            "heritage", "palmerston_north",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "palmerston_north",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("BLDG_OBJECT")) or "Heritage Site",
                 _clean(a.get("TYPE")),
@@ -5606,8 +5606,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.qldc.govt.nz/server/rest/services/DistrictPlan/PDP_Stage_1_2_3_Decisions/MapServer/13",
-            "heritage", "queenstown_lakes",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "queenstown_lakes",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("Description")) or "Heritage Feature",
                 _clean(a.get("FeatureType")),
@@ -5618,8 +5618,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services7.arcgis.com/S7DHOirgbYgdtrbR/arcgis/rest/services/Historic_Heritage_NPS_view/FeatureServer/0",
-            "heritage", "taupo",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "taupo",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("Name")) or "Heritage Site",
                 _clean(a.get("Type")),
@@ -5631,8 +5631,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/6",
-            "heritage", "timaru",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "timaru",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("SITE_BUILDING_NAME")) or "Heritage Building",
                 _clean(a.get("CATEGORY")),
@@ -5643,8 +5643,8 @@ DATA_SOURCES: list[DataSource] = [
         ["heritage"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/7",
-            "heritage", "waimakariri",
-            ["name", "category", "address"],
+            "historic_heritage_overlay", "waimakariri",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("Name")) or "Heritage Item",
                 _clean(a.get("Historic_Heritage_Category")),
@@ -6260,17 +6260,17 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/NRMP_PC29_Operative/FeatureServer/12",
             "district_plan_zones", "nelson",
-            ["zone_name", "zone_type"],
+            ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Zone")) or _clean(a.get("Name")) or "Nelson Zone",
                 _clean(a.get("ZoneType")) or _clean(a.get("Category")) or "Zone",
             ))),
     DataSource("nelson_heritage", "Nelson Heritage Buildings/Objects/Places (NRMP PC29)",
-        ["heritage_sites"],
+        ["historic_heritage_overlay"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/NRMP_PC29_Operative/FeatureServer/0",
-            "heritage_sites", "nelson",
-            ["name", "category", "heritage_type"],
+            "historic_heritage_overlay", "nelson",
+            ["name", "schedule", "heritage_type"],
             lambda a: (
                 _clean(a.get("Name")) or _clean(a.get("HeritageName")) or "Nelson Heritage",
                 _clean(a.get("Category")) or "Heritage",
@@ -6424,7 +6424,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://topofthesouthmaps.co.nz/arcgis/rest/services/DataPlanning/MapServer/3",
             "district_plan_zones", "tasman",
-            ["zone_name", "zone_type"],
+            ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Zone")) or _clean(a.get("ZoneName")) or "Tasman Zone",
                 _clean(a.get("Category")) or "Zone",
@@ -6592,7 +6592,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TTPPDistrictPlanZones/MapServer/0",
             "district_plan_zones", "westcoast",
-            ["zone_name", "zone_type"],
+            ["zone_name", "zone_code"],
             lambda a: (
                 _clean(a.get("Zone")) or _clean(a.get("ZoneName")) or "West Coast Zone",
                 _clean(a.get("ZoneType")) or "Zone",
