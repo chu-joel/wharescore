@@ -46,6 +46,16 @@ async def cache_set(key: str, value: str, ex: int = 86400) -> None:
         pass  # cache write failure is non-fatal
 
 
+async def cache_del(key: str) -> None:
+    """Delete a cached key. No-op if Redis unavailable."""
+    if not redis_client:
+        return
+    try:
+        await redis_client.delete(key)
+    except Exception:
+        pass
+
+
 async def cache_incr(key: str, expire: Optional[int] = None) -> int:
     """Increment counter. Returns 0 if Redis unavailable (disables rate features)."""
     if not redis_client:

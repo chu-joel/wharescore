@@ -2,6 +2,7 @@
 
 import { usePropertyReport } from '@/hooks/usePropertyReport';
 import { useAISummary } from '@/hooks/useAISummary';
+import { usePropertyRates } from '@/hooks/usePropertyRates';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertySummaryCard } from './PropertySummaryCard';
 import { ScoreGauge } from './ScoreGauge';
@@ -45,6 +46,8 @@ const FREE_FINDINGS = 2;
 export function PropertyReport({ addressId }: { addressId: number }) {
   const { data: report, isLoading, error, refetch } = usePropertyReport(addressId);
   const { data: aiData, isLoading: aiLoading } = useAISummary(addressId, !isLoading && !error);
+  // Fire-and-forget: fetch live council rates in parallel — updates CV in DB + invalidates report cache
+  usePropertyRates(addressId, !isLoading && !error);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
   const persona = usePersonaStore((s) => s.persona);
