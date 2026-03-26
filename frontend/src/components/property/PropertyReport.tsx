@@ -3,6 +3,7 @@
 import { usePropertyReport } from '@/hooks/usePropertyReport';
 import { useAISummary } from '@/hooks/useAISummary';
 import { usePropertyRates } from '@/hooks/usePropertyRates';
+import { useAreaFeed } from '@/hooks/useAreaFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertySummaryCard } from './PropertySummaryCard';
 import { ScoreGauge } from './ScoreGauge';
@@ -24,6 +25,7 @@ import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { KeyFindings } from './KeyFindings';
+import { AreaEventTeaser } from './AreaEventTeaser';
 import { CategoryRadar } from './CategoryRadar';
 import { PremiumGate } from './PremiumGate';
 import { CoverageRing } from './CoverageRing';
@@ -48,6 +50,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   const { data: aiData, isLoading: aiLoading } = useAISummary(addressId, !isLoading && !error);
   // Fire-and-forget: fetch live council rates in parallel — updates CV in DB + invalidates report cache
   usePropertyRates(addressId, !isLoading && !error);
+  // Area activity feed — seismic, weather, emergency events near the property
+  const { data: areaFeed } = useAreaFeed(addressId, !isLoading && !error);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
   const persona = usePersonaStore((s) => s.persona);
@@ -181,6 +185,11 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         <div className="section-divider">
           <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
         </div>
+
+        {/* === AREA ACTIVITY FEED TEASER — significant events near property === */}
+        {areaFeed && areaFeed.summary.total_events > 0 && (
+          <AreaEventTeaser feed={areaFeed} addressId={addressId} />
+        )}
 
         {/* Score Gauge + Strip — context after findings */}
         {hasScores && bin ? (

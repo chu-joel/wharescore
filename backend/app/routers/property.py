@@ -361,6 +361,473 @@ async def get_property_rates(request: Request, address_id: int):
     return rates_data
 
 
+# --- Area Activity Feed (live external APIs) ---
+
+# Map TA / city names to MetService region slugs
+_METSERVICE_REGION_MAP: dict[str, str] = {
+    "auckland": "auckland",
+    "hamilton": "waikato",
+    "tauranga": "bay-of-plenty",
+    "rotorua": "bay-of-plenty",
+    "whakatane": "bay-of-plenty",
+    "gisborne": "gisborne",
+    "napier": "hawkes-bay",
+    "hastings": "hawkes-bay",
+    "new plymouth": "taranaki",
+    "whanganui": "manawatu-whanganui",
+    "palmerston north": "manawatu-whanganui",
+    "wellington": "wellington",
+    "lower hutt": "wellington",
+    "upper hutt": "wellington",
+    "porirua": "wellington",
+    "nelson": "nelson",
+    "blenheim": "marlborough",
+    "greymouth": "west-coast",
+    "christchurch": "canterbury",
+    "timaru": "canterbury",
+    "dunedin": "otago",
+    "queenstown": "otago",
+    "invercargill": "southland",
+    "whangarei": "northland",
+}
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Haversine distance in km between two WGS84 points."""
+    import math
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _mmi_description(mmi: int) -> str:
+    """Human-readable MMI shaking description."""
+    descs = {
+        1: "unnoticeable", 2: "weak", 3: "weak", 4: "light",
+        5: "moderate", 6: "strong", 7: "severe", 8: "extreme",
+    }
+    return descs.get(mmi, "severe" if mmi >= 7 else "light")
+
+
+def _quake_severity(mag: float, mmi: int) -> str:
+    if mag >= 5.5 or mmi >= 6:
+        return "critical"
+    if mag >= 4.0 or mmi >= 4:
+        return "warning"
+    return "info"
+
+
+@router.get("/property/{address_id}/area-feed")
+@limiter.limit("20/minute")
+async def get_area_feed(request: Request, address_id: int):
+    """Live area activity feed from NZ government APIs.
+    Fetches earthquakes, NEMA alerts, MetService warnings, and volcanic alerts.
+    Cached 30 min in Redis."""
+
+    import requests as req_lib
+    from datetime import datetime, timezone, timedelta
+    import xml.etree.ElementTree as ET
+
+    # 1. Check Redis cache
+    cache_key = f"area-feed:{address_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return orjson.loads(cached)
+
+    # 2. Get property location and region info
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT ST_Y(geom) AS lat, ST_X(geom) AS lng,
+                   town_city, territorial_authority
+            FROM addresses WHERE address_id = %s
+            """,
+            [address_id],
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Address not found")
+
+    prop_lat = row["lat"]
+    prop_lng = row["lng"]
+    city = (row["town_city"] or "").strip()
+    ta = (row["territorial_authority"] or "").strip()
+    city_lower = city.lower()
+    ta_lower = ta.lower()
+
+    # Resolve MetService region slug
+    ms_region = _METSERVICE_REGION_MAP.get(city_lower)
+    if not ms_region:
+        # Try matching on TA keywords
+        for key, slug in _METSERVICE_REGION_MAP.items():
+            if key in ta_lower:
+                ms_region = slug
+                break
+
+    now = datetime.now(timezone.utc)
+    events: list[dict] = []
+
+    # --- Source fetchers (each wrapped in try/except) ---
+
+    def _fetch_geonet_quakes() -> list[dict]:
+        """Fetch GeoNet felt earthquakes and filter by distance/time."""
+        try:
+            resp = req_lib.get(
+                "https://api.geonet.org.nz/quake?MMI=3",
+                headers={"Accept": "application/json"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning(f"GeoNet quake fetch failed: {e}")
+            return []
+
+        cutoff_30d = now - timedelta(days=30)
+        cutoff_365d = now - timedelta(days=365)
+        results = []
+
+        for q in data.get("features", []):
+            props = q.get("properties", {})
+            coords = (q.get("geometry") or {}).get("coordinates", [])
+            if len(coords) < 2:
+                continue
+
+            q_lng, q_lat = coords[0], coords[1]
+            dist = _haversine_km(prop_lat, prop_lng, q_lat, q_lng)
+            if dist > 100:
+                continue
+
+            mag = props.get("magnitude", 0)
+            mmi = props.get("mmi", 0)
+            time_str = props.get("time", "")
+
+            # Parse time
+            try:
+                q_time = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            except Exception:
+                continue
+
+            # Filter: M4+ in last 365 days, M3+ in last 30 days
+            if mag >= 4.0 and q_time >= cutoff_365d:
+                pass  # include
+            elif mag >= 3.0 and q_time >= cutoff_30d:
+                pass  # include
+            else:
+                continue
+
+            dist_rounded = round(dist, 1)
+            severity = _quake_severity(mag, mmi)
+            results.append({
+                "source": "geonet",
+                "type": "earthquake",
+                "severity": severity,
+                "title": f"M{mag} earthquake — {dist_rounded}km from property",
+                "description": (
+                    f"Magnitude {mag}, depth {props.get('depth', '?')}km, "
+                    f"MMI {mmi} ({_mmi_description(mmi)} shaking)"
+                    + (f", near {props.get('locality', '')}" if props.get("locality") else "")
+                ),
+                "timestamp": q_time.isoformat(),
+                "distance_km": dist_rounded,
+                "magnitude": mag,
+                "mmi": mmi,
+                "active": False,
+            })
+
+        # Sort by time descending
+        results.sort(key=lambda e: e["timestamp"], reverse=True)
+        return results
+
+    def _fetch_nema_alerts() -> list[dict]:
+        """Fetch NEMA CAP/Atom emergency alerts."""
+        try:
+            resp = req_lib.get(
+                "https://api.preparedness.nema.govt.nz/api/v1/cap-feed",
+                timeout=10,
+            )
+            resp.raise_for_status()
+            raw_xml = resp.text
+        except Exception as e:
+            logger.warning(f"NEMA alert fetch failed: {e}")
+            return []
+
+        results = []
+        try:
+            root = ET.fromstring(raw_xml)
+            # CAP Atom feed namespaces
+            ns = {
+                "atom": "http://www.w3.org/2005/Atom",
+                "cap": "urn:oasis:names:tc:emergency:cap:1.2",
+            }
+
+            for entry in root.findall(".//atom:entry", ns):
+                title_el = entry.find("atom:title", ns)
+                summary_el = entry.find("atom:summary", ns)
+                updated_el = entry.find("atom:updated", ns)
+
+                title = title_el.text if title_el is not None else ""
+                summary = summary_el.text if summary_el is not None else ""
+                updated = updated_el.text if updated_el is not None else ""
+
+                # Check if alert is relevant to this property's region/city/TA
+                text_blob = f"{title} {summary}".lower()
+                is_relevant = False
+                for term in [city_lower, ta_lower]:
+                    if term and term in text_blob:
+                        is_relevant = True
+                        break
+                # Also check for national-level alerts
+                if "new zealand" in text_blob or "nationwide" in text_blob:
+                    is_relevant = True
+
+                if not is_relevant:
+                    continue
+
+                # Determine severity from title/summary keywords
+                severity = "info"
+                text_upper = text_blob.upper()
+                if any(w in text_upper for w in ["EXTREME", "EMERGENCY", "EVACUAT"]):
+                    severity = "critical"
+                elif any(w in text_upper for w in ["WARNING", "SEVERE", "WATCH"]):
+                    severity = "warning"
+
+                try:
+                    ts = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                except Exception:
+                    ts = now
+
+                results.append({
+                    "source": "nema",
+                    "type": "emergency_alert",
+                    "severity": severity,
+                    "title": title.strip() if title else "Emergency Alert",
+                    "description": (summary.strip() if summary else "")[:500],
+                    "timestamp": ts.isoformat(),
+                    "distance_km": None,
+                    "active": True,
+                })
+        except ET.ParseError as e:
+            logger.warning(f"NEMA XML parse failed: {e}")
+
+        return results
+
+    def _fetch_metservice_warnings() -> list[dict]:
+        """Fetch MetService severe weather warnings."""
+        if not ms_region:
+            return []
+        try:
+            resp = req_lib.get(
+                "https://www.metservice.com/publicData/webdata/warnings/all",
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning(f"MetService fetch failed: {e}")
+            return []
+
+        results = []
+        region_lower = ms_region.lower()
+
+        # MetService returns varying structures — try to handle robustly
+        warnings_list = []
+        if isinstance(data, dict):
+            # Could be nested under various keys
+            for key in ("warnings", "watches", "all"):
+                val = data.get(key)
+                if isinstance(val, list):
+                    warnings_list.extend(val)
+            # Sometimes the whole dict is a single region map
+            if not warnings_list:
+                for key, val in data.items():
+                    if isinstance(val, list):
+                        warnings_list.extend(val)
+                    elif isinstance(val, dict) and isinstance(val.get("warnings"), list):
+                        warnings_list.extend(val["warnings"])
+        elif isinstance(data, list):
+            warnings_list = data
+
+        for w in warnings_list:
+            if not isinstance(w, dict):
+                continue
+
+            # Check if this warning applies to our region
+            w_text = orjson.dumps(w).decode().lower()
+            if region_lower not in w_text and city_lower not in w_text:
+                continue
+
+            w_type = w.get("type", w.get("warningType", "Weather Warning"))
+            threat = w.get("threat_level", w.get("threatLevel", w.get("severity", "")))
+            text = w.get("text", w.get("body", w.get("description", "")))
+            valid_from = w.get("valid_from", w.get("validFrom", w.get("onset", "")))
+            valid_to = w.get("valid_to", w.get("validTo", w.get("expires", "")))
+
+            # Determine severity
+            threat_lower = str(threat).lower()
+            if "extreme" in threat_lower or "red" in threat_lower:
+                severity = "critical"
+            elif "warning" in threat_lower or "orange" in threat_lower:
+                severity = "warning"
+            else:
+                severity = "info"
+
+            # Check if still active
+            active = True
+            if valid_to:
+                try:
+                    expires = datetime.fromisoformat(str(valid_to).replace("Z", "+00:00"))
+                    active = expires > now
+                except Exception:
+                    pass
+
+            try:
+                ts = datetime.fromisoformat(str(valid_from).replace("Z", "+00:00")) if valid_from else now
+            except Exception:
+                ts = now
+
+            results.append({
+                "source": "metservice",
+                "type": "weather_warning",
+                "severity": severity,
+                "title": str(w_type),
+                "description": (str(text))[:500],
+                "timestamp": ts.isoformat(),
+                "distance_km": None,
+                "active": active,
+            })
+
+        return results
+
+    def _fetch_volcanic_alerts() -> list[dict]:
+        """Fetch GeoNet volcanic alert levels."""
+        try:
+            resp = req_lib.get(
+                "https://api.geonet.org.nz/volcano/val",
+                headers={"Accept": "application/json"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning(f"GeoNet volcanic alert fetch failed: {e}")
+            return []
+
+        results = []
+        for v in data.get("features", []):
+            props = v.get("properties", {})
+            coords = (v.get("geometry") or {}).get("coordinates", [])
+            if len(coords) < 2:
+                continue
+
+            v_lng, v_lat = coords[0], coords[1]
+            dist = _haversine_km(prop_lat, prop_lng, v_lat, v_lng)
+            if dist > 100:
+                continue
+
+            level = props.get("level", 0)
+            if level == 0:
+                continue  # No alert
+
+            name = props.get("volcanoTitle", props.get("volcanoID", "Unknown"))
+            hazards = props.get("hazards", "")
+            activity = props.get("activity", "")
+
+            if level >= 3:
+                severity = "critical"
+            elif level >= 2:
+                severity = "warning"
+            else:
+                severity = "info"
+
+            level_names = {
+                0: "No volcanic unrest",
+                1: "Minor volcanic unrest",
+                2: "Moderate to heightened volcanic unrest",
+                3: "Minor volcanic eruption",
+                4: "Moderate volcanic eruption",
+                5: "Major volcanic eruption",
+            }
+
+            results.append({
+                "source": "geonet",
+                "type": "volcanic_alert",
+                "severity": severity,
+                "title": f"{name} — Alert Level {level}",
+                "description": (
+                    f"{level_names.get(level, 'Volcanic alert')}"
+                    + (f". {activity}" if activity else "")
+                    + (f". Hazards: {hazards}" if hazards else "")
+                )[:500],
+                "timestamp": now.isoformat(),
+                "distance_km": round(dist, 1),
+                "active": True,
+            })
+
+        return results
+
+    # 3. Fetch all sources in parallel
+    quakes, nema, metservice, volcanic = await asyncio.gather(
+        asyncio.to_thread(_fetch_geonet_quakes),
+        asyncio.to_thread(_fetch_nema_alerts),
+        asyncio.to_thread(_fetch_metservice_warnings),
+        asyncio.to_thread(_fetch_volcanic_alerts),
+    )
+
+    events.extend(quakes)
+    events.extend(nema)
+    events.extend(metservice)
+    events.extend(volcanic)
+
+    # 4. Sort: critical first, then warning, then info; newest first within each
+    severity_order = {"critical": 0, "warning": 1, "info": 2}
+    events.sort(key=lambda e: e.get("timestamp", ""), reverse=True)  # newest first
+    events.sort(key=lambda e: severity_order.get(e["severity"], 9))  # stable sort by severity
+
+    # 5. Build summary
+    critical_count = sum(1 for e in events if e["severity"] == "critical")
+    warning_count = sum(1 for e in events if e["severity"] == "warning")
+    info_count = sum(1 for e in events if e["severity"] == "info")
+
+    # Build headline
+    headline_parts = []
+    active_alerts = sum(1 for e in events if e.get("active") and e["source"] == "nema")
+    active_weather = sum(1 for e in events if e.get("active") and e["source"] == "metservice")
+    active_volcanic = sum(1 for e in events if e.get("active") and e["type"] == "volcanic_alert")
+    quake_count = sum(1 for e in events if e["type"] == "earthquake")
+
+    if active_alerts:
+        headline_parts.append(f"{active_alerts} emergency alert{'s' if active_alerts > 1 else ''}")
+    if active_weather:
+        headline_parts.append(f"{active_weather} weather warning{'s' if active_weather > 1 else ''} active")
+    if active_volcanic:
+        headline_parts.append(f"{active_volcanic} volcanic alert{'s' if active_volcanic > 1 else ''}")
+    if quake_count:
+        headline_parts.append(f"{quake_count} recent earthquake{'s' if quake_count > 1 else ''}")
+
+    headline = ", ".join(headline_parts) if headline_parts else "No significant activity"
+
+    result = {
+        "summary": {
+            "total_events": len(events),
+            "critical": critical_count,
+            "warning": warning_count,
+            "info": info_count,
+            "headline": headline,
+        },
+        "events": events,
+    }
+
+    # 6. Cache 30 minutes
+    await cache_set(cache_key, orjson.dumps(result).decode(), ex=1800)
+
+    return result
+
+
 @router.get("/property/{address_id}/ai-summary")
 @limiter.limit("20/minute")
 async def get_ai_summary(request: Request, address_id: int):

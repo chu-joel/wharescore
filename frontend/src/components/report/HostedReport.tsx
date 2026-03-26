@@ -24,6 +24,7 @@ import { HostedAISummary } from './HostedAISummary';
 import { HostedOutdoorRec } from './HostedOutdoorRec';
 import { HostedSchoolZones } from './HostedSchoolZones';
 import { HostedRoadNoise } from './HostedRoadNoise';
+import { HostedAreaFeed } from './HostedAreaFeed';
 import { HostedHazardAdvice } from './HostedHazardAdvice';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
@@ -34,6 +35,7 @@ import { QuestionContent } from '@/components/property/QuestionContent';
 import { getRatingBin } from '@/lib/constants';
 import { getQuestionsForPersona } from '@/lib/reportSections';
 import { formatCurrency } from '@/lib/format';
+import { useAreaFeed } from '@/hooks/useAreaFeed';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
 
 interface HostedReportProps {
@@ -56,6 +58,9 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   const rentBand = useMemo(() => {
     return computeRentBand(snapshot, store);
   }, [snapshot, store.bedrooms, store.bathrooms, store.finishTier, store.weeklyRent, store.hasParking, store.isFurnished, store.isPartiallyFurnished, store.notInsulated, store.sharedKitchen, store.utilitiesIncluded, store.hasOutdoorSpace, store.isCharacterProperty]);
+
+  // Live area feed — fetch seismic/weather/emergency events even for hosted report
+  const { data: areaFeed } = useAreaFeed(snapshot.meta.address_id);
 
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
@@ -244,6 +249,13 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
         <div className="pb-6">
           <HostedRoadNoise snapshot={snapshot} />
         </div>
+
+        {/* ═══ AREA ACTIVITY FEED — seismic, weather, emergency events ═══ */}
+        {areaFeed && (
+          <div className="pb-6">
+            <HostedAreaFeed feed={areaFeed} />
+          </div>
+        )}
 
         {/* ═══ NEIGHBOURHOOD SNAPSHOT — essentials, crashes, air/water, contamination, amenities ═══ */}
         <div className="pb-6">
