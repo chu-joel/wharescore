@@ -38,7 +38,7 @@ export function HostedAISummary({ snapshot }: Props) {
           <div>
             <h4 className="text-sm font-semibold mb-2">Key Takeaways</h4>
             <div className="space-y-2">
-              {takeaways.slice(0, 3).map((item, i) => (
+              {takeaways.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <span className="shrink-0 w-6 h-6 rounded-full bg-piq-primary/10 text-piq-primary text-xs font-bold flex items-center justify-center">
                     {i + 1}

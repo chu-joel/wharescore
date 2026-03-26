@@ -1575,42 +1575,8 @@ async def _generate_pdf_background(
             except Exception as e:
                 logger.error(f"Failed to save report/deduct credit for {user_id}: {e}")
 
-        # 8b. Mark job as completed IMMEDIATELY — user gets report now
-        await set_job_completed(job_id, html, share_token=None)
-        logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'})")
-
-        # --- Phase 2: Background enrichment (AI insights + snapshot) ---
-        # If AI wasn't ready, wait for it, re-render, and update the job
-        if ai_insights is None:
-            try:
-                ai_insights = await ai_task
-            except Exception as e:
-                logger.warning(f"PDF AI insights failed for {address_id}: {e}")
-                ai_insights = None
-
-            if ai_insights:
-                html = render_report_html(
-                    report, python_insights, lifestyle_fit, ai_insights, recommendations,
-                    **render_kwargs,
-                )
-                await set_job_completed(job_id, html, share_token=None)
-                # Update saved report HTML too
-                if user_id:
-                    try:
-                        async with db.pool.connection() as conn_upd_html:
-                            await conn_upd_html.execute(
-                                """
-                                UPDATE saved_reports SET report_html = %s
-                                WHERE user_id = %s AND address_id = %s
-                                ORDER BY generated_at DESC LIMIT 1
-                                """,
-                                [html, user_id, address_id],
-                            )
-                    except Exception:
-                        pass
-                logger.info(f"Phase 2 AI enrichment complete for job {job_id}")
-
-        # 8c. Generate hosted report snapshot (non-blocking, after user already has report)
+        # --- Phase 1: Create snapshot fast (no AI) + mark complete ---
+        share_token = None
         try:
             from ..services.snapshot_generator import create_report_snapshot
             dw_type = (rent_inputs or {}).get("dwelling_type", "House")
@@ -1625,7 +1591,6 @@ async def _generate_pdf_background(
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
-                await set_job_completed(job_id, html, share_token=share_token)
                 if user_id:
                     try:
                         async with db.pool.connection() as conn_upd:
@@ -1641,7 +1606,49 @@ async def _generate_pdf_background(
                     except Exception:
                         pass
         except Exception as e:
-            logger.warning(f"Snapshot generation failed (non-critical): {e}")
+            logger.warning(f"Snapshot generation failed: {e}")
+
+        await set_job_completed(job_id, html, share_token=share_token)
+        logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'}, hosted={'yes' if share_token else 'no'})")
+
+        # --- Phase 2: Background AI enrichment ---
+        if ai_insights is None:
+            try:
+                ai_insights = await ai_task
+            except Exception as e:
+                logger.warning(f"PDF AI insights failed for {address_id}: {e}")
+                ai_insights = None
+
+            if ai_insights:
+                html = render_report_html(
+                    report, python_insights, lifestyle_fit, ai_insights, recommendations,
+                    **render_kwargs,
+                )
+                await set_job_completed(job_id, html, share_token=share_token)
+                if user_id:
+                    try:
+                        async with db.pool.connection() as conn_upd_html:
+                            await conn_upd_html.execute(
+                                """
+                                UPDATE saved_reports SET report_html = %s
+                                WHERE user_id = %s AND address_id = %s
+                                ORDER BY generated_at DESC LIMIT 1
+                                """,
+                                [html, user_id, address_id],
+                            )
+                    except Exception:
+                        pass
+                # Update snapshot with AI
+                if share_token:
+                    try:
+                        async with db.pool.connection() as conn_snap2:
+                            await conn_snap2.execute(
+                                "UPDATE report_snapshots SET ai_summary = %s WHERE share_token = %s",
+                                [ai_insights, share_token],
+                            )
+                    except Exception:
+                        pass
+                logger.info(f"Phase 2 AI enrichment complete for job {job_id}")
 
     except Exception as e:
         import traceback

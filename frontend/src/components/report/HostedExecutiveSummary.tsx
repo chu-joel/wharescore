@@ -213,7 +213,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
           <div className="mb-4">
             <h4 className="text-sm font-semibold mb-1.5">About {snapshot.meta.sa2_name}</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {areaProfile.length > 300 ? areaProfile.slice(0, 300) + '…' : areaProfile}
+              {areaProfile}
             </p>
           </div>
         )}

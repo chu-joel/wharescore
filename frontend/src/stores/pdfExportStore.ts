@@ -6,6 +6,7 @@ import { useRentInputStore } from './rentInputStore';
 import { useBuyerInputStore } from './buyerInputStore';
 import { showPaymentToast } from '@/components/common/PaymentToast';
 import { useReportConfirmStore } from '@/components/property/ReportConfirmModal';
+import { toast } from 'sonner';
 
 interface PdfExportState {
   addressId: number | null;
@@ -43,16 +44,10 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // If we already have a report for this address+persona, open it (prefer hosted report)
-    if (state.addressId === addressId && state.persona === persona) {
-      if (state.shareUrl) {
-        window.open(state.shareUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      if (state.downloadUrl) {
-        window.open(state.downloadUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
+    // If we already have a hosted report for this address+persona, open it
+    if (state.addressId === addressId && state.persona === persona && state.shareUrl) {
+      window.open(state.shareUrl, '_blank', 'noopener,noreferrer');
+      return;
     }
 
     // Show confirmation modal — user reviews inputs before generating
@@ -174,11 +169,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
               showPaymentToast('report_generated', remaining);
             }
           }
-          set({ downloadUrl: download_url, isGenerating: false });
-          // If a hosted report URL is available, also store it
-          if (status.share_url) {
-            set({ shareUrl: status.share_url });
-          }
+          set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
           return;
         }
 
@@ -192,6 +183,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       const msg = err instanceof Error ? err.message : 'Unknown error';
       set({ error: msg, isGenerating: false });
       console.error('PDF export failed:', err);
+      toast.error(msg, { duration: 8000 });
     }
   },
 }));
