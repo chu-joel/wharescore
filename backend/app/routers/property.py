@@ -902,6 +902,29 @@ async def get_area_feed(request: Request, address_id: int):
                     "description": f"Coastal erosion hazard identified within {int(erosion['dist_m'])}m. Sea level rise projections may increase risk over time.",
                     "timestamp": now.isoformat(), "distance_km": round(float(erosion['dist_m']) / 1000, 2), "active": True, "historical": False,
                 })
+            # Extreme weather history (from weather_events table)
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT we.event_date, we.event_type, we.severity, we.title, we.description,
+                       we.precipitation_mm, we.wind_gust_kmh,
+                       round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+                FROM weather_events we, addr
+                WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
+                  AND we.event_date >= (CURRENT_DATE - interval '5 years')
+                  AND we.severity IN ('critical', 'warning')
+                ORDER BY we.event_date DESC
+                LIMIT 15
+            """, [address_id])
+            for r in cur.fetchall():
+                events.append({
+                    "source": "open_meteo", "type": r["event_type"], "severity": r["severity"],
+                    "title": r["title"],
+                    "description": r["description"] or "",
+                    "timestamp": r["event_date"].isoformat() if hasattr(r["event_date"], "isoformat") else str(r["event_date"]),
+                    "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
+                    "active": False, "historical": True,
+                })
+
             # Contaminated land
             cur = await conn_haz.execute("""
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)

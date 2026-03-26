@@ -6732,6 +6732,22 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Susceptibility")) or "High",
                 "Tahunanui",
             ))),
+    # ── National datasets (DOC, school zones, noise, weather) ────────
+    DataSource("doc_huts", "DOC Backcountry Huts (National, ~990)",
+        ["doc_huts"], load_doc_huts),
+    DataSource("doc_tracks", "DOC Tracks (National, ~3.2K)",
+        ["doc_tracks"], load_doc_tracks),
+    DataSource("doc_campsites", "DOC Campsites (National, ~330)",
+        ["doc_campsites"], load_doc_campsites),
+    DataSource("school_zones", "School Enrolment Zones (MoE, ~1.3K)",
+        ["school_zones"], load_school_zones),
+    DataSource("nzta_noise_contours", "NZTA National Road Noise Contours (224K)",
+        ["noise_contours"], load_nzta_noise_contours),
+    DataSource("nrc_contaminated_land", "Northland Contaminated Land (NRC)",
+        ["contaminated_land"], load_nrc_contaminated_land),
+    DataSource("weather_history", "Extreme Weather History (Open-Meteo, 2020+)",
+        ["weather_events"],
+        lambda conn, log=None: __import__("app.services.weather_loader", fromlist=["load_weather_history"]).load_weather_history(conn, log)),
 ]
 
 DATA_SOURCES_BY_KEY = {s.key: s for s in DATA_SOURCES}
