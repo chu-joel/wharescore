@@ -21,6 +21,9 @@ import { HostedAtAGlance } from './HostedAtAGlance';
 import { HostedRecommendations } from './HostedRecommendations';
 import { HostedNearbyHighlights } from './HostedNearbyHighlights';
 import { HostedAISummary } from './HostedAISummary';
+import { HostedOutdoorRec } from './HostedOutdoorRec';
+import { HostedSchoolZones } from './HostedSchoolZones';
+import { HostedRoadNoise } from './HostedRoadNoise';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -226,14 +229,29 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           <HostedNearbyHighlights snapshot={snapshot} />
         </div>
 
+        {/* ═══ SCHOOL ZONES — enrolment zones this property falls within ═══ */}
+        <div className="pb-6">
+          <HostedSchoolZones snapshot={snapshot} />
+        </div>
+
         {/* ═══ SCHOOLS — full table from snapshot data ═══ */}
         <div className="pb-6">
           <HostedSchools rawReport={snapshot.report} />
         </div>
 
+        {/* ═══ ROAD NOISE — NZTA national road noise contours ═══ */}
+        <div className="pb-6">
+          <HostedRoadNoise snapshot={snapshot} />
+        </div>
+
         {/* ═══ NEIGHBOURHOOD SNAPSHOT — essentials, crashes, air/water, contamination, amenities ═══ */}
         <div className="pb-6">
           <HostedNeighbourhoodStats rawReport={snapshot.report} />
+        </div>
+
+        {/* ═══ OUTDOOR & RECREATION — DOC huts, tracks, campsites ═══ */}
+        <div className="pb-6">
+          <HostedOutdoorRec snapshot={snapshot} />
         </div>
 
         {/* ═══ INFRASTRUCTURE PROJECTS ═══ */}

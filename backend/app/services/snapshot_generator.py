@@ -443,6 +443,55 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot rates failed: {e}")
 
+    # 20. DOC huts, tracks, campsites (within 5km)
+    nearby_doc = {"huts": [], "tracks": [], "campsites": []}
+    try:
+        for layer, table in [("huts", "doc_huts"), ("tracks", "doc_tracks"), ("campsites", "doc_campsites")]:
+            geom_col = "geom" if layer != "tracks" else "geom"
+            cur = await conn.execute(f"""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT d.name, d.status, d.category,
+                       round(ST_Distance(d.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                FROM {table} d, addr
+                WHERE d.geom && ST_Expand(addr.geom, 5000 * 0.00001)
+                  AND ST_DWithin(d.geom::geography, addr.geom::geography, 5000)
+                ORDER BY distance_m LIMIT 10
+            """, [address_id])
+            nearby_doc[layer] = [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        logger.warning(f"Snapshot DOC nearby failed: {e}")
+
+    # 21. School zones this property falls within
+    school_zones = []
+    try:
+        cur = await conn.execute("""
+            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+            SELECT sz.school_name, sz.school_id, sz.institution_type
+            FROM school_zones sz, addr
+            WHERE ST_Contains(sz.geom, addr.geom)
+            ORDER BY sz.school_name
+        """, [address_id])
+        school_zones = [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        logger.warning(f"Snapshot school zones failed: {e}")
+
+    # 22. Road noise level at property (NZTA national contours)
+    road_noise = None
+    try:
+        cur = await conn.execute("""
+            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+            SELECT nc.laeq24h
+            FROM noise_contours nc, addr
+            WHERE nc.source_council = 'nzta_national'
+              AND ST_Contains(nc.geom, addr.geom)
+            ORDER BY nc.laeq24h DESC LIMIT 1
+        """, [address_id])
+        row = cur.fetchone()
+        if row:
+            road_noise = {"laeq24h": int(row["laeq24h"]) if row["laeq24h"] else None}
+    except Exception as e:
+        logger.warning(f"Snapshot road noise failed: {e}")
+
     return {
         "report": report,
         "sa2": dict(sa2),
@@ -467,6 +516,9 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         "nearby_highlights": nearby_highlights,
         "nearby_supermarkets": nearby_supermarkets,
         "rates_data": rates_data,
+        "nearby_doc": nearby_doc,
+        "school_zones": school_zones,
+        "road_noise": road_noise,
     }
 
 
@@ -860,6 +912,9 @@ async def generate_snapshot(
         "nearby_highlights": cache.get("nearby_highlights", {"good": [], "caution": [], "info": []}),
         "nearby_supermarkets": cache.get("nearby_supermarkets", []),
         "rates_data": cache.get("rates_data"),
+        "nearby_doc": cache.get("nearby_doc", {"huts": [], "tracks": [], "campsites": []}),
+        "school_zones": cache.get("school_zones", []),
+        "road_noise": cache.get("road_noise"),
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",

@@ -554,6 +554,9 @@ export interface ReportSnapshot {
   nearby_highlights: { good: Array<Record<string, unknown>>; caution: Array<Record<string, unknown>>; info: Array<Record<string, unknown>> };
   nearby_supermarkets: Array<Record<string, unknown>>;
   rates_data: Record<string, unknown> | null;
+  nearby_doc?: { huts: Array<Record<string, unknown>>; tracks: Array<Record<string, unknown>>; campsites: Array<Record<string, unknown>> };
+  school_zones?: Array<{ school_name: string; school_id: number; institution_type: string }>;
+  road_noise?: { laeq24h: number } | null;
   meta: SnapshotMeta;
 }
 
