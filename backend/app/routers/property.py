@@ -1193,116 +1193,115 @@ async def _generate_pdf_background(
                     pr = cur2.fetchone()
                     area_profile = pr["profile"] if pr else None
 
-        # 3. Fetch 5 nearby supermarkets for the report
-        nearby_supermarkets = []
-        try:
-            async with db.pool.connection() as conn_sm:
-                cur_sm = await conn_sm.execute("""
-                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                    SELECT oa.name, oa.subcategory, oa.brand,
-                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
-                           ST_X(oa.geom) AS lng, ST_Y(oa.geom) AS lat
-                    FROM osm_amenities oa, addr
-                    WHERE oa.geom && ST_Expand(addr.geom, 10000 * 0.00001)
-                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 10000)
-                      AND oa.subcategory IN ('supermarket', 'greengrocer', 'convenience', 'grocery', 'wholesale', 'general')
-                    ORDER BY distance_m LIMIT 5
-                """, [address_id])
-                nearby_supermarkets = [dict(r) for r in cur_sm.fetchall()]
-        except Exception as e:
-            logger.warning(f"Nearby supermarkets query failed: {e}")
-
-        # 3b. Fetch categorised nearby amenities for the report
+        # --- Parallel data fetching (steps 3-3i + AI) ---
+        # All these are independent — run concurrently for speed.
         from .nearby import AMENITY_CLASSES
-        nearby_highlights = {"good": [], "caution": [], "info": []}
-        try:
-            target_subcats = tuple(AMENITY_CLASSES.keys())
-            placeholders = ",".join(["%s"] * len(target_subcats))
-            async with db.pool.connection() as conn_nh:
-                cur_nh = await conn_nh.execute(f"""
-                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                    SELECT DISTINCT ON (oa.subcategory)
-                           oa.name, oa.subcategory,
-                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
-                    FROM osm_amenities oa, addr
-                    WHERE oa.geom && ST_Expand(addr.geom, 1500 * 0.00001)
-                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1500)
-                      AND oa.subcategory IN ({placeholders})
-                    ORDER BY oa.subcategory, ST_Distance(oa.geom, addr.geom)
-                """, [address_id, *target_subcats])
-                for r in cur_nh.fetchall():
-                    subcat = r["subcategory"]
-                    if subcat not in AMENITY_CLASSES:
-                        continue
-                    sentiment, label = AMENITY_CLASSES[subcat]
-                    item = {"name": r["name"] or label, "label": label, "distance_m": float(r["distance_m"])}
-                    nearby_highlights[sentiment].append(item)
-            for group in nearby_highlights.values():
-                group.sort(key=lambda x: x["distance_m"])
-        except Exception as e:
-            logger.warning(f"Nearby highlights query failed: {e}")
+        sa2_code = (report.get("address") or {}).get("sa2_code")
 
-        # 3c. Fetch nearby POIs for map (parks, cafes, restaurants, playgrounds)
-        nearby_parks = []
-        nearby_cafes = []
-        nearby_restaurants = []
-        nearby_playgrounds = []
-        try:
-            async with db.pool.connection() as conn_poi:
-                cur_poi = await conn_poi.execute("""
-                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                    SELECT oa.name, oa.subcategory,
-                           ST_X(oa.geom) AS longitude, ST_Y(oa.geom) AS latitude,
-                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
-                    FROM osm_amenities oa, addr
-                    WHERE oa.geom && ST_Expand(addr.geom, 1000 * 0.00001)
-                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1000)
-                      AND oa.subcategory IN ('park', 'garden', 'cafe', 'restaurant', 'playground')
-                    ORDER BY distance_m
-                """, [address_id])
-                for r in cur_poi.fetchall():
-                    item = dict(r)
-                    sub = item.get("subcategory", "")
-                    if sub in ("park", "garden"):
-                        nearby_parks.append(item)
-                    elif sub == "cafe":
-                        nearby_cafes.append(item)
-                    elif sub == "restaurant":
-                        nearby_restaurants.append(item)
-                    elif sub == "playground":
-                        nearby_playgrounds.append(item)
-        except Exception as e:
-            logger.warning(f"Nearby POIs query failed: {e}")
+        async def _fetch_supermarkets():
+            try:
+                async with db.pool.connection() as conn_sm:
+                    cur_sm = await conn_sm.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT oa.name, oa.subcategory, oa.brand,
+                               round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
+                               ST_X(oa.geom) AS lng, ST_Y(oa.geom) AS lat
+                        FROM osm_amenities oa, addr
+                        WHERE oa.geom && ST_Expand(addr.geom, 10000 * 0.00001)
+                          AND ST_DWithin(oa.geom::geography, addr.geom::geography, 10000)
+                          AND oa.subcategory IN ('supermarket', 'greengrocer', 'convenience', 'grocery', 'wholesale', 'general')
+                        ORDER BY distance_m LIMIT 5
+                    """, [address_id])
+                    return [dict(r) for r in cur_sm.fetchall()]
+            except Exception as e:
+                logger.warning(f"Nearby supermarkets query failed: {e}")
+                return []
 
-        # 3d. Fetch district plan zone polygons for map overlay
-        nearby_zones = []
-        try:
-            async with db.pool.connection() as conn_z:
-                cur_z = await conn_z.execute("""
-                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                    SELECT dz.zone_name, dz.zone_code,
-                           ST_AsGeoJSON(ST_Intersection(dz.geom, ST_Expand(addr.geom, 0.005)))::jsonb -> 'coordinates' AS coordinates
-                    FROM district_plan_zones dz, addr
-                    WHERE dz.geom && ST_Expand(addr.geom, 0.005)
-                      AND ST_Intersects(dz.geom, ST_Expand(addr.geom, 0.005))
-                    LIMIT 10
-                """, [address_id])
-                nearby_zones = [dict(r) for r in cur_z.fetchall()]
-        except Exception as e:
-            logger.warning(f"Nearby zones query failed: {e}")
+        async def _fetch_highlights():
+            highlights = {"good": [], "caution": [], "info": []}
+            try:
+                target_subcats = tuple(AMENITY_CLASSES.keys())
+                placeholders = ",".join(["%s"] * len(target_subcats))
+                async with db.pool.connection() as conn_nh:
+                    cur_nh = await conn_nh.execute(f"""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT DISTINCT ON (oa.subcategory)
+                               oa.name, oa.subcategory,
+                               round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                        FROM osm_amenities oa, addr
+                        WHERE oa.geom && ST_Expand(addr.geom, 1500 * 0.00001)
+                          AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1500)
+                          AND oa.subcategory IN ({placeholders})
+                        ORDER BY oa.subcategory, ST_Distance(oa.geom, addr.geom)
+                    """, [address_id, *target_subcats])
+                    for r in cur_nh.fetchall():
+                        subcat = r["subcategory"]
+                        if subcat not in AMENITY_CLASSES:
+                            continue
+                        sentiment, label = AMENITY_CLASSES[subcat]
+                        item = {"name": r["name"] or label, "label": label, "distance_m": float(r["distance_m"])}
+                        highlights[sentiment].append(item)
+                for group in highlights.values():
+                    group.sort(key=lambda x: x["distance_m"])
+            except Exception as e:
+                logger.warning(f"Nearby highlights query failed: {e}")
+            return highlights
 
-        # 3e. Fetch rent history time series (10yr) — personalised if user provided rent inputs
-        rent_history_data = []
-        user_rent_context = None
-        try:
-            sa2_code = (report.get("address") or {}).get("sa2_code")
-            if sa2_code:
-                # Use user's dwelling/bedroom selection if provided
-                dw_type = (rent_inputs or {}).get("dwelling_type", "ALL")
-                beds = (rent_inputs or {}).get("bedrooms", "ALL")
-                weekly_rent = (rent_inputs or {}).get("weekly_rent")
+        async def _fetch_pois():
+            parks, cafes, restaurants, playgrounds = [], [], [], []
+            try:
+                async with db.pool.connection() as conn_poi:
+                    cur_poi = await conn_poi.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT oa.name, oa.subcategory,
+                               ST_X(oa.geom) AS longitude, ST_Y(oa.geom) AS latitude,
+                               round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                        FROM osm_amenities oa, addr
+                        WHERE oa.geom && ST_Expand(addr.geom, 1000 * 0.00001)
+                          AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1000)
+                          AND oa.subcategory IN ('park', 'garden', 'cafe', 'restaurant', 'playground')
+                        ORDER BY distance_m
+                    """, [address_id])
+                    for r in cur_poi.fetchall():
+                        item = dict(r)
+                        sub = item.get("subcategory", "")
+                        if sub in ("park", "garden"):
+                            parks.append(item)
+                        elif sub == "cafe":
+                            cafes.append(item)
+                        elif sub == "restaurant":
+                            restaurants.append(item)
+                        elif sub == "playground":
+                            playgrounds.append(item)
+            except Exception as e:
+                logger.warning(f"Nearby POIs query failed: {e}")
+            return parks, cafes, restaurants, playgrounds
 
-                async with db.pool.connection() as conn_rh:
+        async def _fetch_zones():
+            try:
+                async with db.pool.connection() as conn_z:
+                    cur_z = await conn_z.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT dz.zone_name, dz.zone_code,
+                               ST_AsGeoJSON(ST_Intersection(dz.geom, ST_Expand(addr.geom, 0.005)))::jsonb -> 'coordinates' AS coordinates
+                        FROM district_plan_zones dz, addr
+                        WHERE dz.geom && ST_Expand(addr.geom, 0.005)
+                          AND ST_Intersects(dz.geom, ST_Expand(addr.geom, 0.005))
+                        LIMIT 10
+                    """, [address_id])
+                    return [dict(r) for r in cur_z.fetchall()]
+            except Exception as e:
+                logger.warning(f"Nearby zones query failed: {e}")
+                return []
+
+        async def _fetch_rent_history():
+            data = []
+            ctx = None
+            try:
+                if sa2_code:
+                    dw_type = (rent_inputs or {}).get("dwelling_type", "ALL")
+                    beds = (rent_inputs or {}).get("bedrooms", "ALL")
+                    weekly_rent = (rent_inputs or {}).get("weekly_rent")
                     query = """
                         SELECT time_frame, median_rent, lower_quartile_rent,
                                upper_quartile_rent, active_bonds
@@ -1312,41 +1311,38 @@ async def _generate_pdf_background(
                           AND time_frame >= (CURRENT_DATE - INTERVAL '10 years')
                         ORDER BY time_frame
                     """
-                    cur_rh = await conn_rh.execute(query, [sa2_code, dw_type, beds])
-                    rent_history_data = [dict(r) for r in cur_rh.fetchall()]
+                    async with db.pool.connection() as conn_rh:
+                        cur_rh = await conn_rh.execute(query, [sa2_code, dw_type, beds])
+                        data = [dict(r) for r in cur_rh.fetchall()]
+                        if not data and (dw_type != "ALL" or beds != "ALL"):
+                            cur_rh = await conn_rh.execute(query, [sa2_code, "ALL", "ALL"])
+                            data = [dict(r) for r in cur_rh.fetchall()]
+                    if rent_inputs and (rent_inputs.get("dwelling_type") or rent_inputs.get("weekly_rent")):
+                        ctx = {
+                            "dwelling_type": rent_inputs.get("dwelling_type"),
+                            "bedrooms": rent_inputs.get("bedrooms"),
+                            "weekly_rent": weekly_rent,
+                        }
+            except Exception as e:
+                logger.warning(f"Rent history query failed: {e}")
+            return data, ctx
 
-                    # If no results for specific type, fall back to ALL
-                    if not rent_history_data and (dw_type != "ALL" or beds != "ALL"):
-                        cur_rh = await conn_rh.execute(query, [sa2_code, "ALL", "ALL"])
-                        rent_history_data = [dict(r) for r in cur_rh.fetchall()]
+        async def _fetch_hpi():
+            try:
+                async with db.pool.connection() as conn_hpi:
+                    cur_hpi = await conn_hpi.execute("""
+                        SELECT quarter_end, house_price_index
+                        FROM rbnz_housing
+                        WHERE quarter_end >= (CURRENT_DATE - INTERVAL '10 years')
+                        ORDER BY quarter_end
+                    """)
+                    return [dict(r) for r in cur_hpi.fetchall()]
+            except Exception as e:
+                logger.warning(f"HPI query failed: {e}")
+                return []
 
-                if rent_inputs and (rent_inputs.get("dwelling_type") or rent_inputs.get("weekly_rent")):
-                    user_rent_context = {
-                        "dwelling_type": rent_inputs.get("dwelling_type"),
-                        "bedrooms": rent_inputs.get("bedrooms"),
-                        "weekly_rent": weekly_rent,
-                    }
-        except Exception as e:
-            logger.warning(f"Rent history query failed: {e}")
-
-        # 3f. Fetch national HPI trend (10yr)
-        hpi_data = []
-        try:
-            async with db.pool.connection() as conn_hpi:
-                cur_hpi = await conn_hpi.execute("""
-                    SELECT quarter_end, house_price_index
-                    FROM rbnz_housing
-                    WHERE quarter_end >= (CURRENT_DATE - INTERVAL '10 years')
-                    ORDER BY quarter_end
-                """)
-                hpi_data = [dict(r) for r in cur_hpi.fetchall()]
-        except Exception as e:
-            logger.warning(f"HPI query failed: {e}")
-
-        # 3g. Fetch council rates breakdown (region-specific, 15s timeout)
-        rates_data = None
-        try:
-            async def _fetch_rates():
+        async def _fetch_rates():
+            try:
                 full_address = (report.get("address") or {}).get("full_address", "")
                 city = (report.get("address") or {}).get("city", "")
                 if "wellington" in city.lower():
@@ -1386,19 +1382,20 @@ async def _generate_pdf_background(
                     from ..services.tasman_rates import fetch_tasman_rates
                     return await fetch_tasman_rates(full_address)
                 return None
-            rates_data = await asyncio.wait_for(_fetch_rates(), timeout=15.0)
-        except asyncio.TimeoutError:
-            logger.warning("Rates fetch timed out after 15s")
-        except Exception as e:
-            logger.warning(f"Rates fetch failed: {e}")
+            except asyncio.TimeoutError:
+                logger.warning("Rates fetch timed out")
+                return None
+            except Exception as e:
+                logger.warning(f"Rates fetch failed: {e}")
+                return None
 
-        # 3h. Run rent advisor analysis (for premium PDF)
-        rent_advisor_result = None
-        if rent_inputs and rent_inputs.get("dwelling_type"):
+        async def _fetch_rent_advisor():
+            if not (rent_inputs and rent_inputs.get("dwelling_type")):
+                return None
             try:
                 from ..services.rent_advisor import compute_rent_advice
                 async with db.pool.connection() as conn_ra:
-                    rent_advisor_result = await compute_rent_advice(
+                    return await compute_rent_advice(
                         conn_ra,
                         address_id=address_id,
                         weekly_rent=int(rent_inputs["weekly_rent"]) if rent_inputs.get("weekly_rent") else None,
@@ -1414,15 +1411,16 @@ async def _generate_pdf_background(
                     )
             except Exception as e:
                 logger.warning(f"Rent advisor failed for PDF: {e}")
+                return None
 
-        # 3i. Run price advisor analysis (for premium PDF — buyer persona)
-        price_advisor_result = None
-        if persona == "buyer":
+        async def _fetch_price_advisor():
+            if persona != "buyer":
+                return None
             try:
                 from ..services.price_advisor import compute_price_advice
                 bi = buyer_inputs or {}
                 async with db.pool.connection() as conn_pa:
-                    price_advisor_result = await compute_price_advice(
+                    return await compute_price_advice(
                         conn_pa,
                         address_id=address_id,
                         asking_price=bi.get("asking_price"),
@@ -1433,38 +1431,78 @@ async def _generate_pdf_background(
                     )
             except Exception as e:
                 logger.warning(f"Price advisor failed for PDF: {e}")
+                return None
 
-        # 4. Run Python insight rule engine
+        async def _fetch_rec_overrides():
+            try:
+                async with db.pool.connection() as conn_ro:
+                    cur_ro = await conn_ro.execute(
+                        "SELECT value FROM admin_content WHERE key = 'recommendations'"
+                    )
+                    row_ro = cur_ro.fetchone()
+                    if row_ro:
+                        return (row_ro["value"] or {}).get("overrides", {})
+            except Exception:
+                pass
+            return {}
+
+        # 4-5. Sync insight engines (fast, CPU-only — run before gather so report is available)
         python_insights = build_insights(report)
-
-        # 5. Run lifestyle fit engine
         lifestyle_fit = build_lifestyle_fit(report)
 
-        # 6. Build "Before You Buy" recommendations (with admin overrides)
-        rec_overrides = {}
-        try:
-            async with db.pool.connection() as conn_ro:
-                cur_ro = await conn_ro.execute(
-                    "SELECT value FROM admin_content WHERE key = 'recommendations'"
-                )
-                row_ro = cur_ro.fetchone()
-                if row_ro:
-                    rec_overrides = (row_ro["value"] or {}).get("overrides", {})
-        except Exception:
-            pass
+        # --- Phase 1: Fast data fetches (no AI) — aim for <10s ---
+        # Start AI in background, don't wait for it
+        ai_task = asyncio.ensure_future(asyncio.wait_for(
+            generate_pdf_insights(report, area_profile, python_insights),
+            timeout=45.0,
+        ))
+
+        (
+            nearby_supermarkets,
+            nearby_highlights,
+            poi_result,
+            nearby_zones,
+            rent_hist_result,
+            hpi_data,
+            rates_data,
+            rent_advisor_result,
+            price_advisor_result,
+            rec_overrides,
+        ) = await asyncio.gather(
+            _fetch_supermarkets(),
+            _fetch_highlights(),
+            _fetch_pois(),
+            _fetch_zones(),
+            _fetch_rent_history(),
+            _fetch_hpi(),
+            _fetch_rates(),
+            _fetch_rent_advisor(),
+            _fetch_price_advisor(),
+            _fetch_rec_overrides(),
+            return_exceptions=True,
+        )
+
+        # Unpack results, treating exceptions as empty/None
+        def _safe(val, default):
+            return default if isinstance(val, BaseException) else val
+
+        nearby_supermarkets = _safe(nearby_supermarkets, [])
+        nearby_highlights = _safe(nearby_highlights, {"good": [], "caution": [], "info": []})
+        poi_result = _safe(poi_result, ([], [], [], []))
+        nearby_parks, nearby_cafes, nearby_restaurants, nearby_playgrounds = poi_result
+        nearby_zones = _safe(nearby_zones, [])
+        rent_hist_result = _safe(rent_hist_result, ([], None))
+        rent_history_data, user_rent_context = rent_hist_result
+        hpi_data = _safe(hpi_data, [])
+        rates_data = _safe(rates_data, None)
+        rent_advisor_result = _safe(rent_advisor_result, None)
+        price_advisor_result = _safe(price_advisor_result, None)
+        rec_overrides = _safe(rec_overrides, {})
+
+        # 6. Build recommendations
         recommendations = build_recommendations(report, overrides=rec_overrides)
 
-        # 7. Call AI for narrative sections
-        try:
-            ai_insights = await asyncio.wait_for(
-                generate_pdf_insights(report, area_profile, python_insights),
-                timeout=45.0,
-            )
-        except (asyncio.TimeoutError, Exception) as e:
-            logger.warning(f"PDF AI insights failed for {address_id}: {e}")
-            ai_insights = None
-
-        # 7b. Fetch user display name for premium personalisation
+        # 7b. Fetch user display name
         user_display_name = None
         if user_id:
             try:
@@ -1478,9 +1516,8 @@ async def _generate_pdf_background(
             except Exception:
                 pass
 
-        # 8. Render premium HTML
-        html = render_report_html(
-            report, python_insights, lifestyle_fit, ai_insights, recommendations,
+        # Helper to build render kwargs (reused for Phase 1 and Phase 2)
+        render_kwargs = dict(
             nearby_supermarkets=nearby_supermarkets,
             nearby_highlights=nearby_highlights,
             nearby_parks=nearby_parks,
@@ -1501,12 +1538,24 @@ async def _generate_pdf_background(
             buyer_inputs=buyer_inputs,
         )
 
-        # 8a. Save report + deduct credit (after successful generation)
+        # --- Phase 1 render: WITHOUT AI insights (fast) ---
+        # Check if AI finished quickly (give it 2s grace)
+        ai_insights = None
+        try:
+            ai_insights = await asyncio.wait_for(asyncio.shield(ai_task), timeout=2.0)
+        except (asyncio.TimeoutError, Exception):
+            pass  # AI not ready yet — render without it
+
+        html = render_report_html(
+            report, python_insights, lifestyle_fit, ai_insights, recommendations,
+            **render_kwargs,
+        )
+
+        # 8a. Save report + deduct credit
         if user_id:
             full_address = (report.get("address") or {}).get("full_address", "Unknown")
             try:
                 async with db.pool.connection() as conn_save:
-                    # Save report snapshot
                     await conn_save.execute(
                         """
                         INSERT INTO saved_reports (user_id, address_id, full_address, report_html, persona)
@@ -1514,7 +1563,6 @@ async def _generate_pdf_background(
                         """,
                         [user_id, address_id, full_address, html, persona],
                     )
-                    # Deduct credit for non-pro users (pro uses count-based limits)
                     if not is_pro and credit_id:
                         await conn_save.execute(
                             """
@@ -1527,11 +1575,44 @@ async def _generate_pdf_background(
             except Exception as e:
                 logger.error(f"Failed to save report/deduct credit for {user_id}: {e}")
 
-        # 8b. Generate hosted report snapshot
-        share_token = None
+        # 8b. Mark job as completed IMMEDIATELY — user gets report now
+        await set_job_completed(job_id, html, share_token=None)
+        logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'})")
+
+        # --- Phase 2: Background enrichment (AI insights + snapshot) ---
+        # If AI wasn't ready, wait for it, re-render, and update the job
+        if ai_insights is None:
+            try:
+                ai_insights = await ai_task
+            except Exception as e:
+                logger.warning(f"PDF AI insights failed for {address_id}: {e}")
+                ai_insights = None
+
+            if ai_insights:
+                html = render_report_html(
+                    report, python_insights, lifestyle_fit, ai_insights, recommendations,
+                    **render_kwargs,
+                )
+                await set_job_completed(job_id, html, share_token=None)
+                # Update saved report HTML too
+                if user_id:
+                    try:
+                        async with db.pool.connection() as conn_upd_html:
+                            await conn_upd_html.execute(
+                                """
+                                UPDATE saved_reports SET report_html = %s
+                                WHERE user_id = %s AND address_id = %s
+                                ORDER BY generated_at DESC LIMIT 1
+                                """,
+                                [html, user_id, address_id],
+                            )
+                    except Exception:
+                        pass
+                logger.info(f"Phase 2 AI enrichment complete for job {job_id}")
+
+        # 8c. Generate hosted report snapshot (non-blocking, after user already has report)
         try:
             from ..services.snapshot_generator import create_report_snapshot
-            # Determine dwelling type from rent inputs or default
             dw_type = (rent_inputs or {}).get("dwelling_type", "House")
             async with db.pool.connection() as conn_snap:
                 share_token = await create_report_snapshot(
@@ -1544,7 +1625,7 @@ async def _generate_pdf_background(
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
-                # Update saved_report with share token for easy retrieval
+                await set_job_completed(job_id, html, share_token=share_token)
                 if user_id:
                     try:
                         async with db.pool.connection() as conn_upd:
@@ -1558,12 +1639,9 @@ async def _generate_pdf_background(
                                 [share_token, user_id, address_id],
                             )
                     except Exception:
-                        pass  # Non-critical
+                        pass
         except Exception as e:
             logger.warning(f"Snapshot generation failed (non-critical): {e}")
-
-        # 8c. Mark job as completed
-        await set_job_completed(job_id, html, share_token=share_token)
 
     except Exception as e:
         import traceback

@@ -985,7 +985,8 @@ html { scroll-behavior: smooth; }
 <table style="width:100%; border-collapse:collapse; font-size:0.82em;">
   <thead><tr><th style="padding:6px 10px;">Scenario</th><th style="padding:6px 10px;">Timeframe</th><th style="padding:6px 10px;">Sea Level Rise</th><th style="padding:6px 10px;">Distance</th></tr></thead>
   <tbody>
-    {% for ce in hazards.council_coastal_erosion[:5] %}
+    {% set cce_list = hazards.council_coastal_erosion if hazards.council_coastal_erosion is sequence and hazards.council_coastal_erosion is not mapping else [hazards.council_coastal_erosion] %}
+    {% for ce in cce_list[:5] %}
     <tr>
       <td style="padding:5px 10px;">{{ ce.scenario or ce.name or '—' }}</td>
       <td style="padding:5px 10px;">{{ ce.timeframe or '—' }}</td>
