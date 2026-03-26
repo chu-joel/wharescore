@@ -272,7 +272,7 @@ async def manage_subscription(user_id: str = Depends(require_user)):
 
 # Valid promo codes: {code: {credits_per_use, max_uses_per_user}}
 _PROMO_CODES = {
-    "WHARESCOREJOEL": {"credits": 1, "max_uses_per_user": 3},
+    "WHARESCOREJOEL": {"credits": 1, "max_uses_per_user": 999},
 }
 
 
