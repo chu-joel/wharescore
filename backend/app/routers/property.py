@@ -270,7 +270,7 @@ async def get_property_rates(request: Request, address_id: int):
     # 2. Get address info
     async with db.pool.connection() as conn:
         cur = await conn.execute(
-            "SELECT full_address, city FROM addresses WHERE address_id = %s",
+            "SELECT full_address, town_city FROM addresses WHERE address_id = %s",
             [address_id],
         )
         row = cur.fetchone()
@@ -278,7 +278,7 @@ async def get_property_rates(request: Request, address_id: int):
         raise HTTPException(404, "Address not found")
 
     full_address = row["full_address"] or ""
-    city = (row["city"] or "").lower()
+    city = (row["town_city"] or "").lower()
 
     # 3. Dispatch to city-specific rates service
     rates_data = None
