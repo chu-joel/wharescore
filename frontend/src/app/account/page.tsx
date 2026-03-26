@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, Download, CreditCard, Crown, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ interface SavedReport {
   full_address: string;
   persona: string;
   generated_at: string;
+  share_token?: string | null;
 }
 
 export default function AccountPage() {
@@ -75,7 +76,13 @@ export default function AccountPage() {
     }
   };
 
-  const handleViewReport = async (reportId: number) => {
+  const handleViewReport = async (reportId: number, shareToken?: string | null) => {
+    // Prefer hosted interactive report if share_token exists
+    if (shareToken) {
+      window.open(`/report/${shareToken}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    // Fallback to old HTML blob for legacy reports
     const token = await getToken();
     try {
       const res = await fetch(`/api/v1/account/saved-reports/${reportId}/download`, {
@@ -86,7 +93,6 @@ export default function AccountPage() {
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener,noreferrer');
-      // Clean up blob URL after a delay
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('Failed to view report:', err);
@@ -274,10 +280,10 @@ export default function AccountPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleViewReport(report.id)}
+                    onClick={() => handleViewReport(report.id, report.share_token)}
                     className="shrink-0 ml-2"
                   >
-                    <Download className="h-4 w-4 mr-1" />
+                    {report.share_token ? <ExternalLink className="h-4 w-4 mr-1" /> : <Download className="h-4 w-4 mr-1" />}
                     View
                   </Button>
                 </div>

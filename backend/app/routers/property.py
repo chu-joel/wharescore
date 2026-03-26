@@ -807,6 +807,21 @@ async def _generate_pdf_background(
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
+                # Update saved_report with share token for easy retrieval
+                if user_id:
+                    try:
+                        async with db.pool.connection() as conn_upd:
+                            await conn_upd.execute(
+                                """
+                                UPDATE saved_reports SET share_token = %s
+                                WHERE user_id = %s AND address_id = %s
+                                  AND share_token IS NULL
+                                ORDER BY generated_at DESC LIMIT 1
+                                """,
+                                [share_token, user_id, address_id],
+                            )
+                    except Exception:
+                        pass  # Non-critical
         except Exception as e:
             logger.warning(f"Snapshot generation failed (non-critical): {e}")
 

@@ -108,7 +108,7 @@ async def get_saved_reports(
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT id, address_id, full_address, persona, generated_at
+            SELECT id, address_id, full_address, persona, generated_at, share_token
             FROM saved_reports
             WHERE user_id = %s
             ORDER BY generated_at DESC
