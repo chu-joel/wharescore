@@ -142,19 +142,31 @@ def load_weather_history(
 
     for name, lat, lng in NZ_WEATHER_GRID:
         _log(f"  Fetching weather for {name} ({lat}, {lng})...")
-        try:
-            resp = requests.get(api_base, params={
-                "latitude": lat,
-                "longitude": lng,
-                "start_date": start_date,
-                "end_date": end_date,
-                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_gusts_10m_max",
-                "timezone": "Pacific/Auckland",
-            }, timeout=30)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as e:
-            _log(f"    FAIL: {e}")
+        data = None
+        for attempt in range(3):
+            try:
+                resp = requests.get(api_base, params={
+                    "latitude": lat,
+                    "longitude": lng,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_gusts_10m_max",
+                    "timezone": "Pacific/Auckland",
+                }, timeout=30)
+                if resp.status_code == 429:
+                    wait = 10 * (attempt + 1)
+                    _log(f"    Rate limited, waiting {wait}s (attempt {attempt + 1}/3)...")
+                    time.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                if attempt == 2:
+                    _log(f"    FAIL after 3 attempts: {e}")
+                else:
+                    time.sleep(5)
+        if not data:
             continue
 
         daily = data.get("daily", {})
@@ -200,8 +212,8 @@ def load_weather_history(
         total_inserted += location_count
         _log(f"    {name}: {location_count} extreme days ({len(dates)} days checked)")
 
-        # Be polite to Open-Meteo
-        time.sleep(0.5)
+        # Be polite to Open-Meteo (free tier rate limit)
+        time.sleep(2)
 
     _log(f"Weather history complete: {total_inserted} extreme events across {len(NZ_WEATHER_GRID)} locations")
     return total_inserted
