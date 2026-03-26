@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function HostedSchoolZones({ snapshot }: Props) {
-  const zones = ((snapshot as Record<string, unknown>).school_zones ?? []) as SchoolZone[];
+  const zones = (snapshot.school_zones ?? []) as SchoolZone[];
 
   if (zones.length === 0) return null;
 

@@ -58,7 +58,7 @@ export function QuestionContent({ questionId, report, locked = false }: Question
         // Hosted: show FULL hazard breakdown (user has paid)
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} />
             <CrimeCard
               percentile={report.liveability.crime_rate}
               victimisations={report.liveability.crime_victimisations}
@@ -115,7 +115,7 @@ export function QuestionContent({ questionId, report, locked = false }: Question
       if (hosted && riskCat) {
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} />
             <InsuranceRiskCard report={report} />
           </div>
         );

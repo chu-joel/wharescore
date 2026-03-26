@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function HostedRoadNoise({ snapshot }: Props) {
-  const noise = (snapshot as Record<string, unknown>).road_noise as { laeq24h: number } | null | undefined;
+  const noise = snapshot.road_noise;
 
   if (!noise?.laeq24h) return null;
 

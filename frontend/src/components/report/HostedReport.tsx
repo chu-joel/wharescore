@@ -24,6 +24,7 @@ import { HostedAISummary } from './HostedAISummary';
 import { HostedOutdoorRec } from './HostedOutdoorRec';
 import { HostedSchoolZones } from './HostedSchoolZones';
 import { HostedRoadNoise } from './HostedRoadNoise';
+import { HostedHazardAdvice } from './HostedHazardAdvice';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -265,6 +266,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             <HostedHealthyHomes report={report} />
           </div>
         )}
+
+        {/* ═══ SAFETY & HAZARD GUIDE — actionable tips for every detected risk ═══ */}
+        <div className="pb-6">
+          <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />
+        </div>
 
         {/* ═══ DETAILED RECOMMENDATIONS — full due diligence from snapshot ═══ */}
         <div className="pb-6">

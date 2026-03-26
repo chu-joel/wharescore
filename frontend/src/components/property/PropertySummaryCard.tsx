@@ -171,7 +171,7 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
         </div>
 
         {/* Property info — key-value pills */}
-        {(property.capital_value || property.land_area_sqm || property.building_area_sqm) && (
+        {(property.capital_value || property.land_area_sqm || property.building_area_sqm || property.title_ref) && (
           <div className="flex flex-wrap gap-2 pt-1">
             {property.capital_value && (() => {
               const isMulti = !!report.property_detection?.is_multi_unit;
@@ -194,6 +194,11 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
             {property.building_area_sqm && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
                 Building {property.building_area_sqm.toLocaleString()}m²
+              </span>
+            )}
+            {property.title_ref && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium text-muted-foreground">
+                Title: {property.title_ref}
               </span>
             )}
           </div>

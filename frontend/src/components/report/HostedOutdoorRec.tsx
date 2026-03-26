@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function HostedOutdoorRec({ snapshot }: Props) {
-  const doc = (snapshot as Record<string, unknown>).nearby_doc as
+  const doc = snapshot.nearby_doc as
     { huts: DocItem[]; tracks: DocItem[]; campsites: DocItem[] } | undefined;
 
   if (!doc) return null;
