@@ -186,6 +186,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           <KeyFindings report={report} maxFree={999} persona={persona} />
         </div>
 
+        {/* ═══ HAZARD INTELLIGENCE — watch items, top events, advice, timeline ═══ */}
+        <div className="pb-6">
+          <HostedAreaFeed feed={areaFeed} snapshot={snapshot} />
+        </div>
+
         {/* ═══ MOBILE SIDEBAR ═══ */}
         <div className="lg:hidden print:hidden pb-6">
           <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
@@ -250,12 +255,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           <HostedRoadNoise snapshot={snapshot} />
         </div>
 
-        {/* ═══ AREA ACTIVITY FEED — seismic, weather, emergency events ═══ */}
-        {areaFeed && (
-          <div className="pb-6">
-            <HostedAreaFeed feed={areaFeed} />
-          </div>
-        )}
+        {/* (Hazard Intelligence moved to after Key Findings) */}
 
         {/* ═══ NEIGHBOURHOOD SNAPSHOT — essentials, crashes, air/water, contamination, amenities ═══ */}
         <div className="pb-6">

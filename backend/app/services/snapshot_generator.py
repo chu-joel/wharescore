@@ -492,6 +492,35 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot road noise failed: {e}")
 
+    # 23. Weather events history (extreme weather near property)
+    weather_history = []
+    try:
+        cur = await conn.execute("""
+            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+            SELECT we.event_date, we.event_type, we.severity, we.title, we.description,
+                   we.precipitation_mm, we.wind_gust_kmh,
+                   round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+            FROM weather_events we, addr
+            WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
+              AND we.event_date >= (CURRENT_DATE - interval '5 years')
+              AND we.severity IN ('critical', 'warning')
+            ORDER BY we.severity, we.event_date DESC
+            LIMIT 15
+        """, [address_id])
+        for r in cur.fetchall():
+            weather_history.append({
+                "date": r["event_date"].isoformat() if hasattr(r["event_date"], "isoformat") else str(r["event_date"]),
+                "type": r["event_type"],
+                "severity": r["severity"],
+                "title": r["title"],
+                "description": r["description"],
+                "precipitation_mm": float(r["precipitation_mm"]) if r["precipitation_mm"] else None,
+                "wind_gust_kmh": float(r["wind_gust_kmh"]) if r["wind_gust_kmh"] else None,
+                "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
+            })
+    except Exception as e:
+        logger.warning(f"Snapshot weather history failed: {e}")
+
     return {
         "report": report,
         "sa2": dict(sa2),
@@ -519,6 +548,7 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         "nearby_doc": nearby_doc,
         "school_zones": school_zones,
         "road_noise": road_noise,
+        "weather_history": weather_history,
     }
 
 
@@ -838,6 +868,151 @@ def build_delta_tables() -> dict:
     }
 
 
+def _build_hazard_advice(cache: dict) -> list[dict]:
+    """Generate actionable advice based on detected hazards.
+    Based on NZ Civil Defence, GNS Science, NEMA, and post-disaster research."""
+    advice = []
+    hazards = cache.get("hazards_raw", {})
+    detected = cache.get("detected_hazard_keys", set())
+    weather = cache.get("weather_history", [])
+
+    if "flood" in detected or hazards.get("flood_zone"):
+        advice.append({
+            "hazard": "flood",
+            "severity": "warning",
+            "title": "Flood Risk Preparedness",
+            "actions": [
+                "Check your insurance covers flood damage — standard policies may exclude it in known flood zones",
+                "Store important documents above potential flood level or in waterproof containers",
+                "Know your evacuation route to higher ground — practice with household members",
+                "Install non-return valves on drains to prevent sewage backflow during floods",
+                "Consider flood barriers or sandbags for doorways if property has flooded before",
+            ],
+            "source": "NZ Civil Defence / NEMA",
+        })
+
+    if "tsunami" in detected or hazards.get("tsunami_zone"):
+        advice.append({
+            "hazard": "tsunami",
+            "severity": "critical",
+            "title": "Tsunami Evacuation Zone",
+            "actions": [
+                "LONG OR STRONG = GET GONE — if shaking lasts more than a minute, evacuate immediately",
+                "Know your nearest high ground or tsunami evacuation assembly point",
+                "Do NOT wait for an official warning — natural warning (earthquake) may be the only one",
+                "Keep a grab bag ready with 3 days of water, food, medications, and documents",
+                "Register for NZ Emergency Alerts at getready.govt.nz",
+            ],
+            "source": "NEMA / Civil Defence",
+        })
+
+    if "liquefaction" in detected:
+        advice.append({
+            "hazard": "liquefaction",
+            "severity": "warning",
+            "title": "Liquefaction Risk Area",
+            "actions": [
+                "Get a geotechnical report before purchasing — liquefaction can cause severe foundation damage",
+                "Check if the property has TC3 foundation requirements (increased building costs)",
+                "Review EQC settlement history for properties in this area",
+                "Consider earthquake strengthening for older unreinforced masonry buildings",
+            ],
+            "source": "GNS Science / EQC",
+        })
+
+    if "epb" in detected:
+        advice.append({
+            "hazard": "earthquake_prone",
+            "severity": "critical",
+            "title": "Earthquake-Prone Building",
+            "actions": [
+                "The building must be strengthened or demolished within the council's deadline",
+                "Check the MBIE EPB Register for the specific notice and deadline",
+                "Strengthening costs typically range from $500-$3,000 per square metre",
+                "Tenants: landlords must disclose EPB status — you may negotiate reduced rent",
+                "Buyers: factor strengthening costs into your offer price",
+            ],
+            "source": "MBIE / Building Act 2004",
+        })
+
+    if "wind_high" in detected:
+        advice.append({
+            "hazard": "wind",
+            "severity": "warning",
+            "title": "High Wind Exposure",
+            "actions": [
+                "Ensure roof fixings meet NZS 3604 for this wind zone — get a building inspection",
+                "Secure outdoor furniture, trampolines, and loose items before storms",
+                "Consider wind-rated fencing and shelter planting for exposed sides",
+                "Check insurance covers storm damage — excess may be higher in high-wind zones",
+            ],
+            "source": "BRANZ / NZS 3604",
+        })
+
+    if "coastal_erosion" in detected:
+        advice.append({
+            "hazard": "coastal_erosion",
+            "severity": "warning",
+            "title": "Coastal Erosion Hazard",
+            "actions": [
+                "Check the council's coastal hazard assessment for projected erosion rates",
+                "Sea level rise of 0.3-1.0m by 2100 will accelerate coastal erosion",
+                "Insurance availability may be limited or premiums significantly higher",
+                "Council may restrict future building or renovation consents in erosion zones",
+                "Consider long-term managed retreat policies that may affect property value",
+            ],
+            "source": "MfE Coastal Hazards Guidance / NIWA",
+        })
+
+    # Add weather-based advice if extreme events found
+    critical_weather = [w for w in weather if w["severity"] == "critical"]
+    if critical_weather:
+        rain_events = [w for w in critical_weather if w["type"] == "heavy_rain"]
+        wind_events = [w for w in critical_weather if w["type"] == "extreme_wind"]
+        actions = []
+        if rain_events:
+            actions.append(f"{len(rain_events)} extreme rainfall events (80mm+) recorded nearby in the last 5 years — check drainage and guttering")
+        if wind_events:
+            actions.append(f"{len(wind_events)} destructive wind events (120km/h+) recorded nearby — check roof condition and secure loose items")
+        actions.append("Keep emergency supplies: torch, radio, water, first aid kit, warm clothing")
+        actions.append("Sign up for regional council flood warnings and MetService alerts")
+        advice.append({
+            "hazard": "extreme_weather",
+            "severity": "warning",
+            "title": "Extreme Weather History",
+            "actions": actions,
+            "source": "Open-Meteo / NIWA",
+        })
+
+    if "noise_high" in detected or "aircraft_noise" in detected:
+        advice.append({
+            "hazard": "noise",
+            "severity": "info",
+            "title": "Noise Exposure",
+            "actions": [
+                "Double glazing can reduce noise by 25-35 dB — significant improvement for sleep quality",
+                "Check if the property qualifies for acoustic insulation subsidies (common near airports)",
+                "Noise exposure above 65 dB is linked to increased cardiovascular risk (WHO guidelines)",
+            ],
+            "source": "WHO / Waka Kotahi",
+        })
+
+    if "contamination" in detected:
+        advice.append({
+            "hazard": "contamination",
+            "severity": "info",
+            "title": "Contaminated Land Nearby",
+            "actions": [
+                "Request a Detailed Site Investigation (DSI) report from the regional council",
+                "Check if the contamination is on the HAIL list (Hazardous Activities and Industries List)",
+                "Contaminated land may affect bore water quality — test before using for drinking/irrigation",
+            ],
+            "source": "MfE NES for Contaminated Soil",
+        })
+
+    return advice
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator: Generate complete snapshot
 # ---------------------------------------------------------------------------
@@ -883,6 +1058,9 @@ async def generate_snapshot(
     except Exception as e:
         logger.warning(f"Recommendations/insights generation failed (non-critical): {e}")
 
+    # Phase E2: Hazard-specific actionable advice
+    hazard_advice = _build_hazard_advice(cache)
+
     # Phase F: AI narrative (Claude/OpenAI — async, may take 10-30s)
     ai_insights = None
     try:
@@ -915,6 +1093,8 @@ async def generate_snapshot(
         "nearby_doc": cache.get("nearby_doc", {"huts": [], "tracks": [], "campsites": []}),
         "school_zones": cache.get("school_zones", []),
         "road_noise": cache.get("road_noise"),
+        "weather_history": cache.get("weather_history", []),
+        "hazard_advice": hazard_advice,
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",

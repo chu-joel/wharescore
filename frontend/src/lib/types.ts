@@ -557,6 +557,23 @@ export interface ReportSnapshot {
   nearby_doc?: { huts: Array<Record<string, unknown>>; tracks: Array<Record<string, unknown>>; campsites: Array<Record<string, unknown>> };
   school_zones?: Array<{ school_name: string; school_id: number; institution_type: string }>;
   road_noise?: { laeq24h: number } | null;
+  weather_history?: Array<{
+    date: string;
+    type: string;
+    severity: string;
+    title: string;
+    description: string;
+    precipitation_mm: number | null;
+    wind_gust_kmh: number | null;
+    distance_km: number | null;
+  }>;
+  hazard_advice?: Array<{
+    hazard: string;
+    severity: string;
+    title: string;
+    actions: string[];
+    source: string;
+  }>;
   meta: SnapshotMeta;
 }
 
