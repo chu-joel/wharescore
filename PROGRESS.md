@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-26 (session 66 — DOC/school zones/noise in reports, pagination fix, migration cleanup)
+**Last Updated:** 2026-03-26 (session 67 — massive gap fill: 55 new DataSource entries, all regions)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,39 +17,60 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 66 (2026-03-26) — DOC/school zones/noise in reports, pagination fix, migration cleanup.**
+**Session 67 (2026-03-26) — Massive gap fill: 55 new DataSource entries covering all remaining regions.**
 
 ### What Was Done This Session
+
+**(A) New DataSource entries added (55 new, 289→344 total):**
+
+| Region | New Layers Added | Count |
+|--------|-----------------|:-----:|
+| Canterbury/ECan | Kaikoura flood, Waitaki flood, floodways, RCEP coastal hazard, sea inundation | 5 |
+| Marlborough | Flood hazard (MEP), steep erosion, liquefaction zones A-F | 7 |
+| Auckland | Volcanic Field (vents, boundary, 5km buffer, deposits), ASCIE coastal erosion 2130 | 5 |
+| Nelson | Plan zones, heritage, flood overlays (×3), liquefaction, fault overlays (×3), inundation, slope instability, notable trees, river flood (present+2130), coastal inundation, tsunami evac, Maitai flood (2013+2100), fault corridor, slope failure register, Tahunanui liquefaction | 18 |
+| Tasman | Plan zones, tsunami (via TOTS) | 2 |
+| Northland | Coastal flood (full), river flood (100yr/50yr/10yr), erosion prone land | 5 |
+| BOP | Ohiwa Spit coastal hazard, area sensitive coastal hazard | 2 |
+| Taranaki | Active faultlines | 1 |
+| West Coast | Active faults, Alpine Fault traces, landslide catalog, earthquake landslides, rain landslides, district plan zones (TTPP) | 6 |
+| Marlborough | Liquefaction zones A-F (6 individual layers) | (included above) |
+
+**(B) DATA-LAYERS.md comprehensively updated:**
+- Coverage matrices expanded with West Coast column
+- All new entries reflected in hazard + amenity matrices
+- Detailed "Remaining Priority Gaps" section added with per-region analysis
+- Known Blockers section expanded with workarounds
+- Recommended Next Actions ranked by priority
+- Entry count: 289→344
+
+**(C) Key new coverage achieved:**
+- Nelson: Was completely missing, now has 18 layers (plan zones, heritage, 7 flood layers, 3 fault overlays, liquefaction, slope, trees, tsunami, coastal)
+- West Coast: New region added with faults (Alpine Fault!), 3 landslide types, district plan zones
+- Auckland Volcanic Field: 4 layers covering 1.7M population
+- Canterbury: First flood layers (Kaikoura + Waitaki + floodways)
+- Marlborough: Liquefaction zones A-F (6 layers), steep erosion
+- Northland: River flood 3 return periods + erosion prone land
+
+### Previous Session
+
+**Session 66 (2026-03-26) — DOC/school zones/noise in reports, pagination fix, migration cleanup.**
 
 **(A) New national datasets loaded:**
 - DOC Huts (990 rows), DOC Tracks (3,153), DOC Campsites (331)
 - School enrolment zones (1,317 boundaries from MoE)
 - Waka Kotahi NZTA national road noise contours (224K polygons)
-- NRC contaminated land (Northland) — endpoint returned 0
 - 7 new council rates: Masterton, Carterton, South Wairarapa, Whakatane, Taupo, Waitomo, Otorohanga
 
 **(B) Report integration — 3 new sections in hosted report (/report/{token}):**
-- HostedOutdoorRec: DOC huts/tracks/campsites within 5km
-- HostedSchoolZones: MoE enrolment zones containing the property
-- HostedRoadNoise: NZTA road traffic noise level (dB LAeq24h) with severity rating
-- Backend: spatial queries added to snapshot_generator.py Phase A
+- HostedOutdoorRec, HostedSchoolZones, HostedRoadNoise
 
-**(C) Account page fix — prefer hosted report over old HTML:**
-- Added share_token column to saved_reports (migration 0018)
-- Account "View" button now opens /report/{token} when available
-- Falls back to old HTML blob for legacy reports
-
-**(D) Bug fixes:**
-- Fixed 4 loaders that used _load_council_arcgis on national-schema tables (active_faults, tsunami_zones, heritage_sites, noise_contours) — wrote custom loader functions
-- Fixed _fetch_arcgis pagination: added exceededTransferLimit check + ObjectID-based fallback for MapServer layers (fixes dunedin_rates stuck at 1000, etc.)
-- Fixed migration 0017 crash: active_folds table doesn't exist — wrapped ALTERs in DO/EXCEPTION blocks
-- Fixed qldc_landslide column mismatch, orc_hail geometry type
-
-**(E) Migrations added:**
+**(C) Bug fixes:**
+- Fixed 4 loaders on national-schema tables, _fetch_arcgis pagination, migration 0017 crash
 - 0017: source_council columns on national tables + DOC tables
 - 0018: share_token on saved_reports
 
-**Total: ~228 DataSource entries loaded. 160+ unique data sources with data.**
+**Total: 344 DataSource entries. ~160+ unique data sources with data.**
 
 ---
 
@@ -156,13 +177,13 @@ Christchurch Airport (50/55/65dB envelopes), Hamilton Airport (Waipa), Palmersto
 
 ### What Needs To Be Done Next
 
+- **Load all 55 new DataSource entries** — run from admin panel or script, verify row counts
 - **Auckland rates full reload** — was in progress session 62 (~6,500 of 578K), needs resuming
 - **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
 - **More councils** — Nelson (MagiqCloud scraper pattern proven with UHCC), Rotorua (IntraMaps, hard), Napier (web scrape needed), Gisborne, Waikato DC, Marlborough, South Waikato, Thames-Coromandel
-- **More hazard data** — national noise contours (Waka Kotahi), Canterbury fault zones
 - **Google OAuth** — OAuth consent screen error blocking sign-in, needs fixing in Google Cloud Console
-- ~~Fix unit CV bug in snapshot generator~~ **DONE** — already inlined in snapshot_generator.py lines 74-105
 - **RATES-DATA.md** — update with all new councils and final row counts
+- **Remaining data gaps** — see DATA-LAYERS.md "Remaining Priority Gaps" section for full analysis
 
 ---
 

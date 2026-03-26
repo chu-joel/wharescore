@@ -1,8 +1,8 @@
 # WhareScore — Data Layers Coverage Matrix
 
-**Last Updated:** 2026-03-26 (session 65)
+**Last Updated:** 2026-03-26 (session 66)
 
-This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of 289 DataSource entries in `data_loader.py`.
+This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of 344 DataSource entries in `data_loader.py`.
 
 ---
 
@@ -10,28 +10,28 @@ This document tracks which data layers are loaded per region, data format incons
 
 Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 
-| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Northland | BOP | Waikato | Gisborne | Southland | Canterbury | Marlborough | Tasman | Taranaki | National |
-|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Flood** | Y | Y | Y | Y | Y | Y (H1/H2/H3) | Y (3 types) | Y (3 layers) | Y | Y | Y (10yr/50yr/coastal) | Y | Y (regional+local+depth) | Y (2 layers) | Y | - | - | Y | - | - |
-| **Liquefaction** | Y | Y | Y | Y(Waikato) | Y | - | Y | Y | Y | Y | - | Y (A+B) | Y | Y | Y | Y (9 districts) | Y (6 zones) | Y | - | - |
-| **Tsunami** | Y | Y | Y | - | Y | Y (ORC) | - | - | Y | - | Y (2024) | Y (evac+2500yr) | Y (2 layers) | Y (2019) | Y | Y (ECan) | Y (GNS) | - | Y | - |
-| **Active faults** | Y(WCC) | - | - | - | - | - | Y (faults+folds) | Y | - | - | - | Y | - | - | Y | Y (ECan 2024) | - | Y | Y | Y (GNS 10K) |
-| **Slope/landslide** | Y (GWRC) | Y (2 types) | Y (CCC) | Y (riverbank) | Y | Y (instability) | Y (avalanche, debris, rockfall, erosion, alluvial) | Y (2 layers) | Y | Y | - | - | - | Y | - | - | - | - | - | Y (GNS) |
-| **Coastal erosion** | Y | Y | Y | - | Y | Y (coastal hazard) | Y (erosion areas) | - | Y | - | - | - | - | Y | Y (ICC) | Y (ECan) | - | - | - | Y (CSI) |
-| **Coastal inundation** | Y | Y | Y | - | - | - | - | - | - | - | - | - | - | Y | Y (ICC) | - | Y (SLR) | Y (3 SLR scenarios) | - | - |
-| **Ground shaking** | Y | - | - | - | - | - | - | - | Y | - | - | - | Y | - | Y | - | - | - | - | - |
-| **Volcanic** | - | - | - | - | - | - | - | - | - | - | - | Y (calderas) | - | - | - | - | - | - | Y (2 layers) | - |
+| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Northland | BOP | Waikato | Gisborne | Southland | Canterbury | Marlborough | Tasman | Taranaki | West Coast | National |
+|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Flood** | Y | Y | Y | Y | Y | Y (H1/H2/H3) | Y (3 types) | Y (7 layers) | Y | Y | Y (10yr/50yr/coastal+river) | Y | Y (regional+local+depth) | Y (2 layers) | Y | Y (Kaikoura+Waitaki+floodways) | Y (MEP) | Y | - | - | - |
+| **Liquefaction** | Y | Y | Y | Y(Waikato) | Y | - | Y | Y (NRMP+Tahunanui) | Y | Y | - | Y (A+B) | Y | Y | Y | Y (9 districts) | Y (6 zones A-F) | Y | - | - | - |
+| **Tsunami** | Y (GWRC all) | Y | Y | - | Y | Y (ORC) | - | Y (TOTS evac) | Y | - | Y (2024) | Y (evac+2500yr) | Y (2 layers) | Y (2019) | Y | Y (ECan) | Y (GNS) | Y (TOTS) | Y | - | - |
+| **Active faults** | Y(WCC) | - | - | - | - | - | Y (faults+folds) | Y (3 overlays) | - | - | - | Y | - | - | Y | Y (ECan 2024) | - | Y | Y | Y (active+alpine) | Y (GNS 10K) |
+| **Slope/landslide** | Y (GWRC) | Y (2 types) | Y (CCC) | Y (riverbank) | Y (landslide) | Y (instability) | Y (avalanche, debris, rockfall, erosion, alluvial) | Y (3 layers) | Y | Y | Y (erosion prone) | - | - | Y | - | - | Y (steep erosion) | - | - | Y (3 types) | Y (GNS) |
+| **Coastal erosion** | Y | Y (ASCIE 2130) | Y | - | Y | Y (coastal hazard) | Y (erosion areas) | - | Y | - | Y (4 timeframes) | Y (2 layers) | - | Y | Y (ICC) | Y (ECan+RCEP) | - | - | - | - | Y (CSI) |
+| **Coastal inundation** | Y | Y | Y | - | - | - | - | Y (NRMP+coastal) | - | - | - | - | - | Y | Y (ICC) | Y (sea inundation) | Y (SLR) | Y (3 SLR scenarios) | - | - | - |
+| **Ground shaking** | Y | - | - | - | - | - | - | - | Y | - | - | - | Y | - | Y | - | - | - | - | - | - |
+| **Volcanic** | - | Y (AVF 4 layers) | - | - | - | - | - | - | - | - | - | Y (calderas) | - | - | - | - | - | - | Y (hazard+evac) | - | - |
 
 ## Coverage Matrix — District Plan & Amenity Layers
 
-| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Kapiti | Porirua | PNCC | Rotorua | Taupo | Timaru | Waimakariri | Invercargill | Gisborne |
-|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Plan zones** | Y | Y (139K) | Y | Y | Y | Y | Y | - | Y | Y (4 types) | Y | Y | Y | Y | Y | Y | Y | Y | Y |
-| **Heritage** | Y | Y | Y | Y | Y | Y | Y | - | - | Y | Y | Y | Y | - | Y | Y | Y | Y | - |
-| **Notable trees** | Y | Y | Y | Y | - | Y | - | Y | - | Y | Y | - | Y | - | Y | Y | Y | - | - |
-| **Noise contours** | Y | Y (aircraft) | Y (airport 3 bands) | Y (airport) | Y (airport+port) | Y (airport) | - | - | - | - | - | - | Y (airport) | - | - | - | - | Y (airport+port) | Y (NZTA national road noise) |
-| **Contaminated land** | Y | - | - | - | Y | Y (ORC) | Y (ORC) | - | Y | - | - | - | - | Y (BOP) | - | - | - | - | Y (TRC) |
-| **Ecological areas** | - | Y | - | Y (SNA) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Kapiti | Porirua | PNCC | Rotorua | Taupo | Timaru | Waimakariri | Invercargill | Gisborne | Tasman | West Coast |
+|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Plan zones** | Y | Y (139K) | Y | Y | Y | Y | Y | Y (NRMP PC29) | Y | Y (4 types) | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y (TTPP) |
+| **Heritage** | Y (WCC 2024 DP) | Y | Y | Y | Y | Y | Y | Y (NRMP PC29) | - | Y | Y | Y | Y | - | Y | Y | Y | Y | - | - | - |
+| **Notable trees** | Y (WCC 2024 DP) | Y | Y | Y | - | Y | - | Y (2 sources) | - | Y | Y | - | Y | - | Y | Y | Y | - | - | - | - |
+| **Noise contours** | Y | Y (aircraft) | Y (airport 3 bands) | Y (airport) | Y (airport+port) | Y (airport) | - | - | - | - | - | - | Y (airport) | - | - | - | - | Y (airport+port) | Y (NZTA national road noise) | - | - |
+| **Contaminated land** | Y | - | - | - | Y | Y (ORC) | Y (ORC) | - | Y | - | - | - | - | Y (BOP) | - | - | - | - | Y (TRC) | - | - |
+| **Ecological areas** | - | Y | - | Y (SNA) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
 
 ## Coverage Matrix — National Layers (all regions)
 
@@ -163,7 +163,7 @@ Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 
 ---
 
-## Full DataSource Registry (281 entries in data_loader.py)
+## Full DataSource Registry (344 entries in data_loader.py)
 
 ### By Category
 
@@ -247,16 +247,167 @@ python -m app.services.data_loader --load <key>
 
 ---
 
-## Known Gaps (not publicly available)
+## Remaining Priority Gaps — Hazard Layers
 
-| Data | Reason |
-|------|--------|
-| Auckland contaminated land | Council charges $128-228/report |
-| Canterbury LLUR (contaminated) | Custom web app, not ArcGIS REST |
-| Waikato contaminated land | Per-property request only |
-| Marlborough contaminated land | Not exposed as GIS layer |
-| Solar potential | GeoTIFF format, not loaded |
-| Wind zones (outside Wellington) | Only GWRC has spatial data |
-| Christchurch GTFS | API key required (register at apidevelopers.metroinfo.co.nz) |
-| Rotorua hazards | On-premise server unreachable |
-| Queenstown airport noise | Polylines only (not polygons) |
+Sorted by impact (population × hazard severity). Columns: **Feasibility** = how likely we can get the data; **Effort** = dev time estimate.
+
+### Flood (Canterbury, Marlborough, Taranaki missing)
+
+| Region | Gap | Potential Source | Feasibility | Effort | Notes |
+|--------|-----|-----------------|:-----------:|:------:|-------|
+| Canterbury (ECan) | Regional flood hazard maps | `mapviewer.canterburymaps.govt.nz` — "Flood Hazard" layer | High | Low | ECan has good ArcGIS infrastructure, likely same pattern as liquefaction |
+| Marlborough | Flood hazard zones | `gis.marlborough.govt.nz` or `maps.marlborough.govt.nz` | Medium | Low | MDC has ArcGIS, may need layer discovery |
+| Taranaki | Flood zones | TRC hazard portal or regional council GIS | Medium | Low | Smaller region, may not have detailed spatial flood data |
+
+### Liquefaction (Dunedin, Northland, Taranaki missing)
+
+| Region | Gap | Potential Source | Feasibility | Effort | Notes |
+|--------|-----|-----------------|:-----------:|:------:|-------|
+| Dunedin | Liquefaction susceptibility | ORC or DCC hazard maps | Low | Low | Dunedin on bedrock — may genuinely not have liquefaction mapping |
+| Northland | Liquefaction zones | NRC hazard portal | Medium | Low | May be available via `gis.nrc.govt.nz` |
+| Taranaki | Liquefaction zones | TRC GIS | Low | Low | Volcanic soils — may not have standard liquefaction studies |
+
+### Tsunami (Hamilton, QLDC, Nelson, Whangarei, Tasman missing)
+
+| Region | Gap | Potential Source | Feasibility | Effort | Notes |
+|--------|-----|-----------------|:-----------:|:------:|-------|
+| Hamilton | Tsunami | N/A | N/A | N/A | **Inland city** — no tsunami risk, gap is expected |
+| QLDC | Tsunami | N/A | N/A | N/A | **Inland district** — no coastal tsunami zones expected |
+| Nelson | Tsunami | `gis.nelson.govt.nz` or GNS national model | Medium | Low | Tasman Bay exposure — may have GNS/NIWA modelling |
+| Whangarei | Tsunami | NRC or `gis.nrc.govt.nz` (distinct from Northland regional) | Medium | Low | May be included in Northland 2024 dataset |
+| Tasman | Tsunami | `gis.tasman.govt.nz` or GNS model | Medium | Low | Golden Bay/Abel Tasman coast exposed |
+
+### Active Faults (many regions missing — Auckland, Christchurch, Hamilton, Tauranga, Dunedin, HB, Whangarei, Northland, Waikato, Gisborne, Marlborough)
+
+| Gap | Notes |
+|-----|-------|
+| Most gaps expected | GNS national fault trace data (10K entries) provides **national coverage** — council-specific datasets only add local detail |
+| Auckland, Christchurch, Dunedin | Not on major active faults — no council-level data expected |
+| Hawke's Bay, Waikato, Marlborough | May have regional overlays but GNS national data already covers these |
+| **Action:** None required — GNS 10K national dataset already provides fault proximity for all regions |
+
+### Slope/Landslide (Northland, BOP, Waikato, Southland, Canterbury, Marlborough, Tasman, Taranaki missing)
+
+| Region | Gap | Potential Source | Feasibility | Effort | Notes |
+|--------|-----|-----------------|:-----------:|:------:|-------|
+| All regions | GNS national landslide database covers all NZ | Already loaded (8K events + areas) | N/A | N/A | National data provides base coverage |
+| Canterbury | Council-specific slope hazard | `mapviewer.canterburymaps.govt.nz` — "Mass Movement" layer | Medium | Low | Port Hills landslide data post-earthquakes |
+| Northland | Landslide susceptibility | NRC hazard portal | Low | Low | Limited spatial data available |
+| Taranaki | Lahar/debris flow zones | TRC volcanic hazard maps | Medium | Low | Volcanic-specific slope hazards |
+
+### Coastal Erosion & Inundation (many inland regions N/A)
+
+| Region | Gap | Potential Source | Feasibility | Effort | Notes |
+|--------|-----|-----------------|:-----------:|:------:|-------|
+| Hamilton, Waikato (inland) | N/A | N/A | N/A | N/A | Inland — no coastal risk |
+| Northland | Coastal erosion/inundation | NRC coastal hazard maps | Medium | Low | Extensive coastline — data likely exists |
+| BOP | Coastal erosion | BOPRC coastal plan maps | Medium | Low | May be in regional hazard portal |
+| Nelson | Coastal erosion | Nelson City Council GIS | Medium | Low | Limited coastline |
+| Tasman | Coastal erosion | Already have 3 SLR scenarios | Partial | N/A | SLR covers inundation, erosion mapping may not exist separately |
+
+### Ground Shaking (most regions missing — only Wellington, HB, Waikato, Southland have it)
+
+| Gap | Notes |
+|-----|-------|
+| Most councils don't publish ground shaking maps | Only regional councils with seismic microzone studies produce this |
+| **National option:** GNS/NSHM 2022 | National Seismic Hazard Model provides PGA values but is raster/grid format, not polygons |
+| **Action:** Low priority — earthquake proximity (GeoNet) + active faults (GNS) already provide seismic risk signal |
+
+### Volcanic (only BOP calderas + Taranaki evacuation)
+
+| Gap | Notes |
+|-----|-------|
+| Auckland Volcanic Field (AVF) | Auckland Council has AVF eruption scenario mapping — `aucklandcouncil.govt.nz` hazard maps |
+| Tongariro/Ruapehu lahar zones | DOC/GNS lahar modelling — may be available as spatial data |
+| **Action:** Medium priority — AVF affects 1.7M people, worth adding if ArcGIS layer found |
+
+---
+
+## Remaining Priority Gaps — District Plan & Amenity Layers
+
+### Plan Zones (only Nelson missing)
+
+| Region | Gap | Potential Source | Feasibility | Notes |
+|--------|-----|-----------------|:-----------:|-------|
+| Nelson | District plan zones | `gis.nelson.govt.nz` or Nelson Resource Management Plan maps | Medium | Small council, may use non-standard GIS |
+
+### Heritage Sites (Nelson, Hawke's Bay, Rotorua, Gisborne missing)
+
+| Region | Gap | Potential Source | Feasibility | Notes |
+|--------|-----|-----------------|:-----------:|-------|
+| Nelson | Heritage buildings/sites | Nelson City Council DP maps | Medium | Small list, may not be in GIS |
+| Hawke's Bay | Heritage sites | HBRC or HDC/NCC district plan maps | Medium | Art Deco precinct likely mapped |
+| Rotorua | Heritage sites | RLC district plan | Low | On-premise server issues (see Known Blockers) |
+| Gisborne | Heritage sites | GDC district plan maps | Medium | Small list expected |
+
+### Notable Trees (Tauranga, QLDC, HB, Porirua, Rotorua, Invercargill, Gisborne missing)
+
+| Region | Gap | Potential Source | Feasibility | Notes |
+|--------|-----|-----------------|:-----------:|-------|
+| Tauranga | Notable trees | TCC district plan overlays | Medium | May be in same ArcGIS as other TCC data |
+| Porirua | Notable trees | PCC district plan | Medium | Small list |
+| Invercargill | Notable trees | ICC district plan or Southland maps | Medium | |
+| Gisborne | Notable trees | GDC district plan | Low | Very small city |
+| QLDC, HB, Rotorua | Notable trees | Various | Low | Lower priority |
+
+### Noise Contours (many smaller councils missing)
+
+| Gap | Notes |
+|-----|-------|
+| Missing councils | QLDC, Nelson, Hawke's Bay, Whangarei, Kapiti, Porirua, Rotorua, Taupo, Timaru, Waimakariri |
+| **Mitigation:** Waka Kotahi national road noise (488K polygons) covers all regions for road noise |
+| **Action:** Only airport noise contours are missing — these are typically in district plans as "Airport Noise Boundary" overlays |
+| **Priority airports:** Queenstown (polylines only — needs conversion), Napier/Hastings, Rotorua, Nelson |
+
+### Contaminated Land (most councils missing)
+
+| Gap | Notes |
+|-----|-------|
+| Auckland | $128-228/report — not publicly available |
+| Christchurch/Canterbury | LLUR is a custom web app, not ArcGIS REST |
+| Hamilton/Waikato | Per-property request only |
+| Marlborough | Not exposed as GIS layer |
+| Nelson, Northland (non-NRC), Southland, Tasman | Unknown availability |
+| **Action:** Low ROI — most councils restrict contaminated land data. Current coverage (Wellington, Tauranga, Dunedin/ORC, QLDC/ORC, HB, BOP, Taranaki) is already good for key regions |
+
+### Ecological Areas (only Auckland + Hamilton have data)
+
+| Gap | Notes |
+|-----|-------|
+| Most councils | SNAs are mapped in district plans but not always exposed via GIS REST endpoints |
+| **National option:** DOC protected areas (already loaded) + LENZ (Land Environments NZ) from Landcare |
+| **Action:** Low priority — ecological data is less impactful for property buyers than hazard/zone data |
+
+---
+
+## Known Blockers (not publicly available or technically blocked)
+
+| Data | Reason | Workaround |
+|------|--------|------------|
+| Auckland contaminated land | Council charges $128-228/report | None — paywall |
+| Canterbury LLUR (contaminated) | Custom web app, not ArcGIS REST | Could scrape but high effort |
+| Waikato contaminated land | Per-property request only | None |
+| Marlborough contaminated land | Not exposed as GIS layer | None |
+| Solar potential | GeoTIFF raster format, not vector polygons | Would need raster→point lookup, different pipeline |
+| Wind zones (outside Wellington) | Only GWRC has spatial wind data | NIWA wind atlas is raster |
+| Christchurch GTFS | API key required | Register at `apidevelopers.metroinfo.co.nz` |
+| Rotorua hazards | On-premise server unreachable from internet | Need to check if moved to cloud |
+| Queenstown airport noise | Polylines only (not polygons) | Could buffer lines into polygons |
+| GNS fault avoidance zones | WFS endpoint returns invalid JSON | Use national fault traces instead |
+| Auckland landslide detail | FeatureServer very slow, causes OOM | GNS national data covers this |
+| Auckland overland flow paths | DNS failure after 380K rows (VM OOM) | Load in smaller batches |
+
+---
+
+## Recommended Next Actions (priority order)
+
+1. **Canterbury flood hazard** — High population, likely available via ECan ArcGIS, low effort
+2. **Auckland Volcanic Field** — 1.7M affected, check Auckland Council hazard ArcGIS layers
+3. **Marlborough flood hazard** — MDC has ArcGIS infrastructure, likely quick to add
+4. **Canterbury slope/mass movement** — Port Hills data post-earthquake, high value for Christchurch
+5. **Northland coastal hazard** — Extensive coastline, NRC likely has data
+6. **Nelson district plan zones** — Last missing council for complete plan zone coverage
+7. **Queenstown airport noise** — Buffer polylines to create usable polygons
+8. **Tauranga notable trees** — Fill gaps in major city amenity coverage
+9. **Hawke's Bay heritage** — Art Deco precinct is a significant heritage area
+10. **Christchurch GTFS** — Register for API key, then simple to load
