@@ -770,18 +770,156 @@ async def get_area_feed(request: Request, address_id: int):
 
         return results
 
-    # 3. Fetch all sources in parallel
-    quakes, nema, metservice, volcanic = await asyncio.gather(
+    # 3. Fetch historical significant quakes from DB (M5+ within 50km, last 10y)
+    async def _fetch_historical_quakes() -> list[dict]:
+        try:
+            async with db.pool.connection() as conn_eq:
+                cur = await conn_eq.execute(
+                    """
+                    SELECT origin_time, magnitude, depth, locality,
+                           ST_Y(geom) AS lat, ST_X(geom) AS lng,
+                           round(ST_Distance(geom::geography,
+                                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography) / 1000) AS dist_km
+                    FROM earthquakes
+                    WHERE magnitude >= 5.0
+                      AND origin_time >= (now() - interval '10 years')
+                      AND ST_DWithin(geom::geography,
+                          ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, 100000)
+                    ORDER BY magnitude DESC
+                    LIMIT 20
+                    """,
+                    [prop_lng, prop_lat, prop_lng, prop_lat],
+                )
+                rows = cur.fetchall()
+            results = []
+            for r in rows:
+                mag = float(r["magnitude"])
+                dist = float(r["dist_km"])
+                severity = "critical" if mag >= 6.0 else "warning" if mag >= 5.0 else "info"
+                ts = r["origin_time"]
+                results.append({
+                    "source": "geonet",
+                    "type": "earthquake",
+                    "severity": severity,
+                    "title": f"M{mag:.1f} earthquake — {dist:.0f}km from property",
+                    "description": (
+                        f"Magnitude {mag:.1f}, depth {r['depth']}km"
+                        + (f", near {r['locality']}" if r.get("locality") else "")
+                    ),
+                    "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
+                    "distance_km": dist,
+                    "magnitude": mag,
+                    "mmi": None,
+                    "active": False,
+                    "historical": True,
+                })
+            return results
+        except Exception as e:
+            logger.warning(f"Historical quake DB query failed: {e}")
+            return []
+
+    # 4. Fetch all sources in parallel (live APIs + DB)
+    quakes, historical, nema, metservice, volcanic = await asyncio.gather(
         asyncio.to_thread(_fetch_geonet_quakes),
+        _fetch_historical_quakes(),
         asyncio.to_thread(_fetch_nema_alerts),
         asyncio.to_thread(_fetch_metservice_warnings),
         asyncio.to_thread(_fetch_volcanic_alerts),
     )
 
     events.extend(quakes)
+    # Merge historical — skip duplicates (same quake within 1 min + similar magnitude)
+    existing_times = {e["timestamp"][:16] for e in quakes}
+    for hq in historical:
+        if hq["timestamp"][:16] not in existing_times:
+            events.append(hq)
     events.extend(nema)
     events.extend(metservice)
     events.extend(volcanic)
+
+    # 5. Add hazard context from DB (flood zones, tsunami, fault proximity, etc.)
+    try:
+        async with db.pool.connection() as conn_haz:
+            # Flood zone
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT name, hazard_ranking, hazard_type FROM flood_hazard fh, addr
+                WHERE ST_Contains(fh.geom, addr.geom) LIMIT 1
+            """, [address_id])
+            flood = cur.fetchone()
+            if flood:
+                events.append({
+                    "source": "council", "type": "flood_zone", "severity": "warning",
+                    "title": "Property is in a flood hazard zone",
+                    "description": f"{flood['hazard_type'] or 'Flood zone'} — risk level: {flood['hazard_ranking'] or 'identified'}. Historical flooding events have affected this area.",
+                    "timestamp": now.isoformat(), "distance_km": 0, "active": True, "historical": False,
+                })
+            # Tsunami zone
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT evac_zone, zone_class FROM tsunami_zones tz, addr
+                WHERE ST_Contains(tz.geom, addr.geom) LIMIT 1
+            """, [address_id])
+            tsunami = cur.fetchone()
+            if tsunami:
+                zone = tsunami['evac_zone'] or tsunami['zone_class'] or 'identified'
+                sev = "critical" if str(zone).lower() in ("red", "1", "orange") else "warning"
+                events.append({
+                    "source": "council", "type": "tsunami_zone", "severity": sev,
+                    "title": "Property is in a tsunami evacuation zone",
+                    "description": f"Tsunami zone: {zone}. In the event of a long or strong earthquake, evacuate immediately to higher ground.",
+                    "timestamp": now.isoformat(), "distance_km": 0, "active": True, "historical": False,
+                })
+            # Active fault proximity
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT fault_name, round(ST_Distance(af.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+                FROM active_faults af, addr
+                WHERE ST_DWithin(af.geom::geography, addr.geom::geography, 5000)
+                ORDER BY ST_Distance(af.geom, addr.geom) LIMIT 1
+            """, [address_id])
+            fault = cur.fetchone()
+            if fault:
+                events.append({
+                    "source": "gns", "type": "fault_proximity", "severity": "warning",
+                    "title": f"Active fault {fault['dist_km']}km from property",
+                    "description": f"Active fault: {fault['fault_name'] or 'unnamed'}. Properties near active faults face elevated seismic risk.",
+                    "timestamp": now.isoformat(), "distance_km": float(fault['dist_km']), "active": True, "historical": False,
+                })
+            # Coastal erosion
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT round(ST_Distance(ce.geom::geography, addr.geom::geography)::numeric) AS dist_m
+                FROM coastal_erosion ce, addr
+                WHERE ST_DWithin(ce.geom::geography, addr.geom::geography, 500)
+                LIMIT 1
+            """, [address_id])
+            erosion = cur.fetchone()
+            if erosion:
+                events.append({
+                    "source": "council", "type": "coastal_erosion", "severity": "warning",
+                    "title": "Coastal erosion zone nearby",
+                    "description": f"Coastal erosion hazard identified within {int(erosion['dist_m'])}m. Sea level rise projections may increase risk over time.",
+                    "timestamp": now.isoformat(), "distance_km": round(float(erosion['dist_m']) / 1000, 2), "active": True, "historical": False,
+                })
+            # Contaminated land
+            cur = await conn_haz.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT site_name, category, round(ST_Distance(cl.geom::geography, addr.geom::geography)::numeric) AS dist_m
+                FROM contaminated_land cl, addr
+                WHERE ST_DWithin(cl.geom::geography, addr.geom::geography, 1000)
+                ORDER BY ST_Distance(cl.geom, addr.geom) LIMIT 1
+            """, [address_id])
+            contam = cur.fetchone()
+            if contam:
+                events.append({
+                    "source": "council", "type": "contaminated_land", "severity": "info",
+                    "title": f"Contaminated site {int(contam['dist_m'])}m away",
+                    "description": f"{contam['site_name'] or 'Contaminated site'}" + (f" — Category: {contam['category']}" if contam.get('category') else ""),
+                    "timestamp": now.isoformat(), "distance_km": round(float(contam['dist_m']) / 1000, 2), "active": True, "historical": False,
+                })
+    except Exception as e:
+        logger.warning(f"Hazard context query failed: {e}")
 
     # 4. Sort: critical first, then warning, then info; newest first within each
     severity_order = {"critical": 0, "warning": 1, "info": 2}
