@@ -472,6 +472,31 @@ html { scroll-behavior: smooth; }
   <button onclick="window.print()">Print / Save as PDF</button>
 </div>
 
+{% if not ai_insights %}
+{# AI insights still generating in background — show loading banner #}
+<div id="ai-loading-banner" class="no-print" style="
+  position:sticky; top:0; z-index:100;
+  background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-bottom:2px solid var(--brand, #00c9a7);
+  padding:12px 20px;
+  display:flex; align-items:center; gap:12px;
+  font-size:0.85em; color:#e0e0e0;
+  animation:aiBannerSlideIn 0.4s ease-out;
+">
+  <style>
+    @keyframes aiBannerSlideIn { from { transform:translateY(-100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    @keyframes aiPulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+    #ai-loading-banner .ai-spinner { width:18px; height:18px; border:2px solid rgba(0,201,167,0.3); border-top-color:var(--brand, #00c9a7); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+  <div class="ai-spinner"></div>
+  <div>
+    <strong style="color:var(--brand, #00c9a7);">AI analysis loading</strong>
+    <span style="opacity:0.7;"> — Your report is ready. AI-powered insights are being generated and will appear shortly.</span>
+  </div>
+</div>
+{% endif %}
+
 {# ═══════════════════════════════════════════════════════════════════════════════
    TITLE PAGE
    ════════════════════════════════════════════════════════════════════════════ #}
@@ -726,6 +751,11 @@ html { scroll-behavior: smooth; }
     {% if ai_insights and ai_insights.executive_summary %}<div class="ai-label" style="margin-bottom:4px;">AI Analysis</div>{% endif %}
     {{ exec_text }}
   </div>
+  {% elif not ai_insights %}
+  <div class="card" style="margin-top:12px; font-size:0.9em; color:var(--text-secondary); opacity:0.6;">
+    <div class="ai-label" style="margin-bottom:4px; animation:aiPulse 2s ease-in-out infinite;">AI Analysis — Loading...</div>
+    <div style="height:3em; background:repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.08) 200px, rgba(255,255,255,0.04) 400px); border-radius:6px;"></div>
+  </div>
   {% endif %}
 
   {% if ai_insights and ai_insights.bottom_line %}
@@ -733,6 +763,12 @@ html { scroll-behavior: smooth; }
   {% endif %}
 
   {# Key Takeaways box #}
+  {% if not ai_insights %}
+  <div style="break-inside:avoid; margin:16px 0; padding:16px 20px; background:rgba(0,201,167,0.08); border:1px dashed rgba(0,201,167,0.3); border-radius:12px;">
+    <div style="font-size:0.72em; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--brand, #00c9a7); opacity:0.7; margin-bottom:4px;">Key Takeaways</div>
+    <div style="font-size:0.85em; color:var(--text-secondary, #999);">AI-generated takeaways will appear here once analysis is complete.</div>
+  </div>
+  {% endif %}
   {% if ai_insights and ai_insights.key_takeaways %}
   <div style="break-inside: avoid; margin: 16px 0; padding: 16px 20px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%); border-radius: 12px; color: white;">
     <div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; margin-bottom: 8px;">Key Takeaways</div>
