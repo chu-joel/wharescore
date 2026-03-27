@@ -41,8 +41,13 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   const buildingUse = String(rawProp.building_use ?? '');
   if (buildingUse) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Use', value: buildingUse });
 
-  const titleRef = String(rawProp.title_type ?? rawProp.title_no ?? '');
-  if (titleRef && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleRef });
+  const titleType = String(rawProp.title_type ?? '');
+  const titleNo = String(rawProp.title_no ?? '');
+  if (titleType) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
+  if (titleNo && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title Ref', value: titleNo });
+
+  const estateDesc = String(rawProp.estate_description ?? '');
+  if (estateDesc) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Estate', value: estateDesc });
 
   const zoneName = String(rawPlan.zone_name ?? '');
   const zoneCategory = String(rawPlan.zone_category ?? '');
