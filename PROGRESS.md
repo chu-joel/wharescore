@@ -105,36 +105,35 @@ ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa, Waikato
 
 ### What Needs To Be Done Next
 
-**PRIORITY 1 — Fix data display gaps (bugs preventing data from showing):**
+**DONE — Data display gaps fixed this session:**
 
-1. **Fix `landslide_count_500m` mismatch** — SQL returns `landslide_events_1km`, frontend expects `landslide_count_500m`. Either rename in SQL or adjust transformReport.ts
-2. **Fix `contam_count_2km`** — Add COUNT aggregation query in get_property_report() SQL function
-3. **Fix `park_count_500m`** — Add COUNT aggregation query in get_property_report() SQL function
-4. **Add Notable Trees to report** — Add LEFT JOIN LATERAL on `notable_trees` table in get_property_report(), add to snapshot_generator.py + frontend
-5. **Display Coastal Inundation** — Data is queried & passed but no component renders it. Add to HostedHazardAdvice.tsx
-6. **Display Ground Shaking** — Data is queried & passed but no component renders it. Add to HostedHazardAdvice.tsx
+1. ~~Fix `landslide_count_500m` mismatch~~ **DONE** — Migration 0021 adds 500m count + transform falls back to 1km
+2. ~~Fix `contam_count_2km`~~ **DONE** — Migration 0021 adds `contam_count_500m` aggregation
+3. ~~Fix `park_count_500m`~~ **DONE** — Migration 0021 adds park count within 500m
+4. ~~Add Notable Trees to report~~ **DONE** — Migration 0021 adds `notable_tree_nearest` details, HostedNeighbourhoodStats shows tree count + nearest + type
+5. ~~Display Coastal Inundation~~ **DONE** — New section in HostedHazardAdvice + FindingCard teaser in free report
+6. ~~Display Ground Shaking~~ **DONE** — New section in HostedHazardAdvice with soil type, %NBS, pre-1976 warnings
+7. ~~Heritage overlay type~~ **DONE** — Migration 0021 now selects heritage_type column
+8. ~~Coastal inundation types~~ **DONE** — Added to HazardData types + transformReport
 
-**PRIORITY 2 — Load remaining data on server:**
+**PRIORITY 1 — Load remaining data on server:**
 
-7. **Load 15 remaining DataSource entries** — ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa flood, Waikato 1%AEP (blocked by VM OOM, load one at a time)
-8. **Fix Northland FeatureServer** — 3 river flood endpoints hang (100yr/50yr/10yr) — may need page_size=500 or outSR parameter
-9. **Fix West Coast GIS 403** — `gis.westcoast.govt.nz` returns 403 from VM IP — try different User-Agent or contact WCRC
+1. **Load 15 remaining DataSource entries** — ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa flood, Waikato 1%AEP (blocked by VM OOM, load one at a time)
+2. **Fix Northland FeatureServer** — 3 river flood endpoints hang (100yr/50yr/10yr) — may need page_size=500 or outSR parameter
+3. **Fix West Coast GIS 403** — `gis.westcoast.govt.nz` returns 403 from VM IP — try different User-Agent or contact WCRC
 
-**PRIORITY 3 — Improve underutilized data:**
+**PRIORITY 2 — Improve underutilized data:**
 
-10. **Slope failure dedicated section** — Add to HostedHazardAdvice with landslide guidance
-11. **Fault zone dedicated section** — Add to HostedHazardAdvice with fault avoidance guidance
-12. **Coastal erosion expansion** — Dedicated section with SLR projections and managed retreat info
-13. **District plan zone details** — Use zone_code + category for richer display
-14. **Council rates breakdown** — Show land vs improvement values, annual rates amount
+4. **District plan zone details** — Use zone_code + category for richer display in reports
+5. **Council rates breakdown** — Show land vs improvement values, annual rates amount
 
-**PRIORITY 4 — Other outstanding items:**
+**PRIORITY 3 — Other outstanding items:**
 
-15. **Auckland rates full reload** — ~6,500 of 578K loaded, needs resuming
-16. **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
-17. **Google OAuth** — consent screen error blocking sign-in
-18. **More council rates** — Nelson, Rotorua, Napier, Gisborne, Waikato DC, Marlborough, South Waikato
-19. **GWRC storm surge 0-row fix** — May need outSR=4326 parameter or geometry format change
+6. **Auckland rates full reload** — ~6,500 of 578K loaded, needs resuming
+7. **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
+8. **Google OAuth** — consent screen error blocking sign-in
+9. **More council rates** — Nelson, Rotorua, Napier, Gisborne, Waikato DC, Marlborough, South Waikato
+10. **GWRC storm surge 0-row fix** — May need outSR=4326 parameter or geometry format change
 
 ---
 
