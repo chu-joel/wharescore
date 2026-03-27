@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-27 (session 67 — 97 new DataSource entries, 289→386 total, rural/regional coverage)
+**Last Updated:** 2026-03-27 (session 67 — 97 new DataSource entries 289→386, UI audit, Wellington de-hardcoding)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -60,7 +60,81 @@ ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa, Waikato
 - docs/RURAL-ENDPOINTS-RESEARCH.md: Full research with all endpoint URLs
 - Table name fixes: plan_zones→district_plan_zones, heritage→historic_heritage_overlay
 
+**(G) Wellington de-hardcoding — FindingCard.tsx + ActionCard.tsx:**
+- Replaced 15+ hardcoded `GWRC`/`WCC`/`Wellington` source labels with generic `Regional Council`/`District Plan`
+- Fixed interpretation text (removed "Wellington Fault runs through the city" etc.)
+- Fixed links from WCC-specific URLs to national govt.nz equivalents
+- DataSourceBadge labels genericised across Risk, Planning, Market, Transport sections
+
+**(H) Full UI data wiring audit (hosted + interactive reports):**
+
+**Hosted report — data flow audit results:**
+
+| Data Category | Queried | Passed | Displayed | Status |
+|---|:---:|:---:|:---:|---|
+| District Plan Zones | ✅ | ✅ | ✅ (zone_name only) | Functional |
+| Heritage Sites | ✅ | ✅ | ✅ | Fully functional |
+| **Notable Trees** | ❌ | ❌ | ❌ | **NOT QUERIED** |
+| Flood Hazard | ✅ | ✅ | ✅ | Fully functional |
+| Tsunami | ✅ | ✅ | ✅ | Fully functional |
+| Liquefaction | ✅ | ✅ | ✅ | Fully functional |
+| **Slope Failure** | ✅ | ✅ | ⚠️ | No dedicated section |
+| **Fault Zones** | ✅ | ✅ | ⚠️ | No dedicated section |
+| **Coastal Erosion** | ✅ | ✅ | ⚠️ | Insurance indicator only |
+| **Coastal Inundation** | ✅ | ✅ | ❌ | **QUERIED BUT NOT DISPLAYED** |
+| **Ground Shaking** | ✅ | ✅ | ❌ | **QUERIED BUT NOT DISPLAYED** |
+| Contaminated Land | ✅ | ✅ | ✅ | Fully functional |
+| School Zones | ✅ | ✅ | ✅ | Fully functional |
+| Road Noise | ✅ | ✅ | ✅ | Fully functional |
+| DOC Huts/Tracks | ✅ | ✅ | ✅ | Fully functional |
+| Council Rates | ✅ | ✅ | ⚠️ | CV shown, no breakdown |
+
+**Interactive report — field name mismatches found:**
+
+| Field | Expected By UI | Provided By SQL | Issue |
+|-------|---------------|----------------|-------|
+| `contam_count_2km` | PlanningSection checklist | NOT aggregated | Always null |
+| `landslide_count_500m` | RiskHazardsSection | `landslide_events_1km` | Wrong name + radius |
+| `park_count_500m` | PlanningSection checklist | NOT aggregated | Always null |
+| `heritage_overlay_type` | PlanningSection | Only boolean + name | Type column not selected |
+| `geotech_count_500m` | Types defined | NOT queried at all | Missing implementation |
+
 **Total: 386 DataSource entries. ~93K+ new rows loaded this session.**
+
+---
+
+### What Needs To Be Done Next
+
+**PRIORITY 1 — Fix data display gaps (bugs preventing data from showing):**
+
+1. **Fix `landslide_count_500m` mismatch** — SQL returns `landslide_events_1km`, frontend expects `landslide_count_500m`. Either rename in SQL or adjust transformReport.ts
+2. **Fix `contam_count_2km`** — Add COUNT aggregation query in get_property_report() SQL function
+3. **Fix `park_count_500m`** — Add COUNT aggregation query in get_property_report() SQL function
+4. **Add Notable Trees to report** — Add LEFT JOIN LATERAL on `notable_trees` table in get_property_report(), add to snapshot_generator.py + frontend
+5. **Display Coastal Inundation** — Data is queried & passed but no component renders it. Add to HostedHazardAdvice.tsx
+6. **Display Ground Shaking** — Data is queried & passed but no component renders it. Add to HostedHazardAdvice.tsx
+
+**PRIORITY 2 — Load remaining data on server:**
+
+7. **Load 15 remaining DataSource entries** — ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa flood, Waikato 1%AEP (blocked by VM OOM, load one at a time)
+8. **Fix Northland FeatureServer** — 3 river flood endpoints hang (100yr/50yr/10yr) — may need page_size=500 or outSR parameter
+9. **Fix West Coast GIS 403** — `gis.westcoast.govt.nz` returns 403 from VM IP — try different User-Agent or contact WCRC
+
+**PRIORITY 3 — Improve underutilized data:**
+
+10. **Slope failure dedicated section** — Add to HostedHazardAdvice with landslide guidance
+11. **Fault zone dedicated section** — Add to HostedHazardAdvice with fault avoidance guidance
+12. **Coastal erosion expansion** — Dedicated section with SLR projections and managed retreat info
+13. **District plan zone details** — Use zone_code + category for richer display
+14. **Council rates breakdown** — Show land vs improvement values, annual rates amount
+
+**PRIORITY 4 — Other outstanding items:**
+
+15. **Auckland rates full reload** — ~6,500 of 578K loaded, needs resuming
+16. **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
+17. **Google OAuth** — consent screen error blocking sign-in
+18. **More council rates** — Nelson, Rotorua, Napier, Gisborne, Waikato DC, Marlborough, South Waikato
+19. **GWRC storm surge 0-row fix** — May need outSR=4326 parameter or geometry format change
 
 ---
 
