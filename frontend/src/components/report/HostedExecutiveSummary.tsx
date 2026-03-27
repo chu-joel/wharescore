@@ -30,14 +30,18 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (bedrooms) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Bedrooms', value: bedrooms });
 
   if (prop.capital_value) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Capital Value', value: formatCurrency(prop.capital_value) });
+  if (prop.land_value) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Value', value: formatCurrency(prop.land_value) });
+  if (prop.improvement_value) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Improvements', value: formatCurrency(prop.improvement_value) });
   if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()}m²` });
-  if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land', value: `${prop.land_area_sqm.toLocaleString()}m²` });
+  if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()}m²` });
 
   const titleType = String(rawProp.title_type ?? '');
   if (titleType && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
 
   const zoneName = String(rawPlan.zone_name ?? '');
-  if (zoneName) stats.push({ icon: <MapPin className="h-3.5 w-3.5" />, label: 'Zone', value: zoneName });
+  const zoneCategory = String(rawPlan.zone_category ?? '');
+  const zoneDisplay = zoneCategory && zoneCategory !== zoneName ? `${zoneName} (${zoneCategory})` : zoneName;
+  if (zoneName) stats.push({ icon: <MapPin className="h-3.5 w-3.5" />, label: 'Zone', value: zoneDisplay });
 
   const transitStops = report.liveability.transit_count;
   if (transitStops != null) stats.push({ icon: <Bus className="h-3.5 w-3.5" />, label: 'Transit (400m)', value: `${transitStops} stops` });

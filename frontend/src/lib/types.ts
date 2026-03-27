@@ -289,6 +289,7 @@ export interface TransitTravelTime {
 export interface PlanningData {
   zone_name: string | null;
   zone_code: string | null;
+  zone_category: string | null;
   height_limit: number | null;
   heritage_count: number | null;
   consent_count: number | null;

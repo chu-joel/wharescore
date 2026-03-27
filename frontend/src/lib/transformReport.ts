@@ -144,6 +144,7 @@ function transformPlanning(raw: any, liveabilityRaw: any, environmentRaw: any): 
   return {
     zone_name: raw.zone_name ?? null,
     zone_code: raw.zone_code ?? null,
+    zone_category: raw.zone_category ?? null,
     height_limit: raw.max_height_m ?? null,
     heritage_count: liveabilityRaw?.heritage_count_500m ?? null,
     consent_count: raw.resource_consents_500m_2yr ?? null,

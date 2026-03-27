@@ -6415,7 +6415,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/NRMP_PC29_Operative/FeatureServer/1",
             "fault_zones", "nelson_awareness",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 "Fault Awareness Overlay",
                 "Fault Awareness Zone",
@@ -6425,7 +6425,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/NRMP_PC29_Operative/FeatureServer/2",
             "fault_zones", "nelson_deformation",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 "Fault Deformation Overlay",
                 "Fault Deformation Zone",
@@ -6435,7 +6435,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/NRMP_PC29_Operative/FeatureServer/3",
             "fault_zones", "nelson_fault_hazard",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 "Fault Hazard Overlay",
                 "Fault Hazard Zone",
@@ -6627,7 +6627,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/1",
             "fault_zones", "taranaki",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or "Active Faultline",
                 _clean(a.get("Type")) or "Active Fault",
@@ -6640,7 +6640,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/3",
             "fault_zones", "westcoast_active",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or _clean(a.get("FaultName")) or "Active Fault",
                 "Active Fault",
@@ -6651,7 +6651,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/8",
             "fault_zones", "westcoast_alpine",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or "Alpine Fault Trace",
                 "Alpine Fault",
@@ -6808,7 +6808,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://topofthesouthmaps.co.nz/arcgis/rest/services/ArcGISOnline_NCC/Hazards/MapServer/8",
             "fault_zones", "nelson_corridor",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or "Fault Hazard Corridor",
                 "Fault Hazard Corridor",
@@ -7111,7 +7111,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/2",
             "fault_zones", "ecan_kaikoura_faults",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or "Kaikoura Fault",
                 _clean(a.get("Type")) or "Fault",
@@ -7122,7 +7122,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.ecan.govt.nz/arcgis/rest/services/Public/EarthquakeFaultsLayers/MapServer/0",
             "fault_zones", "ecan_fault_awareness",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or _clean(a.get("Fault_Name")) or "Canterbury Fault Awareness",
                 _clean(a.get("Type")) or "Fault Awareness Area",
@@ -7132,7 +7132,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.ecan.govt.nz/arcgis/rest/services/Public/EarthquakeFaultsLayers/MapServer/20",
             "fault_zones", "ecan_ostler_fault",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 "Ostler Fault Hazard Area (Mackenzie DP)",
                 "Active Fault Hazard",
@@ -7169,7 +7169,8 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 _clean(a.get("Name")) or "ORC Coastal Hazard",
                 _clean(a.get("Type")) or "CoastPlan Hazard Area",
-            ))),
+            ),
+            geom_type="line")),
 
     # ── West Coast — coastal, rockfall, tsunami, TTPP flood ──
     DataSource("westcoast_coastal_hazard", "West Coast Coastal Hazard",
@@ -7241,7 +7242,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/5",
             "fault_zones", "westcoast_fault_avoid",
-            ["name", "fault_type"],
+            ["name", "fault_complexity"],
             lambda a: (
                 _clean(a.get("Name")) or "Fault Avoidance Zone",
                 "Fault Avoidance (TTPP)",

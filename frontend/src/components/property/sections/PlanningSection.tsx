@@ -80,6 +80,12 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
               <span className="text-muted-foreground">Zone</span>
               <Badge variant="secondary">{planning.zone_name}</Badge>
             </div>
+            {planning.zone_category && planning.zone_category !== planning.zone_name && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Category</span>
+                <span className="font-medium text-xs">{planning.zone_category}</span>
+              </div>
+            )}
             {planning.zone_code && planning.zone_code !== planning.zone_name && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Zone code</span>
