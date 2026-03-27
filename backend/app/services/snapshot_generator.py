@@ -316,130 +316,67 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         elif "auckland" in city.lower():
             from .auckland_rates import fetch_auckland_rates
             rates_data = await fetch_auckland_rates(full_address, conn)
-            # Fix CV from Auckland Council data if available
-            if rates_data and rates_data.get("current_valuation"):
-                ac_cv = rates_data["current_valuation"].get("capital_value")
-                ac_lv = rates_data["current_valuation"].get("land_value")
-                ac_iv = rates_data["current_valuation"].get("improvements_value")
-                if ac_cv and report.get("property"):
-                    report["property"]["capital_value"] = ac_cv
-                    report["property"]["land_value"] = ac_lv or 0
-                    report["property"]["improvements_value"] = ac_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"Auckland CV fixed: ${ac_cv:,} (was ${capital_value or 0:,})")
         elif city.lower() == "lower hutt":
             from .hcc_rates import fetch_hcc_rates
             rates_data = await fetch_hcc_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                hcc_cv = rates_data["current_valuation"].get("capital_value")
-                hcc_lv = rates_data["current_valuation"].get("land_value")
-                hcc_iv = rates_data["current_valuation"].get("improvements_value")
-                if hcc_cv and report.get("property"):
-                    report["property"]["capital_value"] = hcc_cv
-                    report["property"]["land_value"] = hcc_lv or 0
-                    report["property"]["improvements_value"] = hcc_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"HCC CV fixed: ${hcc_cv:,} (was ${capital_value or 0:,})")
         elif city.lower() == "porirua":
             from .pcc_rates import fetch_pcc_rates
             rates_data = await fetch_pcc_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                pcc_cv = rates_data["current_valuation"].get("capital_value")
-                pcc_lv = rates_data["current_valuation"].get("land_value")
-                pcc_iv = rates_data["current_valuation"].get("improvements_value")
-                if pcc_cv and report.get("property"):
-                    report["property"]["capital_value"] = pcc_cv
-                    report["property"]["land_value"] = pcc_lv or 0
-                    report["property"]["improvements_value"] = pcc_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"PCC CV fixed: ${pcc_cv:,} (was ${capital_value or 0:,})")
         elif "kapiti" in city.lower() or city.lower() in ("paraparaumu", "waikanae", "otaki", "paekakariki", "raumati"):
             from .kcdc_rates import fetch_kcdc_rates
             rates_data = await fetch_kcdc_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                kcdc_cv = rates_data["current_valuation"].get("capital_value")
-                kcdc_lv = rates_data["current_valuation"].get("land_value")
-                kcdc_iv = rates_data["current_valuation"].get("improvements_value")
-                if kcdc_cv and report.get("property"):
-                    report["property"]["capital_value"] = kcdc_cv
-                    report["property"]["land_value"] = kcdc_lv or 0
-                    report["property"]["improvements_value"] = kcdc_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"KCDC CV fixed: ${kcdc_cv:,} (was ${capital_value or 0:,})")
         elif "horowhenua" in city.lower() or city.lower() in ("levin", "foxton", "shannon"):
             from .hdc_rates import fetch_hdc_rates
             rates_data = await fetch_hdc_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                hdc_cv = rates_data["current_valuation"].get("capital_value")
-                hdc_lv = rates_data["current_valuation"].get("land_value")
-                hdc_iv = rates_data["current_valuation"].get("improvements_value")
-                if hdc_cv and report.get("property"):
-                    report["property"]["capital_value"] = hdc_cv
-                    report["property"]["land_value"] = hdc_lv or 0
-                    report["property"]["improvements_value"] = hdc_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"HDC CV fixed: ${hdc_cv:,} (was ${capital_value or 0:,})")
         elif "hamilton" in city.lower():
             from .hamilton_rates import fetch_hamilton_rates
             rates_data = await fetch_hamilton_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                ham_cv = rates_data["current_valuation"].get("capital_value")
-                ham_lv = rates_data["current_valuation"].get("land_value")
-                ham_iv = rates_data["current_valuation"].get("improvements_value")
-                if ham_cv and report.get("property"):
-                    report["property"]["capital_value"] = ham_cv
-                    report["property"]["land_value"] = ham_lv or 0
-                    report["property"]["improvements_value"] = ham_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"Hamilton CV fixed: ${ham_cv:,} (was ${capital_value or 0:,})")
         elif "dunedin" in city.lower():
             from .dcc_rates import fetch_dcc_rates
             rates_data = await fetch_dcc_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                dcc_cv = rates_data["current_valuation"].get("capital_value")
-                if dcc_cv and report.get("property"):
-                    report["property"]["capital_value"] = dcc_cv
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"DCC CV fixed: ${dcc_cv:,} (was ${capital_value or 0:,})")
         elif "christchurch" in city.lower():
             from .ccc_rates import fetch_ccc_rates
             rates_data = await fetch_ccc_rates(full_address, conn)
-            if rates_data and rates_data.get("current_valuation"):
-                ccc_cv = rates_data["current_valuation"].get("capital_value")
-                ccc_lv = rates_data["current_valuation"].get("land_value")
-                ccc_iv = rates_data["current_valuation"].get("improvements_value")
-                if ccc_cv and report.get("property"):
-                    report["property"]["capital_value"] = ccc_cv
-                    report["property"]["land_value"] = ccc_lv or 0
-                    report["property"]["improvements_value"] = ccc_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"CCC CV fixed: ${ccc_cv:,} (was ${capital_value or 0:,})")
         elif city.lower() == "new plymouth":
             from .taranaki_rates import fetch_taranaki_rates
             rates_data = await fetch_taranaki_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                tar_cv = rates_data["current_valuation"].get("capital_value")
-                tar_lv = rates_data["current_valuation"].get("land_value")
-                tar_iv = rates_data["current_valuation"].get("improvements_value")
-                if tar_cv and report.get("property"):
-                    report["property"]["capital_value"] = tar_cv
-                    report["property"]["land_value"] = tar_lv or 0
-                    report["property"]["improvements_value"] = tar_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"Taranaki CV fixed: ${tar_cv:,} (was ${capital_value or 0:,})")
         elif city.lower() in ("richmond", "motueka", "takaka", "mapua", "brightwater", "wakefield"):
             from .tasman_rates import fetch_tasman_rates
             rates_data = await fetch_tasman_rates(full_address)
-            if rates_data and rates_data.get("current_valuation"):
-                tas_cv = rates_data["current_valuation"].get("capital_value")
-                tas_lv = rates_data["current_valuation"].get("land_value")
-                tas_iv = rates_data["current_valuation"].get("improvements_value")
-                if tas_cv and report.get("property"):
-                    report["property"]["capital_value"] = tas_cv
-                    report["property"]["land_value"] = tas_lv or 0
-                    report["property"]["improvements_value"] = tas_iv or 0
-                    report["property"]["cv_is_per_unit"] = True
-                    logger.info(f"Tasman CV fixed: ${tas_cv:,} (was ${capital_value or 0:,})")
+        elif "tauranga" in city.lower() or city.lower() == "mount maunganui":
+            from .tcc_rates import fetch_tcc_rates
+            rates_data = await fetch_tcc_rates(full_address)
+        elif city.lower() in ("papamoa", "te puke", "katikati", "omokoroa", "waihi beach", "maketu"):
+            from .wbop_rates import fetch_wbop_rates
+            rates_data = await fetch_wbop_rates(full_address)
+        elif "palmerston" in city.lower():
+            from .pncc_rates import fetch_pncc_rates
+            rates_data = await fetch_pncc_rates(full_address)
+        elif "whangarei" in city.lower() or "whangārei" in city.lower():
+            from .wdc_rates import fetch_wdc_rates
+            rates_data = await fetch_wdc_rates(full_address)
+        elif "queenstown" in city.lower() or city.lower() in ("wanaka", "arrowtown", "frankton", "cromwell", "alexandra"):
+            from .qldc_rates import fetch_qldc_rates
+            rates_data = await fetch_qldc_rates(full_address)
+        elif "invercargill" in city.lower():
+            from .icc_rates import fetch_icc_rates
+            rates_data = await fetch_icc_rates(full_address)
+        elif "hastings" in city.lower() or city.lower() in ("havelock north", "flaxmere", "clive"):
+            from .hastings_rates import fetch_hastings_rates
+            rates_data = await fetch_hastings_rates(full_address)
+
+        # Apply CV from rates data (generic handler for all councils)
+        if rates_data and rates_data.get("current_valuation"):
+            cv_data = rates_data["current_valuation"]
+            live_cv = cv_data.get("capital_value")
+            if live_cv and report.get("property"):
+                old_cv = report["property"].get("capital_value", 0)
+                report["property"]["capital_value"] = live_cv
+                report["property"]["land_value"] = cv_data.get("land_value") or 0
+                report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
+                report["property"]["cv_is_per_unit"] = True
+                if live_cv != old_cv:
+                    logger.info(f"CV fixed via rates API for {city}: ${live_cv:,} (was ${old_cv or 0:,})")
     except Exception as e:
         logger.warning(f"Snapshot rates failed: {e}")
 
