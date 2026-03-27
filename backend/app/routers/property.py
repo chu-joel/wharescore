@@ -83,6 +83,43 @@ async def _fix_unit_cv(report: dict, address_id: int) -> None:
     report["_cv_from_rates"] = True
 
 
+async def _overlay_transit_data(report: dict, address_id: int) -> None:
+    """Overlay transit data from all sources (metlink, AT, regional).
+
+    The SQL report function only queries metlink_stops (Wellington).
+    This function checks if transit data is missing and fills it from
+    at_stops (Auckland) or transit_stops (regional cities)."""
+    try:
+        liveability = report.get("liveability") or {}
+        # Skip if already has travel times (Wellington/metlink worked)
+        if liveability.get("transit_travel_times"):
+            return
+
+        async with db.pool.connection() as conn_tt:
+            cur = await conn_tt.execute(
+                "SELECT get_transit_data(%s) AS data", [address_id]
+            )
+            row = cur.fetchone()
+            if not row or not row["data"]:
+                return
+
+            transit = row["data"]
+
+            # Only overlay if we actually found transit data
+            if not transit.get("transit_travel_times") and not transit.get("bus_stops_800m"):
+                return
+
+            # Merge into liveability section
+            for key in ("bus_stops_800m", "rail_stops_800m", "ferry_stops_800m",
+                        "cable_car_stops_800m", "transit_travel_times",
+                        "peak_trips_per_hour", "nearest_stop_name"):
+                val = transit.get(key)
+                if val is not None and val != 0:
+                    liveability[key] = val
+    except Exception as e:
+        logger.debug(f"Transit overlay failed for {address_id}: {e}")
+
+
 @router.get("/property/{address_id}/report")
 @limiter.limit("20/minute", key_func=_verified_user_or_ip)
 @limiter.limit("5/minute", key_func=get_remote_address)
@@ -150,6 +187,9 @@ async def get_report(request: Request, address_id: int):
 
     # Unit CV from rates cache
     await _fix_unit_cv(report, address_id)
+
+    # Overlay universal transit data (metlink + AT + regional)
+    await _overlay_transit_data(report, address_id)
 
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
