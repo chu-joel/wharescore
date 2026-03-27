@@ -1,8 +1,8 @@
 # WhareScore — Data Layers Coverage Matrix
 
-**Last Updated:** 2026-03-26 (session 66)
+**Last Updated:** 2026-03-27 (session 67)
 
-This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of 344 DataSource entries in `data_loader.py`.
+This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of 386 DataSource entries in `data_loader.py`.
 
 ---
 
@@ -10,17 +10,18 @@ This document tracks which data layers are loaded per region, data format incons
 
 Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 
-| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Northland | BOP | Waikato | Gisborne | Southland | Canterbury | Marlborough | Tasman | Taranaki | West Coast | National |
-|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Flood** | Y | Y | Y | Y | Y | Y (H1/H2/H3) | Y (3 types) | Y (7 layers) | Y | Y | Y (10yr/50yr/coastal+river) | Y | Y (regional+local+depth) | Y (2 layers) | Y | Y (Kaikoura+Waitaki+floodways) | Y (MEP) | Y | - | - | - |
-| **Liquefaction** | Y | Y | Y | Y(Waikato) | Y | - | Y | Y (NRMP+Tahunanui) | Y | Y | - | Y (A+B) | Y | Y | Y | Y (9 districts) | Y (6 zones A-F) | Y | - | - | - |
-| **Tsunami** | Y (GWRC all) | Y | Y | - | Y | Y (ORC) | - | Y (TOTS evac) | Y | - | Y (2024) | Y (evac+2500yr) | Y (2 layers) | Y (2019) | Y | Y (ECan) | Y (GNS) | Y (TOTS) | Y | - | - |
-| **Active faults** | Y(WCC) | - | - | - | - | - | Y (faults+folds) | Y (3 overlays) | - | - | - | Y | - | - | Y | Y (ECan 2024) | - | Y | Y | Y (active+alpine) | Y (GNS 10K) |
-| **Slope/landslide** | Y (GWRC) | Y (2 types) | Y (CCC) | Y (riverbank) | Y (landslide) | Y (instability) | Y (avalanche, debris, rockfall, erosion, alluvial) | Y (3 layers) | Y | Y | Y (erosion prone) | - | - | Y | - | - | Y (steep erosion) | - | - | Y (3 types) | Y (GNS) |
-| **Coastal erosion** | Y | Y (ASCIE 2130) | Y | - | Y | Y (coastal hazard) | Y (erosion areas) | - | Y | - | Y (4 timeframes) | Y (2 layers) | - | Y | Y (ICC) | Y (ECan+RCEP) | - | - | - | - | Y (CSI) |
-| **Coastal inundation** | Y | Y | Y | - | - | - | - | Y (NRMP+coastal) | - | - | - | - | - | Y | Y (ICC) | Y (sea inundation) | Y (SLR) | Y (3 SLR scenarios) | - | - | - |
-| **Ground shaking** | Y | - | - | - | - | - | - | - | Y | - | - | - | Y | - | Y | - | - | - | - | - | - |
-| **Volcanic** | - | Y (AVF 4 layers) | - | - | - | - | - | - | - | - | - | Y (calderas) | - | - | - | - | - | - | Y (hazard+evac) | - | - |
+| Layer | Wellington | Auckland | Christchurch | Hamilton | Tauranga | Dunedin | QLDC | Nelson | Hawke's Bay | Whangarei | Northland | BOP | Waikato | Horizons | Gisborne | Southland | Canterbury | Marlborough | Tasman | Taranaki | West Coast | Otago (ORC) | National |
+|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Flood** | Y | Y | Y | Y | Y | Y (H1/H2/H3) | Y (3 types) | Y (7 layers) | Y (HBRC regional+ponding) | Y | Y (10yr/50yr/100yr+suscept) | Y | Y (regional+1%AEP+Waipa) | Y (200yr+observed+floodways) | Y (2 layers) | Y | Y (Kaikoura+Waitaki+floodways) | Y (MEP) | Y | - | Y (TTPP 3 layers) | Y (Waitaki floodplain) | - |
+| **Liquefaction** | Y | Y | Y | Y(Waikato) | Y | - | Y | Y (NRMP+Tahunanui) | Y (HBRC Heretaunga+CHB) | Y | - | Y (A+B) | Y | - | Y | Y | Y (9 districts) | Y (6 zones A-F) | Y | - | - | - | - |
+| **Tsunami** | Y (GWRC all) | Y | Y | - | Y | Y (ORC) | - | Y (TOTS evac) | Y (HBRC 2024 evac) | - | Y (2024) | Y (evac+2500yr) | Y (2 layers) | - | Y (2019) | Y | Y (ECan) | Y (GNS) | Y (TOTS) | Y | Y (evac+TTPP) | - | - |
+| **Active faults** | Y(WCC) | - | - | - | - | - | Y (faults+folds) | Y (3 overlays) | - | - | - | Y | - | - | - | Y | Y (ECan 2019+Kaikoura+Ostler) | - | Y | Y | Y (active+alpine+TTPP) | - | Y (GNS 10K) |
+| **Slope/landslide** | Y (GWRC) | Y (2 types) | Y (CCC) | Y (riverbank) | Y (landslide) | Y (instability) | Y (5 types) | Y (3 layers) | Y (HBRC 7 categories) | Y | Y (erosion prone) | - | - | - | Y | - | Y (Kaikoura landslide+debris) | Y (steep erosion) | - | - | Y (3 types+rockfall) | - | Y (GNS) |
+| **Coastal erosion** | Y | Y (ASCIE 2130) | Y | - | Y | Y (coastal hazard) | Y (erosion areas) | - | Y (HBRC present day) | - | Y (4 timeframes) | Y (2 layers) | - | Y (Horizons coastal) | Y | Y (ICC) | Y (ECan+RCEP) | - | - | - | Y | Y (ORC CoastPlan) | Y (CSI) |
+| **Coastal inundation** | Y | Y | Y | - | - | - | - | Y (NRMP+coastal) | Y (HBRC 2023) | - | - | - | - | - | Y | Y (ICC) | Y (sea inundation) | Y (SLR) | Y (3 SLR scenarios) | - | - | Y (storm surge) | - |
+| **Storm surge** | Y (GWRC 3 scenarios) | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | Y (ORC all scenarios) | - |
+| **Ground shaking** | Y | - | - | - | - | - | - | - | Y (HBRC amplification) | - | - | - | Y | - | - | Y | - | - | - | - | - | - | - |
+| **Volcanic/Lahar** | - | Y (AVF 4 layers) | - | - | - | - | - | - | - | - | - | Y (calderas) | - | Y (Ruapehu lahar) | - | - | - | - | - | Y (hazard+evac) | - | - | - |
 
 ## Coverage Matrix — District Plan & Amenity Layers
 
@@ -163,7 +164,7 @@ Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 
 ---
 
-## Full DataSource Registry (344 entries in data_loader.py)
+## Full DataSource Registry (386 entries in data_loader.py)
 
 ### By Category
 

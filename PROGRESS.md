@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-26 (session 67 — massive gap fill: 55 new DataSource entries, all regions)
+**Last Updated:** 2026-03-27 (session 67 — 97 new DataSource entries, 289→386 total, rural/regional coverage)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,60 +17,50 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 67 (2026-03-26) — Massive gap fill: 55 new DataSource entries covering all remaining regions.**
+**Session 67 (2026-03-27) — 97 new DataSource entries (289→386), rural/regional coverage for all NZ.**
 
 ### What Was Done This Session
 
-**(A) New DataSource entries added (55 new, 289→344 total):**
+**(A) 55 new entries (289→344) — urban gap fill:**
+- Nelson (18): plan zones, heritage, flood ×7, fault ×3, liquefaction, slope, trees, tsunami, coastal
+- Marlborough (7): flood (MEP), steep erosion, liquefaction A-F
+- Auckland (5): Volcanic Field ×4, ASCIE coastal erosion
+- Canterbury (5): Kaikoura/Waitaki flood, floodways, RCEP coastal, sea inundation
+- Northland (5): coastal flood, river flood ×3, erosion prone
+- West Coast (6): active/Alpine faults, landslide ×3, plan zones (TTPP)
+- Others (9): BOP coastal ×2, Taranaki faults, Tasman plan zones + tsunami
 
-| Region | New Layers Added | Count |
-|--------|-----------------|:-----:|
-| Canterbury/ECan | Kaikoura flood, Waitaki flood, floodways, RCEP coastal hazard, sea inundation | 5 |
-| Marlborough | Flood hazard (MEP), steep erosion, liquefaction zones A-F | 7 |
-| Auckland | Volcanic Field (vents, boundary, 5km buffer, deposits), ASCIE coastal erosion 2130 | 5 |
-| Nelson | Plan zones, heritage, flood overlays (×3), liquefaction, fault overlays (×3), inundation, slope instability, notable trees, river flood (present+2130), coastal inundation, tsunami evac, Maitai flood (2013+2100), fault corridor, slope failure register, Tahunanui liquefaction | 18 |
-| Tasman | Plan zones, tsunami (via TOTS) | 2 |
-| Northland | Coastal flood (full), river flood (100yr/50yr/10yr), erosion prone land | 5 |
-| BOP | Ohiwa Spit coastal hazard, area sensitive coastal hazard | 2 |
-| Taranaki | Active faultlines | 1 |
-| West Coast | Active faults, Alpine Fault traces, landslide catalog, earthquake landslides, rain landslides, district plan zones (TTPP) | 6 |
-| Marlborough | Liquefaction zones A-F (6 individual layers) | (included above) |
+**(B) 42 new entries (344→386) — rural/regional gap fill:**
+- HBRC (14): flood, ponding, landslide ×5, liquefaction ×2, amplification, coastal, Wairoa bank, tsunami 2024
+- Horizons (5): 200yr flood, observed flooding, floodways, Ruapehu lahar, coastal
+- GWRC (4): 1%AEP flood, storm surge ×3
+- ECan (5): Kaikoura landslide/debris/faults, Canterbury fault awareness, Ostler fault
+- ORC (3): storm surge, Waitaki floodplain, coastal hazard
+- West Coast (8): coastal, rockfall, tsunami evac, TTPP flood ×3, fault avoidance, TTPP tsunami
+- Waikato (2): Waipa flood, regional 1%AEP flood
+- NRC (1): flood susceptible land
 
-**(B) DATA-LAYERS.md comprehensively updated:**
-- Coverage matrices expanded with West Coast column
-- All new entries reflected in hazard + amenity matrices
-- Detailed "Remaining Priority Gaps" section added with per-region analysis
-- Known Blockers section expanded with workarounds
-- Recommended Next Actions ranked by priority
-- Entry count: 289→344
+**(C) Data successfully loaded on server:**
+- Session 67 batch 1: ~32K rows (ECan, Marlborough, Auckland, Nelson, Tasman)
+- Session 67 HBRC batch: 59,880 rows (flood 7,296 + landslide 32,251+14,636+3,067+1,353 + more)
+- Session 67 Horizons: 974 rows (200yr flood, observed flooding 465, lahar 499)
+- Session 67 ECan: 254 rows (Kaikoura landslide + debris fan)
 
-**(C) Key new coverage achieved:**
-- Nelson: Was completely missing, now has 18 layers (plan zones, heritage, 7 flood layers, 3 fault overlays, liquefaction, slope, trees, tsunami, coastal)
-- West Coast: New region added with faults (Alpine Fault!), 3 landslide types, district plan zones
-- Auckland Volcanic Field: 4 layers covering 1.7M population
-- Canterbury: First flood layers (Kaikoura + Waitaki + floodways)
-- Marlborough: Liquefaction zones A-F (6 layers), steep erosion
-- Northland: River flood 3 return periods + erosion prone land
+**(D) Known issues preventing remaining loads:**
+- **PostgreSQL OOM crashes** on complex polygon inserts (B2ms VM = 8GB RAM)
+- **Northland FeatureServer** hangs on 100yr/50yr/10yr river flood (too large)
+- **West Coast GIS** returns 403 from VM IP (landslide endpoints)
+- **GWRC storm surge** returns 0 rows (geometry format mismatch)
 
-### Previous Session
+**(E) Still needs loading (next session):**
+ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa, Waikato flood
 
-**Session 66 (2026-03-26) — DOC/school zones/noise in reports, pagination fix, migration cleanup.**
+**(F) Documentation updated:**
+- DATA-LAYERS.md: 386 entries, expanded matrices with Horizons/ORC/West Coast
+- docs/RURAL-ENDPOINTS-RESEARCH.md: Full research with all endpoint URLs
+- Table name fixes: plan_zones→district_plan_zones, heritage→historic_heritage_overlay
 
-**(A) New national datasets loaded:**
-- DOC Huts (990 rows), DOC Tracks (3,153), DOC Campsites (331)
-- School enrolment zones (1,317 boundaries from MoE)
-- Waka Kotahi NZTA national road noise contours (224K polygons)
-- 7 new council rates: Masterton, Carterton, South Wairarapa, Whakatane, Taupo, Waitomo, Otorohanga
-
-**(B) Report integration — 3 new sections in hosted report (/report/{token}):**
-- HostedOutdoorRec, HostedSchoolZones, HostedRoadNoise
-
-**(C) Bug fixes:**
-- Fixed 4 loaders on national-schema tables, _fetch_arcgis pagination, migration 0017 crash
-- 0017: source_council columns on national tables + DOC tables
-- 0018: share_token on saved_reports
-
-**Total: 344 DataSource entries. ~160+ unique data sources with data.**
+**Total: 386 DataSource entries. ~93K+ new rows loaded this session.**
 
 ---
 
