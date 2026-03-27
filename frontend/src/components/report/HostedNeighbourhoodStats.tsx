@@ -12,32 +12,34 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   const hazards = (rawReport.hazards ?? {}) as unknown as Record<string, unknown>;
   const planning = (rawReport.planning ?? {}) as unknown as Record<string, unknown>;
 
-  // Nearest essentials
+  // Nearest essentials — SQL returns these as JSON objects with {name, distance_m}
   const essentials: { label: string; value: string }[] = [];
-  const addEssential = (label: string, nameKey: string, distKey: string) => {
-    const name = live[nameKey] as string;
-    const dist = live[distKey] as number;
-    if (name || dist) essentials.push({ label, value: `${name || label} — ${dist ? Math.round(dist) + 'm' : 'nearby'}` });
+  const addEssentialObj = (label: string, key: string) => {
+    const obj = live[key] as { name?: string; distance_m?: number } | null;
+    if (!obj) return;
+    const name = obj.name;
+    const dist = obj.distance_m;
+    if (name || dist) essentials.push({ label, value: `${name || label} — ${dist ? Math.round(dist) + ' m' : 'nearby'}` });
   };
-  addEssential('GP / Medical', 'nearest_gp_name', 'nearest_gp_m');
-  addEssential('Pharmacy', 'nearest_pharmacy_name', 'nearest_pharmacy_m');
-  addEssential('Supermarket', 'nearest_supermarket_name', 'nearest_supermarket_m');
-  const nearestPark = live.nearest_park_name as string;
-  const nearestParkDist = live.nearest_park_distance_m as number;
-  if (nearestPark || nearestParkDist) essentials.push({ label: 'Park', value: `${nearestPark || 'Park'} — ${nearestParkDist ? Math.round(nearestParkDist) + 'm' : 'nearby'}` });
+  addEssentialObj('GP / Medical', 'nearest_gp');
+  addEssentialObj('Pharmacy', 'nearest_pharmacy');
+  addEssentialObj('Supermarket', 'nearest_supermarket');
+  const nearestPark = planning.nearest_park_name as string;
+  const nearestParkDist = planning.nearest_park_distance_m as number;
+  if (nearestPark || nearestParkDist) essentials.push({ label: 'Park', value: `${nearestPark || 'Park'} — ${nearestParkDist ? Math.round(nearestParkDist) + ' m' : 'nearby'}` });
   const conservation = live.conservation_nearest as string;
   const conservationDist = live.conservation_nearest_distance_m as number;
   if (conservation) essentials.push({ label: 'Reserve', value: `${conservation} — ${conservationDist ? Math.round(conservationDist) + 'm' : 'nearby'}` });
 
   // Notable trees
-  const notableTreeCount = planning.notable_tree_count_50m as number;
+  const notableTreeCount = (planning.notable_trees_50m ?? planning.notable_tree_count_50m) as number;
   const notableTreeNearest = planning.notable_tree_nearest as { name: string; tree_type: string; distance_m: number } | null;
 
   // Park count
   const parkCount = planning.park_count_500m as number;
 
   // Contaminated land
-  const contamCount = (hazards.contam_count_500m ?? env.contam_count_2km ?? hazards.contamination_count) as number;
+  const contamCount = (env.contam_count_2km ?? hazards.contam_count_500m ?? hazards.contamination_count) as number;
   const contamName = env.contam_nearest_name as string;
   const contamDist = env.contam_nearest_distance_m as number;
   const contamCat = env.contam_nearest_category as string;
@@ -81,7 +83,7 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   if (planning.in_viewshaft) overlays.push(`Viewshaft${planning.viewshaft_name ? `: ${planning.viewshaft_name}` : ''}`);
   if (planning.in_ecological_area) overlays.push(`Ecological area${planning.ecological_area_name ? `: ${planning.ecological_area_name}` : ''}`);
   if (planning.in_character_precinct) overlays.push(`Character precinct${planning.character_precinct_name ? `: ${planning.character_precinct_name}` : ''}`);
-  if (planning.in_special_character_area) overlays.push(`Special character area${planning.special_character_name ? `: ${planning.special_character_name}` : ''}`);
+  if (planning.in_special_character ?? planning.in_special_character_area) overlays.push(`Special character area${planning.special_character_name ? `: ${planning.special_character_name}` : ''}`);
   if (planning.in_mana_whenua) overlays.push(`Mana whenua${planning.mana_whenua_name ? `: ${planning.mana_whenua_name}` : ''}`);
   if (planning.in_heritage_overlay) overlays.push(`Heritage overlay${heritageOverlayName ? `: ${heritageOverlayName}` : ''}${heritageOverlayType ? ` (${heritageOverlayType})` : ''}`);
 
@@ -172,7 +174,7 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
               <div>
                 <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Contaminated Land</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {contamName ? `${contamName} — ${Math.round(contamDist || 0)}m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} within 2km`}.
+                  {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} within 2 km`}.
                   {contamCat && ` Category: ${contamCat}.`}
                 </p>
               </div>

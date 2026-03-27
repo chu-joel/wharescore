@@ -311,10 +311,21 @@ function transformMarket(raw: any): MarketData {
     }
   }
 
+  // Derive market heat from 1yr rent trend + bond volume
+  const yoy = trend?.cagr_1yr;
+  const bonds = rentAssessment?.bond_count ?? 0;
+  let market_heat: 'cold' | 'cool' | 'neutral' | 'warm' | 'hot' = 'neutral';
+  if (yoy != null) {
+    if (yoy >= 8 || (yoy >= 5 && bonds >= 50)) market_heat = 'hot';
+    else if (yoy >= 4) market_heat = 'warm';
+    else if (yoy <= -4) market_heat = 'cold';
+    else if (yoy <= -1) market_heat = 'cool';
+  }
+
   return {
     rent_assessment: rentAssessment,
     trend,
-    market_heat: 'neutral',
+    market_heat,
   };
 }
 

@@ -638,9 +638,9 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
     sections.push({
       id: 'active-fault',
       icon: Zap,
-      title: `Active Fault: ${af.name} (${af.distance_m < 1000 ? `${af.distance_m}m` : `${(af.distance_m / 1000).toFixed(1)}km`} away)`,
+      title: `Active Fault: ${af.name} (${af.distance_m < 1000 ? `${af.distance_m} m` : `${(af.distance_m / 1000).toFixed(1)} km`} away)`,
       severity: af.distance_m < 2000 ? 'warning' : 'info',
-      intro: `The ${af.name} is ${af.distance_m < 1000 ? `${af.distance_m}m` : `${(af.distance_m / 1000).toFixed(1)}km`} from this property${af.slip_rate_mm_yr ? ` with a slip rate of ${af.slip_rate_mm_yr}mm/yr` : ''}.`,
+      intro: `The ${af.name} is ${af.distance_m < 1000 ? `${af.distance_m} m` : `${(af.distance_m / 1000).toFixed(1)} km`} from this property${af.slip_rate_mm_yr ? ` with a slip rate of ${af.slip_rate_mm_yr} mm/yr` : ''}.`,
       subsections: [{
         heading: 'Understanding Active Faults',
         items: [

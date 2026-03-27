@@ -32,24 +32,24 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (prop.capital_value) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Capital Value', value: formatCurrency(prop.capital_value) });
   if (prop.land_value) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Value', value: formatCurrency(prop.land_value) });
   if (prop.improvement_value) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Improvements', value: formatCurrency(prop.improvement_value) });
-  if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()}m²` });
-  if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()}m²` });
+  if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()} m²` });
+  if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
 
-  const titleType = String(rawProp.title_type ?? '');
-  if (titleType && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
+  const titleRef = String(rawProp.title_type ?? rawProp.title_no ?? '');
+  if (titleRef && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleRef });
 
   const zoneName = String(rawPlan.zone_name ?? '');
   const zoneCategory = String(rawPlan.zone_category ?? '');
   const zoneDisplay = zoneCategory && zoneCategory !== zoneName ? `${zoneName} (${zoneCategory})` : zoneName;
   if (zoneName) stats.push({ icon: <MapPin className="h-3.5 w-3.5" />, label: 'Zone', value: zoneDisplay });
 
-  const transitStops = report.liveability.transit_count;
+  const transitStops = report.liveability?.transit_count;
   if (transitStops != null) stats.push({ icon: <Bus className="h-3.5 w-3.5" />, label: 'Transit (400m)', value: `${transitStops} stops` });
 
-  const cbdDist = report.liveability.cbd_distance_m;
-  if (cbdDist) stats.push({ icon: <Navigation className="h-3.5 w-3.5" />, label: 'To CBD', value: cbdDist >= 1000 ? `${(cbdDist / 1000).toFixed(1)}km` : `${Math.round(cbdDist)}m` });
+  const cbdDist = report.liveability?.cbd_distance_m;
+  if (cbdDist) stats.push({ icon: <Navigation className="h-3.5 w-3.5" />, label: 'To CBD', value: cbdDist >= 1000 ? `${(cbdDist / 1000).toFixed(1)} km` : `${Math.round(cbdDist)} m` });
 
-  const noiseDb = report.environment.noise_db;
+  const noiseDb = report.environment?.noise_db;
   if (noiseDb) stats.push({ icon: <Volume2 className="h-3.5 w-3.5" />, label: 'Road Noise', value: `${Math.round(noiseDb)} dB` });
 
   // Walkability — from raw snapshot since not in typed LiveabilityData
@@ -77,9 +77,9 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   const medianRent = market?.rent_assessment?.median;
 
   // Multi-unit flag
-  const isMultiUnit = !!rawProp.multi_unit;
+  const isMultiUnit = !!(report.property_detection?.is_multi_unit ?? rawProp.multi_unit);
   const cvDate = String(rawProp.cv_date ?? '');
-  const isContaminated = !!rawPlan.contaminated_listed;
+  const isContaminated = !!(rawPlan.contaminated_listed ?? report.planning?.contamination_count);
 
   // EPB alert
   const epbCount = hazards.epb_count;
@@ -187,8 +187,8 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
               <span className="font-bold text-piq-primary">${medianRent}/wk</span>
               <span className="text-muted-foreground"> for this area</span>
               {market?.trend?.cagr_1yr != null && (
-                <span className={`ml-2 text-xs font-medium ${market.trend.cagr_1yr >= 0 ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
-                  {market.trend.cagr_1yr >= 0 ? '+' : ''}{market.trend.cagr_1yr.toFixed(1)}%/yr
+                <span className={`ml-2 text-xs font-medium ${market.trend!.cagr_1yr! >= 0 ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
+                  {market.trend!.cagr_1yr! >= 0 ? '+' : ''}{market.trend!.cagr_1yr!.toFixed(1)}%/yr
                 </span>
               )}
             </p>
@@ -201,8 +201,8 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
               <span className="font-bold text-piq-primary">${rentBand.bandLow}–${rentBand.bandHigh}/wk</span>
               <span className="text-muted-foreground"> ({formatCurrency(Math.round((rentBand.bandLow + rentBand.bandHigh) / 2 * 52))}/yr)</span>
               {market?.trend?.cagr_1yr != null && (
-                <span className={`ml-2 text-xs font-medium ${market.trend.cagr_1yr >= 0 ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
-                  {market.trend.cagr_1yr >= 0 ? '+' : ''}{market.trend.cagr_1yr.toFixed(1)}%/yr
+                <span className={`ml-2 text-xs font-medium ${market.trend!.cagr_1yr! >= 0 ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
+                  {market.trend!.cagr_1yr! >= 0 ? '+' : ''}{market.trend!.cagr_1yr!.toFixed(1)}%/yr
                 </span>
               )}
             </p>

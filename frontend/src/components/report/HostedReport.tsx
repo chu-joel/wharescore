@@ -136,7 +136,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             )}
             {buildingArea && (
               <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
-                {buildingArea.toLocaleString()}m²
+                {buildingArea.toLocaleString()} m²
               </span>
             )}
             {report.coverage && (

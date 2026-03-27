@@ -14,8 +14,8 @@ interface AmenityItem {
 }
 
 function formatDistance(m: number): string {
-  if (m >= 1000) return `${(m / 1000).toFixed(1)}km`;
-  return `${Math.round(m)}m`;
+  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+  return `${Math.round(m)} m`;
 }
 
 export function HostedNearbyHighlights({ snapshot }: Props) {

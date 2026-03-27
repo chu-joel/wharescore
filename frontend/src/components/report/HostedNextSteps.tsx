@@ -23,7 +23,7 @@ export function HostedNextSteps({ persona, report }: Props) {
   const hasEpb = !!h.epb_rating;
   const hasContamination = !!(h.contamination_count && h.contamination_count > 0);
   const hasTsunami = !!h.tsunami_zone;
-  const hasHighCrime = (report.liveability.crime_rate ?? 0) > 70;
+  const hasHighCrime = (report.liveability?.crime_rate ?? 0) > 70;
 
   const renterCards: ActionCard[] = [
     { level: 'essential', title: 'Healthy Homes Check', description: 'Request compliance statement — legal requirement since 2021' },

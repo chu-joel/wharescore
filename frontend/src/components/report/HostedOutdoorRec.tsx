@@ -27,7 +27,7 @@ export function HostedOutdoorRec({ snapshot }: Props) {
   const total = huts.length + tracks.length + campsites.length;
   if (total === 0) return null;
 
-  const formatDist = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m)}m`;
+  const formatDist = (m: number) => m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 
   return (
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">

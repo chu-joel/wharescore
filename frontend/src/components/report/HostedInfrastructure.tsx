@@ -47,7 +47,7 @@ export function HostedInfrastructure({ rawReport }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{p.name}</p>
               <p className="text-[10px] text-muted-foreground">
-                {p.distance_km != null && `${p.distance_km.toFixed(1)}km away`}
+                {p.distance_km != null && `${p.distance_km.toFixed(1)} km away`}
                 {p.status && ` · ${p.status}`}
               </p>
             </div>

@@ -124,7 +124,7 @@ function deriveWatchItems(snapshot: ReportSnapshot): WatchItem[] {
       color: 'bg-orange-500',
       dotColor: 'bg-orange-500',
       label: 'NEAR ACTIVE FAULT',
-      description: `${activeFault.name} fault is ${((activeFault.distance_m as number) / 1000).toFixed(1)}km away (Class ${activeFault.class}).`,
+      description: `${activeFault.name} fault is ${((activeFault.distance_m as number) / 1000).toFixed(1)} km away (Class ${activeFault.class}).`,
     });
   }
 

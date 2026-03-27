@@ -92,7 +92,7 @@ function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; high
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
               </td>
-              <td className="py-2 text-right text-xs text-muted-foreground">{Math.round(s.distance_m)}m</td>
+              <td className="py-2 text-right text-xs text-muted-foreground">{Math.round(s.distance_m)} m</td>
             </tr>
           ))}
         </tbody>
