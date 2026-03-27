@@ -212,7 +212,8 @@ async def get_crime_trend(request: Request, address_id: int):
             SELECT sa2.sa2_name
             FROM addresses a
             JOIN LATERAL (
-                SELECT sa2_name FROM sa2_boundaries WHERE ST_Within(a.geom, geom) LIMIT 1
+                SELECT sa2_name FROM sa2_boundaries
+                WHERE geom && a.geom AND ST_Within(a.geom, geom) LIMIT 1
             ) sa2 ON true
             WHERE a.address_id = %s
             """,
@@ -929,7 +930,8 @@ async def get_area_feed(request: Request, address_id: int):
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT fault_name, round(ST_Distance(af.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
                 FROM active_faults af, addr
-                WHERE ST_DWithin(af.geom::geography, addr.geom::geography, 5000)
+                WHERE af.geom && ST_Expand(addr.geom, 0.05)
+                  AND ST_DWithin(af.geom::geography, addr.geom::geography, 5000)
                 ORDER BY ST_Distance(af.geom, addr.geom) LIMIT 1
             """, [address_id])
             fault = cur.fetchone()
@@ -945,7 +947,8 @@ async def get_area_feed(request: Request, address_id: int):
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT round(ST_Distance(ce.geom::geography, addr.geom::geography)::numeric) AS dist_m
                 FROM coastal_erosion ce, addr
-                WHERE ST_DWithin(ce.geom::geography, addr.geom::geography, 500)
+                WHERE ce.geom && ST_Expand(addr.geom, 0.005)
+                  AND ST_DWithin(ce.geom::geography, addr.geom::geography, 500)
                 LIMIT 1
             """, [address_id])
             erosion = cur.fetchone()
@@ -963,7 +966,8 @@ async def get_area_feed(request: Request, address_id: int):
                        we.precipitation_mm, we.wind_gust_kmh,
                        round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
                 FROM weather_events we, addr
-                WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
+                WHERE we.geom && ST_Expand(addr.geom, 0.5)
+                  AND ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
                   AND we.event_date >= (CURRENT_DATE - interval '5 years')
                   AND we.severity IN ('critical', 'warning')
                 ORDER BY we.event_date DESC
@@ -984,7 +988,8 @@ async def get_area_feed(request: Request, address_id: int):
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT site_name, category, round(ST_Distance(cl.geom::geography, addr.geom::geography)::numeric) AS dist_m
                 FROM contaminated_land cl, addr
-                WHERE ST_DWithin(cl.geom::geography, addr.geom::geography, 1000)
+                WHERE cl.geom && ST_Expand(addr.geom, 0.01)
+                  AND ST_DWithin(cl.geom::geography, addr.geom::geography, 1000)
                 ORDER BY ST_Distance(cl.geom, addr.geom) LIMIT 1
             """, [address_id])
             contam = cur.fetchone()

@@ -272,11 +272,12 @@ async def nearby_earthquakes(
             FROM earthquakes e, addr
             WHERE e.magnitude >= 4
               AND e.event_time >= CURRENT_DATE - interval '10 years'
+              AND e.geom && ST_Expand(addr.geom, %s * 0.00001)
               AND ST_DWithin(e.geom::geography, addr.geom::geography, %s)
             ORDER BY e.event_time DESC
             LIMIT 50
             """,
-            [address_id, radius],
+            [address_id, radius, radius],
         )
         features = [to_geojson_feature(r) for r in cur.fetchall()]
     return {"type": "FeatureCollection", "features": features}
@@ -418,11 +419,12 @@ async def nearby_conservation(
                    round(ST_Distance(cl.geom::geography, addr.geom::geography)::numeric) AS distance_m,
                    ST_X(ST_Centroid(cl.geom)) AS lng, ST_Y(ST_Centroid(cl.geom)) AS lat
             FROM conservation_land cl, addr
-            WHERE ST_DWithin(cl.geom::geography, addr.geom::geography, %s)
+            WHERE cl.geom && ST_Expand(addr.geom, %s * 0.00001)
+              AND ST_DWithin(cl.geom::geography, addr.geom::geography, %s)
             ORDER BY distance_m
             LIMIT 20
             """,
-            [address_id, radius],
+            [address_id, radius, radius],
         )
         features = [to_geojson_feature(r) for r in cur.fetchall()]
     return {"type": "FeatureCollection", "features": features}
