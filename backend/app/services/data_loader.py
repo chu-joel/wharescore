@@ -1600,7 +1600,7 @@ def load_auckland_overland_flow(conn: psycopg.Connection, log: Callable = None) 
     conn.commit()
 
     _progress(log, "Fetching Auckland overland flow paths...")
-    features = _fetch_arcgis(url, 2000)
+    features = _fetch_arcgis(url, 2000, max_allowable_offset=20)
     cur.execute("DELETE FROM overland_flow_paths WHERE source_council = %s", ("auckland",))
     count = 0
     for f in features:
@@ -1611,12 +1611,18 @@ def load_auckland_overland_flow(conn: psycopg.Connection, log: Callable = None) 
         wkt = _ml_wkt(geom)
         if not wkt:
             continue
-        cur.execute(
-            "INSERT INTO overland_flow_paths (catchment_group, source_council, geom) "
-            "VALUES (%s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
-            (a.get("CATCHMENTAREAGROUP"), "auckland", wkt),
-        )
-        count += 1
+        try:
+            cur.execute(
+                "INSERT INTO overland_flow_paths (catchment_group, source_council, geom) "
+                "VALUES (%s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                (a.get("CATCHMENTAREAGROUP"), "auckland", wkt),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 5000 == 0:
+            conn.commit()
     conn.commit()
     _progress(log, f"Auckland overland flow paths: {count} rows")
     return count
