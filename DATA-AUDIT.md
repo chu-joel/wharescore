@@ -1,6 +1,6 @@
 # WhareScore — Data Audit: What We Have vs What We Show
 
-**Last Updated:** 2026-03-26 (session 65)
+**Last Updated:** 2026-03-28 (session 68)
 **Purpose:** Track what data exists in the database, what's displayed in the free/paid reports, and what gaps exist.
 
 ---
@@ -67,10 +67,10 @@
 
 | Field | DB Table.Column | Source | Free? |
 |-------|----------------|--------|-------|
-| Council Capital Value | `council_valuations.capital_value` | 32+ councils | YES |
-| Land Value | `council_valuations.land_value` | 32+ councils | YES |
-| Improvements Value | `council_valuations.improvements_value` | 32+ councils | YES |
-| Valuation Date | `council_valuations.valuation_date` | 32+ councils | YES |
+| Council Capital Value | `council_valuations.capital_value` | 42 councils | YES |
+| Land Value | `council_valuations.land_value` | 42 councils | YES |
+| Improvements Value | `council_valuations.improvements_value` | 42 councils | YES |
+| Valuation Date | `council_valuations.valuation_date` | 42 councils | YES |
 | Multi-Unit Detection | Spatial count at same coords | Derived | YES |
 | Unit Comparison Table | Sibling unit CVs | Derived | YES |
 | Median Rent (SA2) | `bonds_detailed.median_rent` | MBIE bonds | YES |
@@ -143,7 +143,7 @@ Frontend Component
         → get_property_report() PL/pgSQL function
           → ST_Intersects / ST_DWithin spatial queries
             → 44 tables + 5 materialized views
-              → Original data loaded via data_loader.py (281 DataSource entries)
+              → Original data loaded via data_loader.py (525 DataSource entries, 386 active)
 ```
 
 ### Scoring Pipeline
@@ -162,33 +162,33 @@ Raw hazard data → risk_score.py
 
 #### Hazard Detail (returned but hidden)
 
-| # | Field | API Path | DB Source | Why Not Shown |
-|---|-------|----------|-----------|---------------|
-| B1 | Coastal Elevation (cm) | `hazards.coastal_elevation_cm` | `coastal_elevation` | No UI component |
-| B2 | Flood Extent AEP | `hazards.flood_extent_aep, flood_extent_label` | `flood_extent` | Generic flood label shown instead |
-| B3 | Overland Flow (50m) | `hazards.overland_flow_within_50m` | `overland_flow_paths` | No UI for overflow risk |
-| B4 | Solar Radiation (Wellington) | `hazards.solar_mean_kwh, solar_max_kwh` | `wcc_solar_radiation` | SolarPotentialCard.tsx exists but not integrated |
-| B5 | Active Fault Detail | `hazards.active_fault_nearest` → `fault_name, fault_class, slip_rate_mm_yr, recurrence_interval` | `active_faults` | Only distance shown via score |
-| B6 | Fault Avoidance Zone | `hazards.fault_avoidance_zone` → `fault_name, zone_type, setback_m` | `fault_avoidance_zones` | No component handles it |
-| B7 | Landslide Events (1km) | `hazards.landslide_events_1km` | `landslide_events` | No breakdown UI |
-| B8 | Contaminated Land Detail | `hazards.contam_nearest, contam_nearest_category, contam_nearest_distance_m` | `contaminated_land` | Only count shown in Planning checklist |
-| B9 | Climate Projections | `hazards.climate_temp_change, climate_rainfall_change` | `climate_grid + climate_projections` | ClimateForecastCard.tsx exists but not integrated |
+| # | Field | API Path | DB Source | Status |
+|---|-------|----------|-----------|--------|
+| B1 | Coastal Elevation (cm) | `hazards.coastal_elevation_cm` | `coastal_elevation` | Used in hazard logic, not standalone display |
+| B2 | Flood Extent AEP | `hazards.flood_extent_aep, flood_extent_label` | `flood_extent` | Used in flood section condition |
+| B3 | Overland Flow (50m) | `hazards.overland_flow_within_50m` | `overland_flow_paths` | Used in flood section condition |
+| B4 | Solar Radiation (Wellington) | `hazards.solar_mean_kwh, solar_max_kwh` | `wcc_solar_radiation` | ✅ Shown in HostedNeighbourhoodStats climate grid |
+| ~~B5~~ | ~~Active Fault Detail~~ | `hazards.active_fault_nearest` | `active_faults` | ✅ **FIXED session 68** — New hazard section with name, distance, slip rate, fault type |
+| ~~B6~~ | ~~Fault Avoidance Zone~~ | `hazards.fault_avoidance_zone` | `fault_avoidance_zones` | ✅ **FIXED session 68** — Hazard section with zone type + advice |
+| B7 | Landslide Events (1km) | `hazards.landslide_events_1km` | `landslide_events` | Partially used in hazard scoring |
+| B8 | Contaminated Land Detail | `hazards.contam_nearest` | `contaminated_land` | Shown in HostedNeighbourhoodStats |
+| B9 | Climate Precipitation | `hazards.climate_precip_change_pct` | `climate_projections` | Only temp shown, not precipitation |
 | B10 | Earthquake Max Magnitude | `hazards.earthquake_max_mag` | `earthquakes` | Only count is scored |
-| B11 | Council-Specific Hazard Detail | `wcc_flood_type, wcc_tsunami_return_period, gwrc_liquefaction, ground_shaking_zone, earthquake_hazard_index` | Various regional tables | Used in scoring only, not displayed individually |
+| B11 | Council-Specific Hazard Detail | various | Various regional tables | Used in scoring, not individually displayed |
 
 #### Planning/Character Data (returned but hidden)
 
-| # | Field | API Path | DB Source | Why Not Shown |
-|---|-------|----------|-----------|---------------|
-| B12 | Infrastructure Project Detail | `planning.infrastructure_5km` array → `name, sector, status, value_range, distance_m` | `infrastructure_projects` | Only count shown |
-| B13 | Notable Trees (50m) | `planning.notable_trees_50m` | `notable_trees` | Count exists but not displayed |
-| B14 | Mana Whenua | `planning.in_mana_whenua, mana_whenua_name` | `mana_whenua_boundaries` | No component |
-| B15 | Ecological Areas | `planning.in_ecological_area, ecological_area_name, ecological_area_type` | `significant_ecological_areas` | No component |
-| B16 | Special Character Areas | `planning.in_special_character_area, special_character_name` | Council overlays | No component |
-| B17 | Character Precincts | `planning.in_character_precinct, character_precinct_name` | `character_precincts` | No component |
-| B18 | Heritage Overlay Detail | `planning.in_heritage_overlay, heritage_overlay_name` | Heritage NZ + councils | Only count shown |
-| B19 | Viewshaft Protection | `planning.in_viewshaft, viewshaft_name, viewshaft_significance` | `viewshafts` | No component |
-| B20 | Height Variation Control | `planning.height_variation_limit` | Council overlays | Only main height_limit shown |
+| # | Field | API Path | DB Source | Status |
+|---|-------|----------|-----------|--------|
+| B12 | Infrastructure Project Detail | `planning.infrastructure_5km` array | `infrastructure_projects` | Shown in HostedInfrastructure.tsx |
+| ~~B13~~ | ~~Notable Trees (50m)~~ | `planning.notable_trees_50m` | `notable_trees` | ✅ **FIXED session 67** — Count + nearest + type in HostedNeighbourhoodStats |
+| ~~B14~~ | ~~Mana Whenua~~ | `planning.in_mana_whenua` | `mana_whenua_boundaries` | ✅ **FIXED session 68** — Shown in overlays list with name |
+| ~~B15~~ | ~~Ecological Areas~~ | `planning.in_ecological_area` | `significant_ecological_areas` | ✅ **FIXED session 68** — Shown in overlays list with name |
+| ~~B16~~ | ~~Special Character Areas~~ | `planning.in_special_character_area` | Council overlays | ✅ **FIXED session 68** — Shown in overlays list with name |
+| ~~B17~~ | ~~Character Precincts~~ | `planning.in_character_precinct` | `character_precincts` | ✅ **FIXED session 68** — Shown in overlays list with name |
+| ~~B18~~ | ~~Heritage Overlay Detail~~ | `planning.in_heritage_overlay` | Heritage NZ + councils | ✅ **FIXED session 68** — Name + type in overlays list |
+| ~~B19~~ | ~~Viewshaft Protection~~ | `planning.in_viewshaft` | `viewshafts` | ✅ **FIXED session 68** — Name in overlays list |
+| B20 | Height Variation Control | `planning.height_variation_limit` | Council overlays | Shown in PlanningSection.tsx |
 
 #### School/Amenity Data (returned but underused)
 
@@ -214,7 +214,7 @@ Raw hazard data → risk_score.py
 | B28 | Estate Description | `property.estate_description` | `property_titles` | Available but not rendered |
 | B29 | Owners Count | `property.owners_count` | `property_titles` | Not displayed |
 
-**Total: 29 items returned by API but not displayed in frontend.**
+**Total: 29 items originally. 11 fixed in sessions 67-68. ~18 remaining (mostly partial displays or scoring-only use).**
 
 ---
 
