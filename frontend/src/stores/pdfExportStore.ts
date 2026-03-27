@@ -57,7 +57,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
     });
   },
 
-  _doExport: async (addressId: number, token?: string | null) => {
+  _doExport: async (addressId: number, _token?: string | null) => {
     const state = get();
     if (state.isGenerating) return;
 
@@ -67,6 +67,16 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
     set({ addressId, persona, isGenerating: true, error: null, downloadUrl: null, _pendingToken: null });
 
     try {
+      // Always fetch a fresh token — the pre-modal token may have expired
+      let token = _token;
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const data = await tokenRes.json();
+          if (data.token) token = data.token;
+        }
+      } catch { /* fall back to passed token */ }
+
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -124,14 +134,25 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       );
       if (!res.ok) {
         if (res.status === 401) {
-          gate.setShowUpgradeModal(true);
-          set({ isGenerating: false });
+          // Auth failed — if user has credits, it's a session issue, not a paywall issue
+          if (gate.credits && gate.credits.plan !== 'free' && (gate.credits.creditsRemaining ?? 0) > 0) {
+            toast.error('Session expired — please sign out and sign back in, then try again.', { duration: 8000 });
+            set({ isGenerating: false, error: 'Session expired' });
+          } else {
+            gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+            set({ isGenerating: false });
+          }
           return;
         }
         if (res.status === 403) {
           const body = await res.json().catch(() => ({ detail: 'Upgrade required' }));
-          gate.setShowUpgradeModal(true);
-          set({ isGenerating: false, error: body.detail });
+          if (gate.credits && gate.credits.plan !== 'free' && (gate.credits.creditsRemaining ?? 0) > 0) {
+            toast.error(`Unable to generate report: ${body.detail}. Try signing out and back in.`, { duration: 8000 });
+            set({ isGenerating: false, error: body.detail });
+          } else {
+            gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+            set({ isGenerating: false, error: body.detail });
+          }
           return;
         }
         if (res.status === 429) {
