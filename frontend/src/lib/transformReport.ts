@@ -196,6 +196,7 @@ function transformHazards(raw: any): HazardData {
     liquefaction_zone: raw.liquefaction ?? null,
     fault_distance_m: null, // not in API
     earthquake_count: raw.earthquake_count_30km ?? null,
+    earthquake_max_mag: raw.earthquake_max_mag ?? null,
     coastal_erosion: raw.coastal_exposure ?? null,
     wildfire_risk: raw.wildfire_trend ?? null,
     epb_count: raw.epb_count_300m ?? null,

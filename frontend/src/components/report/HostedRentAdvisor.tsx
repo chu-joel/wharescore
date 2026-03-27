@@ -28,6 +28,10 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
   const positiveDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh > 0);
   const negativeDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh < 0);
 
+  // Rental overview by dwelling type
+  const rawMarket = (snapshot.report.market ?? {}) as Record<string, unknown>;
+  const rentalOverview = (rawMarket.rental_overview ?? []) as { dwelling_type: string; beds: string | null; median: number; bond_count: number }[];
+
   return (
     <div className="rounded-xl border border-border bg-card card-elevated p-4 space-y-4">
       <h3 className="text-base font-bold">Is Your Rent Fair?</h3>
@@ -121,6 +125,35 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
                 <span className="truncate">{ctx.description}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rental overview by dwelling type */}
+      {rentalOverview.length > 1 && (
+        <div>
+          <h4 className="text-sm font-semibold text-muted-foreground mb-1.5">Area Rents by Type</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-1 pr-2 font-semibold text-piq-primary">Type</th>
+                  <th className="text-left py-1 pr-2 font-semibold text-piq-primary">Beds</th>
+                  <th className="text-right py-1 pr-2 font-semibold text-piq-primary">Median</th>
+                  <th className="text-right py-1 font-semibold text-piq-primary">Bonds</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rentalOverview.slice(0, 10).map((r, i) => (
+                  <tr key={i} className="border-b border-border/50 last:border-0">
+                    <td className="py-1 pr-2 text-muted-foreground">{r.dwelling_type}</td>
+                    <td className="py-1 pr-2 text-muted-foreground">{r.beds ?? 'All'}</td>
+                    <td className="py-1 pr-2 text-right font-medium">${r.median}/wk</td>
+                    <td className="py-1 text-right text-muted-foreground">{r.bond_count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

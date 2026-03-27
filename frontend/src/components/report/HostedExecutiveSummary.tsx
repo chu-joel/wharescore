@@ -35,6 +35,12 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()} m²` });
   if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
 
+  const footprint = rawProp.footprint_sqm as number;
+  if (footprint && footprint !== prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
+
+  const buildingUse = String(rawProp.building_use ?? '');
+  if (buildingUse) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Use', value: buildingUse });
+
   const titleRef = String(rawProp.title_type ?? rawProp.title_no ?? '');
   if (titleRef && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleRef });
 

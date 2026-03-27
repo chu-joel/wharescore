@@ -61,7 +61,27 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
 
   // Climate + Solar
   const climateTemp = env.climate_temp_change as number;
+  const climatePrecip = env.climate_precip_change_pct as number;
   const solarMean = hazards.solar_mean_kwh as number;
+
+  // Transit mode breakdown
+  const busStops = live.bus_stops_800m as number;
+  const railStops = live.rail_stops_800m as number;
+  const ferryStops = live.ferry_stops_800m as number;
+  const cableCarStops = live.cable_car_stops_800m as number;
+  const transitModes: { mode: string; count: number }[] = [];
+  if (busStops) transitModes.push({ mode: 'Bus', count: busStops });
+  if (railStops) transitModes.push({ mode: 'Rail', count: railStops });
+  if (ferryStops) transitModes.push({ mode: 'Ferry', count: ferryStops });
+  if (cableCarStops) transitModes.push({ mode: 'Cable Car', count: cableCarStops });
+
+  // Transit travel times
+  const travelTimes = (live.transit_travel_times ?? []) as { destination: string; travel_time_min: number; route: string }[];
+
+  // Comparison benchmarks
+  const comparisons = (rawReport.comparisons ?? {}) as Record<string, unknown>;
+  const suburbAvg = comparisons.suburb as { label?: string; avg_nzdep?: number; school_count_1500m?: number; transit_count_400m?: number; max_noise_db?: number; epb_count_300m?: number } | null;
+  const cityAvg = comparisons.city as { label?: string; avg_nzdep?: number; avg_school_count_1500m?: number; avg_transit_count_400m?: number; avg_noise_db?: number; avg_epb_count_300m?: number } | null;
 
   // Corrosion zone
   const inCorrosionZone = env.in_corrosion_zone as boolean;
@@ -98,7 +118,7 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
     .slice(0, 8);
   const maxAmenity = amenityItems[0]?.count ?? 1;
 
-  const hasContent = essentials.length > 0 || contamCount || climateTemp || solarMean || crashTotal || airSite || waterSite || amenityItems.length > 0;
+  const hasContent = essentials.length > 0 || contamCount || climateTemp || solarMean || crashTotal || airSite || waterSite || amenityItems.length > 0 || transitModes.length > 0 || travelTimes.length > 0 || suburbAvg || cityAvg;
   if (!hasContent) return null;
 
   return (
@@ -117,6 +137,37 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
                 <div key={e.label} className="flex justify-between py-2 text-sm">
                   <span className="font-medium">{e.label}</span>
                   <span className="text-muted-foreground text-xs">{e.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transit mode breakdown */}
+        {transitModes.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Transit Stops (800m)</h4>
+            <div className="flex flex-wrap gap-2">
+              {transitModes.map((t) => (
+                <span key={t.mode} className="px-2.5 py-1 rounded-lg bg-piq-primary/10 text-piq-primary text-xs font-medium">
+                  {t.mode}: {t.count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transit travel times */}
+        {travelTimes.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Transit Travel Times</h4>
+            <div className="divide-y divide-border/50">
+              {travelTimes.slice(0, 8).map((t) => (
+                <div key={t.destination} className="flex justify-between py-1.5 text-xs">
+                  <span className="font-medium">{t.destination}</span>
+                  <span className="text-muted-foreground">
+                    {t.travel_time_min} min{t.route ? ` · ${t.route}` : ''}
+                  </span>
                 </div>
               ))}
             </div>
@@ -248,13 +299,20 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
         )}
 
         {/* Climate + Solar */}
-        {(climateTemp || solarMean) && (
-          <div className="grid grid-cols-2 gap-3">
+        {(climateTemp || climatePrecip || solarMean) && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {climateTemp && (
               <div className="rounded-lg border border-border p-3 text-center">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Climate 2050</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Warming 2050</p>
                 <p className="text-sm font-bold mt-1">+{(typeof climateTemp === 'number' ? climateTemp.toFixed(1) : climateTemp)}°C</p>
-                <p className="text-[10px] text-muted-foreground">projected warming</p>
+                <p className="text-[10px] text-muted-foreground">projected</p>
+              </div>
+            )}
+            {climatePrecip != null && (
+              <div className="rounded-lg border border-border p-3 text-center">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Rainfall 2050</p>
+                <p className="text-sm font-bold mt-1">{climatePrecip > 0 ? '+' : ''}{(typeof climatePrecip === 'number' ? climatePrecip.toFixed(0) : climatePrecip)}%</p>
+                <p className="text-[10px] text-muted-foreground">change</p>
               </div>
             )}
             {solarMean && (
@@ -264,6 +322,54 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
                 <p className="text-[10px] text-muted-foreground">avg radiation</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Comparison benchmarks */}
+        {(suburbAvg || cityAvg) && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">How This Property Compares</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-1.5 pr-2 font-semibold text-piq-primary">Metric</th>
+                    {suburbAvg?.label && <th className="text-center py-1.5 px-2 font-semibold text-piq-primary">{suburbAvg.label}</th>}
+                    {cityAvg?.label && <th className="text-center py-1.5 px-2 font-semibold text-piq-primary">{cityAvg.label}</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {suburbAvg?.avg_nzdep != null && (
+                    <tr className="border-b border-border/50">
+                      <td className="py-1.5 pr-2 text-muted-foreground">Avg Deprivation</td>
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.avg_nzdep?.toFixed(1)}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_nzdep?.toFixed(1) ?? '—'}</td>}
+                    </tr>
+                  )}
+                  {(suburbAvg?.school_count_1500m != null || cityAvg?.avg_school_count_1500m != null) && (
+                    <tr className="border-b border-border/50">
+                      <td className="py-1.5 pr-2 text-muted-foreground">Schools (1.5km)</td>
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.school_count_1500m ?? '—'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_school_count_1500m?.toFixed(0) ?? '—'}</td>}
+                    </tr>
+                  )}
+                  {(suburbAvg?.transit_count_400m != null || cityAvg?.avg_transit_count_400m != null) && (
+                    <tr className="border-b border-border/50">
+                      <td className="py-1.5 pr-2 text-muted-foreground">Transit (400m)</td>
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.transit_count_400m ?? '—'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_transit_count_400m?.toFixed(0) ?? '—'}</td>}
+                    </tr>
+                  )}
+                  {(suburbAvg?.max_noise_db != null || cityAvg?.avg_noise_db != null) && (
+                    <tr className="border-b border-border/50">
+                      <td className="py-1.5 pr-2 text-muted-foreground">Road Noise (dB)</td>
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.max_noise_db?.toFixed(0) ?? '—'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_noise_db?.toFixed(0) ?? '—'}</td>}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

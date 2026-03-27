@@ -165,7 +165,7 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
         ? 'Wellington sits on multiple active fault lines. The Wellington Fault has a ~7-8% probability of a M7.5+ rupture in the next 50 years. Being prepared isn\'t optional here.'
         : isChch
           ? 'Canterbury has experienced devastating earthquakes. While the major sequence is over, the area remains seismically active and new faults can be discovered.'
-          : `This property has ${h.earthquake_count ?? 0} recorded earthquakes (M3+) within 30km in the past 10 years. New Zealand sits on the Pacific Ring of Fire — earthquakes can happen anywhere.`,
+          : `This property has ${h.earthquake_count ?? 0} recorded earthquakes (M3+) within 30km in the past 10 years${h.earthquake_max_mag ? `, largest M${h.earthquake_max_mag.toFixed(1)}` : ''}. New Zealand sits on the Pacific Ring of Fire — earthquakes can happen anywhere.`,
       subsections,
     });
   }
@@ -397,7 +397,7 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
       title: 'Landslide & Slope Stability',
       severity: 'warning',
       intro: h.landslide_nearest
-        ? `There are ${h.landslide_count_500m ?? 'multiple'} recorded landslide events within 500m of this property. The nearest was ${Math.round(h.landslide_nearest.distance_m)}m away${h.landslide_nearest.trigger ? ` (triggered by ${h.landslide_nearest.trigger.toLowerCase()})` : ''}.`
+        ? `There are ${h.landslide_count_500m ?? 'multiple'} recorded landslide events within 500m of this property. The nearest was ${Math.round(h.landslide_nearest.distance_m)}m away${h.landslide_nearest.trigger ? ` (triggered by ${h.landslide_nearest.trigger.toLowerCase()})` : ''}${h.landslide_nearest.damage ? ` — damage: ${h.landslide_nearest.damage}` : ''}${h.landslide_nearest.movement_type ? `. Movement type: ${h.landslide_nearest.movement_type}` : ''}.`
         : 'This property is in an area with slope instability risk. Landslides are NZ\'s most widespread natural hazard.',
       subsections: [
         {

@@ -161,6 +161,7 @@ export interface HazardData {
   liquefaction_zone: string | null;
   fault_distance_m: number | null;
   earthquake_count: number | null;
+  earthquake_max_mag: number | null;
   coastal_erosion: string | null;
   wildfire_risk: string | null;
   epb_count: number | null;
