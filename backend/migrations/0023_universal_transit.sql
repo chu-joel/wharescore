@@ -1,51 +1,11 @@
 -- Migration 0023: Universal transit support in property report
 --
--- Previously the report function only queried metlink_stops (Wellington).
--- This migration adds fallback to transit_stops (regional cities) and
--- at_stops (Auckland) so all 12 cities with GTFS data get travel times,
--- mode breakdowns, and peak frequency in property reports.
+-- Adds get_transit_data() helper function that queries all transit sources
+-- (metlink_stops, at_stops, transit_stops) with COALESCE fallback.
+-- The Python layer calls this to overlay transit data onto the report.
 
 -- Add geospatial index on transit_stops if missing
 CREATE INDEX IF NOT EXISTS idx_transit_stops_geom ON transit_stops USING GIST (geom);
-
--- Replace the liveability section of get_property_report to support all transit sources
-CREATE OR REPLACE FUNCTION get_property_report(p_address_id INT)
-RETURNS jsonb AS $$
-DECLARE
-  result jsonb;
-  current_func text;
-BEGIN
-  -- Get the current function body to patch just the transit section
-  -- Instead, we'll use a simpler approach: run the existing function
-  -- then overlay the transit data from all sources
-
-  -- Call existing function
-  result := (SELECT get_property_report_base(p_address_id));
-
-  -- This approach won't work cleanly. Instead, let's update inline.
-  RETURN result;
-END;
-$$ LANGUAGE plpgsql;
-
--- Actually, the cleanest approach is to update the liveability transit
--- section in the existing get_property_report function.
--- Drop the wrapper and directly alter the report function's transit joins.
-
-DROP FUNCTION IF EXISTS get_property_report_base(INT);
-
--- We need to re-create get_property_report with universal transit support.
--- Read the current function, modify the transit sections.
--- The key changes are in the LIVEABILITY section:
---   1. Mode breakdown: COALESCE across metlink_stops, at_stops, transit_stops
---   2. Travel times: COALESCE across all three sources
---   3. Peak frequency: COALESCE across all three sources
-
--- Since the function is very large, we use ALTER to replace just the
--- transit-related lateral joins. But PostgreSQL doesn't support partial
--- function replacement, so we need to replace the whole thing.
-
--- Instead of duplicating 700+ lines, let's add a post-processing step
--- that overlays transit data from regional/AT tables onto the report.
 
 -- Create a helper function that returns transit data for any address
 CREATE OR REPLACE FUNCTION get_transit_data(p_address_id INT)
@@ -102,7 +62,6 @@ BEGIN
   END IF;
 
   -- Travel times: try metlink first, then AT, then regional transit_stops
-  -- Metlink travel times
   SELECT jsonb_agg(jsonb_build_object(
     'destination', best.destination,
     'minutes', best.min_minutes,
@@ -189,19 +148,6 @@ BEGIN
     LIMIT 1;
   END IF;
 
-  -- Total stop count (400m, all sources)
-  SELECT COUNT(*)::int INTO stop_count
-  FROM (
-    SELECT 1 FROM metlink_stops WHERE geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(geom::geography, addr_geom::geography, 400)
-    UNION ALL
-    SELECT 1 FROM at_stops WHERE geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(geom::geography, addr_geom::geography, 400)
-    UNION ALL
-    SELECT 1 FROM transit_stops WHERE geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(geom::geography, addr_geom::geography, 400)
-  ) all_stops;
-
   RETURN jsonb_build_object(
     'bus_stops_800m', bus_count,
     'rail_stops_800m', rail_count,
@@ -209,8 +155,7 @@ BEGIN
     'cable_car_stops_800m', cable_car_count,
     'transit_travel_times', travel_times,
     'peak_trips_per_hour', peak_freq,
-    'nearest_stop_name', nearest_stop,
-    'all_transit_stops_400m', stop_count
+    'nearest_stop_name', nearest_stop
   );
 END;
 $$ LANGUAGE plpgsql;
