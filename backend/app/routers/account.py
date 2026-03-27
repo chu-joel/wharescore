@@ -76,7 +76,7 @@ async def get_credits(user_id: str = Depends(require_user)):
                     SELECT COALESCE(SUM(credits_remaining), 0)::int AS total
                     FROM report_credits
                     WHERE user_id = %s
-                      AND credit_type IN ('single', 'pack3')
+                      AND credit_type IN ('single', 'pack3', 'promo')
                       AND credits_remaining > 0
                       AND (expires_at IS NULL OR expires_at > now())
                       AND cancelled_at IS NULL

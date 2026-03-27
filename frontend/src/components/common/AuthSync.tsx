@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { toast } from 'sonner';
 
 /**
  * Syncs Auth.js session state → downloadGateStore.
@@ -15,16 +14,12 @@ export function AuthSync() {
   const { getToken } = useAuthToken();
   const setUser = useDownloadGateStore((s) => s.setUser);
   const clearUser = useDownloadGateStore((s) => s.clearUser);
-  const isAuthenticated = useDownloadGateStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     if (status === 'loading') return;
 
     if (status === 'unauthenticated') {
-      if (isAuthenticated) {
-        clearUser();
-        toast('Signed out successfully');
-      }
+      clearUser();
       return;
     }
 
@@ -78,7 +73,7 @@ export function AuthSync() {
     })();
 
     return () => { cancelled = true; };
-  }, [status, session?.user?.id, getToken, setUser, clearUser, isAuthenticated]);
+  }, [status, session?.user?.id, getToken, setUser, clearUser]);
 
   return null;
 }

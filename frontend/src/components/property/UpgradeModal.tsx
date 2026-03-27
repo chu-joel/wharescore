@@ -280,7 +280,7 @@ export function UpgradeModal() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, address_id: targetAddressId }),
       });
 
       if (!res.ok) {
@@ -289,6 +289,15 @@ export function UpgradeModal() {
       }
 
       const { checkout_url } = await res.json();
+      // Persist target address across Stripe redirect (Zustand store is wiped)
+      if (targetAddressId) {
+        try {
+          localStorage.setItem('wharescore-checkout-target', JSON.stringify({
+            addressId: targetAddressId,
+            persona: targetPersona,
+          }));
+        } catch { /* non-critical */ }
+      }
       safeRedirect(checkout_url);
     } catch (err) {
       console.error('Checkout error:', err);
