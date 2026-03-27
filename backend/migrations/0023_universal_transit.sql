@@ -7,6 +7,43 @@
 -- Add geospatial index on transit_stops if missing
 CREATE INDEX IF NOT EXISTS idx_transit_stops_geom ON transit_stops USING GIST (geom);
 
+-- Create tables referenced by 0022 report function but not created by any migration
+CREATE TABLE IF NOT EXISTS cbd_points (
+  id SERIAL PRIMARY KEY,
+  city TEXT NOT NULL,
+  geom geometry(Point, 4326) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cbd_points_geom ON cbd_points USING GIST (geom);
+INSERT INTO cbd_points (city, geom) VALUES
+  ('Auckland', ST_SetSRID(ST_Point(174.7633, -36.8485), 4326)),
+  ('Wellington', ST_SetSRID(ST_Point(174.7762, -41.2788), 4326)),
+  ('Christchurch', ST_SetSRID(ST_Point(172.6362, -43.5321), 4326)),
+  ('Hamilton', ST_SetSRID(ST_Point(175.2793, -37.7870), 4326)),
+  ('Dunedin', ST_SetSRID(ST_Point(170.5028, -45.8742), 4326)),
+  ('Tauranga', ST_SetSRID(ST_Point(176.1675, -37.6878), 4326)),
+  ('Palmerston North', ST_SetSRID(ST_Point(175.6120, -40.3523), 4326)),
+  ('Napier', ST_SetSRID(ST_Point(176.9190, -39.4910), 4326)),
+  ('Nelson', ST_SetSRID(ST_Point(173.2840, -41.2710), 4326)),
+  ('New Plymouth', ST_SetSRID(ST_Point(174.0752, -39.0558), 4326)),
+  ('Invercargill', ST_SetSRID(ST_Point(168.3538, -46.4132), 4326)),
+  ('Queenstown', ST_SetSRID(ST_Point(168.6626, -45.0312), 4326)),
+  ('Rotorua', ST_SetSRID(ST_Point(176.2510, -38.1370), 4326)),
+  ('Whanganui', ST_SetSRID(ST_Point(175.0500, -39.9300), 4326)),
+  ('Hastings', ST_SetSRID(ST_Point(176.8420, -39.6390), 4326)),
+  ('Gisborne', ST_SetSRID(ST_Point(178.0176, -38.6623), 4326)),
+  ('Lower Hutt', ST_SetSRID(ST_Point(174.9070, -41.2095), 4326)),
+  ('Porirua', ST_SetSRID(ST_Point(174.8390, -41.1340), 4326)),
+  ('Upper Hutt', ST_SetSRID(ST_Point(175.0700, -41.1240), 4326)),
+  ('Whangarei', ST_SetSRID(ST_Point(174.3230, -35.7250), 4326))
+ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS hpi_national (
+  quarter_end DATE PRIMARY KEY,
+  house_price_index NUMERIC,
+  house_sales INT,
+  housing_stock_value_m NUMERIC
+);
+
 -- Create a helper function that returns transit data for any address
 CREATE OR REPLACE FUNCTION get_transit_data(p_address_id INT)
 RETURNS jsonb AS $$
