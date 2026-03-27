@@ -7,6 +7,9 @@ RUN npm ci
 
 COPY . .
 
+RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
+USER appuser
+
 EXPOSE 3000
 
 CMD ["npm", "run", "dev"]

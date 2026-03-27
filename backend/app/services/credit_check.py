@@ -42,7 +42,7 @@ async def require_paid_user(
     # Dev mode: bypass credit + auth check entirely (localhost only)
     if settings.ENVIRONMENT == "development":
         client_ip = request.client.host if request.client else ""
-        if client_ip in ("127.0.0.1", "::1", "localhost") or request.headers.get("X-Promo"):
+        if client_ip in ("127.0.0.1", "::1", "localhost"):
             return CreditInfo(
                 user_id=user_id or "dev-local-user",
                 plan="promo",

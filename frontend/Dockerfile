@@ -25,10 +25,14 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
+
 # Copy built output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+
+USER appuser
 
 EXPOSE 3000
 

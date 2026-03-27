@@ -32,10 +32,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: redis-server --requirepass devredis123
     ports:
       - "6380:6379"  # 6380 to avoid conflict with host Redis
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "devredis123", "ping"]
       interval: 5s
       retries: 3
 
@@ -58,7 +59,7 @@ services:
       dockerfile: Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres:postgres@${DB_HOST:-host.docker.internal}:5432/wharescore
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:devredis123@redis:6379/0
       MBIE_API_KEY: ${MBIE_API_KEY:-}
       LINZ_API_KEY: ${LINZ_API_KEY:-}
       AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}

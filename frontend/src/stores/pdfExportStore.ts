@@ -45,8 +45,8 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
     }
 
     // If we already have a hosted report for this address+persona, open it
-    if (state.addressId === addressId && state.persona === persona && state.shareUrl) {
-      window.open(state.shareUrl, '_blank', 'noopener,noreferrer');
+    if (state.addressId === addressId && state.persona === persona && (state.shareUrl || state.downloadUrl)) {
+      window.open((state.shareUrl || state.downloadUrl)!, '_blank', 'noopener,noreferrer');
       return;
     }
 

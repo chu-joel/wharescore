@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Frown, Meh, Smile, Laugh, Heart, Send, CheckCircle2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
+import { stripHtml } from '@/lib/utils';
 import type { FeedbackCreate } from '@/lib/types';
 
 interface FeedbackDrawerProps {
@@ -73,7 +74,7 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
 
     const payload: FeedbackCreate = {
       type: tab,
-      description: description.trim().replace(/<[^>]*>/g, ''),
+      description: stripHtml(description.trim()),
       ...(email && { email }),
       ...(satisfaction && { satisfaction }),
       importance,

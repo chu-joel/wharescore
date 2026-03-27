@@ -1,8 +1,13 @@
-# Environment & secrets
+# Environment & secrets — never commit real credentials
 .env
-.env.prod
-.env.local
+.env.*
+!.env.example
+!.env.prod.example
 backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env.local
+frontend/.env*.local
 
 # Data files (22GB+ of downloaded GeoJSON/CSV/shapefiles)
 data/

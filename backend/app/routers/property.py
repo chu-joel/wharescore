@@ -14,8 +14,22 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from .. import db
 from ..deps import limiter
 from ..redis import cache_get, cache_set, cache_del
-from ..services.auth import _extract_bearer
+from ..services.auth import _extract_bearer, verify_jwt
 from slowapi.util import get_remote_address
+
+
+def _verified_user_or_ip(request: Request) -> str:
+    """Rate-limit key: verified user_id for authenticated requests, IP for anonymous."""
+    token = _extract_bearer(request)
+    if token:
+        try:
+            payload = verify_jwt(token)
+            uid = payload.get("sub")
+            if uid:
+                return f"user:{uid}"
+        except Exception:
+            pass
+    return get_remote_address(request)
 from ..services.credit_check import require_paid_user, CreditInfo
 from ..services.ai_summary import generate_pdf_insights, generate_property_summary
 from ..services.property_detection import detect_property_type
@@ -70,7 +84,7 @@ async def _fix_unit_cv(report: dict, address_id: int) -> None:
 
 
 @router.get("/property/{address_id}/report")
-@limiter.limit("20/minute", key_func=lambda request: _extract_bearer(request) or get_remote_address(request))
+@limiter.limit("20/minute", key_func=_verified_user_or_ip)
 @limiter.limit("5/minute", key_func=get_remote_address)
 async def get_report(request: Request, address_id: int):
     """Full property report with risk scores.
@@ -1588,6 +1602,7 @@ async def _generate_pdf_background(
                     dwelling_type=dw_type,
                     user_id=user_id,
                     inputs_at_purchase={**(rent_inputs or {}), **(buyer_inputs or {})},
+                    skip_ai=True,  # PDF task handles AI separately
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
@@ -1606,7 +1621,41 @@ async def _generate_pdf_background(
                     except Exception:
                         pass
         except Exception as e:
-            logger.warning(f"Snapshot generation failed: {e}")
+            import traceback
+            logger.warning(f"Snapshot generation failed for {address_id}: {e}\n{traceback.format_exc()}")
+
+        # Fallback: if snapshot creation failed, look up an existing snapshot for this address
+        if not share_token:
+            try:
+                import hashlib
+                async with db.pool.connection() as conn_fb:
+                    cur = await conn_fb.execute(
+                        """
+                        SELECT share_token_hash FROM report_snapshots
+                        WHERE address_id = %s
+                        ORDER BY created_at DESC LIMIT 1
+                        """,
+                        [address_id],
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        # We can't recover the plaintext token from the hash, but we know
+                        # a snapshot exists. Check saved_reports for a plaintext share_token.
+                        if user_id:
+                            cur2 = await conn_fb.execute(
+                                """
+                                SELECT share_token FROM saved_reports
+                                WHERE address_id = %s AND share_token IS NOT NULL
+                                ORDER BY generated_at DESC LIMIT 1
+                                """,
+                                [address_id],
+                            )
+                            row2 = cur2.fetchone()
+                            if row2 and row2["share_token"]:
+                                share_token = row2["share_token"]
+                                logger.info(f"Reusing existing share_token for {address_id}: /report/{share_token}")
+            except Exception as e:
+                logger.warning(f"Fallback share_token lookup failed: {e}")
 
         await set_job_completed(job_id, html, share_token=share_token)
         logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'}, hosted={'yes' if share_token else 'no'})")

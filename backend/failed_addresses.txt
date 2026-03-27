@@ -260,3 +260,77 @@ Multiple connection attempts failed. All failures were:
 - host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
 - host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is not yet accepting connections
 DETAIL:  Consistent recovery state has not been yet reached.
+2A Packham Place, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: could not receive data from server: Software caused connection abort (0x00002745/10053)
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+2 Beach Haven Road, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: could not receive data from server: Software caused connection abort (0x00002745/10053)
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+2 Gazelle Avenue, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+2 Cronin Place, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+2 Amelia Place, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+2B Oruamo Place, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+2 Oruamo Place, Beach Haven, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+2A/7-15 Emily Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+1B/7-15 Emily Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+1A/7-15 Emily Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+1004/7 Scotia Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+1005/7 Scotia Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+1213/7 Scotia Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+802/7 Scotia Place, Auckland Central, Auckland	connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode
+Multiple connection attempts failed. All failures were:
+- host: 'localhost', port: '5432', hostaddr: '::1': connection failed: connection to server at "::1", port 5432 failed: FATAL:  the database system is in recovery mode
+- host: 'localhost', port: '5432', hostaddr: '127.0.0.1': connection failed: connection to server at "127.0.0.1", port 5432 failed: FATAL:  the database system is in recovery mode

@@ -7,6 +7,7 @@ import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCirc
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { toast } from 'sonner';
+import { safeRedirect } from '@/lib/utils';
 
 interface SavedReport {
   id: number;
@@ -65,7 +66,7 @@ export default function AccountPage() {
       });
       if (res.ok) {
         const { portal_url } = await res.json();
-        window.location.href = portal_url;
+        safeRedirect(portal_url);
       } else {
         toast.error('Failed to open subscription management. Try again.');
       }

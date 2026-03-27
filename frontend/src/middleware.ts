@@ -4,5 +4,7 @@ export const config = {
   matcher: [
     // Protect /account routes — require sign-in
     '/account(.*)',
+    // Protect /admin routes — require sign-in (AdminAuthGate adds password check)
+    '/admin(.*)',
   ],
 };

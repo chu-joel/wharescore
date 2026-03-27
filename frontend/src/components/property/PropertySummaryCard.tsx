@@ -112,6 +112,15 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
               >
                 <ExternalLink className="h-3.5 w-3.5" /> View Report
               </Button>
+            ) : pdf.downloadUrl ? (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-medium"
+                onClick={() => window.open(pdf.downloadUrl!, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> View Report
+              </Button>
             ) : (
               <Button
                 variant="outline"
@@ -122,8 +131,6 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
               >
                 {pdf.isGenerating ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
-                ) : pdf.downloadUrl ? (
-                  <><ExternalLink className="h-3.5 w-3.5" /> View Report</>
                 ) : (
                   <><Download className="h-3.5 w-3.5" /> Get Report</>
                 )}

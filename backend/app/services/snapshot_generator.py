@@ -1023,6 +1023,7 @@ async def generate_snapshot(
     persona: str = "buyer",
     dwelling_type: str = "House",
     inputs_at_purchase: dict | None = None,
+    skip_ai: bool = False,
 ) -> dict | None:
     """Generate a complete report snapshot with all pre-computed variants."""
 
@@ -1062,17 +1063,19 @@ async def generate_snapshot(
     hazard_advice = _build_hazard_advice(cache)
 
     # Phase F: AI narrative (Claude/OpenAI — async, may take 10-30s)
+    # Skip when called from PDF background task (which handles AI separately)
     ai_insights = None
-    try:
-        import asyncio
-        from .ai_summary import generate_pdf_insights
-        area_profile = cache["report"].get("area_profile")
-        ai_insights = await asyncio.wait_for(
-            generate_pdf_insights(cache["report"], area_profile, insights),
-            timeout=45.0,
-        )
-    except Exception as e:
-        logger.warning(f"AI insights generation failed for snapshot (non-critical): {e}")
+    if not skip_ai:
+        try:
+            import asyncio
+            from .ai_summary import generate_pdf_insights
+            area_profile = cache["report"].get("area_profile")
+            ai_insights = await asyncio.wait_for(
+                generate_pdf_insights(cache["report"], area_profile, insights),
+                timeout=45.0,
+            )
+        except Exception as e:
+            logger.warning(f"AI insights generation failed for snapshot (non-critical): {e}")
 
     return {
         "report": cache["report"],
@@ -1121,10 +1124,11 @@ async def create_report_snapshot(
     user_id: str | None = None,
     guest_purchase_id: int | None = None,
     inputs_at_purchase: dict | None = None,
+    skip_ai: bool = False,
 ) -> str | None:
     """Generate snapshot, store in DB, return plaintext share_token."""
 
-    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase)
+    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase, skip_ai=skip_ai)
     if not snapshot:
         return None
 

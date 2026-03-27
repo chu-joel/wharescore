@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ app/
 COPY migrations/ migrations/
 
+RUN addgroup --gid 1000 appuser && adduser --disabled-password --uid 1000 --ingroup appuser appuser
+USER appuser
+
 EXPOSE 8000
 
 # uvicorn directly — no Windows event loop hack needed in Linux

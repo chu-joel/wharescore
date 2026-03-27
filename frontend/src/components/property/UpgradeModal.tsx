@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useDownloadGateStore, type PlanType, type ModalTrigger } from '@/stores/downloadGateStore';
+import { safeRedirect } from '@/lib/utils';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
@@ -288,7 +289,7 @@ export function UpgradeModal() {
       }
 
       const { checkout_url } = await res.json();
-      window.location.href = checkout_url;
+      safeRedirect(checkout_url);
     } catch (err) {
       console.error('Checkout error:', err);
       setLoading(null);
@@ -341,7 +342,7 @@ export function UpgradeModal() {
           } : undefined,
         }));
       } catch { /* non-critical */ }
-      window.location.href = checkout_url;
+      safeRedirect(checkout_url);
     } catch (err) {
       console.error('Guest checkout error:', err);
       setLoading(null);
