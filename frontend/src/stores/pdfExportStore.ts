@@ -170,6 +170,10 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             }
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
+          // Auto-open the hosted report
+          if (status.share_url) {
+            window.open(status.share_url, '_blank', 'noopener,noreferrer');
+          }
           return;
         }
 

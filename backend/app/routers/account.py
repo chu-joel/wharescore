@@ -85,8 +85,13 @@ async def get_credits(user_id: str = Depends(require_user)):
                 )
                 credits_remaining = cur.fetchone()["total"]
 
+    # Effective plan: if users.plan is 'free' but they have active credits, use the credit type
+    effective_plan = plan
+    if plan == "free" and credit:
+        effective_plan = credit["credit_type"]  # 'single', 'pack3', 'promo', or 'pro'
+
     return {
-        "plan": plan,
+        "plan": effective_plan,
         "display_name": user["display_name"],
         "credits_remaining": credits_remaining,
         "daily_limit": daily_limit,
