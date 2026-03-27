@@ -25,7 +25,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser
+RUN addgroup -g 1001 appuser 2>/dev/null || true && adduser -D -u 1001 -G appuser appuser 2>/dev/null || true
 
 # Copy built output
 COPY --from=builder /app/.next/standalone ./
