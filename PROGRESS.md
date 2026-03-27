@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-27 (session 67 — 97 new DataSource entries 289→386, UI audit, Wellington de-hardcoding)
+**Last Updated:** 2026-03-28 (session 68 — data loader fixes, West Coast bypass, hosted report enhancements)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,9 +17,52 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 67 (2026-03-27) — 97 new DataSource entries (289→386), rural/regional coverage for all NZ.**
+**Session 68 (2026-03-28) — Data loader bug fixes, West Coast bypass, hosted report data display improvements.**
 
 ### What Was Done This Session
+
+**(A) Data loader bug fixes:**
+- Added `maxAllowableOffset` parameter to `_fetch_arcgis()` for dense geometry simplification
+- Fixed Northland river flood loaders (100yr/50yr/10yr) — 100m simplification + page_size=5 (were hanging due to 560K-point features)
+- Fixed `fault_type` → `fault_complexity` column name in 11 fault_zones loaders
+- Fixed ORC coastal hazard: added `geom_type="line"` for polyline data
+
+**(B) West Coast GIS 403 bypass:**
+- All `gis.westcoast.govt.nz` endpoints return 403 from Azure VM (IP-based blocking)
+- Downloaded 11 datasets locally (4,624 features total), SCP'd to server, loaded via local JSON script
+- Created `load_westcoast_local.py` with ST_SimplifyPreserveTopology + line/point-to-polygon buffering
+- Loaded: TTPP flood (62+20+16), TTPP tsunami (764), fault avoidance (5), active faults (1,554), alpine fault (551), landslide catalog (1,643), coastal hazard (1), rockfall (5), tsunami evac (3)
+
+**(C) Remaining datasets loaded on server:**
+- ECan fault awareness 2019: 3,703 rows
+- ECan Ostler fault: 1 row
+- ORC coastal hazard: 15 rows (polyline)
+- Northland river flood 100yr: 19 rows
+- Northland river flood 50yr: 6 rows
+- Northland river flood 10yr: 19 rows
+
+**(D) GWRC storm surge resolved (won't fix):**
+- All 4 GWRC storm surge layers are raster (DEM surfaces), not vector features
+- Cannot be queried via ArcGIS REST feature query — removed from loading queue
+
+**(E) Migration 0022 deployed — expanded report function:**
+- Active faults, fault avoidance zones, aircraft noise overlay
+- Overland flow paths, council coastal erosion, flood extent AEP
+- Geotechnical reports, coastal erosion exposure/timeframe
+
+**(F) Hosted report display improvements:**
+- Executive summary: added land value, improvement value, zone category
+- Hazard sections: active fault nearby, aircraft noise overlay, erosion prone land, fixed fault avoidance zone display
+- Neighbourhood stats: geotechnical reports count, heritage overlay details, mana whenua/ecological/character precinct names
+- District plan zones: added zone_category to type, transform, and display
+
+---
+
+### Previous Session
+
+**Session 67 (2026-03-27) — 97 new DataSource entries (289→386), rural/regional coverage for all NZ.**
+
+### What Was Done Previous Session
 
 **(A) 55 new entries (289→344) — urban gap fill:**
 - Nelson (18): plan zones, heritage, flood ×7, fault ×3, liquefaction, slope, trees, tsunami, coastal
@@ -105,35 +148,33 @@ ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa, Waikato
 
 ### What Needs To Be Done Next
 
-**DONE — Data display gaps fixed this session:**
+**DONE — Session 68 completed items:**
 
-1. ~~Fix `landslide_count_500m` mismatch~~ **DONE** — Migration 0021 adds 500m count + transform falls back to 1km
-2. ~~Fix `contam_count_2km`~~ **DONE** — Migration 0021 adds `contam_count_500m` aggregation
-3. ~~Fix `park_count_500m`~~ **DONE** — Migration 0021 adds park count within 500m
-4. ~~Add Notable Trees to report~~ **DONE** — Migration 0021 adds `notable_tree_nearest` details, HostedNeighbourhoodStats shows tree count + nearest + type
-5. ~~Display Coastal Inundation~~ **DONE** — New section in HostedHazardAdvice + FindingCard teaser in free report
-6. ~~Display Ground Shaking~~ **DONE** — New section in HostedHazardAdvice with soil type, %NBS, pre-1976 warnings
-7. ~~Heritage overlay type~~ **DONE** — Migration 0021 now selects heritage_type column
-8. ~~Coastal inundation types~~ **DONE** — Added to HazardData types + transformReport
+1. ~~Load remaining datasets~~ **DONE** — ECan faults (3,704), ORC coastal (15), Northland floods (44), West Coast (4,624)
+2. ~~Fix Northland FeatureServer~~ **DONE** — maxAllowableOffset=100 + page_size=5
+3. ~~Fix West Coast GIS 403~~ **DONE** — Local download + SCP bypass
+4. ~~Fix GWRC storm surge~~ **RESOLVED** — Raster layers, can't be loaded as features
+5. ~~District plan zone details~~ **DONE** — zone_category added to display
+6. ~~Council rates breakdown~~ **DONE** — Land value + improvement value in exec summary
+7. ~~Active faults, aircraft noise, erosion, geotechnical display~~ **DONE** — Added to hosted report
 
-**PRIORITY 1 — Load remaining data on server:**
+**PRIORITY 1 — Remaining data/display issues:**
 
-1. **Load 15 remaining DataSource entries** — ECan fault awareness, Ostler fault, ORC ×3, West Coast TTPP ×8, Waipa flood, Waikato 1%AEP (blocked by VM OOM, load one at a time)
-2. **Fix Northland FeatureServer** — 3 river flood endpoints hang (100yr/50yr/10yr) — may need page_size=500 or outSR parameter
-3. **Fix West Coast GIS 403** — `gis.westcoast.govt.nz` returns 403 from VM IP — try different User-Agent or contact WCRC
+1. **~30% of report data still not displayed** — Transit travel times, school details, comparison benchmarks (suburb vs city averages), EPB nearest building details
+2. **Auckland rates full reload** — ~6,500 of 578K loaded, needs resuming
+3. **Google OAuth** — consent screen error blocking sign-in
 
-**PRIORITY 2 — Improve underutilized data:**
+**PRIORITY 2 — Data expansion:**
 
-4. **District plan zone details** — Use zone_code + category for richer display in reports
-5. **Council rates breakdown** — Show land vs improvement values, annual rates amount
+4. **More council rates** — Nelson, Rotorua, Napier, Gisborne, Waikato DC, Marlborough, South Waikato
+5. **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
+6. **457 unscheduled DataSource loaders** — Many regional loaders defined but not in batch_load.py waves
 
-**PRIORITY 3 — Other outstanding items:**
+**PRIORITY 3 — Platform improvements:**
 
-6. **Auckland rates full reload** — ~6,500 of 578K loaded, needs resuming
-7. **Christchurch GTFS** — register for API key at `apidevelopers.metroinfo.co.nz`
-8. **Google OAuth** — consent screen error blocking sign-in
-9. **More council rates** — Nelson, Rotorua, Napier, Gisborne, Waikato DC, Marlborough, South Waikato
-10. **GWRC storm surge 0-row fix** — May need outSR=4326 parameter or geometry format change
+7. **PDF export improvements** — Include all new hazard sections
+8. **Search performance** — Address autocomplete speed
+9. **Mobile responsive** — Test hosted report on mobile devices
 
 ---
 
