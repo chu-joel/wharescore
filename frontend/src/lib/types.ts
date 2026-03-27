@@ -243,6 +243,9 @@ export interface HazardData {
   // Coastal inundation (council data)
   coastal_inundation_ranking: string | null;
   coastal_inundation_scenario: string | null;
+  // Erosion prone land
+  on_erosion_prone_land: boolean | null;
+  erosion_min_angle: number | null;
 }
 
 // --- Environment ---

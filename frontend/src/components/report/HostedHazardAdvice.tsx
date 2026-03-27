@@ -600,12 +600,15 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
 
   // ── FAULT AVOIDANCE ZONE ──
   if (h.fault_avoidance_zone) {
+    const fazType = typeof h.fault_avoidance_zone === 'string'
+      ? h.fault_avoidance_zone
+      : h.fault_avoidance_zone?.zone_type ?? h.fault_avoidance_zone?.fault_name ?? 'Active Fault';
     sections.push({
       id: 'fault-zone',
       icon: Shield,
-      title: 'Fault Avoidance Zone — Building Restrictions',
+      title: `Fault Avoidance Zone: ${fazType}`,
       severity: 'critical',
-      intro: `This property is in a Fault Avoidance Zone for the ${h.fault_avoidance_zone.fault_name} (Class ${h.fault_avoidance_zone.fault_class}). Building setback of ${h.fault_avoidance_zone.setback_m}m may be required.`,
+      intro: `This property is within a Fault Avoidance Zone (${fazType}). Building restrictions may apply.`,
       subsections: [
         {
           heading: 'What This Means',
@@ -626,6 +629,85 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
           ],
         }] : []),
       ],
+    });
+  }
+
+  // ── ACTIVE FAULT NEARBY ──
+  if (h.active_fault_nearest && !h.fault_avoidance_zone) {
+    const af = h.active_fault_nearest;
+    sections.push({
+      id: 'active-fault',
+      icon: Zap,
+      title: `Active Fault: ${af.name} (${af.distance_m < 1000 ? `${af.distance_m}m` : `${(af.distance_m / 1000).toFixed(1)}km`} away)`,
+      severity: af.distance_m < 2000 ? 'warning' : 'info',
+      intro: `The ${af.name} is ${af.distance_m < 1000 ? `${af.distance_m}m` : `${(af.distance_m / 1000).toFixed(1)}km`} from this property${af.slip_rate_mm_yr ? ` with a slip rate of ${af.slip_rate_mm_yr}mm/yr` : ''}.`,
+      subsections: [{
+        heading: 'Understanding Active Faults',
+        items: [
+          `Fault type: ${af.fault_type || 'not classified'}. Proximity to an active fault increases earthquake shaking intensity.`,
+          'GNS Science maps active faults across NZ — proximity affects insurance premiums and building code requirements.',
+          ...(persona === 'buyer' ? [
+            'Request a seismic hazard assessment if the property is within 2km of an active fault.',
+            'Check if the property falls within any council Fault Awareness or Fault Avoidance overlay.',
+          ] : []),
+        ],
+      }],
+    });
+  }
+
+  // ── AIRCRAFT NOISE ──
+  if (h.aircraft_noise_name) {
+    const isHigh = (h.aircraft_noise_dba ?? 0) >= 65;
+    sections.push({
+      id: 'aircraft-noise',
+      icon: Volume2,
+      title: `Aircraft Noise Zone: ${h.aircraft_noise_name}${h.aircraft_noise_dba ? ` (${h.aircraft_noise_dba} dBA)` : ''}`,
+      severity: isHigh ? 'warning' : 'info',
+      intro: `This property is within an aircraft noise overlay${h.aircraft_noise_category ? ` (${h.aircraft_noise_category})` : ''}.`,
+      subsections: [{
+        heading: 'What This Means',
+        items: [
+          'District Plan rules may require acoustic insulation for new buildings or additions.',
+          'Sound insulation costs $5,000-$30,000+ depending on building size and existing construction.',
+          ...(isHigh ? [
+            'At 65+ dBA, some councils prohibit new noise-sensitive activities (e.g., residential, schools).',
+            'Existing buildings may be eligible for airport company noise insulation programmes.',
+          ] : [
+            'Below 65 dBA, residential use is typically permitted but insulation standards still apply.',
+          ]),
+          ...(persona === 'buyer' ? [
+            'Check the District Plan noise overlay maps for exact boundaries and rules.',
+            'Factor in acoustic insulation costs for any renovation or building consent work.',
+          ] : [
+            'If noise is bothersome, ask your landlord about acoustic insulation options.',
+          ]),
+        ],
+      }],
+    });
+  }
+
+  // ── EROSION PRONE LAND ──
+  if (h.on_erosion_prone_land) {
+    sections.push({
+      id: 'erosion-prone',
+      icon: Mountain,
+      title: 'Erosion Prone Land',
+      severity: 'warning',
+      intro: 'This property is mapped as erosion prone land by the regional council.',
+      subsections: [{
+        heading: 'What This Means',
+        items: [
+          'Erosion prone land may be subject to soil loss, slipping, or land instability.',
+          'Resource consent may be required for earthworks, vegetation removal, or new construction.',
+          'Regional council rules may restrict activities that could worsen erosion.',
+          ...(persona === 'buyer' ? [
+            'Commission a geotechnical assessment before purchasing — slope stability is critical.',
+            'Retaining walls, drainage, and vegetation management can add ongoing costs.',
+          ] : [
+            'Report any signs of ground movement (cracks in walls/driveways, leaning fences) to your landlord.',
+          ]),
+        ],
+      }],
     });
   }
 

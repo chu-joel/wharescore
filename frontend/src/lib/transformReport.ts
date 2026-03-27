@@ -252,6 +252,8 @@ function transformHazards(raw: any): HazardData {
     // Coastal inundation
     coastal_inundation_ranking: raw.coastal_inundation_ranking ?? null,
     coastal_inundation_scenario: raw.coastal_inundation_scenario ?? null,
+    on_erosion_prone_land: raw.on_erosion_prone_land ?? null,
+    erosion_min_angle: raw.erosion_min_angle ?? null,
   };
 }
 

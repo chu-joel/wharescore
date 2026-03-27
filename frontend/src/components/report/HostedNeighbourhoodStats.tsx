@@ -68,12 +68,22 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   const heritageCount = live.heritage_count_500m as number;
   const heritageListed = planning.heritage_listed as boolean;
 
+  // Heritage overlay details
+  const heritageOverlayName = planning.heritage_overlay_name as string;
+  const heritageOverlayType = planning.heritage_overlay_type as string;
+
+  // Geotechnical reports
+  const geotechCount = hazards.geotech_count_500m as number;
+  const geotechHazard = hazards.geotech_nearest_hazard as string;
+
   // Planning overlays
   const overlays: string[] = [];
-  if (planning.in_viewshaft) overlays.push('Viewshaft');
-  if (planning.in_ecological_area) overlays.push('Ecological area');
-  if (planning.in_character_precinct) overlays.push('Character precinct');
-  if (planning.in_special_character_area) overlays.push('Special character area');
+  if (planning.in_viewshaft) overlays.push(`Viewshaft${planning.viewshaft_name ? `: ${planning.viewshaft_name}` : ''}`);
+  if (planning.in_ecological_area) overlays.push(`Ecological area${planning.ecological_area_name ? `: ${planning.ecological_area_name}` : ''}`);
+  if (planning.in_character_precinct) overlays.push(`Character precinct${planning.character_precinct_name ? `: ${planning.character_precinct_name}` : ''}`);
+  if (planning.in_special_character_area) overlays.push(`Special character area${planning.special_character_name ? `: ${planning.special_character_name}` : ''}`);
+  if (planning.in_mana_whenua) overlays.push(`Mana whenua${planning.mana_whenua_name ? `: ${planning.mana_whenua_name}` : ''}`);
+  if (planning.in_heritage_overlay) overlays.push(`Heritage overlay${heritageOverlayName ? `: ${heritageOverlayName}` : ''}${heritageOverlayType ? ` (${heritageOverlayType})` : ''}`);
 
   // Amenities chart
   const amenities500m = (live.amenities_500m ?? {}) as Record<string, number>;
@@ -195,6 +205,18 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
               )}
               {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} within 500m.</p>}
             </div>
+          </div>
+        )}
+
+        {/* Geotechnical reports */}
+        {geotechCount != null && geotechCount > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold mb-1">Geotechnical Reports</h4>
+            <p className="text-xs text-muted-foreground">
+              {geotechCount} geotech report{geotechCount > 1 ? 's' : ''} filed within 500m.
+              {geotechHazard && ` Nearest report hazard: ${geotechHazard}.`}
+              {' '}Existing reports can indicate known ground conditions and save on investigation costs.
+            </p>
           </div>
         )}
 
