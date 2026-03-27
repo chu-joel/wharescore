@@ -71,7 +71,7 @@ services:
     mem_limit: 2g
     memswap_limit: 3g
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore?sslmode=require
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore?sslmode=disable
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       MBIE_API_KEY: ${MBIE_API_KEY:-}
       LINZ_API_KEY: ${LINZ_API_KEY:-}
