@@ -47,18 +47,22 @@ function GuestDownloadContent() {
         return;
       }
       if (tokenRes.status === 404) {
-        // Payment may still be processing — retry after a short delay
-        await new Promise(r => setTimeout(r, 3000));
-        const retryRes = await fetch(`/api/v1/checkout/guest-token?session_id=${encodeURIComponent(sessionId)}`);
-        if (!retryRes.ok) {
-          setStage('error');
-          setError('Payment is still processing. Please refresh this page in a minute.');
-          return;
+        // Payment may still be processing — retry with exponential backoff
+        // Stripe webhooks can take up to 30s to arrive
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s, 6s, 8s, 10s
+          const retryRes = await fetch(`/api/v1/checkout/guest-token?session_id=${encodeURIComponent(sessionId)}`);
+          if (retryRes.ok) {
+            const retryData = await retryRes.json();
+            setToken(retryData.token);
+            setAddressId(retryData.address_id);
+            await startPdfGeneration(retryData.address_id, retryData.token);
+            return;
+          }
+          if (retryRes.status !== 404) break; // non-retriable error
         }
-        const retryData = await retryRes.json();
-        setToken(retryData.token);
-        setAddressId(retryData.address_id);
-        await startPdfGeneration(retryData.address_id, retryData.token);
+        setStage('error');
+        setError('Payment is still processing. Please refresh this page in a minute.');
         return;
       }
       if (!tokenRes.ok) {
