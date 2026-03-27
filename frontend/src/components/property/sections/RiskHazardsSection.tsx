@@ -100,8 +100,8 @@ export function RiskHazardsSection({ category, hazards, environment }: RiskHazar
       )}
 
       {/* Climate projections */}
-      {environment?.climate_projection && (
-        <ClimateForecastCard projection={environment.climate_projection} />
+      {environment?.climate_temp_change != null && (
+        <ClimateForecastCard projection={{ temp_change: environment.climate_temp_change, precip_change_pct: environment.climate_precip_change_pct }} />
       )}
 
       {/* Solar potential (Wellington) */}

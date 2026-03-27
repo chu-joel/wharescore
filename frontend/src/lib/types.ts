@@ -257,7 +257,16 @@ export interface EnvironmentData {
   air_quality_site: string | null;
   air_quality_distance_m: number | null;
   water_quality_grade: string | null;
-  climate_projection: Record<string, unknown> | null;
+  water_site_name: string | null;
+  water_ecoli_band: string | null;
+  water_ammonia_band: string | null;
+  water_clarity_band: string | null;
+  water_nitrate_band: string | null;
+  in_corrosion_zone: boolean | null;
+  in_rail_vibration_area: boolean | null;
+  rail_vibration_type: string | null;
+  climate_temp_change: number | null;
+  climate_precip_change_pct: number | null;
 }
 
 // --- Liveability ---
@@ -271,6 +280,7 @@ export interface LiveabilityData {
   amenity_count: number | null;
   cbd_distance_m: number | null;
   nearest_train_m: number | null;
+  nearest_train_name: string | null;
   // Metlink mode breakdown
   bus_stops_800m: number | null;
   rail_stops_800m: number | null;

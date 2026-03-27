@@ -126,6 +126,7 @@ function transformLiveability(raw: any): LiveabilityData {
       : null,
     cbd_distance_m: raw.cbd_distance_m ?? null,
     nearest_train_m: raw.nearest_train_distance_m ?? null,
+    nearest_train_name: raw.nearest_train_name ?? null,
     // Metlink mode breakdown
     bus_stops_800m: raw.bus_stops_800m ?? null,
     rail_stops_800m: raw.rail_stops_800m ?? null,
@@ -258,18 +259,25 @@ function transformHazards(raw: any): HazardData {
   };
 }
 
-function transformEnvironment(raw: any): EnvironmentData {
+function transformEnvironment(raw: any, hazardsRaw: any): EnvironmentData {
   if (!raw) return {} as EnvironmentData;
   return {
-    wind_zone: null, // wind_zone is in hazards
+    wind_zone: hazardsRaw?.wind_zone ?? raw.wind_zone ?? null,
     noise_db: raw.noise_db ?? raw.road_noise_db ?? null,
     air_quality_trend: raw.air_quality_pm10_trend ?? raw.air_pm10_trend ?? raw.air_pm25_trend ?? null,
-    air_quality_site: raw.air_quality_site ?? raw.air_pm10_site ?? raw.air_pm25_site ?? null,
-    air_quality_distance_m: raw.air_pm10_distance_m ?? raw.air_pm25_distance_m ?? null,
+    air_quality_site: raw.air_quality_site ?? raw.air_site_name ?? null,
+    air_quality_distance_m: raw.air_pm10_distance_m ?? raw.air_distance_m ?? null,
     water_quality_grade: raw.water_quality_ecoli_band ?? raw.water_drp_band ?? null,
-    climate_projection: (raw.climate_temp_change != null)
-      ? { temp_change: raw.climate_temp_change, precip_change_pct: raw.climate_rainfall_change ?? raw.climate_precip_change_pct }
-      : null,
+    water_site_name: raw.water_site_name ?? null,
+    water_ecoli_band: raw.water_ecoli_band ?? null,
+    water_ammonia_band: raw.water_ammonia_band ?? null,
+    water_clarity_band: raw.water_clarity_band ?? null,
+    water_nitrate_band: raw.water_nitrate_band ?? null,
+    in_corrosion_zone: raw.in_corrosion_zone ?? null,
+    in_rail_vibration_area: raw.in_rail_vibration_area ?? null,
+    rail_vibration_type: raw.rail_vibration_type ?? null,
+    climate_temp_change: raw.climate_temp_change ?? null,
+    climate_precip_change_pct: raw.climate_rainfall_change ?? raw.climate_precip_change_pct ?? null,
   };
 }
 
@@ -432,7 +440,7 @@ export function transformReport(raw: any): PropertyReport {
     address,
     property,
     hazards: transformHazards(raw.hazards),
-    environment: transformEnvironment(raw.environment ?? raw.hazards),
+    environment: transformEnvironment(raw.environment ?? raw.hazards, raw.hazards),
     liveability: transformLiveability(raw.liveability),
     planning: transformPlanning(raw.planning, raw.liveability, raw.environment ?? raw.hazards),
     market: transformMarket(raw.market),
