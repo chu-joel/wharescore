@@ -73,7 +73,8 @@ def _fetch_url(url: str, timeout: int = 120) -> bytes:
     return b""
 
 
-def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
+def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1",
+                   max_allowable_offset: float | None = None):
     """Fetch all features from ArcGIS REST with pagination (streaming generator).
 
     Yields features one at a time — constant memory regardless of dataset size.
@@ -83,6 +84,9 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
     1. Offset-based (if server supports resultOffset) — default
     2. ObjectID-based (fallback for MapServer layers that don't support offset)
        Uses ``where=OBJECTID > {last_oid}`` with ``orderByFields=OBJECTID ASC``
+
+    ``max_allowable_offset`` (metres) simplifies geometry server-side, reducing
+    transfer size for datasets with very dense vertices.
     """
     # ── Check if the service supports offset pagination ──────
     supports_pagination = True
@@ -109,6 +113,8 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
                 "returnGeometry": "true",
                 "resultOffset": str(offset), "resultRecordCount": str(max_per_page),
             }
+            if max_allowable_offset is not None:
+                params["maxAllowableOffset"] = str(max_allowable_offset)
             url = f"{base_url}/query?{urllib.parse.urlencode(params)}"
             data = json.loads(_fetch_url(url))
             features = data.get("features", [])
@@ -138,6 +144,8 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1"):
                 "resultRecordCount": str(max_per_page),
                 "orderByFields": "OBJECTID ASC",
             }
+            if max_allowable_offset is not None:
+                params["maxAllowableOffset"] = str(max_allowable_offset)
             url = f"{base_url}/query?{urllib.parse.urlencode(params)}"
             data = json.loads(_fetch_url(url))
             features = data.get("features", [])
@@ -1336,10 +1344,12 @@ def _load_council_arcgis(
     cols: list[str], extract: Callable,
     srid: int = 2193, geom_type: str = "polygon",
     skip_delete: bool = False,
+    max_allowable_offset: float | None = None,
+    page_size: int = 2000,
 ) -> int:
     """Generic council ArcGIS loader. Deletes council rows, re-inserts."""
     _progress(log, f"Fetching {table} ({council})...")
-    features = _fetch_arcgis(url, 2000)
+    features = _fetch_arcgis(url, page_size, max_allowable_offset=max_allowable_offset)
     cur = conn.cursor()
     if not skip_delete:
         cur.execute(
@@ -2484,6 +2494,35 @@ REGIONAL_DESTINATIONS = {
         "Kamo": (174.3070, -35.6870),
         "Tikipunga": (174.3020, -35.6980),
         "Onerahi": (174.3590, -35.7370),
+    },
+    "tauranga_bop": {
+        "Tauranga CBD": (176.1675, -37.6878),
+        "Tauranga Hospital": (176.1580, -37.6970),
+        "Mount Maunganui": (176.1830, -37.6380),
+        "Papamoa": (176.2770, -37.6930),
+        "Bayfair": (176.2070, -37.6680),
+        "Bethlehem": (176.1180, -37.6870),
+        "Greerton": (176.1310, -37.7200),
+        "Tauranga Airport": (176.1960, -37.6720),
+        "Tauriko": (176.0880, -37.7290),
+        "University of Waikato Tauranga": (176.1720, -37.6860),
+    },
+    "rotorua": {
+        "Rotorua CBD": (176.2510, -38.1370),
+        "Rotorua Hospital": (176.2610, -38.1290),
+        "Rotorua Airport": (176.3170, -38.1090),
+        "Whakarewarewa": (176.2510, -38.1650),
+        "Western Heights": (176.2190, -38.1310),
+        "Ngongotaha": (176.2240, -38.0850),
+    },
+    "queenstown": {
+        "Queenstown CBD": (168.6626, -45.0312),
+        "Queenstown Airport": (168.7390, -45.0210),
+        "Frankton": (168.7280, -45.0140),
+        "Arrowtown": (168.8340, -44.9380),
+        "Remarkables Park": (168.7280, -45.0300),
+        "Lake Hayes": (168.7960, -44.9840),
+        "Jack's Point": (168.7230, -45.0610),
     },
 }
 
@@ -4608,6 +4647,18 @@ DATA_SOURCES: list[DataSource] = [
         ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
         lambda conn, log=None: _load_regional_gtfs(conn, log,
             "https://data.trilliumtransit.com/gtfs/nrc-nz/nrc-nz.zip", "whangarei")),
+    DataSource("tauranga_bop_gtfs", "Tauranga/BOP BayBus GTFS + Travel Times",
+        ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
+        lambda conn, log=None: _load_regional_gtfs(conn, log,
+            "https://data.trilliumtransit.com/gtfs/boprc-nz/boprc-nz.zip", "tauranga_bop")),
+    DataSource("rotorua_gtfs", "Rotorua CityRide GTFS + Travel Times",
+        ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
+        lambda conn, log=None: _load_regional_gtfs(conn, log,
+            "https://data.trilliumtransit.com/gtfs/boprc-nz/boprc-nz.zip", "rotorua")),
+    DataSource("queenstown_gtfs", "Queenstown Orbus GTFS + Travel Times",
+        ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
+        lambda conn, log=None: _load_regional_gtfs(conn, log,
+            "https://www.orc.govt.nz/transit/google_transit.zip", "queenstown")),
     # ══════════════════════════════════════════════════════════
     # NORTH ISLAND — NEWLY DISCOVERED COUNCILS
     # ══════════════════════════════════════════════════════════
@@ -6511,7 +6562,8 @@ DATA_SOURCES: list[DataSource] = [
                 "River Flood 100yr+CC",
                 "High",
                 "River Flood Hazard (100yr+CC)",
-            ))),
+            ),
+            max_allowable_offset=100, page_size=5)),
     DataSource("northland_river_flood_50yr", "Northland River Flood 50yr",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -6522,7 +6574,8 @@ DATA_SOURCES: list[DataSource] = [
                 "River Flood 50yr",
                 "High",
                 "River Flood Hazard (50yr)",
-            ))),
+            ),
+            max_allowable_offset=100, page_size=5)),
     DataSource("northland_river_flood_10yr", "Northland River Flood 10yr",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -6533,7 +6586,8 @@ DATA_SOURCES: list[DataSource] = [
                 "River Flood 10yr",
                 "High",
                 "River Flood Hazard (10yr)",
-            ))),
+            ),
+            max_allowable_offset=100, page_size=5)),
     DataSource("northland_erosion_prone", "Northland Erosion Prone Land",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
