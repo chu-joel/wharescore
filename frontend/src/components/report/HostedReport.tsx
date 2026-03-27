@@ -26,6 +26,7 @@ import { HostedSchoolZones } from './HostedSchoolZones';
 import { HostedRoadNoise } from './HostedRoadNoise';
 import { HostedAreaFeed } from './HostedAreaFeed';
 import { HostedHazardAdvice } from './HostedHazardAdvice';
+import { LazySection } from './LazySection';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -235,69 +236,57 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           ))}
         </HostedReportProvider>
 
-        {/* ═══ WHAT'S NEARBY — categorised amenities from snapshot ═══ */}
-        <div className="pb-6">
+        {/* ═══ Below-fold — lazy-loaded via Intersection Observer ═══ */}
+
+        <LazySection><div className="pb-6">
           <HostedNearbyHighlights snapshot={snapshot} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ SCHOOL ZONES — enrolment zones this property falls within ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedSchoolZones snapshot={snapshot} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ SCHOOLS — full table from snapshot data ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedSchools rawReport={snapshot.report} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ ROAD NOISE — NZTA national road noise contours ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedRoadNoise snapshot={snapshot} />
-        </div>
+        </div></LazySection>
 
-        {/* (Hazard Intelligence moved to after Key Findings) */}
-
-        {/* ═══ NEIGHBOURHOOD SNAPSHOT — essentials, crashes, air/water, contamination, amenities ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedNeighbourhoodStats rawReport={snapshot.report} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ OUTDOOR & RECREATION — DOC huts, tracks, campsites ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedOutdoorRec snapshot={snapshot} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ INFRASTRUCTURE PROJECTS ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedInfrastructure rawReport={snapshot.report} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ HEALTHY HOMES (renter only) ═══ */}
         {persona === 'renter' && (
-          <div className="pb-6">
+          <LazySection><div className="pb-6">
             <HostedHealthyHomes report={report} />
-          </div>
+          </div></LazySection>
         )}
 
-        {/* ═══ SAFETY & HAZARD GUIDE — actionable tips for every detected risk ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ DETAILED RECOMMENDATIONS — full due diligence from snapshot ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedRecommendations snapshot={snapshot} persona={persona} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ NEXT STEPS — action cards summary ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedNextSteps persona={persona} report={report} />
-        </div>
+        </div></LazySection>
 
-        {/* ═══ METHODOLOGY (collapsible) ═══ */}
-        <div className="pb-6">
+        <LazySection><div className="pb-6">
           <HostedMethodology />
-        </div>
+        </div></LazySection>
 
         {/* ═══ DISCLAIMER ═══ */}
         <div className="rounded-xl border border-border bg-muted/30 p-6 text-center space-y-2 mb-8">

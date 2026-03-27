@@ -26,7 +26,6 @@ import { AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
-import { CategoryRadar } from './CategoryRadar';
 import { PremiumGate } from './PremiumGate';
 import { CoverageRing } from './CoverageRing';
 import { SavePropertyButton } from './SavePropertyButton';
@@ -40,7 +39,11 @@ import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+// Lazy-load chart components (recharts is ~50KB)
+const CategoryRadar = dynamic(() => import('./CategoryRadar').then(m => ({ default: m.CategoryRadar })), { ssr: false });
 
 /** How many findings to show for free before gating */
 const FREE_FINDINGS = 2;
@@ -111,9 +114,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     );
   }
 
-  // Calculate risk count for contextual CTA copy
-  const findings = generateFindings(report, persona);
-  const riskCount = findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length;
+  // Calculate risk count for contextual CTA copy (memoized — expensive)
+  const findings = useMemo(() => generateFindings(report, persona), [report, persona]);
+  const riskCount = useMemo(() => findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length, [findings]);
 
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
