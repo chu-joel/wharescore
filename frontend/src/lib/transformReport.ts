@@ -148,7 +148,7 @@ function transformPlanning(raw: any, liveabilityRaw: any, environmentRaw: any): 
     heritage_count: liveabilityRaw?.heritage_count_500m ?? null,
     consent_count: raw.resource_consents_500m_2yr ?? null,
     infrastructure_count: Array.isArray(raw.infrastructure_5km) ? raw.infrastructure_5km.length : null,
-    contamination_count: environmentRaw?.contam_count_2km ?? null,
+    contamination_count: raw?.contam_count_500m ?? environmentRaw?.contam_count_2km ?? environmentRaw?.contam_count_500m ?? null,
     epb_listed: raw.epb_listed ?? null,
     // Viewshafts
     in_viewshaft: raw.in_viewshaft ?? null,
@@ -220,7 +220,7 @@ function transformHazards(raw: any): HazardData {
     solar_mean_kwh: raw.solar_mean_kwh ?? null,
     solar_max_kwh: raw.solar_max_kwh ?? null,
     // GNS Landslide Database
-    landslide_count_500m: raw.landslide_count_500m ?? null,
+    landslide_count_500m: raw.landslide_count_500m ?? raw.landslide_events_1km ?? null,
     landslide_nearest: raw.landslide_nearest ?? null,
     landslide_in_area: raw.landslide_in_area ?? null,
     // GNS Active Faults (national)
