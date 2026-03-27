@@ -26,7 +26,6 @@ import { HostedSchoolZones } from './HostedSchoolZones';
 import { HostedRoadNoise } from './HostedRoadNoise';
 import { HostedAreaFeed } from './HostedAreaFeed';
 import { HostedHazardAdvice } from './HostedHazardAdvice';
-import { LazySection } from './LazySection';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -236,57 +235,56 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           ))}
         </HostedReportProvider>
 
-        {/* ═══ Below-fold — lazy-loaded via Intersection Observer ═══ */}
-
-        <LazySection><div className="pb-6">
+        {/* ═══ WHAT'S NEARBY ═══ */}
+        <div className="pb-6">
           <HostedNearbyHighlights snapshot={snapshot} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedSchoolZones snapshot={snapshot} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedSchools rawReport={snapshot.report} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedRoadNoise snapshot={snapshot} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedNeighbourhoodStats rawReport={snapshot.report} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedOutdoorRec snapshot={snapshot} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedInfrastructure rawReport={snapshot.report} />
-        </div></LazySection>
+        </div>
 
         {persona === 'renter' && (
-          <LazySection><div className="pb-6">
+          <div className="pb-6">
             <HostedHealthyHomes report={report} />
-          </div></LazySection>
+          </div>
         )}
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedRecommendations snapshot={snapshot} persona={persona} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedNextSteps persona={persona} report={report} />
-        </div></LazySection>
+        </div>
 
-        <LazySection><div className="pb-6">
+        <div className="pb-6">
           <HostedMethodology />
-        </div></LazySection>
+        </div>
 
         {/* ═══ DISCLAIMER ═══ */}
         <div className="rounded-xl border border-border bg-muted/30 p-6 text-center space-y-2 mb-8">
