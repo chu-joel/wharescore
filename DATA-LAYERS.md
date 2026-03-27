@@ -1,8 +1,8 @@
 # WhareScore — Data Layers Coverage Matrix
 
-**Last Updated:** 2026-03-27 (session 67)
+**Last Updated:** 2026-03-27 (session 68 — security audit + coverage expansion)
 
-This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of 386 DataSource entries in `data_loader.py`.
+This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of **426 DataSource entries** in `data_loader.py`.
 
 ---
 
@@ -164,30 +164,106 @@ Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 
 ---
 
-## Full DataSource Registry (386 entries in data_loader.py)
+## Full DataSource Registry (426 entries in data_loader.py)
 
 ### By Category
 
 | Category | Count | Key |
 |----------|-------|-----|
-| **Hazard — flood** | ~30 | flood_hazard table, per-council |
-| **Hazard — liquefaction** | ~25 | liquefaction_detail table |
-| **Hazard — tsunami** | ~15 | tsunami_hazard / tsunami_zones |
-| **Hazard — faults/seismic** | ~15 | active_faults / fault_zones |
-| **Hazard — slope/landslide** | ~15 | slope_failure / landslide_areas |
-| **Hazard — coastal** | ~10 | coastal_erosion / coastal_inundation |
-| **Hazard — ground shaking** | ~5 | ground_shaking |
-| **Hazard — volcanic** | 3 | flood_hazard (volcanic type) |
-| **District plan zones** | ~20 | district_plan_zones / plan_zones |
-| **Heritage sites** | ~15 | heritage / historic_heritage_overlay |
-| **Notable trees** | ~12 | notable_trees |
-| **Noise contours** | ~10 | noise_contours / aircraft_noise_overlay |
-| **Contaminated land** | ~8 | contaminated_land |
+| **Hazard — flood** | ~55 | flood_hazard table, per-council |
+| **Hazard — liquefaction** | ~35 | liquefaction_detail table |
+| **Hazard — tsunami** | ~25 | tsunami_hazard / tsunami_zones |
+| **Hazard — faults/seismic** | ~25 | active_faults / fault_zones |
+| **Hazard — slope/landslide** | ~20 | slope_failure / landslide_areas |
+| **Hazard — coastal** | ~25 | coastal_erosion / coastal_inundation |
+| **Hazard — ground shaking** | ~10 | ground_shaking |
+| **Hazard — volcanic/geothermal** | ~10 | volcanic hazard, geothermal, caldera |
+| **District plan zones** | ~30 | district_plan_zones / plan_zones |
+| **Heritage sites** | ~25 | heritage / historic_heritage_overlay |
+| **Notable trees** | ~22 | notable_trees |
+| **Noise contours** | ~20 | noise_contours / aircraft_noise_overlay |
+| **Contaminated land** | ~12 | contaminated_land |
+| **Ecological areas** | ~15 | significant_ecological_areas |
 | **Council valuations** | ~45 | council_valuations |
 | **Transit/GTFS** | 8 | transit_stops / transit_travel_times |
-| **Ecological areas** | 3 | significant_ecological_areas |
 | **National datasets** | ~20 | Various (GNS, LINZ, MoE, etc.) |
 | **Other overlays** | ~20 | viewshafts, character precincts, etc. |
+
+### Coverage Per Region (non-rates, non-national layers)
+
+| Region | Count | Key Areas |
+|--------|:-----:|-----------|
+| Auckland | 27 | Flood, liquefaction, tsunami, landslide, volcanic (AVF), heritage, zones, ecological, noise |
+| Nelson | 25 | NRMP PC29 (zones, heritage, faults, liquefaction, slope, flood, inundation, tsunami) |
+| ECan (Canterbury) | 22 | 9 district liquefaction maps, tsunami, coastal, faults, flood, landslide |
+| Marlborough | 17 | 6 liquefaction zones, tsunami, SLR, flood, erosion |
+| Porirua | 16 | Fault rupture, liquefaction, ground shaking, landslide, coastal erosion/inundation, tsunami (3 return periods) |
+| Hawke's Bay | 15 | 7 landslide categories, liquefaction, amplification, coastal, tsunami, flood |
+| Taranaki (TRC+NPDC) | 15 | Zones, heritage, trees, liquefaction, flood, fault, coastal, volcanic, noise, SNA |
+| Wellington (WCC) | 14 | Hazards, solar, heritage, trees, corrosion, viewshafts, district plan |
+| West Coast | 14 | Active faults, alpine fault, landslides, rockfall, TTPP plan, coastal, tsunami, flood |
+| Rotorua | 14 | Geothermal, fault avoidance, liquefaction, soft ground, landslide, 3 flood models, heritage, trees, SNA, noise, caldera |
+| Tauranga | 13 | Flood, liquefaction, tsunami, slope, coastal, heritage, noise, trees, harbour inundation |
+| Hamilton | 12 | Flood (4 types), heritage, trees, SNA, zones, noise, seismic |
+| Dunedin | 12 | 3 flood tiers, instability, tsunami, zones, coastal, heritage, trees, noise |
+| Upper Hutt | 12 | Zones, heritage, trees, fault, flood (3 types), slope, peat, erosion, ecological, contaminated |
+| Wairarapa | 12 | Zones, heritage, trees, SNA, faults, flood (2 periods), liquefaction, tsunami, contaminated, erosion, noise |
+| Gisborne | 12 | Flood, tsunami, liquefaction, coastal (3 types), stability, zones, heritage, noise (2), contaminated |
+| Invercargill | 12 | Zones, heritage (2), trees, flood, SLR, coastal, liquefaction, amplification, noise (2), biodiversity |
+| GWRC | 11 | Earthquake, landslide, flood, erosion, tsunami, storm surge (3 scenarios), coastal |
+| Northland | 11 | Tsunami, flood (5 timeframes), coastal (2), erosion prone, flood susceptible |
+| Southland | 11 | Liquefaction, shaking, tsunami, flood (2), faults, contaminated, heritage, coastal, noise, HAIL |
+| Kapiti | 11 | Zones, heritage, trees, flood (3 types), fault, tsunami, coastal erosion (2), ecological |
+| Lower Hutt | 11 | Zones, heritage (2), trees, flood (3 types), tsunami (2), coastal (2) |
+| Christchurch | 11 | Zones, tsunami, heritage, trees, slope, coastal (2), flood, noise (3 bands) |
+| Waikato | 10 | Liquefaction, flood (4 types), ground shaking, tsunami (2), geothermal (2) |
+| QLDC | 10 | Flood, liquefaction, landslide, faults, folds, avalanche, debris, erosion, alluvial fans, damburst |
+| BOP | 10 | Tsunami (2), liquefaction (2), faults, historic floods, calderas, coastal (2), contaminated |
+| Tasman | 10 | Liquefaction, coastal SLR (5 scenarios), faults, floods, zones, erosion |
+| Taupo | 10 | Zones, heritage, trees, faults (2), flood, noise, geothermal, liquefaction, landslide |
+| Timaru | 10 | Zones, heritage, trees (2), flood, liquefaction, fault, coastal, ecological, noise |
+| Waimakariri | 10 | Zones, heritage, trees, faults (2), flood (3), liquefaction, ecological |
+| Whangarei | 13 | Zones (4), heritage, trees, flood, liquefaction, stability, coastal, noise (2), tsunami |
+| ORC/Otago | 10 | Liquefaction, HAIL, storm surge, floodplain, coastal, tsunami (2), floodways (3) |
+| Horizons | 8 | Flood (3 types), floodways, lahar, coastal, liquefaction, tsunami |
+| Palmerston North | 8 | Zones, heritage (2), trees (2), flood, noise, overlays |
+| Waipa | 6 | Flood, zones, heritage, trees, SNA, noise |
+
+**Note:** Properties in Waipa also receive Waikato regional layers (+10), Palmerston North gets Horizons layers (+8), giving effective 16+ layers each.
+
+### Session 68 Additions (2026-03-27) — Coverage Expansion
+
+**~110 new DataSource entries** bringing total from 290 regional to 378 regional (426 total with rates/national/GTFS):
+
+**Wellington sub-regions (51 new):**
+- Lower Hutt (11): zones, heritage (2), trees, flood (3), tsunami (2), coastal (2)
+- Upper Hutt (12): zones, heritage, trees, fault, flood (3), slope, peat, erosion, ecological, contaminated
+- Porirua (13): fault rupture, liquefaction, ground shaking, landslide (2), coastal erosion (2), coastal inundation (2), tsunami (3 return periods), ecological
+- Kapiti (6): tsunami, coastal erosion (2), ecological, flood river corridor, flood ponding
+- Wairarapa (12): zones, heritage, trees, SNA, faults, flood (2), liquefaction, tsunami, contaminated, erosion, noise
+
+**South Island (25 new):**
+- Invercargill (7): liquefaction, amplification, airport/port noise, archaeological, biodiversity, trees
+- Southland (5): contaminated, flood, heritage, coastal, noise
+- ORC/Otago (5): tsunami, floodways (3), Dunedin tsunami
+- Tasman (3): SLR +0.5m/+1.5m scenarios, coastal erosion structures
+- Timaru (3): trees supplement, ecological, noise
+- Waimakariri (2): liquefaction, ecological
+
+**Waikato/BOP (33 new):**
+- Rotorua (13): geothermal, fault avoidance, liquefaction, soft ground, landslide, 3 flood models, trees, heritage, SNA, noise, caldera
+- Hamilton (4): flood extents, flood depressions, seismic, natural hazard
+- Tauranga (4): harbour inundation, flood DxV, trees, archaeological
+- Waikato regional (2): geothermal systems, geothermal subsidence
+- Waipa (5): zones, heritage, trees, SNA, airport noise
+- Taupo (5): flood, noise, geothermal, liquefaction, landslide
+
+**Lower North Island (27 new):**
+- Taranaki/NPDC (12): zones, heritage, trees, liquefaction, flood (2), fault, coastal erosion, coastal flood, volcanic, noise, SNA
+- Horizons (3): liquefaction, tsunami, flood modelled
+- Palmerston North (3): heritage, trees, overlays
+- Gisborne (5): heritage, port noise, airport noise, contaminated, coastal erosion
+- Whangarei (4): coastal hazard, airport noise, noise control, tsunami
 
 ### Session 65 Additions (2026-03-26)
 

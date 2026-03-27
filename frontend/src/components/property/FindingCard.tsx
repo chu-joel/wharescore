@@ -274,6 +274,32 @@ export function generateFindings(report: {
     }
   }
 
+  // Coastal inundation / storm surge
+  if (h.coastal_inundation_ranking || (h.coastal_elevation_cm != null && h.coastal_elevation_cm < 300)) {
+    findings.push({
+      headline: h.coastal_elevation_cm != null
+        ? `Low coastal elevation: ${(h.coastal_elevation_cm / 100).toFixed(1)}m above MHWS`
+        : `Coastal inundation zone${h.coastal_inundation_scenario ? `: ${h.coastal_inundation_scenario}` : ''}`,
+      interpretation:
+        'This property may be affected by coastal inundation from storm surge and sea-level rise. Saltwater flooding is more damaging than freshwater and can affect insurance availability.',
+      severity: (h.coastal_elevation_cm != null && h.coastal_elevation_cm < 200) ? 'critical' : 'warning',
+      category: 'Hazards',
+      source: 'Council Coastal Hazard Maps',
+    });
+  }
+
+  // Notable trees (planning constraint)
+  if (p.notable_tree_count_50m && p.notable_tree_count_50m > 0) {
+    findings.push({
+      headline: `${p.notable_tree_count_50m} protected tree${p.notable_tree_count_50m > 1 ? 's' : ''} within 50m`,
+      interpretation:
+        'Protected/notable trees cannot be removed or significantly pruned without council consent. Check before planning any building work, extensions, or landscaping changes.',
+      severity: 'info',
+      category: 'Planning',
+      source: 'Council Notable Trees Register',
+    });
+  }
+
   // Geotechnical reports
   if (h.geotech_count_500m && h.geotech_count_500m >= 10) {
     findings.push({

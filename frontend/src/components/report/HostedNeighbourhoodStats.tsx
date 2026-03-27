@@ -29,8 +29,15 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   const conservationDist = live.conservation_nearest_distance_m as number;
   if (conservation) essentials.push({ label: 'Reserve', value: `${conservation} — ${conservationDist ? Math.round(conservationDist) + 'm' : 'nearby'}` });
 
+  // Notable trees
+  const notableTreeCount = planning.notable_tree_count_50m as number;
+  const notableTreeNearest = planning.notable_tree_nearest as { name: string; tree_type: string; distance_m: number } | null;
+
+  // Park count
+  const parkCount = planning.park_count_500m as number;
+
   // Contaminated land
-  const contamCount = (env.contam_count_2km ?? hazards.contamination_count) as number;
+  const contamCount = (hazards.contam_count_500m ?? env.contam_count_2km ?? hazards.contamination_count) as number;
   const contamName = env.contam_nearest_name as string;
   const contamDist = env.contam_nearest_distance_m as number;
   const contamCat = env.contam_nearest_category as string;
@@ -171,6 +178,22 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
               {heritageListed && <p className="font-medium text-amber-700">This property is heritage-listed.</p>}
               {heritageCount > 0 && <p>{heritageCount} heritage items within 500m.</p>}
               {overlays.length > 0 && <p>Planning overlays: {overlays.join(', ')}.</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Notable trees & parks */}
+        {((notableTreeCount && notableTreeCount > 0) || (parkCount && parkCount > 0)) && (
+          <div>
+            <h4 className="text-sm font-semibold mb-1">Green Space & Trees</h4>
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              {notableTreeCount > 0 && (
+                <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} within 50m.
+                  {notableTreeNearest?.name && ` Nearest: ${notableTreeNearest.name}${notableTreeNearest.tree_type ? ` (${notableTreeNearest.tree_type})` : ''}.`}
+                  {' '}Protected trees cannot be removed — check before planning building work.
+                </p>
+              )}
+              {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} within 500m.</p>}
             </div>
           </div>
         )}

@@ -248,6 +248,9 @@ function transformHazards(raw: any): HazardData {
     // Geotechnical reports
     geotech_count_500m: raw.geotech_count_500m ?? null,
     geotech_nearest_hazard: raw.geotech_nearest_hazard ?? null,
+    // Coastal inundation
+    coastal_inundation_ranking: raw.coastal_inundation_ranking ?? null,
+    coastal_inundation_scenario: raw.coastal_inundation_scenario ?? null,
   };
 }
 

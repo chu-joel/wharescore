@@ -170,6 +170,45 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
     });
   }
 
+  // ── GROUND SHAKING AMPLIFICATION ──
+  if (h.ground_shaking_severity || h.ground_shaking_zone) {
+    const gsHigh = h.ground_shaking_severity?.toLowerCase().includes('high');
+    sections.push({
+      id: 'ground-shaking',
+      icon: Zap,
+      title: 'Ground Shaking Amplification',
+      severity: gsHigh ? 'warning' : 'info',
+      intro: `This property is in a ${h.ground_shaking_severity || h.ground_shaking_zone || 'mapped'} ground shaking zone. The underlying soil conditions amplify earthquake shaking compared to bedrock areas — the same earthquake feels significantly stronger here.`,
+      subsections: [
+        {
+          heading: 'Why This Matters',
+          items: [
+            'Ground shaking amplification means the same earthquake causes more damage in this location than on bedrock.',
+            'Soft soils (reclaimed land, river sediments, peat) amplify shaking by 2-5x compared to rock.',
+            h.gwrc_liquefaction_geology
+              ? `This area is built on ${h.gwrc_liquefaction_geology.toLowerCase()}, which is particularly prone to amplification.`
+              : 'The soil type beneath your property determines how much shaking is amplified.',
+            'The 2016 Kaikoura earthquake caused far more damage to Wellington CBD buildings on reclaimed land than those on nearby rock.',
+          ],
+        },
+        {
+          heading: 'What to Check',
+          items: [
+            ...(persona === 'buyer' ? [
+              'Ask about the building\'s seismic rating (%NBS). Buildings below 34%NBS are legally earthquake-prone.',
+              'Older buildings (pre-1976) on amplified-shaking sites are highest risk. Check for seismic strengthening work.',
+              'Foundation type matters more here — deep piles through soft soil to bedrock are ideal.',
+            ] : [
+              'Ask your landlord about the building\'s earthquake rating.',
+              'Ground-floor apartments on soft soils may experience more shaking than upper floors.',
+              'Secure heavy furniture and water heaters to walls.',
+            ]),
+          ],
+        },
+      ],
+    });
+  }
+
   // ── TSUNAMI ──
   if (h.tsunami_zone) {
     sections.push({
@@ -434,6 +473,44 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
               'Check the LIM for coastal hazard overlays and managed retreat classifications.',
               'Look for: exposed foundations, tilting seawalls, eroding cliffs, previous protection works.',
               'Check if future building work will be restricted.',
+            ] : []),
+          ],
+        },
+      ],
+    });
+  }
+
+  // ── COASTAL INUNDATION / STORM SURGE ──
+  if (h.coastal_inundation_ranking || h.coastal_elevation_cm != null) {
+    const lowElevation = h.coastal_elevation_cm != null && h.coastal_elevation_cm < 300;
+    sections.push({
+      id: 'coastal-inundation',
+      icon: Waves,
+      title: 'Coastal Inundation & Storm Surge',
+      severity: lowElevation ? 'critical' : 'warning',
+      intro: h.coastal_elevation_cm != null
+        ? `This property is ${(h.coastal_elevation_cm / 100).toFixed(1)}m above mean high water springs. ${lowElevation ? 'This is very low — storm surge and sea-level rise are direct threats.' : 'Coastal flooding may affect this area during extreme events.'}`
+        : `This property is in a mapped coastal inundation zone${h.coastal_inundation_scenario ? ` (${h.coastal_inundation_scenario})` : ''}. Storm surge combined with sea-level rise can cause widespread flooding of low-lying coastal areas.`,
+      subsections: [
+        {
+          heading: 'Understanding Coastal Inundation',
+          items: [
+            'Coastal inundation is different from river flooding — it\'s driven by storm surge (low atmospheric pressure + wind) combined with high tides.',
+            'A 1-in-100-year storm tide event with 1m of sea-level rise could affect areas currently well above normal high tide.',
+            'Climate change is increasing both the frequency and severity of coastal inundation events.',
+            'King tides + storm surge + sea-level rise = significantly higher flood levels than historical records suggest.',
+          ],
+        },
+        {
+          heading: 'Protecting Your Property',
+          items: [
+            'Know your elevation above mean high water springs (MHWS). Below 2m is high risk with projected sea-level rise.',
+            'Non-return valves on stormwater drains prevent saltwater backflow during surge events.',
+            'Saltwater flooding is more damaging than freshwater — it corrodes steel, kills plants, and contaminates soil.',
+            'Check if your insurance covers storm surge and coastal flooding specifically (many policies exclude it).',
+            ...(persona === 'buyer' ? [
+              'Check the LIM for coastal hazard overlays and any building consent conditions related to sea-level rise.',
+              'Consider the 50-year outlook: properties low-lying near the coast may face significantly reduced insurability.',
             ] : []),
           ],
         },

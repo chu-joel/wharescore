@@ -240,6 +240,9 @@ export interface HazardData {
   // Geotechnical reports
   geotech_count_500m: number | null;
   geotech_nearest_hazard: string | null;
+  // Coastal inundation (council data)
+  coastal_inundation_ranking: string | null;
+  coastal_inundation_scenario: string | null;
 }
 
 // --- Environment ---
