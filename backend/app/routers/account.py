@@ -277,7 +277,7 @@ _PROMO_CODES = {
 
 
 @router.post("/redeem-promo")
-@limiter.limit("5/minute")
+@limiter.limit("15/minute")
 async def redeem_promo(request: Request, user_id: str = Depends(require_user)):
     """Redeem a promo code for free report credits."""
     body = await request.json()

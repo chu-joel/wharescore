@@ -548,9 +548,18 @@ function PromoCodeInput() {
         </button>
       </div>
       {result && (
-        <p className={`text-xs text-center font-medium ${result.success ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-          {result.message}
-        </p>
+        result.message === 'sign_in_required' ? (
+          <button
+            onClick={() => signIn('google')}
+            className="w-full text-xs text-center font-medium text-piq-primary hover:underline"
+          >
+            Sign in with Google to use a promo code
+          </button>
+        ) : (
+          <p className={`text-xs text-center font-medium ${result.success ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+            {result.message}
+          </p>
+        )
       )}
     </div>
   );

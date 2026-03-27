@@ -146,14 +146,23 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
 
   redeemPromo: async (code: string) => {
     try {
+      // Fetch Bearer token for authenticated request
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const { token } = await tokenRes.json();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch { /* proceed without token */ }
+
       const res = await fetch('/api/v1/account/redeem-promo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers,
         body: JSON.stringify({ code }),
       });
       if (res.status === 401 || res.status === 403) {
-        return { success: false, message: 'Please sign in to use a promo code.' };
+        return { success: false, message: 'sign_in_required' };
       }
       const data = await res.json();
       if (!res.ok) {

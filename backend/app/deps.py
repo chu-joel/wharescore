@@ -30,6 +30,6 @@ def _get_storage_uri() -> str | None:
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=_get_storage_uri(),
-    default_limits=["60/minute"],
+    default_limits=["120/minute"],
     headers_enabled=False,  # True breaks with newer FastAPI/Starlette
 )

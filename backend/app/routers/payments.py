@@ -28,7 +28,9 @@ class GuestCheckoutRequest(BaseModel):
 
 
 @router.post("/checkout/session")
+@limiter.limit("15/minute")
 async def create_checkout_session(
+    request: Request,
     body: CheckoutRequest,
     user_id: str = Depends(require_user),
 ):
@@ -116,7 +118,7 @@ async def _get_or_create_customer(user_id: str) -> str:
 # =============================================================================
 
 @router.post("/checkout/guest-session")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def create_guest_checkout_session(request: Request, body: GuestCheckoutRequest):
     """Create a Stripe Checkout session for guest (no-account) purchase."""
     if not settings.STRIPE_SECRET_KEY:

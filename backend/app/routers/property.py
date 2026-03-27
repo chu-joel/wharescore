@@ -1661,7 +1661,7 @@ async def _generate_pdf_background(
 # =============================================================================
 
 @router.post("/property/{address_id}/export/pdf/start")
-@limiter.limit("5/hour")
+@limiter.limit("20/hour")
 async def start_pdf_export(
     request: Request,
     address_id: int,
@@ -1708,7 +1708,7 @@ async def start_pdf_export(
 # =============================================================================
 
 @router.post("/property/{address_id}/export/pdf/guest-start")
-@limiter.limit("5/hour")
+@limiter.limit("20/hour")
 async def start_guest_pdf_export(
     request: Request,
     address_id: int,
