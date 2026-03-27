@@ -160,7 +160,7 @@ export function MarketSection({ addressId, category, market, property, detection
         />
       )}
 
-      <DataSourceBadge source="MBIE, WCC, RBNZ, CoreLogic" />
+      <DataSourceBadge source="MBIE, Council Valuations, RBNZ, CoreLogic" />
     </div>
   );
 }

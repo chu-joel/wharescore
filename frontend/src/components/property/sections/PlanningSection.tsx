@@ -198,7 +198,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
         />
       )}
 
-      <DataSourceBadge source="Council District Plans, Heritage NZ, GWRC, Te Waihanga" />
+      <DataSourceBadge source="Council District Plans, Heritage NZ, Regional Councils, Te Waihanga" />
     </div>
   );
 }

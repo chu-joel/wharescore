@@ -118,7 +118,7 @@ export function RiskHazardsSection({ category, hazards, environment }: RiskHazar
         </div>
       )}
 
-      <DataSourceBadge source="GWRC, GNS, NIWA, Waka Kotahi, MfE" />
+      <DataSourceBadge source="Regional Councils, GNS, NIWA, Waka Kotahi, MfE" />
     </div>
   );
 }

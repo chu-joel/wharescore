@@ -116,7 +116,7 @@ export function generateFindings(report: {
         'The property may be at risk of flooding during heavy rainfall events. This can affect insurance availability and premiums, and may require specific building modifications.',
       severity: 'critical',
       category: 'Hazards',
-      source: 'GWRC Flood Hazard Maps',
+      source: 'Regional Council Flood Maps',
     });
   }
 
@@ -127,7 +127,7 @@ export function generateFindings(report: {
         'This property is within a tsunami evacuation zone. In the event of a large earthquake, you may need to evacuate to higher ground. Know your evacuation route.',
       severity: h.tsunami_zone === '1' || h.tsunami_zone === 'Red' ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'GNS Science / GWRC',
+      source: 'GNS Science / Regional Council',
     });
   }
 
@@ -139,7 +139,7 @@ export function generateFindings(report: {
         'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
       severity: isHigh ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'GWRC',
+      source: 'Regional Council Liquefaction Maps',
     });
   }
 
@@ -152,7 +152,7 @@ export function generateFindings(report: {
           'This area is susceptible to landslides during earthquakes. Consider a geotechnical assessment before purchasing, and check retaining wall conditions.',
         severity: severity.includes('very') ? 'critical' : 'warning',
         category: 'Hazards',
-        source: 'GWRC Slope Failure Maps',
+        source: 'Regional Council Slope Failure Maps',
       });
     }
   }
@@ -295,7 +295,7 @@ export function generateFindings(report: {
         'Nearby earthquake-prone buildings may pose a risk during a significant earthquake. These buildings may require seismic strengthening or demolition.',
       severity: h.epb_count >= 3 ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'WCC / MBIE EPB Register',
+      source: 'MBIE EPB Register',
     });
   }
 
@@ -306,11 +306,11 @@ export function generateFindings(report: {
         'There are sites with known or suspected contamination in the vicinity. Check the Selected Land Use Register (SLUR) for details and any restrictions.',
       severity: h.contamination_count >= 5 ? 'warning' : 'info',
       category: 'Planning',
-      source: 'GWRC SLUR',
+      source: 'Regional Council SLUR / HAIL',
     });
   }
 
-  // --- Wellington-specific hazard findings ---
+  // --- Council-specific hazard findings ---
 
   if (h.epb_rating) {
     findings.push({
@@ -332,7 +332,7 @@ export function generateFindings(report: {
         'This location has elevated seismic risk from the combination of ground shaking, liquefaction, and slope failure. Multiple hazards compound the risk.',
       severity: h.earthquake_hazard_grade >= 5 ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'GWRC Combined Earthquake Hazard',
+      source: 'Regional Council Earthquake Hazard',
     });
   }
 
@@ -347,7 +347,7 @@ export function generateFindings(report: {
             : 'This area amplifies earthquake shaking due to the underlying soil conditions. Newer buildings with modern foundations handle this better.',
         severity: 'warning',
         category: 'Hazards',
-        source: 'GWRC Ground Shaking Map',
+        source: 'Regional Council Ground Shaking Map',
       });
     }
   }
@@ -359,7 +359,7 @@ export function generateFindings(report: {
         'Reclaimed land is particularly susceptible to liquefaction during earthquakes. The Christchurch earthquakes showed devastating effects on reclaimed/fill areas. Foundation type is critical.',
       severity: 'critical',
       category: 'Hazards',
-      source: 'GWRC Liquefaction Map',
+      source: 'Regional Council Liquefaction Map',
     });
   }
 
@@ -368,11 +368,11 @@ export function generateFindings(report: {
       headline: `Near fault zone: ${h.fault_zone_name}`,
       interpretation:
         h.fault_zone_ranking
-          ? `Hazard ranking: ${h.fault_zone_ranking}. The Wellington Fault runs through the city — properties near fault traces face higher risk of surface rupture and ground deformation.`
-          : 'Located near a mapped fault trace. The WCC District Plan has specific building restrictions in fault avoidance zones.',
+          ? `Hazard ranking: ${h.fault_zone_ranking}. Properties near active fault traces face higher risk of surface rupture and ground deformation during earthquakes.`
+          : 'Located near a mapped fault trace. District Plans typically have specific building restrictions in fault avoidance zones.',
       severity: h.fault_zone_ranking?.toLowerCase().includes('high') ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'WCC 2024 District Plan',
+      source: 'District Plan / GNS Active Faults',
     });
   }
 
@@ -385,7 +385,7 @@ export function generateFindings(report: {
           : 'In a moderate tsunami risk zone. While less frequent, a 1-in-500-year tsunami could cause significant damage at this location.',
       severity: h.wcc_tsunami_return_period === '1:100yr' ? 'critical' : 'warning',
       category: 'Hazards',
-      source: 'WCC 2024 District Plan',
+      source: 'District Plan Tsunami Zones',
     });
   }
 
@@ -394,11 +394,11 @@ export function generateFindings(report: {
     findings.push({
       headline: `Solar potential: ${Math.round(h.solar_mean_kwh)} kWh/m²/year`,
       interpretation: solarGood
-        ? 'Good solar exposure. This building receives above-average sunshine for Wellington, making solar panels a viable investment and improving winter liveability.'
-        : 'Below-average solar exposure for Wellington. This may mean less natural light and warmth in winter — check north-facing windows and heating costs.',
+        ? 'Good solar exposure. This building receives above-average sunshine, making solar panels a viable investment and improving winter liveability.'
+        : 'Below-average solar exposure. This may mean less natural light and warmth in winter — check north-facing windows and heating costs.',
       severity: solarGood ? 'positive' : 'info',
       category: 'Liveability',
-      source: 'WCC Building Solar Radiation',
+      source: 'Council Building Solar Radiation',
     });
   }
 
@@ -426,7 +426,7 @@ export function generateFindings(report: {
         'This property is not in a flood zone, tsunami evacuation zone, or liquefaction-prone area. This is a positive indicator for insurance and long-term resilience.',
       severity: 'positive',
       category: 'Hazards',
-      source: 'GWRC, GNS Science',
+      source: 'Regional Council, GNS Science',
     });
   }
 

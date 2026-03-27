@@ -109,8 +109,8 @@ export function generateActions(report: {
       'A Land Information Memorandum contains council records about the property including consents, compliance notices, and hazard information not available elsewhere.',
     priority: 'recommended',
     link: {
-      label: 'Wellington City Council LIM',
-      url: 'https://wellington.govt.nz/property-rates-and-building/building-and-resource-consents/land-information-memorandum',
+      label: 'Request a LIM from your council',
+      url: 'https://www.govt.nz/browse/housing-and-property/buying-and-owning-a-home/getting-a-lim-report/',
     },
   });
 
@@ -135,10 +135,10 @@ export function generateActions(report: {
     actions.push({
       title: 'Know your tsunami evacuation route',
       description:
-        'Familiarise yourself with the local tsunami evacuation zone and the nearest high ground. Wellington Regional Emergency Management Office has maps.',
+        'Familiarise yourself with the local tsunami evacuation zone and the nearest high ground. Your regional civil defence has maps and evacuation routes.',
       priority: 'recommended',
       link: {
-        label: 'WREMO Tsunami Maps',
+        label: 'National Emergency Management Agency',
         url: 'https://getprepared.nz/tsunami/',
       },
     });
@@ -206,7 +206,7 @@ export function generateActions(report: {
     });
   }
 
-  // --- Wellington: reclaimed land ---
+  // --- Reclaimed land ---
   if (h.gwrc_liquefaction_geology?.toLowerCase().includes('reclaimed')) {
     actions.push({
       title: 'Commission a geotechnical assessment for reclaimed land',
@@ -216,21 +216,17 @@ export function generateActions(report: {
     });
   }
 
-  // --- Wellington: fault zone ---
+  // --- Fault zone ---
   if (h.fault_zone_name) {
     actions.push({
       title: 'Check fault avoidance zone building restrictions',
       description:
-        `The property is near the ${h.fault_zone_name}. The WCC District Plan restricts certain building types and modifications in fault avoidance zones. Check what applies.`,
+        `The property is near the ${h.fault_zone_name}. District Plans restrict certain building types and modifications in fault avoidance zones. Check what applies with your local council.`,
       priority: 'recommended',
-      link: {
-        label: 'WCC District Plan — Natural Hazards',
-        url: 'https://eplan.wellington.govt.nz/eplan/rules/0/0/0/0/1',
-      },
     });
   }
 
-  // --- Wellington: ground shaking amplification ---
+  // --- Ground shaking amplification ---
   if (h.ground_shaking_severity?.toLowerCase().includes('high')) {
     actions.push({
       title: 'Ask about seismic strengthening and building age',
@@ -248,8 +244,8 @@ export function generateActions(report: {
         'Review the Selected Land Use Register for details on nearby contaminated sites. Some contamination may affect bore water, gardening, or future development.',
       priority: 'recommended',
       link: {
-        label: 'GWRC SLUR',
-        url: 'https://mapping.gw.govt.nz/GW/SLUR/',
+        label: 'Check HAIL / SLUR register',
+        url: 'https://www.mfe.govt.nz/land/contaminated-land',
       },
     });
   }
@@ -299,8 +295,8 @@ export function generateActions(report: {
           : `This property is zoned ${p.zone_name}. Check what activities and building types are permitted, and whether any plan changes are proposed.`,
       priority: 'optional',
       link: {
-        label: 'WCC District Plan',
-        url: 'https://eplan.wellington.govt.nz/',
+        label: 'Check your district plan',
+        url: 'https://www.mfe.govt.nz/rma/district-plans',
       },
     });
   }
