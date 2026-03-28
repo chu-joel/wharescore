@@ -100,12 +100,16 @@ export function generateFindings(report: {
   liveability: import('@/lib/types').LiveabilityData;
   planning: import('@/lib/types').PlanningData;
   scores: import('@/lib/types').CompositeScore;
+  terrain?: import('@/lib/types').PropertyReport['terrain'];
+  event_history?: import('@/lib/types').PropertyReport['event_history'];
 }, persona?: 'renter' | 'buyer'): Finding[] {
   const findings: Finding[] = [];
   const h = report.hazards;
   const e = report.environment;
   const l = report.liveability;
   const p = report.planning;
+  const terrain = report.terrain;
+  const eventHist = report.event_history;
 
   // --- Critical findings (hazards) ---
 
@@ -555,6 +559,85 @@ export function generateFindings(report: {
       category: 'Liveability',
       source: 'Council Parks Data',
     });
+  }
+
+  // --- Terrain-inferred findings ---
+  if (terrain?.is_depression && !h.flood_zone) {
+    const depth = terrain.depression_depth_m;
+    findings.push({
+      headline: `Natural low point${depth ? ` (${Math.abs(depth).toFixed(1)}m below surroundings)` : ''} — water may collect here`,
+      interpretation:
+        'This property sits lower than its immediate surroundings, creating a natural collection point for rainwater. Check for signs of past ponding and ensure stormwater drainage is adequate.',
+      severity: terrain.flood_terrain_risk === 'high' ? 'warning' : 'info',
+      category: 'Hazards',
+      source: 'Terrain Analysis (SRTM 30m)',
+    });
+  }
+
+  if (terrain?.flood_terrain_risk === 'moderate' && !terrain?.is_depression && !h.flood_zone) {
+    findings.push({
+      headline: 'Flat, low-lying terrain — limited natural drainage',
+      interpretation:
+        'No council flood zone is mapped here, but flat low-lying ground is inherently vulnerable to surface flooding during heavy rain. Check floor levels and stormwater capacity.',
+      severity: 'info',
+      category: 'Hazards',
+      source: 'Terrain Analysis (SRTM 30m)',
+    });
+  }
+
+  if (terrain?.wind_exposure === 'very_exposed') {
+    findings.push({
+      headline: `Exposed ${terrain.relative_position === 'hilltop' ? 'hilltop' : 'ridgeline'} — expect strong winds`,
+      interpretation:
+        'This elevated, exposed position faces significantly stronger winds, especially from the prevailing westerly direction. Check roof fixings and cladding meet wind zone requirements.',
+      severity: 'warning',
+      category: 'Hazards',
+      source: 'Terrain Analysis (SRTM 30m)',
+    });
+  } else if (terrain?.wind_exposure === 'sheltered' && terrain?.relative_position && ['depression', 'valley'].includes(terrain.relative_position)) {
+    findings.push({
+      headline: 'Naturally sheltered from wind',
+      interpretation:
+        'The surrounding terrain provides natural wind protection. This reduces exterior wear and improves outdoor comfort.',
+      severity: 'positive',
+      category: 'Liveability',
+      source: 'Terrain Analysis (SRTM 30m)',
+    });
+  }
+
+  // --- Event history findings ---
+  if (eventHist) {
+    if (eventHist.extreme_weather_5yr >= 5) {
+      findings.push({
+        headline: `${eventHist.extreme_weather_5yr} extreme weather events recorded nearby in 5 years`,
+        interpretation:
+          'Frequent severe weather increases risk of flooding, slips, and property damage. Check insurance covers weather-related damage.',
+        severity: 'warning',
+        category: 'Hazards',
+        source: 'Open-Meteo Weather Archive',
+      });
+    } else if (eventHist.extreme_weather_5yr >= 2) {
+      findings.push({
+        headline: `${eventHist.extreme_weather_5yr} extreme weather events recorded nearby in 5 years`,
+        interpretation:
+          'Review property for weather resilience — drainage, roof condition, and tree proximity.',
+        severity: 'info',
+        category: 'Hazards',
+        source: 'Open-Meteo Weather Archive',
+      });
+    }
+
+    if (eventHist.earthquakes_30km_10yr >= 5) {
+      const magStr = eventHist.largest_quake_magnitude ? `, largest M${eventHist.largest_quake_magnitude.toFixed(1)}` : '';
+      findings.push({
+        headline: `${eventHist.earthquakes_30km_10yr} earthquakes M4+ within 30km in 10 years${magStr}`,
+        interpretation:
+          'Seismically active area. Check the building\'s earthquake resilience and review EQC claim history.',
+        severity: eventHist.earthquakes_30km_10yr >= 10 ? 'warning' : 'info',
+        category: 'Hazards',
+        source: 'GeoNet Earthquake Database',
+      });
+    }
   }
 
   // Sort: critical first, then warning, then info, then positive

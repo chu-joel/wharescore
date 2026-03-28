@@ -962,6 +962,109 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         except (TypeError, ValueError):
             pass
 
+    # ── Terrain-Inferred Hazard Rules ────────────────────────────────────────
+    terrain = report.get("terrain") or {}
+    flood_terrain = terrain.get("flood_terrain_risk", "none")
+    wind_exp = terrain.get("wind_exposure", "unknown")
+    rel_pos = terrain.get("relative_position", "unknown")
+    is_depression = terrain.get("is_depression")
+    depression_depth = terrain.get("depression_depth_m")
+
+    # Depression → water pooling risk (only if no council flood data already flagged)
+    if is_depression and not hazards.get("flood") and not hazards.get("wcc_flood_ranking"):
+        depth_str = f" ({abs(depression_depth):.1f}m below surrounding terrain)" if depression_depth else ""
+        result["hazards"].append(Insight(
+            "warn" if flood_terrain in ("high", "moderate") else "info",
+            f"This property sits in a natural low point{depth_str} — water may collect here during heavy rain.",
+            "Check for signs of past ponding (staining on foundations, soft ground). Ensure stormwater "
+            "drainage is adequate and not relying solely on soakage. Ask the council about overland flow paths.",
+        ).to_dict())
+
+    # Flat + low elevation → poor drainage (only if no existing flood finding)
+    if flood_terrain in ("moderate", "high") and not is_depression and not hazards.get("flood"):
+        elev = terrain.get("elevation_m")
+        elev_str = f" at {elev:.0f}m elevation" if elev else ""
+        result["hazards"].append(Insight(
+            "info",
+            f"Flat, low-lying terrain{elev_str} with limited natural drainage — terrain suggests flood susceptibility.",
+            "No council flood zone is mapped here, but flat low-lying ground is inherently vulnerable to "
+            "surface flooding. Check floor levels relative to surrounding ground and nearest waterways.",
+        ).to_dict())
+
+    # Wind exposure
+    if wind_exp == "very_exposed":
+        result["hazards"].append(Insight(
+            "warn",
+            f"{'Hilltop' if rel_pos == 'hilltop' else 'Ridgeline'} position — expect significantly "
+            "stronger winds, especially from the prevailing westerly/northwesterly direction.",
+            "Check roof fixings and cladding meet wind zone requirements. BRANZ recommends specific "
+            "detailing for exposed sites. Budget for higher maintenance on external finishes.",
+        ).to_dict())
+    elif wind_exp == "exposed":
+        result["hazards"].append(Insight(
+            "info",
+            "Elevated, exposed site — wind speeds are likely above average for this area.",
+            "Consider wind when planning outdoor spaces. Check cladding and roof condition during inspection.",
+        ).to_dict())
+
+    # Sheltered valley (positive)
+    if wind_exp == "sheltered" and rel_pos in ("depression", "valley"):
+        result["liveability"].append(Insight(
+            "ok",
+            f"Naturally sheltered {'valley' if rel_pos == 'valley' else 'low-lying'} position — wind exposure is low.",
+            "",
+        ).to_dict())
+
+    # ── Event History Rules ───────────────────────────────────────────────────
+    event_hist = report.get("event_history") or {}
+    total_weather = event_hist.get("extreme_weather_5yr") or 0
+    rain_count = event_hist.get("heavy_rain_events") or 0
+    wind_count = event_hist.get("extreme_wind_events") or 0
+    worst_rain = event_hist.get("worst_rain_mm")
+    worst_wind = event_hist.get("worst_wind_kmh")
+    quake_count = event_hist.get("earthquakes_30km_10yr") or 0
+    largest_quake = event_hist.get("largest_quake_magnitude")
+
+    if total_weather >= 5:
+        rain_str = f" including {rain_count} heavy rain events" if rain_count >= 2 else ""
+        result["hazards"].append(Insight(
+            "warn",
+            f"{total_weather} extreme weather events recorded within 50km in the last 5 years{rain_str}.",
+            "Frequent severe weather increases risk of flooding, slips, and property damage. "
+            "Check insurance covers weather-related damage without excessive excesses.",
+        ).to_dict())
+    elif total_weather >= 2:
+        result["hazards"].append(Insight(
+            "info",
+            f"{total_weather} extreme weather events recorded within 50km in the last 5 years.",
+            "Review property for weather resilience — drainage, roof condition, and tree proximity.",
+        ).to_dict())
+
+    if worst_rain and worst_rain >= 80:
+        result["hazards"].append(Insight(
+            "warn" if worst_rain >= 120 else "info",
+            f"Heaviest recorded rainfall nearby: {worst_rain:.0f}mm in a single event — "
+            + ("extreme" if worst_rain >= 120 else "very heavy") + " for NZ conditions.",
+            "Intense rainfall events overwhelm stormwater systems. Check the property's "
+            "drainage capacity and whether the floor level is raised above surrounding ground.",
+        ).to_dict())
+
+    if quake_count >= 5:
+        mag_str = f", largest M{largest_quake:.1f}" if largest_quake else ""
+        result["hazards"].append(Insight(
+            "warn" if quake_count >= 10 else "info",
+            f"{quake_count} earthquakes M4+ within 30km in the last 10 years{mag_str} — seismically active area.",
+            "Check the building's earthquake resilience. Older buildings (pre-1976) may not meet "
+            "current seismic standards. Review EQC claim history via LIM.",
+        ).to_dict())
+    elif quake_count >= 2 and largest_quake and largest_quake >= 5.0:
+        result["hazards"].append(Insight(
+            "info",
+            f"M{largest_quake:.1f} earthquake recorded within 30km in the last 10 years.",
+            "Ask about any earthquake damage history. Check for cosmetic damage (cracks in plaster, "
+            "gaps in window frames) that may indicate structural movement.",
+        ).to_dict())
+
     # ── Environment Rules ─────────────────────────────────────────────────────
 
     noise_db = env.get("road_noise_db")

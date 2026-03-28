@@ -362,6 +362,26 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
             )
             terrain = cur.fetchone()
             if terrain and terrain["elevation_m"] is not None:
+                # PostGIS doesn't give us cardinal samples, so we fetch them
+                # from Valhalla for inference (fast, single HTTP call)
+                offset = 0.00027
+                sample_pts = [
+                    {"lat": lat, "lon": lon},
+                    {"lat": lat + offset, "lon": lon},
+                    {"lat": lat - offset, "lon": lon},
+                    {"lat": lat, "lon": lon + offset},
+                    {"lat": lat, "lon": lon - offset},
+                ]
+                pg_elevs = await get_elevation_multi(sample_pts)
+                pg_cardinal = {}
+                if pg_elevs and len(pg_elevs) == 5:
+                    pg_cardinal = {"n": pg_elevs[1], "s": pg_elevs[2], "e": pg_elevs[3], "w": pg_elevs[4]}
+                inferences = _classify_terrain_inferences(
+                    round(terrain["elevation_m"], 1),
+                    pg_cardinal,
+                    round(terrain["slope_degrees"], 1) if terrain["slope_degrees"] else None,
+                    terrain["aspect_label"],
+                )
                 return {
                     "elevation_m": round(terrain["elevation_m"], 1),
                     "slope_degrees": round(terrain["slope_degrees"], 1) if terrain["slope_degrees"] else None,
@@ -369,6 +389,7 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
                     "aspect_degrees": round(terrain["aspect_degrees"], 1) if terrain["aspect_degrees"] else None,
                     "aspect_label": terrain["aspect_label"],
                     "terrain_source": "postgis",
+                    **inferences,
                 }
     except Exception:
         # PostGIS raster query failed — fall through to Valhalla
@@ -410,6 +431,9 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
             elif aspect_deg < 292.5: aspect_label = "west"
             else: aspect_label = "northwest"
 
+        inferences = _classify_terrain_inferences(
+            center_elev, cardinal, slope_deg, aspect_label,
+        )
         return {
             "elevation_m": round(center_elev, 1),
             "slope_degrees": slope_deg,
@@ -417,6 +441,7 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
             "aspect_degrees": aspect_deg,
             "aspect_label": aspect_label,
             "terrain_source": "valhalla",
+            **inferences,
         }
 
     return _empty_terrain()
@@ -430,6 +455,114 @@ def _empty_terrain() -> dict[str, Any]:
         "aspect_degrees": None,
         "aspect_label": "unknown",
         "terrain_source": "none",
+        "is_depression": None,
+        "depression_depth_m": None,
+        "relative_position": "unknown",
+        "wind_exposure": "unknown",
+        "wind_exposure_score": None,
+        "flood_terrain_risk": "unknown",
+        "flood_terrain_score": None,
+    }
+
+
+def _classify_terrain_inferences(
+    center_elev: float,
+    cardinal_elevs: dict[str, float | None],
+    slope_deg: float | None,
+    aspect_label: str,
+) -> dict[str, Any]:
+    """Infer flood-prone terrain, wind exposure, and relative position from
+    the 5-point elevation sample we already fetch.
+
+    cardinal_elevs: {"n": elev, "s": elev, "e": elev, "w": elev}
+    """
+    n = cardinal_elevs.get("n")
+    s = cardinal_elevs.get("s")
+    e = cardinal_elevs.get("e")
+    w = cardinal_elevs.get("w")
+
+    valid = [v for v in [n, s, e, w] if v is not None and v > -500]
+    if len(valid) < 4:
+        return {
+            "is_depression": None,
+            "depression_depth_m": None,
+            "relative_position": "unknown",
+            "wind_exposure": "unknown",
+            "wind_exposure_score": None,
+            "flood_terrain_risk": "unknown",
+            "flood_terrain_score": None,
+        }
+
+    higher_count = sum(1 for v in valid if v > center_elev + 0.5)
+    lower_count = sum(1 for v in valid if v < center_elev - 0.5)
+
+    # --- Relative position ---
+    if higher_count == 4:
+        rel_pos = "depression"
+    elif higher_count >= 3:
+        rel_pos = "valley"
+    elif lower_count == 4:
+        rel_pos = "hilltop"
+    elif lower_count >= 3:
+        rel_pos = "ridgeline"
+    else:
+        rel_pos = "mid-slope"
+
+    # --- Depression detection ---
+    is_depression = higher_count == 4
+    depression_depth = None
+    if is_depression:
+        depression_depth = round(min(valid) - center_elev, 1)
+
+    # --- Wind exposure ---
+    slope = slope_deg or 0
+    west_facing = aspect_label in ("west", "northwest", "southwest")
+    high_elev = center_elev > 100
+    very_high_elev = center_elev > 200
+
+    if rel_pos in ("hilltop", "ridgeline") and (very_high_elev or west_facing):
+        wind_exp, wind_score = "very_exposed", 5
+    elif rel_pos in ("hilltop", "ridgeline") and high_elev:
+        wind_exp, wind_score = "exposed", 4
+    elif rel_pos in ("hilltop", "ridgeline"):
+        wind_exp, wind_score = "exposed", 4
+    elif rel_pos == "mid-slope" and west_facing and high_elev:
+        wind_exp, wind_score = "exposed", 4
+    elif rel_pos == "mid-slope" and west_facing:
+        wind_exp, wind_score = "moderate", 3
+    elif rel_pos in ("depression", "valley"):
+        wind_exp, wind_score = "sheltered", 1 if rel_pos == "depression" else 2
+    else:
+        wind_exp, wind_score = "moderate", 3
+
+    # --- Flood terrain risk ---
+    flat = slope < 2
+    low = center_elev < 10
+    mod_low = center_elev < 20
+
+    if is_depression and flat and low:
+        flood_risk, flood_score = "high", 4
+    elif is_depression and flat:
+        flood_risk, flood_score = "moderate", 3
+    elif flat and low:
+        flood_risk, flood_score = "moderate", 3
+    elif is_depression and low:
+        flood_risk, flood_score = "moderate", 3
+    elif flat and mod_low:
+        flood_risk, flood_score = "low", 2
+    elif flat:
+        flood_risk, flood_score = "low", 1
+    else:
+        flood_risk, flood_score = "none", 0
+
+    return {
+        "is_depression": is_depression,
+        "depression_depth_m": depression_depth,
+        "relative_position": rel_pos,
+        "wind_exposure": wind_exp,
+        "wind_exposure_score": wind_score,
+        "flood_terrain_risk": flood_risk,
+        "flood_terrain_score": flood_score,
     }
 
 

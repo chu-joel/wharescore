@@ -14,6 +14,8 @@ import {
   Bus,
   TrainFront,
   Ship,
+  Wind,
+  Droplets,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReportSnapshot } from '@/lib/types';
@@ -191,6 +193,12 @@ export function HostedTerrain({ snapshot }: Props) {
   const ferryStops = isochrone?.ferry_stops_walk_10min ?? 0;
   const isoMethod = isochrone?.isochrone_method;
 
+  const windExposure = terrain?.wind_exposure ?? 'unknown';
+  const windScore = terrain?.wind_exposure_score;
+  const floodTerrain = terrain?.flood_terrain_risk ?? 'unknown';
+  const isDepression = terrain?.is_depression;
+  const relativePos = terrain?.relative_position ?? 'unknown';
+
   const terrainInsights = insights.filter((i) => i.category === 'terrain');
   const walkInsights = insights.filter((i) => i.category === 'walkability');
 
@@ -260,6 +268,52 @@ export function HostedTerrain({ snapshot }: Props) {
                     {landslideRisk.slope_risk.replace('_', ' ')}
                   </p>
                   <p className="text-[10px] text-muted-foreground">landslide susceptibility</p>
+                </div>
+              )}
+
+              {/* Wind exposure */}
+              {windExposure !== 'unknown' && (
+                <div className="rounded-lg border border-border p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                    <Wind className="h-3 w-3" /> Wind
+                  </p>
+                  <p
+                    className={`text-xl font-bold mt-1 capitalize ${
+                      windScore != null && windScore >= 4
+                        ? 'text-red-600 dark:text-red-400'
+                        : windScore != null && windScore >= 3
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`}
+                  >
+                    {windExposure.replace('_', ' ')}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {relativePos !== 'unknown' ? relativePos.replace('-', ' ') : 'wind exposure'}
+                  </p>
+                </div>
+              )}
+
+              {/* Flood terrain risk */}
+              {floodTerrain !== 'unknown' && floodTerrain !== 'none' && (
+                <div className="rounded-lg border border-border p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                    <Droplets className="h-3 w-3" /> Drainage
+                  </p>
+                  <p
+                    className={`text-xl font-bold mt-1 capitalize ${
+                      floodTerrain === 'high'
+                        ? 'text-red-600 dark:text-red-400'
+                        : floodTerrain === 'moderate'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`}
+                  >
+                    {floodTerrain}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isDepression ? 'depression — water collects' : 'flood terrain risk'}
+                  </p>
                 </div>
               )}
             </div>

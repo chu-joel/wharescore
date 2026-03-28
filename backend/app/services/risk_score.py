@@ -526,6 +526,41 @@ def enrich_with_scores(report: dict) -> dict:
             if ce_score > 0:
                 indicators["coastal_erosion_council"] = ce_score
 
+    # ── Terrain-inferred risk boosts ──
+    # These are soft signals from elevation/slope data — only boost when no
+    # council-provided hazard data exists for this indicator.
+    terrain = report.get("terrain") or {}
+    flood_terrain_score = terrain.get("flood_terrain_score")
+    wind_exposure_score = terrain.get("wind_exposure_score")
+
+    # Terrain-inferred flood: flat depression at low elevation suggests flood-prone
+    if flood_terrain_score and flood_terrain_score >= 3 and (indicators.get("flood") or 0) == 0:
+        indicators["flood"] = {3: 25, 4: 35}.get(flood_terrain_score, 25)
+
+    # Terrain-inferred wind: exposed ridgeline/hilltop suggests high wind
+    if wind_exposure_score and wind_exposure_score >= 4 and (indicators.get("wind") or 0) <= 10:
+        indicators["wind"] = {4: 35, 5: 50}.get(wind_exposure_score, 35)
+
+    # ── Event-history risk boosts ──
+    # Historical weather/earthquake events provide evidence even when council
+    # hazard maps don't exist for an area.
+    event_hist = report.get("event_history") or {}
+    rain_events = event_hist.get("heavy_rain_events") or 0
+    wind_events = event_hist.get("extreme_wind_events") or 0
+    quake_count = event_hist.get("earthquakes_30km_10yr") or 0
+
+    # Repeated heavy rain near a property with no flood zone → soft boost
+    if rain_events >= 3 and (indicators.get("flood") or 0) < 30:
+        indicators["flood"] = max(indicators.get("flood") or 0, 15 + min(rain_events, 6) * 3)
+
+    # Repeated extreme wind near a property with low/default wind score → boost
+    if wind_events >= 2 and (indicators.get("wind") or 0) <= 15:
+        indicators["wind"] = max(indicators.get("wind") or 0, 20 + min(wind_events, 5) * 3)
+
+    # High seismic activity → slight boost if earthquake score is low
+    if quake_count >= 5 and (indicators.get("earthquake") or 0) < 30:
+        indicators["earthquake"] = max(indicators.get("earthquake") or 0, 20 + min(quake_count, 10) * 2)
+
     # Environment
     indicators["noise"] = normalize_min_max(env.get("road_noise_db"), 40, 75)
     indicators["air_quality"] = SEVERITY_AIR_QUALITY.get(env.get("air_pm10_trend"), 30)

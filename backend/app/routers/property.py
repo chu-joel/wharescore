@@ -244,6 +244,84 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
         logger.warning(f"Terrain overlay failed for {address_id}: {e}")
 
 
+async def _overlay_event_history(report: dict, address_id: int) -> None:
+    """Surface historical weather events and earthquake activity near the property.
+
+    Queries weather_events (5yr, 50km) and earthquakes (10yr, 30km) already in the
+    database and adds a summary to the on-screen report so users see what has
+    happened in this area — even on the free tier."""
+    try:
+        async with db.pool.connection() as conn:
+            # Weather events — critical/warning within 50km, last 5 years
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT we.event_type, we.severity, we.title,
+                       we.precipitation_mm, we.wind_gust_kmh, we.event_date,
+                       round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+                FROM weather_events we, addr
+                WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
+                  AND we.event_date >= (CURRENT_DATE - interval '5 years')
+                  AND we.severity IN ('critical', 'warning')
+                ORDER BY we.event_date DESC
+                LIMIT 50
+            """, [address_id])
+            weather_rows = cur.fetchall()
+
+            # Earthquakes — M4+ within 30km, last 10 years
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT eq.magnitude, eq.depth_km, eq.event_time, eq.location_name,
+                       round(ST_Distance(eq.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+                FROM earthquakes eq, addr
+                WHERE ST_DWithin(eq.geom::geography, addr.geom::geography, 30000)
+                  AND eq.magnitude >= 4.0
+                  AND eq.event_time >= (CURRENT_DATE - interval '10 years')
+                ORDER BY eq.magnitude DESC
+                LIMIT 50
+            """, [address_id])
+            quake_rows = cur.fetchall()
+
+        # Summarise weather events
+        heavy_rain = [r for r in weather_rows if r["event_type"] == "heavy_rain"]
+        extreme_wind = [r for r in weather_rows if r["event_type"] == "extreme_wind"]
+        worst_rain = max((float(r["precipitation_mm"]) for r in weather_rows if r["precipitation_mm"]), default=None)
+        worst_wind = max((float(r["wind_gust_kmh"]) for r in weather_rows if r["wind_gust_kmh"]), default=None)
+
+        # Top 5 most notable events (mix of weather + quakes)
+        top_events = []
+        for r in sorted(weather_rows, key=lambda x: x["precipitation_mm"] or 0, reverse=True)[:3]:
+            top_events.append({
+                "type": r["event_type"],
+                "date": r["event_date"].isoformat() if hasattr(r["event_date"], "isoformat") else str(r["event_date"]),
+                "title": r["title"],
+                "severity": r["severity"],
+                "detail": f"{r['precipitation_mm']:.0f}mm rain" if r["precipitation_mm"] else f"{r['wind_gust_kmh']:.0f}km/h wind" if r["wind_gust_kmh"] else None,
+                "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
+            })
+        for r in quake_rows[:2]:
+            top_events.append({
+                "type": "earthquake",
+                "date": r["event_time"].isoformat() if hasattr(r["event_time"], "isoformat") else str(r["event_time"]),
+                "title": f"M{r['magnitude']:.1f} earthquake" + (f" — {r['location_name']}" if r["location_name"] else ""),
+                "severity": "critical" if r["magnitude"] >= 5.0 else "warning",
+                "detail": f"M{r['magnitude']:.1f}, {r['depth_km']:.0f}km deep" if r["depth_km"] else f"M{r['magnitude']:.1f}",
+                "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
+            })
+
+        report["event_history"] = {
+            "extreme_weather_5yr": len(weather_rows),
+            "heavy_rain_events": len(heavy_rain),
+            "extreme_wind_events": len(extreme_wind),
+            "worst_rain_mm": worst_rain,
+            "worst_wind_kmh": worst_wind,
+            "earthquakes_30km_10yr": len(quake_rows),
+            "largest_quake_magnitude": float(quake_rows[0]["magnitude"]) if quake_rows else None,
+            "top_events": top_events[:5],
+        }
+    except Exception as e:
+        logger.warning(f"Event history overlay failed for {address_id}: {e}")
+
+
 @router.get("/property/{address_id}/report")
 @limiter.limit("20/minute", key_func=_verified_user_or_ip)
 @limiter.limit("5/minute", key_func=get_remote_address)
@@ -317,6 +395,13 @@ async def get_report(request: Request, address_id: int):
 
     # Overlay terrain + walking isochrone data (elevation, slope, 10-min walk)
     await _overlay_terrain_data(report, address_id)
+
+    # Overlay event history (weather events + earthquakes near property)
+    await _overlay_event_history(report, address_id)
+
+    # Re-enrich scores now that terrain + event_history are available
+    # (terrain-inferred flood/wind boosts and event-history boosts need these fields)
+    report = enrich_with_scores(report)
 
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)

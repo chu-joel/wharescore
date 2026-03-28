@@ -224,6 +224,28 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
                 {report.terrain.slope_category.charAt(0).toUpperCase() + report.terrain.slope_category.slice(1)} slope
               </span>
             )}
+            {report.terrain?.wind_exposure && report.terrain.wind_exposure !== 'unknown' && report.terrain.wind_exposure !== 'moderate' && (
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                report.terrain.wind_exposure === 'very_exposed'
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  : report.terrain.wind_exposure === 'exposed'
+                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+              }`}>
+                {report.terrain.wind_exposure === 'very_exposed' ? 'Very exposed' :
+                 report.terrain.wind_exposure === 'exposed' ? 'Wind exposed' : 'Wind sheltered'}
+              </span>
+            )}
+            {report.terrain?.is_depression && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                Low point
+              </span>
+            )}
+            {report.event_history && report.event_history.extreme_weather_5yr >= 3 && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                {report.event_history.extreme_weather_5yr} weather events (5yr)
+              </span>
+            )}
           </div>
         )}
 

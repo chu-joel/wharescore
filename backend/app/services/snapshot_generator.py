@@ -1156,6 +1156,80 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "category": "terrain",
             })
 
+    # ── Depression / flood terrain risk ──
+    is_depression = terrain.get("is_depression")
+    depression_depth = terrain.get("depression_depth_m")
+    flood_terrain = terrain.get("flood_terrain_risk", "none")
+    flood_terrain_score = terrain.get("flood_terrain_score", 0)
+    rel_pos = terrain.get("relative_position", "unknown")
+
+    if is_depression and flood_terrain in ("high", "moderate"):
+        depth_str = f" ({abs(depression_depth):.1f}m below surrounding terrain)" if depression_depth else ""
+        in_flood = "flood" in detected
+        insights.append({
+            "severity": "warning" if flood_terrain == "high" else "info",
+            "title": "Depression — water pooling risk",
+            "detail": f"This property sits in a natural low point{depth_str} where water naturally collects. "
+                       + ("This is confirmed by council flood mapping for this area." if in_flood
+                          else "While no council flood zone is mapped here, the terrain itself creates ponding risk during heavy rain."),
+            "action": "Check for signs of past water damage (staining on foundations, efflorescence on concrete, soft ground). "
+                      "Ensure stormwater drainage is adequate — gravity cannot help water leave a depression. "
+                      "Consider installing a sump pump if the property has a basement or sub-floor space.",
+            "category": "terrain",
+        })
+    elif is_depression:
+        insights.append({
+            "severity": "info",
+            "title": "Low point in local terrain",
+            "detail": f"This property is lower than its immediate surroundings{f' by {abs(depression_depth):.1f}m' if depression_depth else ''}, which can affect drainage during heavy rain.",
+            "action": "Check that stormwater systems direct water away from the building. Ponding around foundations increases dampness risk over time.",
+            "category": "terrain",
+        })
+
+    if flood_terrain in ("moderate", "high") and not is_depression and "flood" not in detected and elev is not None:
+        insights.append({
+            "severity": "info",
+            "title": "Flat, low-lying terrain — flood susceptibility",
+            "detail": f"At {elev:.0f}m elevation on flat ground, this property has limited natural drainage. "
+                      "No council flood zone is mapped here, but terrain shape suggests vulnerability to surface flooding during extreme rainfall.",
+            "action": "Flat terrain doesn't drain naturally. Check the property's stormwater capacity, floor levels relative to surrounding ground, and proximity to waterways. Monitor council hazard plan updates — unmapped doesn't mean zero risk.",
+            "category": "terrain",
+        })
+
+    # ── Wind exposure ──
+    wind_exp = terrain.get("wind_exposure", "unknown")
+    wind_score = terrain.get("wind_exposure_score")
+    wind_zone = hazards.get("wind_zone")
+
+    if wind_exp == "very_exposed":
+        pos_label = "hilltop" if rel_pos == "hilltop" else "ridgeline"
+        insights.append({
+            "severity": "warning",
+            "title": f"Very exposed {pos_label} — high wind risk",
+            "detail": f"This {pos_label} position{f' at {elev:.0f}m elevation' if elev else ''} is exposed to NZ's prevailing westerly and northwesterly winds. "
+                      f"{'Council wind zone data confirms elevated wind exposure here.' if wind_zone else 'No official wind zone is mapped, but the terrain profile indicates significantly above-average wind speeds.'}",
+            "action": "Check roof fixings, cladding, and flashings meet NZS 3604 requirements for exposed sites. "
+                      "Budget for higher exterior maintenance costs. Consider wind breaks (fencing, planting) for outdoor living areas. "
+                      "BRANZ recommends specific detailing for sites above 150m or on exposed ridgelines.",
+            "category": "terrain",
+        })
+    elif wind_exp == "exposed":
+        insights.append({
+            "severity": "info",
+            "title": "Exposed site — above-average wind",
+            "detail": f"{'Elevated position' if rel_pos in ('hilltop', 'ridgeline') else 'West-facing mid-slope'}{f' at {elev:.0f}m' if elev else ''} — wind speeds are likely above average for this area, particularly during westerly weather patterns.",
+            "action": "Consider wind when planning outdoor spaces and garden plantings. Check cladding and roof condition during building inspection.",
+            "category": "terrain",
+        })
+    elif wind_exp == "sheltered" and rel_pos in ("depression", "valley"):
+        insights.append({
+            "severity": "positive",
+            "title": "Naturally sheltered from wind",
+            "detail": f"This {'valley' if rel_pos == 'valley' else 'low-lying'} position is naturally protected from prevailing winds by surrounding higher terrain. Wind damage risk is lower than average.",
+            "action": "Sheltered sites are an advantage for outdoor comfort and reduce wear on exterior finishes. However, sheltered valleys can trap cold air in winter — check for frost pockets if you're a keen gardener.",
+            "category": "terrain",
+        })
+
     # ── Cross-references: slope + rainfall ──
     climate_precip = None
     try:

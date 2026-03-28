@@ -234,6 +234,16 @@ Weighted geometric mean. Requires 3+ categories with scores. Market dropped if n
 - Active fault within 200m → 80/100
 - Slope failure Very High → 90/100
 
+### Terrain-inferred risk boosts (soft signals)
+When council hazard data is absent, terrain shape and event history provide soft score boosts:
+- Flood terrain score ≥3 (flat depression at low elevation) + no flood zone → 25-35/100
+- Wind exposure score ≥4 (exposed ridgeline/hilltop) + no wind zone → 35-50/100
+- ≥3 heavy rain events (5yr) + no flood zone → 15-33/100
+- ≥2 extreme wind events (5yr) + low wind score → 20-35/100
+- ≥5 M4+ earthquakes (10yr, 30km) + low earthquake score → 20-40/100
+
+These never override actual council data — they only fill gaps where council mapping doesn't exist.
+
 ### Council-specific hazard normalisation (all cities)
 
 National hazard tables (flood_zones, tsunami_zones, liquefaction_zones, slope_failure_zones) are Wellington-only. For all other cities, council-specific regional tables provide hazard data. `risk_score.py` uses a "take the worst" strategy: council data refines/overrides national scores via `max()`.

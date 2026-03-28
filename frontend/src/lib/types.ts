@@ -39,6 +39,13 @@ export interface PropertyReport {
       slope_risk: string;
       slope_risk_score: number | null;
     };
+    is_depression: boolean | null;
+    depression_depth_m: number | null;
+    relative_position: string;
+    wind_exposure: string;
+    wind_exposure_score: number | null;
+    flood_terrain_risk: string;
+    flood_terrain_score: number | null;
   };
   walking_reach?: {
     minutes: number;
@@ -47,6 +54,23 @@ export interface PropertyReport {
     bus_stops: number;
     rail_stops: number;
     ferry_stops: number;
+  };
+  event_history?: {
+    extreme_weather_5yr: number;
+    heavy_rain_events: number;
+    extreme_wind_events: number;
+    worst_rain_mm: number | null;
+    worst_wind_kmh: number | null;
+    earthquakes_30km_10yr: number;
+    largest_quake_magnitude: number | null;
+    top_events: Array<{
+      type: string;
+      date: string;
+      title: string;
+      severity: string;
+      detail: string | null;
+      distance_km: number | null;
+    }>;
   };
 }
 
@@ -636,6 +660,13 @@ export interface ReportSnapshot {
       slope_risk_score: number | null;
       slope_risk_detail: string | null;
     };
+    is_depression: boolean | null;
+    depression_depth_m: number | null;
+    relative_position: string;
+    wind_exposure: string;
+    wind_exposure_score: number | null;
+    flood_terrain_risk: string;
+    flood_terrain_score: number | null;
   };
   isochrone?: {
     transit_stops_walk_10min: number;
