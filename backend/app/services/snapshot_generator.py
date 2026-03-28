@@ -498,6 +498,34 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
 
         # Walking isochrone: 10-min walk transit stops (replaces 400m radius)
         isochrone_data = await count_stops_in_isochrone(conn, address_id, minutes=10)
+
+        # Waterway proximity
+        try:
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT w.name, w.feat_type,
+                       round(ST_Distance(w.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                FROM nz_waterways w, addr
+                WHERE ST_DWithin(w.geom::geography, addr.geom::geography, 500)
+                ORDER BY ST_Distance(w.geom::geography, addr.geom::geography)
+                LIMIT 3
+            """, [address_id])
+            ww = cur.fetchall()
+            if ww:
+                terrain_data["nearest_waterway_m"] = int(ww[0]["distance_m"])
+                terrain_data["nearest_waterway_name"] = ww[0]["name"]
+                terrain_data["nearest_waterway_type"] = ww[0]["feat_type"]
+                terrain_data["waterways_within_500m"] = len(ww)
+            else:
+                terrain_data["nearest_waterway_m"] = None
+                terrain_data["nearest_waterway_name"] = None
+                terrain_data["nearest_waterway_type"] = None
+                terrain_data["waterways_within_500m"] = 0
+        except Exception:
+            terrain_data["nearest_waterway_m"] = None
+            terrain_data["nearest_waterway_name"] = None
+            terrain_data["nearest_waterway_type"] = None
+            terrain_data["waterways_within_500m"] = 0
     except Exception as e:
         logger.warning(f"Snapshot terrain/isochrone failed: {e}")
 
@@ -1227,6 +1255,46 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             "title": "Naturally sheltered from wind",
             "detail": f"This {'valley' if rel_pos == 'valley' else 'low-lying'} position is naturally protected from prevailing winds by surrounding higher terrain. Wind damage risk is lower than average.",
             "action": "Sheltered sites are an advantage for outdoor comfort and reduce wear on exterior finishes. However, sheltered valleys can trap cold air in winter — check for frost pockets if you're a keen gardener.",
+            "category": "terrain",
+        })
+
+    # ── Waterway proximity ──
+    waterway_m = terrain.get("nearest_waterway_m")
+    waterway_name = terrain.get("nearest_waterway_name")
+    waterway_type = terrain.get("nearest_waterway_type", "")
+    waterway_count = terrain.get("waterways_within_500m", 0)
+    type_label = "river" if waterway_type == "river_cl" else "stream" if waterway_type == "drain_cl" else "waterway"
+
+    if waterway_m is not None and waterway_m <= 50:
+        in_flood = "flood" in detected
+        insights.append({
+            "severity": "warning",
+            "title": f"Very close to {'the ' + waterway_name if waterway_name else 'a ' + type_label}",
+            "detail": f"A {type_label}{' (' + waterway_name + ')' if waterway_name else ''} is just {waterway_m}m from this property. "
+                      f"{'Council flood mapping confirms flood risk in this area.' if in_flood else 'Even without a mapped flood zone, proximity this close to a waterway significantly increases flood risk during heavy or prolonged rainfall.'}"
+                      f"{' The flat, low-lying terrain compounds this — water has nowhere to drain except towards the property.' if is_depression or (slope is not None and slope < 2) else ''}",
+            "action": "Check the property's floor level relative to the waterway's normal and flood levels. "
+                      "Ask the council for flood modelling specific to this waterway. "
+                      "Ensure your insurance explicitly covers riverine flooding — many standard policies exclude or limit cover near waterways.",
+            "category": "terrain",
+        })
+    elif waterway_m is not None and waterway_m <= 100:
+        insights.append({
+            "severity": "info",
+            "title": f"Waterway within {waterway_m}m",
+            "detail": f"A {type_label}{' (' + waterway_name + ')' if waterway_name else ''} passes within {waterway_m}m of this property. "
+                      "Properties near waterways face elevated flood risk during extreme rainfall, particularly if the terrain is flat or low-lying.",
+            "action": "Check council flood maps for this specific waterway. During heavy rain events, waterways can rise rapidly — "
+                      "know whether this property is above the waterway's expected flood level.",
+            "category": "terrain",
+        })
+    elif waterway_m is not None and waterway_m <= 200 and waterway_count >= 2:
+        insights.append({
+            "severity": "info",
+            "title": f"{waterway_count} waterways within 500m",
+            "detail": f"Multiple waterways pass near this property (nearest: {waterway_m}m). "
+                      "While not immediately adjacent, the density of waterways in this area increases flood exposure during extreme events.",
+            "action": "Review council flood maps for this area. Multiple waterways suggest a low-lying drainage basin.",
             "category": "terrain",
         })
 

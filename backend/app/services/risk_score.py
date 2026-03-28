@@ -537,6 +537,18 @@ def enrich_with_scores(report: dict) -> dict:
     if flood_terrain_score and flood_terrain_score >= 3 and (indicators.get("flood") or 0) == 0:
         indicators["flood"] = {3: 25, 4: 35}.get(flood_terrain_score, 25)
 
+    # Waterway proximity: nearby river/stream compounds flood risk
+    waterway_m = terrain.get("nearest_waterway_m")
+    if waterway_m is not None:
+        current_flood = indicators.get("flood") or 0
+        if waterway_m <= 50 and current_flood < 45:
+            # Very close to waterway — significant flood risk even without council data
+            indicators["flood"] = max(current_flood, 45)
+        elif waterway_m <= 100 and current_flood < 35:
+            indicators["flood"] = max(current_flood, 35)
+        elif waterway_m <= 200 and current_flood < 25:
+            indicators["flood"] = max(current_flood, 25)
+
     # Terrain-inferred wind: exposed ridgeline/hilltop suggests high wind
     if wind_exposure_score and wind_exposure_score >= 4 and (indicators.get("wind") or 0) <= 10:
         indicators["wind"] = {4: 35, 5: 50}.get(wind_exposure_score, 35)

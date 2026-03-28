@@ -235,14 +235,16 @@ Weighted geometric mean. Requires 3+ categories with scores. Market dropped if n
 - Slope failure Very High → 90/100
 
 ### Terrain-inferred risk boosts (soft signals)
-When council hazard data is absent, terrain shape and event history provide soft score boosts:
+When council hazard data is absent, terrain shape, waterway proximity, and event history provide soft score boosts:
 - Flood terrain score ≥3 (flat depression at low elevation) + no flood zone → 25-35/100
+- Waterway ≤50m + flood score < 45 → 45/100; ≤100m → 35/100; ≤200m → 25/100
 - Wind exposure score ≥4 (exposed ridgeline/hilltop) + no wind zone → 35-50/100
 - ≥3 heavy rain events (5yr) + no flood zone → 15-33/100
 - ≥2 extreme wind events (5yr) + low wind score → 20-35/100
 - ≥5 M4+ earthquakes (10yr, 30km) + low earthquake score → 20-40/100
 
 These never override actual council data — they only fill gaps where council mapping doesn't exist.
+Waterway data from LINZ Topo50 (774K features: rivers, streams, drains) — table `nz_waterways`.
 
 ### Council-specific hazard normalisation (all cities)
 

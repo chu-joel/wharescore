@@ -46,6 +46,10 @@ export interface PropertyReport {
     wind_exposure_score: number | null;
     flood_terrain_risk: string;
     flood_terrain_score: number | null;
+    nearest_waterway_m: number | null;
+    nearest_waterway_name: string | null;
+    nearest_waterway_type: string | null;
+    waterways_within_500m: number;
   };
   walking_reach?: {
     minutes: number;
@@ -667,6 +671,10 @@ export interface ReportSnapshot {
     wind_exposure_score: number | null;
     flood_terrain_risk: string;
     flood_terrain_score: number | null;
+    nearest_waterway_m: number | null;
+    nearest_waterway_name: string | null;
+    nearest_waterway_type: string | null;
+    waterways_within_500m: number;
   };
   isochrone?: {
     transit_stops_walk_10min: number;

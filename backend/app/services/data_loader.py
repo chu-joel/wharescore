@@ -3369,10 +3369,143 @@ def load_nrc_contaminated_land(conn: psycopg.Connection, log: Callable = None) -
 
 
 # ═══════════════════════════════════════════════════════════════
+# NATIONAL WATERWAYS (LINZ Topo50)
+# ═══════════════════════════════════════════════════════════════
+
+
+def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load NZ river/stream/drain centrelines from LINZ WFS (Topo50 layer 103632).
+
+    Dataset: NZ River Name Lines (Pilot) — 774K features including rivers,
+    drains, and canals. Coordinates in NZTM (EPSG:2193), transformed to WGS84.
+    Used for waterway proximity analysis in property reports.
+    """
+    from ..config import settings
+
+    api_key = settings.LINZ_API_KEY
+    if not api_key:
+        _progress(log, "LINZ_API_KEY not set — skipping waterways")
+        return 0
+
+    base_url = f"https://data.linz.govt.nz/services;key={api_key}/wfs"
+    cur = conn.cursor()
+
+    # Ensure table exists
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS nz_waterways (
+            id SERIAL PRIMARY KEY,
+            linz_id INTEGER,
+            feat_type VARCHAR(20),
+            name TEXT,
+            name_ascii TEXT,
+            geom GEOMETRY(LineString, 4326)
+        );
+        CREATE INDEX IF NOT EXISTS idx_nz_waterways_geom ON nz_waterways USING GIST (geom);
+        CREATE INDEX IF NOT EXISTS idx_nz_waterways_feat_type ON nz_waterways (feat_type);
+    """)
+    conn.commit()
+
+    cur.execute("TRUNCATE nz_waterways RESTART IDENTITY")
+    conn.commit()
+
+    _progress(log, "Fetching LINZ waterways via WFS (774K features — this takes a few minutes)...")
+
+    count = 0
+    page_size = 10000
+    start_index = 0
+    batch = []
+
+    while True:
+        params = urllib.parse.urlencode({
+            "service": "WFS",
+            "version": "2.0.0",
+            "request": "GetFeature",
+            "typeNames": "layer-103632",
+            "outputFormat": "application/json",
+            "count": str(page_size),
+            "startIndex": str(start_index),
+        })
+        url = f"{base_url}?{params}"
+        try:
+            raw = _fetch_url(url, timeout=120)
+            data = json.loads(raw)
+        except Exception as e:
+            _progress(log, f"  WFS page failed at offset {start_index}: {e}")
+            break
+
+        features = data.get("features", [])
+        if not features:
+            break
+
+        for f in features:
+            props = f.get("properties", {})
+            geom = f.get("geometry")
+            if not geom or geom.get("type") not in ("LineString", "MultiLineString"):
+                continue
+
+            coords = geom.get("coordinates", [])
+            if not coords:
+                continue
+
+            # Build WKT — handle both LineString and MultiLineString
+            if geom["type"] == "LineString":
+                wkt = "LINESTRING(" + ", ".join(f"{c[0]} {c[1]}" for c in coords) + ")"
+            else:
+                # MultiLineString → take first line
+                wkt = "LINESTRING(" + ", ".join(f"{c[0]} {c[1]}" for c in coords[0]) + ")"
+
+            batch.append((
+                props.get("river_section_id") or props.get("id"),
+                props.get("feat_type"),
+                _clean(props.get("name")),
+                _clean(props.get("name_ascii")),
+                wkt,
+            ))
+
+        start_index += len(features)
+
+        # Flush batch every 10K
+        if len(batch) >= 5000:
+            cur.executemany(
+                "INSERT INTO nz_waterways (linz_id, feat_type, name, name_ascii, geom) "
+                "VALUES (%s, %s, %s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+                batch,
+            )
+            count += len(batch)
+            conn.commit()
+            batch = []
+            _progress(log, f"  {count} waterways loaded...")
+
+        if len(features) < page_size:
+            break
+
+        time.sleep(0.5)  # Be polite to LINZ API
+
+    # Flush remaining
+    if batch:
+        cur.executemany(
+            "INSERT INTO nz_waterways (linz_id, feat_type, name, name_ascii, geom) "
+            "VALUES (%s, %s, %s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
+            batch,
+        )
+        count += len(batch)
+        conn.commit()
+
+    _progress(log, f"LINZ waterways total: {count} rows")
+    return count
+
+
+# ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
 
 DATA_SOURCES: list[DataSource] = [
+    # ── National (LINZ) ───────────────────────────────────────
+    DataSource(
+        "linz_waterways", "LINZ NZ Waterways (Topo50 rivers, streams, drains)",
+        ["nz_waterways"],
+        load_linz_waterways,
+    ),
     # ── National (GNS) ────────────────────────────────────────
     DataSource(
         "gns_landslides", "GNS Landslide Database (National)",

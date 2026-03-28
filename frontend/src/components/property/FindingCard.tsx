@@ -605,6 +605,30 @@ export function generateFindings(report: {
     });
   }
 
+  // --- Waterway proximity findings ---
+  if (terrain?.nearest_waterway_m != null && terrain.nearest_waterway_m <= 50) {
+    const wName = terrain.nearest_waterway_name;
+    const wType = terrain.nearest_waterway_type === 'river_cl' ? 'river' : 'stream';
+    findings.push({
+      headline: `${wType.charAt(0).toUpperCase() + wType.slice(1)}${wName ? ` (${wName})` : ''} just ${terrain.nearest_waterway_m}m away`,
+      interpretation:
+        'Very close proximity to a waterway significantly increases flood risk during heavy or prolonged rainfall. Check floor levels and insurance coverage.',
+      severity: 'warning',
+      category: 'Hazards',
+      source: 'LINZ Topo50 Waterways',
+    });
+  } else if (terrain?.nearest_waterway_m != null && terrain.nearest_waterway_m <= 100) {
+    const wType = terrain.nearest_waterway_type === 'river_cl' ? 'River' : 'Waterway';
+    findings.push({
+      headline: `${wType} within ${terrain.nearest_waterway_m}m`,
+      interpretation:
+        'Proximity to waterways increases flood exposure during heavy rainfall. Check council flood maps for this area.',
+      severity: 'info',
+      category: 'Hazards',
+      source: 'LINZ Topo50 Waterways',
+    });
+  }
+
   // --- Event history findings ---
   if (eventHist) {
     if (eventHist.extreme_weather_5yr >= 5) {

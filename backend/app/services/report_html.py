@@ -1015,6 +1015,36 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "",
         ).to_dict())
 
+    # ── Waterway Proximity Rules ─────────────────────────────────────────────
+    waterway_m = terrain.get("nearest_waterway_m")
+    waterway_name = terrain.get("nearest_waterway_name")
+    waterway_type = terrain.get("nearest_waterway_type", "")
+    waterway_count = terrain.get("waterways_within_500m") or 0
+    type_label = "river" if waterway_type == "river_cl" else "stream" if waterway_type == "drain_cl" else "waterway"
+
+    if waterway_m is not None and waterway_m <= 50:
+        name_str = f" (**{waterway_name}**)" if waterway_name else ""
+        result["hazards"].append(Insight(
+            "warn",
+            f"A {type_label}{name_str} is just {waterway_m}m away — very close proximity increases flood risk.",
+            "Check floor levels relative to the waterway. Ask the council about flood history for this "
+            "specific location. Ensure building and contents insurance covers riverine flooding.",
+        ).to_dict())
+    elif waterway_m is not None and waterway_m <= 100:
+        name_str = f" ({waterway_name})" if waterway_name else ""
+        result["hazards"].append(Insight(
+            "info",
+            f"{type_label.capitalize()}{name_str} within {waterway_m}m — proximity to waterways increases flood exposure.",
+            "Properties near waterways face higher flood risk during heavy rain. Check council flood maps "
+            "and whether the property has flooded before.",
+        ).to_dict())
+    elif waterway_m is not None and waterway_m <= 200 and waterway_count >= 2:
+        result["hazards"].append(Insight(
+            "info",
+            f"{waterway_count} waterways within 500m, nearest {waterway_m}m away — moderate proximity to water.",
+            "Multiple nearby waterways increase flood exposure during extreme rainfall events.",
+        ).to_dict())
+
     # ── Event History Rules ───────────────────────────────────────────────────
     event_hist = report.get("event_history") or {}
     total_weather = event_hist.get("extreme_weather_5yr") or 0

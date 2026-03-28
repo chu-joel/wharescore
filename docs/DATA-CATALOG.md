@@ -117,6 +117,7 @@
 ### National
 | Key | Description | Target table(s) |
 |-----|------------|----------------|
+| linz_waterways | LINZ NZ Waterways (Topo50 rivers, streams, drains) | nz_waterways |
 | gns_active_faults | GNS Active Faults 1:250K | active_faults, fault_avoidance_zones |
 | gns_landslides | GNS Landslide Database | landslide_events, landslide_areas |
 | nzta_noise_contours | Waka Kotahi road noise | noise_contours |

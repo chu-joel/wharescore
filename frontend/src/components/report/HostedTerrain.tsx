@@ -198,6 +198,9 @@ export function HostedTerrain({ snapshot }: Props) {
   const floodTerrain = terrain?.flood_terrain_risk ?? 'unknown';
   const isDepression = terrain?.is_depression;
   const relativePos = terrain?.relative_position ?? 'unknown';
+  const waterwayM = terrain?.nearest_waterway_m;
+  const waterwayName = terrain?.nearest_waterway_name;
+  const waterwayType = terrain?.nearest_waterway_type;
 
   const terrainInsights = insights.filter((i) => i.category === 'terrain');
   const walkInsights = insights.filter((i) => i.category === 'walkability');
@@ -313,6 +316,35 @@ export function HostedTerrain({ snapshot }: Props) {
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {isDepression ? 'depression — water collects' : 'flood terrain risk'}
+                  </p>
+                </div>
+              )}
+
+              {/* Nearest waterway */}
+              {waterwayM != null && waterwayM <= 500 && (
+                <div className="rounded-lg border border-border p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                    <Droplets className="h-3 w-3" /> Waterway
+                  </p>
+                  <p
+                    className={`text-xl font-bold mt-1 tabular-nums ${
+                      waterwayM <= 50
+                        ? 'text-red-600 dark:text-red-400'
+                        : waterwayM <= 100
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    {waterwayM}m
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[100px] mx-auto">
+                    {waterwayName
+                      ? waterwayName
+                      : waterwayType === 'river_cl'
+                      ? 'nearest river'
+                      : waterwayType === 'drain_cl'
+                      ? 'nearest stream'
+                      : 'nearest waterway'}
                   </p>
                 </div>
               )}

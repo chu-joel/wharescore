@@ -241,6 +241,15 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
                 Low point
               </span>
             )}
+            {report.terrain?.nearest_waterway_m != null && report.terrain.nearest_waterway_m <= 100 && (
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                report.terrain.nearest_waterway_m <= 50
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+              }`}>
+                {report.terrain.nearest_waterway_name || 'Waterway'} {report.terrain.nearest_waterway_m}m
+              </span>
+            )}
             {report.event_history && report.event_history.extreme_weather_5yr >= 3 && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                 {report.event_history.extreme_weather_5yr} weather events (5yr)

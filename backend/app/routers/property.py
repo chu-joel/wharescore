@@ -220,6 +220,36 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
             terrain = await get_terrain_at_property(conn, address_id)
             isochrone = await count_stops_in_isochrone(conn, address_id, minutes=10)
 
+            # Waterway proximity — nearest river/stream/drain within 500m
+            try:
+                cur = await conn.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT w.name, w.feat_type,
+                           round(ST_Distance(w.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM nz_waterways w, addr
+                    WHERE ST_DWithin(w.geom::geography, addr.geom::geography, 500)
+                    ORDER BY ST_Distance(w.geom::geography, addr.geom::geography)
+                    LIMIT 3
+                """, [address_id])
+                waterway_rows = cur.fetchall()
+                if waterway_rows:
+                    nearest = waterway_rows[0]
+                    terrain["nearest_waterway_m"] = int(nearest["distance_m"])
+                    terrain["nearest_waterway_name"] = nearest["name"]
+                    terrain["nearest_waterway_type"] = nearest["feat_type"]
+                    terrain["waterways_within_500m"] = len(waterway_rows)
+                else:
+                    terrain["nearest_waterway_m"] = None
+                    terrain["nearest_waterway_name"] = None
+                    terrain["nearest_waterway_type"] = None
+                    terrain["waterways_within_500m"] = 0
+            except Exception:
+                # Table may not exist yet if waterways haven't been loaded
+                terrain["nearest_waterway_m"] = None
+                terrain["nearest_waterway_name"] = None
+                terrain["nearest_waterway_type"] = None
+                terrain["waterways_within_500m"] = 0
+
         # Add landslide risk classification from slope
         if terrain.get("slope_degrees") is not None:
             terrain["landslide_risk"] = classify_landslide_risk_from_slope(
