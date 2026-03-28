@@ -9005,6 +9005,27 @@ DATA_SOURCES: list[DataSource] = [
                 "NRC Tsunami 2024",
             ))),
 
+    DataSource("whangarei_liquefaction", "Whangarei Liquefaction Vulnerability (T+T 2020)",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://geo.wdc.govt.nz/server/rest/services/Liquefaction/MapServer/1",
+            "liquefaction_detail", "whangarei",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("Category")) or _clean(a.get("Vulnerability")) or "Liquefaction",
+                _clean(a.get("Description")),
+            ))),
+    DataSource("whangarei_land_stability", "Whangarei Land Instability (T+T 2020)",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://geo.wdc.govt.nz/server/rest/services/Land_Stability/MapServer/1",
+            "slope_failure", "whangarei",
+            ["lskey", "severity"],
+            lambda a: (
+                _clean(a.get("Category")) or "Land Instability",
+                _clean(a.get("Susceptibility")) or _clean(a.get("Category")) or "Medium",
+            ))),
+
     # ══════════════════════════════════════════════════════════
     # WHANGANUI — district data via GeoServer WFS
     # Base: https://data.whanganui.govt.nz/geoserver/ows

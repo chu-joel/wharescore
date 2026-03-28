@@ -204,7 +204,7 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | Tauranga | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Nelson/Tasman | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Queenstown | Y | Y | - | Y | - | Y | Y | - | Y | Y | - |
-| Whangarei | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
+| Whangarei | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | - |
 | New Plymouth | Y | Y | Y | - | - | Y | Y | Y | Y | Y | - |
 | Palmerston Nth | Y | Y | Y | - | - | Y | Y | Y | Y | Y | - |
 | Rotorua | Y | Y | - | Y | - | Y | - | Y | Y | Y | - |

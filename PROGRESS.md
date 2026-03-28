@@ -17,9 +17,43 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 70 (2026-03-28) — Two-tier report system: Quick Report ($4.99) + Full Report ($9.99).**
+**Session 71 (2026-03-28) — Complete dataset audit, wiring, and normalisation.**
 
 ### What Was Done This Session
+
+**(A) Dataset pipeline wiring (critical fixes):**
+- Wired `liquefaction_detail`, `tsunami_hazard`, `slope_failure` regional tables into `get_property_report()` SQL — were loaded by 40+ councils but never queried
+- Wired `landslide_susceptibility` table (GWRC + Auckland) into SQL
+- Fixed table name regression in 0022 (gwrc_* → renamed tables from migration 0004)
+- Fixed Horizons tsunami DataSource wrong target table
+- Normalised 9 tsunami DataSources from `tsunami_zones` to `tsunami_hazard`
+- Added council flood AEP, tsunami, liquefaction, slope normalisation to `risk_score.py` for ALL cities
+- Added GNS landslide data as fallback for slope_failure scoring (national coverage)
+- Frontend now falls back to council data when national fields are null
+
+**(B) New DataSources added (20+ new):**
+- Whanganui: 14 DataSources via WFS (flood, liquefaction, tsunami, slope, zones, heritage, trees, coastal)
+- Marlborough: plan zones, notable trees, steep erosion
+- Invercargill: liquefaction
+- Dunedin/Otago: ORC liquefaction
+- Christchurch GTFS: loaded (2,060 stops, 4,576 travel times) with Metroinfo API key auth
+- Generic `_load_council_wfs()` helper for GeoServer WFS loading
+
+**(C) Coverage status:**
+- Regional council data (GWRC, Horizons, NRC, BOPRC, TRC, ECan, ORC, ES) spatially covers most districts
+- Background agents searching for remaining gaps (slope failure for ECan, additional district-level data)
+
+### Next Steps
+- Load new DataSources via admin dashboard (Whanganui WFS, Marlborough, Invercargill, ORC)
+- Add any remaining district-level hazard endpoints found by research
+- Flush Redis cache after loading
+- Register for Christchurch GTFS key (done: `METROINFO_API_KEY` in .env)
+
+---
+
+**Session 70 (2026-03-28) — Two-tier report system: Quick Report ($4.99) + Full Report ($9.99).**
+
+### What Was Done Session 70
 
 **(A) Two-tier report system:**
 - Added Quick Report ($4.99, ~8 curated sections) alongside Full Report ($9.99, 25+ detailed sections)
