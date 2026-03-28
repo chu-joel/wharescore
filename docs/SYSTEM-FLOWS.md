@@ -10,23 +10,45 @@
 **Every screen has a specific purpose. When adding or changing features, follow these rules to decide what goes where.**
 
 ### Free On-Screen Report (`/property/{id}`)
-**Purpose:** Hook the user. Show enough value that they see the product works and want more. Generate trust with real data, create urgency with gated premium content.
+**Purpose:** Show enough real value that the user trusts WhareScore knows what it's talking about, then make them want the full report. The free report should make the user think "this is already more useful than anything else I've found — imagine what the full report has."
 
 **Content rules:**
-- SHOW: Overall score, 5 category scores, first 2 findings, basic hazard/neighbourhood/transport/market/planning overview, AI summary preview
-- GATE (blur/lock): Findings beyond first 2 (show count), PM transit times, HPI chart, detailed rent/price analysis
-- NEVER SHOW: Rent advisor, price advisor, school zones, DOC facilities, road noise detail, weather history, hazard advice, recommendations, neighbourhood stats, infrastructure detail
-- DATA: Uses live API call (`GET /property/{id}/report`), cached 24h. Live council rates API for CV. Transit overlay for all cities.
-- PERSONA: Toggle between renter/buyer changes which questions show and finding priority order
+- SHOW: Overall score (0-100 with colour), 5 category scores (Risk, Area, Market, Transit, Planning), first 2 key findings with full detail, basic overview of each question section (hazards, neighbourhood, transport, market, planning), AI summary preview, CV and property details
+- GATE (blur/lock with count badge): Findings beyond first 2 (show "X more findings" count — creates urgency), PM transit times, HPI trend chart, detailed rent/price analysis
+- NEVER SHOW (hosted-report-only): Rent advisor, price advisor, school zones, DOC facilities, road noise detail, weather history, hazard-specific advice, actionable recommendations, neighbourhood stats, infrastructure detail, healthy homes — these are the premium value
+- DATA: Uses live API call (`GET /property/{id}/report`), cached 24h. Live council rates API for CV. Transit overlay for all cities. AI summary fetched separately.
+- PERSONA: Toggle between renter/buyer changes which questions show and finding priority order. The toggle should be prominent — users should feel the report adapts to them.
+- CONVERSION: Every gated section should make the value of upgrading obvious. "3 critical risks found — unlock full report to see details" not just a generic blur.
 
 ### Paid Hosted Report (`/report/{token}`)
-**Purpose:** Deliver maximum value. This is the product the user paid for. It must contain EVERYTHING we have data for — nothing should be missing. If a data layer exists for the property's region, it must appear here.
+**Purpose:** This is the product people pay money for. It must be professional, comprehensive, truthful, and actionable. The user should finish reading it and know exactly what to do next — whether to proceed with the property, what to investigate further, what risks to price in, and what questions to ask the landlord/agent. It replaces the need for hours of manual research.
+
+**Who reads this and why:**
+- **Renters** want to know: Is the rent fair? Is the place safe? What's the neighbourhood like? Are there hidden issues (mould, noise, flooding)? What are my rights? They need confidence to sign a lease or leverage to negotiate rent.
+- **Buyers** want to know: Is the price fair? What are the real risks? What will insurance cost? Will the value hold? What should I get inspected? They need confidence to make an offer or walk away.
+
+**Quality standard:**
+- PROFESSIONAL: This competes with paid property reports from CoreLogic/QV. Every section must look polished, data must be presented with context (not raw numbers), and insights must be actionable ("your rent is 12% above fair — here's why" not just "median rent: $550").
+- TRUTHFUL: Never spin data. If a property has serious hazards, say so clearly. If data is limited, say "limited data available" — don't hide the section. Users trust us because we tell them things the listing doesn't.
+- COMPLETE: Show EVERYTHING we have data for. If a data layer exists for this property's region, it appears here. An empty section ("No flood hazard data found for this area") is better than a missing section — it shows we checked.
+- ACTIONABLE: Every section should answer "so what?" for the user's persona. Hazard findings should say what to do (get a geotech report, check insurance, ask about EQC). Market data should say whether the price/rent is fair and by how much.
 
 **Content rules:**
-- SHOW EVERYTHING: All findings (no gating), all hazard detail, all transit times (AM + PM), rent advisor with adjustable inputs, price advisor with methodology, HPI chart, rent history, school zones, DOC facilities, road noise, weather history, hazard-specific advice, actionable recommendations, neighbourhood stats, infrastructure projects, healthy homes compliance (renters), methodology/sources
-- NEVER HIDE: If data exists, show it. An empty section is better than a missing one — shows the user we checked
-- DATA: Uses pre-computed snapshot (immutable JSONB). All data captured at generation time. User adjustments are client-side only (delta tables).
-- COMPLETENESS CHECK: When adding any new data layer to the system, it MUST be added to the snapshot (generate_snapshot() in snapshot_generator.py) AND have a corresponding HostedXxx component in the hosted report.
+- SHOW EVERYTHING: All findings (no gating), all hazard detail, all transit times (AM + PM), rent advisor with adjustable inputs, price advisor with methodology, HPI chart, rent history, school zones, DOC facilities, road noise, weather history, hazard-specific advice, actionable recommendations, neighbourhood stats, infrastructure projects, healthy homes compliance (renters), methodology/data sources
+- PERSONA-AWARE: Renter reports show rent advisor, healthy homes, rent fairness. Buyer reports show price advisor, mortgage calc, investment yield. Both show all hazards, transport, planning.
+- NEVER HIDE: If data exists, show it. Empty sections show we checked. Missing sections look like we forgot.
+- RECOMMENDATIONS: End with clear next steps ("Before you sign: 1. Get a building inspection 2. Check your insurance quote 3. Ask about the flood risk"). These should be specific to the hazards/issues found, not generic.
+- DATA: Uses pre-computed snapshot (immutable JSONB). All data captured at generation time. User adjustments (rent/price sliders) are client-side only using delta tables — no regeneration needed.
+- METHODOLOGY: Include a section explaining where the data comes from and how scores are calculated. Transparency builds trust.
+
+**Completeness check (for agents):**
+When adding ANY new data layer to the system:
+1. Add the data to the snapshot → `generate_snapshot()` return dict in `snapshot_generator.py`
+2. Create a `HostedXxx.tsx` component in `frontend/src/components/report/`
+3. Render it in `HostedReport.tsx` in the appropriate position
+4. Think about BOTH personas — does a renter care about this? Does a buyer? Show it to the right persona or both.
+5. Present the data with context and a "so what" — not just raw numbers
+6. Update `docs/FRONTEND-WIRING.md` § Hosted-sections table
 
 ### Map View (`/`)
 **Purpose:** Discovery. Let users explore the map, see property pins, and search addresses. The map is the entry point.
