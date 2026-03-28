@@ -77,6 +77,10 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     router.push('/');
   };
 
+  // Hooks must be called unconditionally (before any early returns)
+  const findings = useMemo(() => report ? generateFindings(report, persona) : [], [report, persona]);
+  const riskCount = useMemo(() => findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length, [findings]);
+
   if (isLoading) {
     return <ReportSkeleton />;
   }
@@ -110,10 +114,6 @@ export function PropertyReport({ addressId }: { addressId: number }) {
       </div>
     );
   }
-
-  // Calculate risk count for contextual CTA copy (memoized — expensive)
-  const findings = useMemo(() => generateFindings(report, persona), [report, persona]);
-  const riskCount = useMemo(() => findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length, [findings]);
 
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
