@@ -212,10 +212,10 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | Invercargill | Y | Y | Y | - | - | Y | Y | Y | - | Y | - |
 | Gisborne | Y | Y | Y | Y | - | Y | Y | - | - | Y | - |
 | Timaru | Y | Y | - | - | - | Y | Y | Y | - | Y | - |
-| Kapiti Coast | Y | Y* | Y | Y* | Y* | Y | Y | Y | - | Y | - |
-| Lower Hutt | Y | Y* | Y | Y* | Y* | Y | - | Y | - | Y | - |
-| Upper Hutt | Y | Y | - | Y | Y* | Y | - | Y | - | Y | - |
-| Porirua | Y | Y | Y | Y | Y* | Y | Y | - | - | Y | - |
+| Kapiti Coast | Y | Y* | Y | Y* | Y* | Y | Y | Y | Y* | Y | - |
+| Lower Hutt | Y | Y* | Y | Y* | Y* | Y | - | Y | Y* | Y | - |
+| Upper Hutt | Y | Y | - | Y | Y* | Y | - | Y | Y* | Y | - |
+| Porirua | Y | Y | Y | Y | Y* | Y | Y | - | Y* | Y | - |
 | Blenheim | Y | Y | Y | Y | - | Y | - | Y | - | Y | - |
 | Whanganui | Y | Y | Y | Y | - | Y | Y | Y | - | Y | - |
 

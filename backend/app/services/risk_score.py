@@ -362,6 +362,21 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["epb"] = normalize_min_max(haz.get("epb_count_300m"), 0, 15)
     indicators["slope_failure"] = SEVERITY_SLOPE_FAILURE.get(haz.get("slope_failure"), 0)
 
+    # GNS landslide database (national) — refine slope_failure with historical events
+    ls_count = haz.get("landslide_count_500m") or 0
+    ls_in_area = haz.get("landslide_in_area")
+    if ls_in_area:
+        # Property is inside a mapped landslide area polygon — significant risk
+        gns_score = 75
+    elif ls_count >= 3:
+        gns_score = 65
+    elif ls_count >= 1:
+        gns_score = 40
+    else:
+        gns_score = 0
+    if gns_score > (indicators.get("slope_failure") or 0):
+        indicators["slope_failure"] = gns_score
+
     # Wellington-specific: refine indicators with higher-resolution regional data
     # GWRC ground shaking amplification → new indicator
     gwrc_gs = SEVERITY_GWRC_GROUND_SHAKING.get(haz.get("ground_shaking_severity"))
