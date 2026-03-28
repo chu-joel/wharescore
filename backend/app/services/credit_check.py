@@ -68,10 +68,8 @@ async def require_paid_user(
             raise HTTPException(403, "User account not found")
 
         plan = user["plan"]
-        if plan == "free":
-            raise HTTPException(403, "Upgrade required to download reports")
 
-        # Get active credits
+        # Get active credits (check BEFORE blocking free plan — user may have promo/purchased credits)
         cur = await conn.execute(
             """
             SELECT id, credit_type, credits_remaining, daily_limit, monthly_limit
@@ -90,6 +88,8 @@ async def require_paid_user(
         credit = cur.fetchone()
 
         if not credit:
+            if plan == "free":
+                raise HTTPException(403, "Upgrade required to download reports")
             raise HTTPException(403, "No active credits. Purchase a report or upgrade your plan.")
 
         # Get download counts
