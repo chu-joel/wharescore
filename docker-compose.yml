@@ -31,6 +31,7 @@ services:
   #     retries: 5
 
   valhalla:
+    restart: unless-stopped
     image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
     volumes:
       - /data/valhalla:/custom_files
@@ -52,6 +53,7 @@ services:
       start_period: 120s  # Tile building takes time on first run
 
   redis:
+    restart: unless-stopped
     image: redis:7-alpine
     command: redis-server --requirepass devredis123
     ports:
@@ -62,6 +64,7 @@ services:
       retries: 3
 
   martin:
+    restart: unless-stopped
     image: ghcr.io/maplibre/martin:v0.15.0
     command: --config /config/martin.yaml
     volumes:
@@ -75,6 +78,7 @@ services:
         condition: service_healthy
 
   api:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -106,6 +110,7 @@ services:
       start_period: 10s
 
   web:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -118,6 +123,7 @@ services:
         condition: service_healthy
 
   nginx:
+    restart: unless-stopped
     image: nginx:alpine
     ports:
       - "80:80"
