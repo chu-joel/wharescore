@@ -241,6 +241,7 @@ export function QuestionContent({ questionId, report, locked = false }: Question
       return (
         <div className="space-y-4">
           <TrajectoryIndicator report={report} />
+          <CrimeTrendSparkline addressId={report.address.address_id} />
           {livCat && (
             <NeighbourhoodSection
               category={livCat}

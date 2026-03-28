@@ -107,12 +107,14 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
 
       {/* Toggles — persona-aware */}
       <div className="space-y-2">
-        {(snapshot.meta.dwelling_type === 'Flat' || snapshot.meta.dwelling_type === 'Apartment') && (
-          <Toggle label="Parking?" value={store.hasParking} onChange={store.setHasParking} />
-        )}
+        <Toggle label="Parking?" value={store.hasParking} onChange={store.setHasParking} />
+        <Toggle label="Outdoor space?" value={store.hasOutdoorSpace} onChange={store.setHasOutdoorSpace} />
+        <Toggle label="Character property?" value={store.isCharacterProperty} onChange={store.setIsCharacterProperty} />
         {persona === 'renter' && (
           <>
             <Toggle label="Furnished?" value={store.isFurnished} onChange={store.setIsFurnished} />
+            <Toggle label="Partially furnished?" value={store.isPartiallyFurnished} onChange={store.setIsPartiallyFurnished} />
+            <Toggle label="Not insulated?" value={store.notInsulated} onChange={store.setNotInsulated} />
             {(snapshot.meta.dwelling_type === 'Room' || snapshot.meta.dwelling_type === 'Flat') && (
               <Toggle label="Shared kitchen?" value={store.sharedKitchen} onChange={store.setSharedKitchen} />
             )}
