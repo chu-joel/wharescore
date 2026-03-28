@@ -54,6 +54,16 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 | `hazards.council_slope_severity` | slope_failure | SQL spatial intersect, worst-severity first | ~6 councils (GWRC, Dunedin, etc.) |
 | `hazards.council_slope_source` | slope_failure | Same query | Same |
 
+| `hazards.overland_flow_within_50m` | overland_flow_paths | SQL EXISTS within 50m | Wellington + select councils |
+| `hazards.coastal_erosion_exposure` | coastal_erosion | SQL nearest within 500m (source_council IS NULL) | National (NIWA) where loaded |
+| `hazards.coastal_erosion_timeframe` | coastal_erosion | Same query | Same |
+| `hazards.council_coastal_erosion` | coastal_erosion | SQL nearest within 500m (source_council IS NOT NULL) | Auckland (ASCIE) + select councils |
+| `hazards.geotech_count_500m` | geotechnical_reports | SQL count within 500m | Wellington only |
+| `hazards.geotech_nearest_hazard` | geotechnical_reports | SQL nearest within 500m | Wellington only |
+| `hazards.active_fault_nearest` | active_faults | SQL nearest within 5km, jsonb object | GNS national (16 DataSources) |
+| `hazards.fault_avoidance_zone` | fault_avoidance_zones | SQL spatial intersect | GNS national |
+| `hazards.aircraft_noise_name` | aircraft_noise_overlay | SQL spatial intersect | Auckland (1 DataSource) |
+
 **These are the main hazard data for all cities.** The national tables (flood_zones, tsunami_zones, liquefaction_zones, slope_failure_zones) are small Wellington-only datasets. Council tables provide regional coverage. `risk_score.py` uses council data to refine or override national scores.
 
 ### Hazards — Wellington-only layers
@@ -115,7 +125,11 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | `planning.in_heritage_overlay` | historic_heritage_overlay | SQL spatial intersect | Auckland only |
 | `planning.in_ecological_area` | significant_ecological_areas | SQL spatial intersect | Auckland + Hamilton only |
 | `planning.in_special_character` | special_character_areas | SQL spatial intersect | Auckland only |
+| `planning.height_variation_limit` | height_variation_control | SQL spatial intersect | Auckland only |
 | `planning.in_mana_whenua` | mana_whenua_sites | SQL spatial intersect | Auckland only |
+| `planning.park_count_500m` | park_extents | SQL count within 500m | Select councils |
+| `planning.nearest_park_name` | park_extents | SQL nearest within 1km | Select councils |
+| `planning.nearest_park_distance_m` | park_extents | Same query | Select councils |
 
 ### Terrain & Walking Reach (free + paid reports via `_overlay_terrain_data()`)
 
