@@ -1,6 +1,7 @@
 'use client';
 
 import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, LogIn } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -67,21 +68,17 @@ export function AppHeader() {
                 </div>
               )}
               {!selectedAddress && (
-                <span className="text-lg font-bold text-piq-primary">
-                  WhareScore
+                <span className="flex items-center gap-1.5">
+                  <Image src="/wharescore-logo.png" alt="WhareScore" width={28} height={26} className="shrink-0" />
+                  <span className="hidden sm:inline text-lg font-bold text-piq-primary">WhareScore</span>
                 </span>
               )}
             </>
           ) : (
             <a href="/" className="flex items-center gap-1.5">
+              <Image src="/wharescore-logo.png" alt="WhareScore" width={28} height={26} className="shrink-0" />
               <span className="hidden sm:inline text-xl font-bold text-piq-primary">
                 Whare<span className="text-foreground">Score</span>
-              </span>
-              <span className="sm:hidden text-lg font-bold text-piq-primary">
-                W<span className="text-foreground">S</span>
-              </span>
-              <span className="hidden sm:inline text-[10px] font-semibold text-piq-primary bg-piq-primary/10 px-1.5 py-0.5 rounded">
-                BETA
               </span>
             </a>
           )}
