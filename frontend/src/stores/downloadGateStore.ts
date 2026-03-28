@@ -17,6 +17,8 @@ export type PlanType = 'free' | 'single' | 'pack3' | 'pro' | 'promo' | 'quick_si
 interface UserCredits {
   plan: PlanType;
   creditsRemaining: number | null; // null for pro (uses limits)
+  quickCredits: number;            // credits for quick-tier reports
+  fullCredits: number;             // credits for full-tier reports
   dailyLimit: number | null;       // 10 for pro
   monthlyLimit: number | null;     // 30 for pro
   downloadsToday: number;
@@ -50,7 +52,7 @@ interface DownloadGateState {
   /** Clear on sign-out */
   clearUser: () => void;
   /** Deduct 1 credit after successful download (credit-based plans) */
-  deductCredit: () => void;
+  deductCredit: (tier?: 'quick' | 'full') => void;
   /** Increment download counters (pro plan) */
   recordDownload: () => void;
   /** Toggle upgrade modal with optional trigger context */
@@ -113,15 +115,19 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
 
   clearUser: () => set({ isAuthenticated: false, credits: null }),
 
-  deductCredit: () => {
+  deductCredit: (tier?: 'quick' | 'full') => {
     const { credits } = get();
     if (!credits || credits.creditsRemaining === null) return;
-    set({
-      credits: {
-        ...credits,
-        creditsRemaining: Math.max(0, credits.creditsRemaining - 1),
-      },
-    });
+    const updatedCredits = {
+      ...credits,
+      creditsRemaining: Math.max(0, credits.creditsRemaining - 1),
+    };
+    if (tier === 'quick') {
+      updatedCredits.quickCredits = Math.max(0, credits.quickCredits - 1);
+    } else if (tier === 'full') {
+      updatedCredits.fullCredits = Math.max(0, credits.fullCredits - 1);
+    }
+    set({ credits: updatedCredits });
   },
 
   recordDownload: () => {
@@ -175,6 +181,8 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
         credits: {
           plan: 'promo',
           creditsRemaining: data.credits_remaining ?? (currentCredits?.creditsRemaining ?? 0) + 1,
+          quickCredits: currentCredits?.quickCredits ?? 0,
+          fullCredits: (data.credits_remaining ?? (currentCredits?.fullCredits ?? 0) + 1),
           dailyLimit: null,
           monthlyLimit: null,
           downloadsToday: currentCredits?.downloadsToday ?? 0,

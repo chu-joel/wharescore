@@ -59,8 +59,10 @@ async def get_credits(user_id: str = Depends(require_user)):
         )
         downloads_this_month = cur_month.fetchone()["cnt"]
 
-    # Total remaining credits across all credit-based purchases
+    # Total remaining credits across all credit-based purchases, broken down by tier
     credits_remaining = None
+    quick_credits = 0
+    full_credits = 0
     daily_limit = None
     monthly_limit = None
 
@@ -69,11 +71,13 @@ async def get_credits(user_id: str = Depends(require_user)):
             daily_limit = credit["daily_limit"] or 10
             monthly_limit = credit["monthly_limit"] or 30
         else:
-            # Sum all remaining credits for credit-based plans
+            # Sum credits per tier
             async with db.pool.connection() as conn:
                 cur = await conn.execute(
                     """
-                    SELECT COALESCE(SUM(credits_remaining), 0)::int AS total
+                    SELECT
+                      COALESCE(SUM(credits_remaining) FILTER (WHERE report_tier = 'quick'), 0)::int AS quick,
+                      COALESCE(SUM(credits_remaining) FILTER (WHERE report_tier = 'full'), 0)::int AS full
                     FROM report_credits
                     WHERE user_id = %s
                       AND credit_type IN ('single', 'pack3', 'promo')
@@ -83,7 +87,10 @@ async def get_credits(user_id: str = Depends(require_user)):
                     """,
                     [user_id],
                 )
-                credits_remaining = cur.fetchone()["total"]
+                row = cur.fetchone()
+                quick_credits = row["quick"]
+                full_credits = row["full"]
+                credits_remaining = quick_credits + full_credits
 
     # Effective plan: if users.plan is 'free' but they have active credits, use the credit type
     effective_plan = plan
@@ -94,6 +101,8 @@ async def get_credits(user_id: str = Depends(require_user)):
         "plan": effective_plan,
         "display_name": user["display_name"],
         "credits_remaining": credits_remaining,
+        "quick_credits": quick_credits,
+        "full_credits": full_credits,
         "daily_limit": daily_limit,
         "monthly_limit": monthly_limit,
         "downloads_today": downloads_today,

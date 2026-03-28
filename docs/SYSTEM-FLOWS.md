@@ -165,14 +165,27 @@ UpgradeModal → handleGuestCheckout()
 
 ### Credit deduction
 ```
-POST /property/{id}/export/pdf/start
-  → require_paid_user: checks report_credits for active credit
-  → Priority: pro > pack3/single > promo (most recent first)
+POST /property/{id}/export/pdf/start?report_tier=quick|full
+  → require_paid_user: reads report_tier from query params
+  → Finds credit matching requested tier (prefers exact tier match)
+  → Priority: pro > matching-tier credit > any credit (most recent first)
   → Active = not cancelled, not expired, credits_remaining > 0
-  → Pro: check daily (10) + monthly (30) limits
-  → Single/pack3/promo: decrement credits_remaining by 1
+  → Pro: check daily (10) + monthly (30) limits, always full tier
+  → Single/pack3/promo: decrement credits_remaining by 1 on the matched credit row
   → If no credits: return 403 → frontend shows UpgradeModal
 ```
+
+### Per-tier credit tracking
+```
+GET /account/credits returns:
+  quick_credits: N  — sum of credits where report_tier = 'quick'
+  full_credits: N   — sum of credits where report_tier = 'full'
+  credits_remaining: N — total (quick + full, for backwards compat)
+```
+Frontend `downloadGateStore` tracks `quickCredits` and `fullCredits` separately.
+ReportConfirmModal shows a tier picker when user has both quick and full credits.
+If user has only one type, that tier is auto-selected (no picker shown).
+Pro users always get Full (no picker).
 
 ### Promo codes
 Hardcoded in `account.py` `_PROMO_CODES` dict:
@@ -186,14 +199,16 @@ User clicks Generate Report → usePdfExport.startExport()
   → pdfExportStore.startExport(addressId, token)
   → canDownload() checks: auth + plan + credits/limits
   → If blocked: show UpgradeModal with context → STOP
-  → Show ReportConfirmModal (user fills dwelling type, bedrooms, etc.)
-  → User clicks Generate → _doExport() fires
+  → Show ReportConfirmModal with tier picker (Quick/Full based on available credits)
+  → User selects tier + fills dwelling type, bedrooms, etc.
+  → User clicks "Generate Quick/Full Report" → _doExport(addr, token, tier) fires
   → ALWAYS fetches FRESH token (pre-modal token may have expired)
-  → POST /property/{id}/export/pdf/start with Bearer token
+  → POST /property/{id}/export/pdf/start?report_tier={tier} with Bearer token
+  → Backend: require_paid_user finds credit matching requested tier
   → If 401/403 AND user has credits: show "Session expired" toast (not plan selector)
   → If 401/403 AND no credits: show UpgradeModal
   → Poll status every 2s (up to 90 attempts)
-  → On completed: deductCredit() or recordDownload(), navigate to hosted report
+  → On completed: deductCredit(tier) or recordDownload(), navigate to hosted report
 ```
 
 **Key files:** `routers/checkout.py` (Stripe sessions + webhooks), `routers/account.py` (credits, promo), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + token refresh), `UpgradeModal.tsx` (purchase UI)

@@ -19,7 +19,7 @@ interface PdfExportState {
   _pendingToken: string | null;
   startExport: (addressId: number, token?: string | null) => void;
   /** Internal: called after user confirms in the review modal */
-  _doExport: (addressId: number, token?: string | null) => void;
+  _doExport: (addressId: number, token?: string | null, reportTier?: 'quick' | 'full') => void;
 }
 
 export const usePdfExportStore = create<PdfExportState>((set, get) => ({
@@ -50,14 +50,14 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // Show confirmation modal — user reviews inputs before generating
+    // Show confirmation modal — user reviews inputs and selects tier before generating
     set({ _pendingToken: token ?? null });
-    useReportConfirmStore.getState().show(addressId, () => {
-      get()._doExport(addressId, get()._pendingToken);
+    useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
+      get()._doExport(addressId, get()._pendingToken, tier);
     });
   },
 
-  _doExport: async (addressId: number, _token?: string | null) => {
+  _doExport: async (addressId: number, _token?: string | null, reportTier?: 'quick' | 'full') => {
     const state = get();
     if (state.isGenerating) return;
 
@@ -128,8 +128,9 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
           }
         : {};
 
+      const tier = reportTier || 'full';
       const res = await fetch(
-        `/api/v1/property/${addressId}/export/pdf/start?persona=${persona}`,
+        `/api/v1/property/${addressId}/export/pdf/start?persona=${persona}&report_tier=${tier}`,
         { method: 'POST', headers, body: JSON.stringify({ ...budgetPayload, ...rentPayload, ...buyerPayload }) },
       );
       if (!res.ok) {
@@ -183,7 +184,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             showPaymentToast('report_generated');
           } else {
             const remaining = (gateState.credits?.creditsRemaining ?? 1) - 1;
-            gateState.deductCredit();
+            gateState.deductCredit(tier);
             if (remaining <= 0) {
               showPaymentToast('last_credit');
             } else {

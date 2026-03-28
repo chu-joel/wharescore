@@ -39,6 +39,8 @@ export function AuthSync() {
           setUser({
             plan: 'free',
             creditsRemaining: null,
+            quickCredits: 0,
+            fullCredits: 0,
             dailyLimit: null,
             monthlyLimit: null,
             downloadsToday: 0,
@@ -53,6 +55,8 @@ export function AuthSync() {
         setUser({
           plan: data.plan,
           creditsRemaining: data.credits_remaining,
+          quickCredits: data.quick_credits ?? 0,
+          fullCredits: data.full_credits ?? 0,
           dailyLimit: data.daily_limit,
           monthlyLimit: data.monthly_limit,
           downloadsToday: data.downloads_today,
@@ -63,6 +67,8 @@ export function AuthSync() {
           setUser({
             plan: 'free',
             creditsRemaining: null,
+            quickCredits: 0,
+            fullCredits: 0,
             dailyLimit: null,
             monthlyLimit: null,
             downloadsToday: 0,

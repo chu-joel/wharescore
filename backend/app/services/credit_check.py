@@ -70,7 +70,12 @@ async def require_paid_user(
 
         plan = user["plan"]
 
-        # Get active credits (check BEFORE blocking free plan — user may have promo/purchased credits)
+        # Read requested tier from query params (frontend sends this)
+        requested_tier = request.query_params.get("report_tier", "full")
+        if requested_tier not in ("quick", "full"):
+            requested_tier = "full"
+
+        # Get active credits — prefer matching tier, fall back to any (for Pro/promo)
         cur = await conn.execute(
             """
             SELECT id, credit_type, credits_remaining, daily_limit, monthly_limit, report_tier
@@ -81,10 +86,11 @@ async def require_paid_user(
               AND (credits_remaining > 0 OR credit_type = 'pro')
             ORDER BY
               CASE credit_type WHEN 'pro' THEN 0 ELSE 1 END,
+              CASE WHEN report_tier = %s THEN 0 ELSE 1 END,
               purchased_at DESC
             LIMIT 1
             """,
-            [user_id],
+            [user_id, requested_tier],
         )
         credit = cur.fetchone()
 

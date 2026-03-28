@@ -70,6 +70,8 @@ export default function PaymentSuccessPage() {
         setUser({
           plan: data.plan,
           creditsRemaining: data.credits_remaining,
+          quickCredits: data.quick_credits ?? 0,
+          fullCredits: data.full_credits ?? 0,
           dailyLimit: data.daily_limit,
           monthlyLimit: data.monthly_limit,
           downloadsToday: data.downloads_today,
@@ -170,8 +172,8 @@ export default function PaymentSuccessPage() {
   }, [plan, addressId, getToken]);
 
   const planLabel = plan === 'pro' ? 'Pro plan activated' :
-    plan === 'pack3' ? '3 report credits' :
-    plan === 'single' ? '1 property report credit' :
+    plan === 'pack3' ? '1 Full report credit' :
+    plan === 'single' ? '1 Quick report credit' :
     plan === 'pending' ? 'Payment received' :
     'Credits added';
 
