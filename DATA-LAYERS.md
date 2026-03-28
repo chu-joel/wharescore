@@ -1,8 +1,10 @@
 # WhareScore — Data Layers Coverage Matrix
 
-**Last Updated:** 2026-03-27 (session 68 — security audit + coverage expansion)
+**Last Updated:** 2026-03-28 (session 69 — transit + live rates nationwide)
 
-This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of **426 DataSource entries** in `data_loader.py`.
+This document tracks which data layers are loaded per region, data format inconsistencies, and the full inventory of DataSource entries in `data_loader.py`.
+
+**Key stats:** 364 data sources loaded | 12 cities with GTFS transit | 25 councils with live rates API | 55+ CBD coordinates
 
 ---
 
@@ -58,6 +60,90 @@ Legend: **Y** = loader exists, **-** = not available/not loaded, **P** = partial
 | **School zones** | MoE | ~1,317 | Enrolment scheme boundaries |
 | **Active faults** | GNS | ~10K | National fault traces |
 | **Landslides** | GNS | ~8K | Events + areas |
+
+---
+
+## Transit Data Coverage (GTFS)
+
+**12 cities** with full GTFS transit data: stops, travel times to key destinations, and peak frequency.
+
+| City | GTFS Source | Stops | Destinations | Travel Time Routes | Tables |
+|------|-----------|-------|-------------|-------------------|--------|
+| **Auckland** | `gtfs.at.govt.nz` | 7,023 | 11 (CBD, Airport, Hospital, Uni, Newmarket, Takapuna, Manukau, Henderson, Albany, Sylvia Park, Ponsonby, Mt Eden) | ~6,800 | `at_stops`, `at_travel_times`, `at_stop_frequency` |
+| **Wellington** | `static.opendata.metlink.org.nz` | 3,154 | 12 (CBD, Airport, Hospital, Vic Uni, Lower Hutt, Petone, J'ville, Porirua, Courtenay Pl, Newtown, Kilbirnie, Miramar) | ~7,200 | `metlink_stops`, `transit_travel_times`, `transit_stop_frequency` |
+| **Hamilton** | Waikato RC GTFS | 1,570 | 9 (CBD, Hospital, The Base, Uni, Transport Centre, Chartwell, Hillcrest, Airport, Rototuna) | 2,568 | `transit_stops`, `transit_travel_times`, `transit_stop_frequency` |
+| **Tauranga/BOP** | Trillium BayBus | 1,198 | 10 (CBD, Hospital, Mt Maunganui, Papamoa, Bayfair, Bethlehem, Greerton, Airport, Tauriko, Waikato Uni) | 1,130 | `transit_stops` |
+| **Dunedin** | ORC GTFS | 907 | 8 (CBD, Hospital, Otago Uni, South Dunedin, Mosgiel, Port Chalmers, St Clair, Airport) | 2,374 | `transit_stops` |
+| **Hawke's Bay** | Trillium HB | 461 | 8 (Napier CBD, Hastings CBD, both Hospitals, EIT, Taradale, Havelock North, Airport) | 868 | `transit_stops` |
+| **Palmerston North** | Horizons GTFS | 885 | 6 (CBD, Hospital, Massey Uni, Airport, Arena, Highbury) | 808 | `transit_stops` |
+| **Nelson** | Trillium eBus | 231 | 6 (CBD, Hospital, Richmond, Stoke, Tahunanui, Airport) | 580 | `transit_stops` |
+| **Rotorua** | Trillium BayBus | 1,198 | 6 (CBD, Hospital, Airport, Whakarewarewa, Western Heights, Ngongotaha) | 376 | `transit_stops` |
+| **Whangarei** | Trillium CityLink | 273 | 6 (CBD, Hospital, NorthTec, Kamo, Tikipunga, Onerahi) | 354 | `transit_stops` |
+| **Taranaki** | Trillium Citylink | 386 | 6 (CBD, Hospital, Bell Block, Fitzroy, Merrilands, Westown) | 326 | `transit_stops` |
+| **Queenstown** | ORC GTFS | 907 | 7 (CBD, Airport, Frankton, Arrowtown, Remarkables Park, Lake Hayes, Jack's Point) | 248 | `transit_stops` |
+
+**Not available:** Christchurch (GTFS needs API key), Invercargill (no GTFS feed)
+
+### How transit data flows into reports
+
+1. **SQL report function** (`get_property_report`) queries `metlink_stops` (Wellington only)
+2. **`get_transit_data()` SQL helper** queries all three tables with COALESCE fallback (metlink → AT → regional)
+3. **`_overlay_transit_data()` Python post-processor** calls `get_transit_data()` and overlays results onto the report when Wellington metlink returns nothing
+4. Report fields populated: `bus_stops_800m`, `rail_stops_800m`, `ferry_stops_800m`, `transit_travel_times`, `peak_trips_per_hour`, `nearest_stop_name`
+
+---
+
+## Live Council Rates API Coverage
+
+**25 councils** have live rates API integration for fresh CV/LV/IV data.
+
+Both the **free on-screen report** (`_fix_unit_cv()` in property.py) and the **paid snapshot** (snapshot_generator.py) call the same council APIs.
+
+| # | Council | Module | Endpoint Type | CV | LV | IV | Rates |
+|---|---------|--------|--------------|:--:|:--:|:--:|:-----:|
+| 1 | Wellington | `rates.py` | WCC rates API + cache | Y | Y | Y | Y |
+| 2 | Auckland | `auckland_rates.py` | AC rates API | Y | Y | Y | Y |
+| 3 | Lower Hutt | `hcc_rates.py` | ArcGIS MapServer | Y | Y | Y | Y |
+| 4 | Upper Hutt | `uhcc_rates.py` | ArcGIS Online FeatureServer | Y | - | - | Y |
+| 5 | Porirua | `pcc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 6 | Kapiti Coast | `kcdc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 7 | Horowhenua | `hdc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 8 | Hamilton | `hamilton_rates.py` | ArcGIS FeatureServer | Y | Y | Y | - |
+| 9 | Dunedin | `dcc_rates.py` | ArcGIS MapServer | Y | - | - | - |
+| 10 | Christchurch | `ccc_rates.py` | CCC rates API + cache | Y | Y | Y | Y |
+| 11 | New Plymouth | `taranaki_rates.py` | ArcGIS FeatureServer | Y | Y | Y | - |
+| 12 | Tasman | `tasman_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 13 | Tauranga | `tcc_rates.py` | ArcGIS FeatureServer (2-step) | Y | Y | Y | Y |
+| 14 | Western BOP | `wbop_rates.py` | ArcGIS MapServer (4-layer join) | Y | Y | Y | - |
+| 15 | Palmerston North | `pncc_rates.py` | ArcGIS Online FeatureServer | Y | Y | - | Y |
+| 16 | Whangarei | `wdc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 17 | Queenstown | `qldc_rates.py` | ArcGIS FeatureServer | Y | Y | Y | - |
+| 18 | Invercargill | `icc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 19 | Hastings | `hastings_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 20 | Gisborne | `gdc_rates.py` | ArcGIS Online FeatureServer | Y | Y | Y | Y |
+| 21 | Nelson | `ncc_rates.py` | MagiqCloud scraping | Y | Y | Y | Y |
+| 22 | Rotorua | `rlc_rates.py` | ArcGIS Online FeatureServer | Y | Y | Y | Y |
+| 23 | Timaru | `timaru_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 24 | Marlborough | `mdc_rates.py` | ArcGIS MapServer | Y | Y | Y | - |
+| 25 | Whanganui | `wdc_whanganui_rates.py` | GeoServer WFS (2-step) | Y | Y | Y | - |
+
+**No API available:** Napier (falls back to bulk `council_valuations` table)
+
+### How CV flows into price calculations
+
+1. **SQL report function** → spatial match from `council_valuations` table (bulk-loaded, may be stale or wrong unit)
+2. **`_fix_unit_cv()`** → calls live council API by city → overwrites CV/LV/IV with fresh per-unit data
+3. **Price advisor** → takes the corrected CV → adjusts forward using HPI (`CV × HPI_now / HPI_at_valuation`) → cross-checks with yield inversion → applies property adjustments → produces estimated value band
+4. **Report cached** 24h with corrected values
+
+### HPI Data
+
+| Table | Source | Records | Fields |
+|-------|--------|---------|--------|
+| `hpi_national` | RBNZ M10 (CoreLogic) | 143 | `quarter_end`, `house_price_index`, `house_sales`, `housing_stock_value_m` |
+| `rbnz_housing` | Same source | 143 | Same + `residential_investment_real_m` |
+
+Used by: price advisor (HPI-adjusted CV), report market section, snapshot generator.
 
 ---
 
