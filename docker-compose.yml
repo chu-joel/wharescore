@@ -91,10 +91,17 @@ services:
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
       AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5-mini}
       VALHALLA_URL: http://valhalla:8002
-      CORS_ORIGINS: '["http://localhost","http://localhost:3000"]'
-      ALLOWED_HOSTS: '["localhost","127.0.0.1","nginx","api"]'
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost","http://localhost:3000"]'}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-'["localhost","127.0.0.1","nginx","api"]'}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
-      ENVIRONMENT: development
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_SINGLE: ${STRIPE_PRICE_SINGLE:-}
+      STRIPE_PRICE_PACK3: ${STRIPE_PRICE_PACK3:-}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     ports:
       - "8000:8000"
     extra_hosts:
@@ -116,6 +123,13 @@ services:
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_KEY:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
     depends_on:
