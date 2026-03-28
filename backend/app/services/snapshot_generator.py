@@ -373,6 +373,18 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         elif "nelson" in city.lower() and city.lower() != "nelson south":
             from .ncc_rates import fetch_ncc_rates
             rates_data = await fetch_ncc_rates(full_address)
+        elif "rotorua" in city.lower():
+            from .rlc_rates import fetch_rlc_rates
+            rates_data = await fetch_rlc_rates(full_address)
+        elif "timaru" in city.lower() or city.lower() in ("temuka", "geraldine", "pleasant point"):
+            from .timaru_rates import fetch_timaru_rates
+            rates_data = await fetch_timaru_rates(full_address)
+        elif "blenheim" in city.lower() or "marlborough" in city.lower() or city.lower() in ("picton", "renwick", "havelock", "seddon"):
+            from .mdc_rates import fetch_mdc_rates
+            rates_data = await fetch_mdc_rates(full_address)
+        elif "whanganui" in city.lower() or "wanganui" in city.lower():
+            from .wdc_whanganui_rates import fetch_whanganui_rates
+            rates_data = await fetch_whanganui_rates(full_address)
 
         # Apply CV from rates data (generic handler for all councils)
         if rates_data and rates_data.get("current_valuation"):
