@@ -36,6 +36,30 @@ services:
     networks:
       - internal
 
+  valhalla:
+    image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+    mem_limit: 1g
+    memswap_limit: 1500m
+    volumes:
+      - /data/valhalla:/custom_files
+    environment:
+      - tile_urls=https://download.geofabrik.de/australia-oceania/new-zealand-latest.osm.pbf
+      - use_tiles_ignore_pbf=True
+      - build_elevation=True
+      - build_admins=True
+      - build_time_zones=True
+      - force_rebuild=False
+      - server_threads=2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8002/status || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    networks:
+      - internal
+
   redis:
     image: redis:7-alpine
     command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.prod}
@@ -88,6 +112,7 @@ services:
       STRIPE_PRICE_PACK3: ${STRIPE_PRICE_PACK3:-}
       STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
       FRONTEND_URL: ${FRONTEND_URL:-https://wharescore.co.nz}
+      VALHALLA_URL: http://valhalla:8002
       ENVIRONMENT: production
     restart: unless-stopped
     depends_on:

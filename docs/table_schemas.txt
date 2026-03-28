@@ -1,0 +1,1277 @@
+          table_name          |          column_name          |        data_type         
+------------------------------+-------------------------------+--------------------------
+ active_faults                | id                            | integer
+ active_faults                | fault_name                    | text
+ active_faults                | fault_id                      | text
+ active_faults                | fault_class                   | text
+ active_faults                | slip_rate_mm_yr               | numeric
+ active_faults                | recurrence_interval           | text
+ active_faults                | last_rupture                  | text
+ active_faults                | fault_type                    | text
+ active_faults                | accuracy                      | text
+ active_faults                | data_source                   | text
+ active_faults                | geom                          | USER-DEFINED
+ active_faults                | source_council                | text
+ addresses                    | fid                           | integer
+ addresses                    | geom                          | USER-DEFINED
+ addresses                    | address_id                    | integer
+ addresses                    | source_dataset                | character varying
+ addresses                    | change_id                     | integer
+ addresses                    | full_address_number           | character varying
+ addresses                    | full_road_name                | character varying
+ addresses                    | full_address                  | character varying
+ addresses                    | territorial_authority         | character varying
+ addresses                    | unit_type                     | character varying
+ addresses                    | unit_value                    | character varying
+ addresses                    | level_type                    | character varying
+ addresses                    | level_value                   | character varying
+ addresses                    | address_number_prefix         | character varying
+ addresses                    | address_number                | integer
+ addresses                    | address_number_suffix         | character varying
+ addresses                    | address_number_high           | integer
+ addresses                    | road_name_prefix              | character varying
+ addresses                    | road_name                     | character varying
+ addresses                    | road_type_name                | character varying
+ addresses                    | road_suffix                   | character varying
+ addresses                    | water_name                    | character varying
+ addresses                    | water_body_name               | character varying
+ addresses                    | suburb_locality               | character varying
+ addresses                    | town_city                     | character varying
+ addresses                    | address_class                 | character varying
+ addresses                    | address_lifecycle             | character varying
+ addresses                    | gd2000_xcoord                 | double precision
+ addresses                    | gd2000_ycoord                 | double precision
+ addresses                    | road_name_ascii               | character varying
+ addresses                    | water_name_ascii              | character varying
+ addresses                    | water_body_name_ascii         | character varying
+ addresses                    | suburb_locality_ascii         | character varying
+ addresses                    | town_city_ascii               | character varying
+ addresses                    | full_road_name_ascii          | character varying
+ addresses                    | full_address_ascii            | character varying
+ addresses                    | search_vector                 | tsvector
+ admin_content                | key                           | text
+ admin_content                | value                         | jsonb
+ admin_content                | updated_at                    | timestamp with time zone
+ air_quality_sites            | id                            | integer
+ air_quality_sites            | lawa_id                       | text
+ air_quality_sites            | site_name                     | text
+ air_quality_sites            | town                          | text
+ air_quality_sites            | region                        | text
+ air_quality_sites            | agency                        | text
+ air_quality_sites            | site_type                     | text
+ air_quality_sites            | pm10_trend                    | text
+ air_quality_sites            | pm25_trend                    | text
+ air_quality_sites            | geom                          | USER-DEFINED
+ aircraft_noise_overlay       | id                            | integer
+ aircraft_noise_overlay       | name                          | text
+ aircraft_noise_overlay       | noise_level_dba               | integer
+ aircraft_noise_overlay       | noise_category                | text
+ aircraft_noise_overlay       | source_council                | character varying
+ aircraft_noise_overlay       | geom                          | USER-DEFINED
+ area_profiles                | sa2_code                      | text
+ area_profiles                | sa2_name                      | text
+ area_profiles                | ta_name                       | text
+ area_profiles                | profile                       | text
+ area_profiles                | data_snapshot                 | jsonb
+ area_profiles                | model_used                    | text
+ area_profiles                | generated_at                  | timestamp with time zone
+ at_stop_frequency            | stop_id                       | character varying
+ at_stop_frequency            | peak_trips_per_hour           | real
+ at_stops                     | id                            | integer
+ at_stops                     | stop_id                       | character varying
+ at_stops                     | stop_code                     | character varying
+ at_stops                     | stop_name                     | text
+ at_stops                     | zone_id                       | character varying
+ at_stops                     | route_types                   | ARRAY
+ at_stops                     | geom                          | USER-DEFINED
+ at_travel_times              | id                            | integer
+ at_travel_times              | stop_id                       | character varying
+ at_travel_times              | destination                   | text
+ at_travel_times              | min_minutes                   | real
+ at_travel_times              | route_names                   | ARRAY
+ at_travel_times              | peak_window                   | text
+ auckland_rates_cache         | rate_account_key              | text
+ auckland_rates_cache         | valuation_number              | text
+ auckland_rates_cache         | address                       | text
+ auckland_rates_cache         | street_number                 | text
+ auckland_rates_cache         | street_name                   | text
+ auckland_rates_cache         | suburb                        | text
+ auckland_rates_cache         | city                          | text
+ auckland_rates_cache         | legal_description             | text
+ auckland_rates_cache         | record_of_title               | text
+ auckland_rates_cache         | property_category             | text
+ auckland_rates_cache         | land_use                      | text
+ auckland_rates_cache         | local_board                   | text
+ auckland_rates_cache         | total_floor_area_sqm          | numeric
+ auckland_rates_cache         | building_coverage_pct         | numeric
+ auckland_rates_cache         | capital_value                 | integer
+ auckland_rates_cache         | land_value                    | integer
+ auckland_rates_cache         | improvements_value            | integer
+ auckland_rates_cache         | total_rates                   | numeric
+ auckland_rates_cache         | rate_breakdown                | jsonb
+ auckland_rates_cache         | x_coord                       | numeric
+ auckland_rates_cache         | y_coord                       | numeric
+ auckland_rates_cache         | fetched_at                    | timestamp with time zone
+ auckland_rates_cache         | updated_at                    | timestamp with time zone
+ auckland_schools             | id                            | integer
+ auckland_schools             | school_number                 | integer
+ auckland_schools             | school_name                   | text
+ auckland_schools             | school_type                   | text
+ auckland_schools             | school_website                | text
+ auckland_schools             | definition                    | text
+ auckland_schools             | authority                     | text
+ auckland_schools             | gender                        | text
+ auckland_schools             | decile                        | integer
+ auckland_schools             | source_council                | character varying
+ auckland_schools             | geom                          | USER-DEFINED
+ bonds_detailed               | time_frame                    | date
+ bonds_detailed               | location_id                   | text
+ bonds_detailed               | dwelling_type                 | text
+ bonds_detailed               | number_of_beds                | text
+ bonds_detailed               | total_bonds                   | integer
+ bonds_detailed               | active_bonds                  | integer
+ bonds_detailed               | closed_bonds                  | integer
+ bonds_detailed               | median_rent                   | numeric
+ bonds_detailed               | geometric_mean_rent           | numeric
+ bonds_detailed               | upper_quartile_rent           | numeric
+ bonds_detailed               | lower_quartile_rent           | numeric
+ bonds_detailed               | log_std_dev_weekly_rent       | numeric
+ bonds_region                 | id                            | integer
+ bonds_region                 | time_frame                    | date
+ bonds_region                 | location_id                   | integer
+ bonds_region                 | location                      | text
+ bonds_region                 | lodged_bonds                  | integer
+ bonds_region                 | active_bonds                  | integer
+ bonds_region                 | closed_bonds                  | integer
+ bonds_region                 | median_rent                   | integer
+ bonds_region                 | geometric_mean_rent           | integer
+ bonds_region                 | upper_quartile_rent           | integer
+ bonds_region                 | lower_quartile_rent           | integer
+ bonds_region                 | log_std_dev                   | double precision
+ bonds_tla                    | id                            | integer
+ bonds_tla                    | time_frame                    | date
+ bonds_tla                    | location_id                   | integer
+ bonds_tla                    | location                      | text
+ bonds_tla                    | lodged_bonds                  | integer
+ bonds_tla                    | active_bonds                  | integer
+ bonds_tla                    | closed_bonds                  | integer
+ bonds_tla                    | median_rent                   | integer
+ bonds_tla                    | geometric_mean_rent           | integer
+ bonds_tla                    | upper_quartile_rent           | integer
+ bonds_tla                    | lower_quartile_rent           | integer
+ bonds_tla                    | log_std_dev                   | double precision
+ building_outlines            | fid                           | integer
+ building_outlines            | geom                          | USER-DEFINED
+ building_outlines            | building_id                   | integer
+ building_outlines            | name                          | character varying
+ building_outlines            | use                           | character varying
+ building_outlines            | suburb_locality               | character varying
+ building_outlines            | town_city                     | character varying
+ building_outlines            | territorial_authority         | character varying
+ building_outlines            | capture_method                | character varying
+ building_outlines            | capture_source_group          | character varying
+ building_outlines            | capture_source_id             | integer
+ building_outlines            | capture_source_name           | character varying
+ building_outlines            | capture_source_from           | date
+ building_outlines            | capture_source_to             | date
+ building_outlines            | last_modified                 | date
+ building_outlines            | footprint_sqm                 | numeric
+ cbd_points                   | id                            | integer
+ cbd_points                   | city                          | text
+ cbd_points                   | geom                          | USER-DEFINED
+ character_precincts          | id                            | integer
+ character_precincts          | name                          | text
+ character_precincts          | type                          | text
+ character_precincts          | code                          | text
+ character_precincts          | zone_name                     | text
+ character_precincts          | zone_code                     | text
+ character_precincts          | description                   | text
+ character_precincts          | geom                          | USER-DEFINED
+ character_precincts          | source_council                | character varying
+ climate_grid                 | fid                           | integer
+ climate_grid                 | geom                          | USER-DEFINED
+ climate_grid                 | longitude                     | double precision
+ climate_grid                 | latitude                      | double precision
+ climate_grid                 | spatial_ref                   | bigint
+ climate_grid                 | coord_index                   | character varying
+ climate_grid                 | agent_no                      | bigint
+ climate_grid                 | network                       | character varying
+ climate_projections          | id                            | integer
+ climate_projections          | model                         | text
+ climate_projections          | base_period                   | text
+ climate_projections          | future_period                 | text
+ climate_projections          | scenario                      | text
+ climate_projections          | season                        | text
+ climate_projections          | vcsn_agent                    | integer
+ climate_projections          | CD18_value_change             | real
+ climate_projections          | CD18_value_base_period        | real
+ climate_projections          | CD18_value_future             | real
+ climate_projections          | DD1mm_value_change            | real
+ climate_projections          | DD1mm_value_base_period       | real
+ climate_projections          | DD1mm_value_future            | real
+ climate_projections          | DTR_value_change              | real
+ climate_projections          | DTR_value_base_period         | real
+ climate_projections          | DTR_value_future              | real
+ climate_projections          | FD_value_change               | real
+ climate_projections          | FD_value_base_period          | real
+ climate_projections          | FD_value_future               | real
+ climate_projections          | GDD10_value_change            | real
+ climate_projections          | GDD10_value_base_period       | real
+ climate_projections          | GDD10_value_future            | real
+ climate_projections          | GDD5_value_change             | real
+ climate_projections          | GDD5_value_base_period        | real
+ climate_projections          | GDD5_value_future             | real
+ climate_projections          | HD18_value_change             | real
+ climate_projections          | HD18_value_base_period        | real
+ climate_projections          | HD18_value_future             | real
+ climate_projections          | PEDsrad_value_change          | real
+ climate_projections          | PEDsrad_value_base_period     | real
+ climate_projections          | PEDsrad_value_future          | real
+ climate_projections          | PR_value_change               | real
+ climate_projections          | PR_value_base_period          | real
+ climate_projections          | PR_value_future               | real
+ climate_projections          | R99pVAL_value_change          | real
+ climate_projections          | R99pVAL_value_base_period     | real
+ climate_projections          | R99pVAL_value_future          | real
+ climate_projections          | R99pVALWet_value_change       | real
+ climate_projections          | R99pVALWet_value_base_period  | real
+ climate_projections          | R99pVALWet_value_future       | real
+ climate_projections          | RR1mm_value_change            | real
+ climate_projections          | RR1mm_value_base_period       | real
+ climate_projections          | RR1mm_value_future            | real
+ climate_projections          | RR25mm_value_change           | real
+ climate_projections          | RR25mm_value_base_period      | real
+ climate_projections          | RR25mm_value_future           | real
+ climate_projections          | T_value_change                | real
+ climate_projections          | T_value_base_period           | real
+ climate_projections          | T_value_future                | real
+ climate_projections          | TN_value_change               | real
+ climate_projections          | TN_value_base_period          | real
+ climate_projections          | TN_value_future               | real
+ climate_projections          | TNn_value_change              | real
+ climate_projections          | TNn_value_base_period         | real
+ climate_projections          | TNn_value_future              | real
+ climate_projections          | TX_value_change               | real
+ climate_projections          | TX_value_base_period          | real
+ climate_projections          | TX_value_future               | real
+ climate_projections          | TX25_value_change             | real
+ climate_projections          | TX25_value_base_period        | real
+ climate_projections          | TX25_value_future             | real
+ climate_projections          | TX30_value_change             | real
+ climate_projections          | TX30_value_base_period        | real
+ climate_projections          | TX30_value_future             | real
+ climate_projections          | TXx_value_change              | real
+ climate_projections          | TXx_value_base_period         | real
+ climate_projections          | TXx_value_future              | real
+ climate_projections          | Wd10_value_change             | real
+ climate_projections          | Wd10_value_base_period        | real
+ climate_projections          | Wd10_value_future             | real
+ climate_projections          | Wd99pVAL_value_change         | real
+ climate_projections          | Wd99pVAL_value_base_period    | real
+ climate_projections          | Wd99pVAL_value_future         | real
+ climate_projections          | hurs_value_change             | real
+ climate_projections          | hurs_value_base_period        | real
+ climate_projections          | hurs_value_future             | real
+ climate_projections          | rsds_value_change             | real
+ climate_projections          | rsds_value_base_period        | real
+ climate_projections          | rsds_value_future             | real
+ climate_projections          | sfcWind_value_change          | real
+ climate_projections          | sfcWind_value_base_period     | real
+ climate_projections          | sfcWind_value_future          | real
+ coastal_elevation            | id                            | integer
+ coastal_elevation            | gridcode                      | integer
+ coastal_elevation            | geom                          | USER-DEFINED
+ coastal_elevation            | source_council                | character varying
+ coastal_erosion              | ogc_fid                       | integer
+ coastal_erosion              | geom                          | USER-DEFINED
+ coastal_erosion              | exposure                      | character varying
+ coastal_erosion              | shore_type                    | character varying
+ coastal_erosion              | fs                            | character varying
+ coastal_erosion              | hinterland                    | character varying
+ coastal_erosion              | csi_in                        | integer
+ coastal_erosion              | csi_cc                        | integer
+ coastal_erosion              | objectid                      | integer
+ coastal_erosion              | shape__length                 | double precision
+ coastal_erosion              | source_council                | character varying
+ coastal_erosion              | name                          | text
+ coastal_erosion              | coast_type                    | text
+ coastal_erosion              | timeframe                     | integer
+ coastal_erosion              | scenario                      | text
+ coastal_erosion              | geology                       | text
+ coastal_erosion              | distance_from_coast           | text
+ coastal_erosion              | sea_level_rise                | double precision
+ coastal_erosion              | assessment_level              | text
+ coastal_inundation           | id                            | integer
+ coastal_inundation           | name                          | text
+ coastal_inundation           | hazard_ranking                | text
+ coastal_inundation           | scenario                      | text
+ coastal_inundation           | coast                         | text
+ coastal_inundation           | layer_id                      | integer
+ coastal_inundation           | geom                          | USER-DEFINED
+ coastal_inundation           | source_council                | character varying
+ conservation_land            | id                            | integer
+ conservation_land            | name                          | text
+ conservation_land            | land_type                     | text
+ conservation_land            | land_status                   | text
+ conservation_land            | managing_agency               | text
+ conservation_land            | area_ha                       | numeric
+ conservation_land            | legal_name                    | text
+ conservation_land            | geom                          | USER-DEFINED
+ contaminated_land            | id                            | integer
+ contaminated_land            | site_id                       | text
+ contaminated_land            | site_name                     | text
+ contaminated_land            | file_no                       | text
+ contaminated_land            | anzecc_category               | text
+ contaminated_land            | anzecc_subcategory            | text
+ contaminated_land            | category                      | text
+ contaminated_land            | street_number                 | text
+ contaminated_land            | street_name                   | text
+ contaminated_land            | local_authority               | text
+ contaminated_land            | legal_description             | text
+ contaminated_land            | site_history                  | text
+ contaminated_land            | geom                          | USER-DEFINED
+ contaminated_land            | source_council                | character varying
+ corrosion_zones              | id                            | integer
+ corrosion_zones              | contour                       | text
+ corrosion_zones              | buff_dist                     | double precision
+ corrosion_zones              | geom                          | USER-DEFINED
+ corrosion_zones              | source_council                | character varying
+ council_valuations           | id                            | integer
+ council_valuations           | council                       | text
+ council_valuations           | objectid                      | integer
+ council_valuations           | valuation_id                  | text
+ council_valuations           | roll_number                   | text
+ council_valuations           | assessment_number             | text
+ council_valuations           | street_number                 | text
+ council_valuations           | street_name                   | text
+ council_valuations           | suburb                        | text
+ council_valuations           | postcode                      | text
+ council_valuations           | address                       | text
+ council_valuations           | full_address                  | text
+ council_valuations           | legal_description             | text
+ council_valuations           | title                         | text
+ council_valuations           | land_area                     | numeric
+ council_valuations           | capital_value                 | integer
+ council_valuations           | land_value                    | integer
+ council_valuations           | improvements_value            | integer
+ council_valuations           | valuation_date                | date
+ council_valuations           | effective_rating_date         | date
+ council_valuations           | geom                          | USER-DEFINED
+ crashes                      | objectid                      | integer
+ crashes                      | x                             | double precision
+ crashes                      | y                             | double precision
+ crashes                      | crash_year                    | integer
+ crashes                      | crash_severity                | text
+ crashes                      | fatal_count                   | integer
+ crashes                      | serious_injury_count          | integer
+ crashes                      | minor_injury_count            | integer
+ crashes                      | crash_location1               | text
+ crashes                      | crash_location2               | text
+ crashes                      | crash_road_side_road          | text
+ crashes                      | crash_sh_description          | text
+ crashes                      | speed_limit                   | integer
+ crashes                      | road_surface                  | text
+ crashes                      | road_character                | text
+ crashes                      | road_lane                     | text
+ crashes                      | number_of_lanes               | integer
+ crashes                      | light                         | text
+ crashes                      | weather_a                     | text
+ crashes                      | weather_b                     | text
+ crashes                      | urban                         | text
+ crashes                      | flat_hill                     | text
+ crashes                      | intersection                  | text
+ crashes                      | bicycle                       | integer
+ crashes                      | bus                           | integer
+ crashes                      | car_station_wagon             | integer
+ crashes                      | motorcycle                    | integer
+ crashes                      | moped                         | integer
+ crashes                      | pedestrian                    | integer
+ crashes                      | truck                         | integer
+ crashes                      | van_or_utility                | integer
+ crashes                      | suv                           | integer
+ crashes                      | taxi                          | integer
+ crashes                      | school_bus                    | integer
+ crashes                      | region                        | text
+ crashes                      | tla_id                        | integer
+ crashes                      | tla_name                      | text
+ crashes                      | meshblock_id                  | text
+ crashes                      | area_unit_id                  | text
+ crashes                      | holiday                       | text
+ crashes                      | crash_financial_year          | text
+ crashes                      | geom                          | USER-DEFINED
+ crime                        | id                            | integer
+ crime                        | year_month                    | date
+ crime                        | day_of_week                   | text
+ crime                        | hour_of_day                   | integer
+ crime                        | territorial_authority         | text
+ crime                        | area_unit                     | text
+ crime                        | meshblock                     | text
+ crime                        | anzsoc_division               | text
+ crime                        | anzsoc_subdivision            | text
+ crime                        | anzsoc_group                  | text
+ crime                        | location_type_division        | text
+ crime                        | location_type                 | text
+ crime                        | weapon                        | text
+ crime                        | victimisations                | integer
+ crime                        | anzsoc_division_cd            | integer
+ crime                        | anzsoc_subdivision_cd         | integer
+ crime                        | anzsoc_group_cd               | integer
+ data_sources                 | table_name                    | text
+ data_sources                 | source_name                   | text
+ data_sources                 | source_url                    | text
+ data_sources                 | license                       | text
+ data_sources                 | last_updated                  | date
+ data_sources                 | update_frequency              | text
+ data_versions                | source                        | text
+ data_versions                | loaded_at                     | timestamp with time zone
+ data_versions                | row_count                     | integer
+ district_plan_zones          | id                            | integer
+ district_plan_zones          | zone_name                     | text
+ district_plan_zones          | zone_code                     | text
+ district_plan_zones          | category                      | text
+ district_plan_zones          | chapter                       | text
+ district_plan_zones          | eplan_url                     | text
+ district_plan_zones          | status                        | text
+ district_plan_zones          | council                       | text
+ district_plan_zones          | geom                          | USER-DEFINED
+ district_plan_zones          | source_council                | character varying
+ doc_campsites                | id                            | integer
+ doc_campsites                | name                          | text
+ doc_campsites                | status                        | text
+ doc_campsites                | category                      | text
+ doc_campsites                | equipment                     | text
+ doc_campsites                | geom                          | USER-DEFINED
+ doc_huts                     | id                            | integer
+ doc_huts                     | name                          | text
+ doc_huts                     | status                        | text
+ doc_huts                     | category                      | text
+ doc_huts                     | equipment                     | text
+ doc_huts                     | geom                          | USER-DEFINED
+ doc_tracks                   | id                            | integer
+ doc_tracks                   | name                          | text
+ doc_tracks                   | status                        | text
+ doc_tracks                   | category                      | text
+ doc_tracks                   | track_type                    | text
+ doc_tracks                   | url                           | text
+ doc_tracks                   | geom                          | USER-DEFINED
+ earthquake_hazard            | id                            | integer
+ earthquake_hazard            | chi                           | numeric
+ earthquake_hazard            | chi_hazard_grade              | integer
+ earthquake_hazard            | severity                      | text
+ earthquake_hazard            | geom                          | USER-DEFINED
+ earthquake_hazard            | source_council                | character varying
+ earthquake_prone_buildings   | id                            | integer
+ earthquake_prone_buildings   | address                       | text
+ earthquake_prone_buildings   | epbr_url                      | text
+ earthquake_prone_buildings   | council                       | text
+ earthquake_prone_buildings   | geom                          | USER-DEFINED
+ earthquake_prone_buildings   | source_council                | character varying
+ earthquakes                  | event_id                      | text
+ earthquakes                  | event_time                    | timestamp with time zone
+ earthquakes                  | latitude                      | double precision
+ earthquakes                  | longitude                     | double precision
+ earthquakes                  | depth_km                      | double precision
+ earthquakes                  | magnitude                     | double precision
+ earthquakes                  | mag_type                      | text
+ earthquakes                  | location_name                 | text
+ earthquakes                  | event_type                    | text
+ earthquakes                  | geom                          | USER-DEFINED
+ email_signups                | id                            | integer
+ email_signups                | email                         | character varying
+ email_signups                | requested_region              | text
+ email_signups                | created_at                    | timestamp with time zone
+ erosion_prone_land           | id                            | integer
+ erosion_prone_land           | min_angle                     | double precision
+ erosion_prone_land           | hectares                      | double precision
+ erosion_prone_land           | geom                          | USER-DEFINED
+ erosion_prone_land           | source_council                | character varying
+ fault_avoidance_zones        | id                            | integer
+ fault_avoidance_zones        | fault_name                    | text
+ fault_avoidance_zones        | fault_id                      | text
+ fault_avoidance_zones        | zone_type                     | text
+ fault_avoidance_zones        | fault_class                   | text
+ fault_avoidance_zones        | setback_m                     | numeric
+ fault_avoidance_zones        | geom                          | USER-DEFINED
+ fault_zones                  | id                            | integer
+ fault_zones                  | name                          | text
+ fault_zones                  | hazard_ranking                | text
+ fault_zones                  | fault_complexity              | text
+ fault_zones                  | ri_class                      | text
+ fault_zones                  | layer_id                      | integer
+ fault_zones                  | geom                          | USER-DEFINED
+ fault_zones                  | source_council                | character varying
+ feedback                     | id                            | integer
+ feedback                     | type                          | character varying
+ feedback                     | description                   | text
+ feedback                     | context                       | text
+ feedback                     | page_url                      | text
+ feedback                     | property_address              | text
+ feedback                     | importance                    | character varying
+ feedback                     | satisfaction                  | integer
+ feedback                     | email                         | character varying
+ feedback                     | browser_info                  | jsonb
+ feedback                     | screenshot_url                | text
+ feedback                     | created_at                    | timestamp with time zone
+ feedback                     | status                        | character varying
+ flood_extent                 | id                            | integer
+ flood_extent                 | aep                           | text
+ flood_extent                 | label                         | text
+ flood_extent                 | title                         | text
+ flood_extent                 | description                   | text
+ flood_extent                 | hectares                      | double precision
+ flood_extent                 | geom                          | USER-DEFINED
+ flood_extent                 | source_council                | character varying
+ flood_hazard                 | id                            | integer
+ flood_hazard                 | name                          | text
+ flood_hazard                 | hazard_ranking                | text
+ flood_hazard                 | hazard_type                   | text
+ flood_hazard                 | layer_id                      | integer
+ flood_hazard                 | geom                          | USER-DEFINED
+ flood_hazard                 | source_council                | character varying
+ flood_zones                  | objectid                      | integer
+ flood_zones                  | geom                          | USER-DEFINED
+ flood_zones                  | shape_length                  | double precision
+ flood_zones                  | shape_area                    | double precision
+ flood_zones                  | label                         | character varying
+ flood_zones                  | hectares                      | double precision
+ flood_zones                  | title                         | character varying
+ flood_zones                  | description                   | character varying
+ flood_zones                  | weblink                       | character varying
+ flood_zones                  | globalid                      | character varying
+ flood_zones                  | source_council                | text
+ geography_columns            | f_table_catalog               | name
+ geography_columns            | f_table_schema                | name
+ geography_columns            | f_table_name                  | name
+ geography_columns            | f_geography_column            | name
+ geography_columns            | coord_dimension               | integer
+ geography_columns            | srid                          | integer
+ geography_columns            | type                          | text
+ geometry_columns             | f_table_catalog               | character varying
+ geometry_columns             | f_table_schema                | name
+ geometry_columns             | f_table_name                  | name
+ geometry_columns             | f_geometry_column             | name
+ geometry_columns             | coord_dimension               | integer
+ geometry_columns             | srid                          | integer
+ geometry_columns             | type                          | character varying
+ geotechnical_reports         | id                            | integer
+ geotechnical_reports         | report_id                     | text
+ geotechnical_reports         | location_description          | text
+ geotechnical_reports         | locality                      | text
+ geotechnical_reports         | hazard                        | text
+ geotechnical_reports         | comment                       | text
+ geotechnical_reports         | source_council                | character varying
+ geotechnical_reports         | geom                          | USER-DEFINED
+ ground_shaking               | id                            | integer
+ ground_shaking               | zone                          | text
+ ground_shaking               | severity                      | text
+ ground_shaking               | geom                          | USER-DEFINED
+ ground_shaking               | source_council                | character varying
+ guest_purchases              | id                            | integer
+ guest_purchases              | stripe_session_id             | text
+ guest_purchases              | email                         | text
+ guest_purchases              | address_id                    | integer
+ guest_purchases              | persona                       | text
+ guest_purchases              | download_token_hash           | text
+ guest_purchases              | download_count                | integer
+ guest_purchases              | max_downloads                 | integer
+ guest_purchases              | job_id                        | text
+ guest_purchases              | user_id                       | text
+ guest_purchases              | created_at                    | timestamp with time zone
+ guest_purchases              | expires_at                    | timestamp with time zone
+ guest_purchases              | redeemed_at                   | timestamp with time zone
+ gwrc_earthquake_hazard       | id                            | integer
+ gwrc_earthquake_hazard       | chi                           | numeric
+ gwrc_earthquake_hazard       | chi_hazard_grade              | integer
+ gwrc_earthquake_hazard       | severity                      | text
+ gwrc_earthquake_hazard       | geom                          | USER-DEFINED
+ gwrc_ground_shaking          | id                            | integer
+ gwrc_ground_shaking          | zone                          | text
+ gwrc_ground_shaking          | severity                      | text
+ gwrc_ground_shaking          | geom                          | USER-DEFINED
+ gwrc_liquefaction            | id                            | integer
+ gwrc_liquefaction            | liquefaction                  | text
+ gwrc_liquefaction            | simplified                    | text
+ gwrc_liquefaction            | geom                          | USER-DEFINED
+ gwrc_slope_failure           | id                            | integer
+ gwrc_slope_failure           | lskey                         | text
+ gwrc_slope_failure           | severity                      | text
+ gwrc_slope_failure           | geom                          | USER-DEFINED
+ height_controls              | id                            | integer
+ height_controls              | height_metres                 | double precision
+ height_controls              | zone_name                     | text
+ height_controls              | zone_code                     | text
+ height_controls              | name                          | text
+ height_controls              | label                         | text
+ height_controls              | notes                         | text
+ height_controls              | council                       | text
+ height_controls              | geom                          | USER-DEFINED
+ height_controls              | source_council                | character varying
+ height_variation_control     | id                            | integer
+ height_variation_control     | name                          | text
+ height_variation_control     | schedule                      | text
+ height_variation_control     | height_limit                  | text
+ height_variation_control     | source_council                | character varying
+ height_variation_control     | geom                          | USER-DEFINED
+ heritage_extent              | id                            | integer
+ heritage_extent              | name                          | text
+ heritage_extent              | schedule                      | text
+ heritage_extent              | heritage_type                 | text
+ heritage_extent              | source_council                | character varying
+ heritage_extent              | geom                          | USER-DEFINED
+ heritage_sites               | id                            | integer
+ heritage_sites               | list_number                   | integer
+ heritage_sites               | name                          | text
+ heritage_sites               | list_entry_type               | text
+ heritage_sites               | list_entry_status             | text
+ heritage_sites               | address                       | text
+ heritage_sites               | district_council              | text
+ heritage_sites               | region                        | text
+ heritage_sites               | geom                          | USER-DEFINED
+ heritage_sites               | source_council                | text
+ historic_heritage_overlay    | id                            | integer
+ historic_heritage_overlay    | name                          | text
+ historic_heritage_overlay    | schedule                      | text
+ historic_heritage_overlay    | heritage_type                 | text
+ historic_heritage_overlay    | source_council                | character varying
+ historic_heritage_overlay    | geom                          | USER-DEFINED
+ hpi_national                 | quarter_end                   | date
+ hpi_national                 | house_price_index             | numeric
+ hpi_national                 | house_sales                   | integer
+ hpi_national                 | housing_stock_value_m         | numeric
+ infrastructure_projects      | id                            | integer
+ infrastructure_projects      | primary_key                   | text
+ infrastructure_projects      | submission_quarter            | text
+ infrastructure_projects      | organisation                  | text
+ infrastructure_projects      | delivery_organisation         | text
+ infrastructure_projects      | project_name                  | text
+ infrastructure_projects      | description                   | text
+ infrastructure_projects      | project_status                | text
+ infrastructure_projects      | funding_status                | text
+ infrastructure_projects      | procurement_type              | text
+ infrastructure_projects      | procurement_method            | text
+ infrastructure_projects      | region                        | text
+ infrastructure_projects      | city                          | text
+ infrastructure_projects      | suburb                        | text
+ infrastructure_projects      | sector                        | text
+ infrastructure_projects      | infra_sector                  | text
+ infrastructure_projects      | infra_service                 | text
+ infrastructure_projects      | infra_asset                   | text
+ infrastructure_projects      | value_range                   | text
+ infrastructure_projects      | quarter_bc_start              | text
+ infrastructure_projects      | quarter_bc_end                | text
+ infrastructure_projects      | quarter_procurement_start     | text
+ infrastructure_projects      | quarter_procurement_end       | text
+ infrastructure_projects      | quarter_construction_start    | text
+ infrastructure_projects      | quarter_construction_end      | text
+ infrastructure_projects      | quarter_project_start         | text
+ infrastructure_projects      | quarter_project_end           | text
+ infrastructure_projects      | info_url                      | text
+ infrastructure_projects      | contact                       | text
+ infrastructure_projects      | geom                          | USER-DEFINED
+ landslide_areas              | id                            | integer
+ landslide_areas              | gns_feature_id                | integer
+ landslide_areas              | gns_landslide_id              | integer
+ landslide_areas              | name                          | text
+ landslide_areas              | feature_type                  | text
+ landslide_areas              | geom                          | USER-DEFINED
+ landslide_areas              | source_council                | character varying
+ landslide_events             | id                            | integer
+ landslide_events             | gns_landslide_id              | integer
+ landslide_events             | name                          | text
+ landslide_events             | time_of_occurrence            | date
+ landslide_events             | damage_description            | text
+ landslide_events             | size_category                 | integer
+ landslide_events             | trigger_name                  | text
+ landslide_events             | severity_name                 | text
+ landslide_events             | debris_type_name              | text
+ landslide_events             | material_type_name            | text
+ landslide_events             | movement_type_name            | text
+ landslide_events             | activity_name                 | text
+ landslide_events             | aspect_name                   | text
+ landslide_events             | data_source_name              | text
+ landslide_events             | geom                          | USER-DEFINED
+ landslide_events             | source_council                | character varying
+ landslide_susceptibility     | id                            | integer
+ landslide_susceptibility     | accuracy                      | text
+ landslide_susceptibility     | type                          | text
+ landslide_susceptibility     | geom                          | USER-DEFINED
+ landslide_susceptibility     | source_council                | character varying
+ liquefaction_detail          | id                            | integer
+ liquefaction_detail          | liquefaction                  | text
+ liquefaction_detail          | simplified                    | text
+ liquefaction_detail          | geom                          | USER-DEFINED
+ liquefaction_detail          | source_council                | character varying
+ liquefaction_zones           | objectid                      | integer
+ liquefaction_zones           | geom                          | USER-DEFINED
+ liquefaction_zones           | source                        | character varying
+ liquefaction_zones           | liquefaction                  | character varying
+ liquefaction_zones           | simplified                    | character varying
+ liquefaction_zones           | shape_length                  | double precision
+ liquefaction_zones           | shape_area                    | double precision
+ liquefaction_zones           | source_council                | text
+ mana_whenua_sites            | id                            | integer
+ mana_whenua_sites            | name                          | text
+ mana_whenua_sites            | schedule                      | text
+ mana_whenua_sites            | site_type                     | text
+ mana_whenua_sites            | source_council                | character varying
+ mana_whenua_sites            | geom                          | USER-DEFINED
+ market_rent_cache            | sa2_code                      | text
+ market_rent_cache            | dwelling_type                 | text
+ market_rent_cache            | num_bedrooms                  | text
+ market_rent_cache            | period_covered                | text
+ market_rent_cache            | num_months                    | integer
+ market_rent_cache            | area_name                     | text
+ market_rent_cache            | n_lodged                      | integer
+ market_rent_cache            | n_closed                      | integer
+ market_rent_cache            | n_current                     | integer
+ market_rent_cache            | mean_rent                     | numeric
+ market_rent_cache            | median_rent                   | numeric
+ market_rent_cache            | lower_quartile                | numeric
+ market_rent_cache            | upper_quartile                | numeric
+ market_rent_cache            | std_dev                       | numeric
+ market_rent_cache            | bond_rent_ratio               | numeric
+ market_rent_cache            | log_mean                      | numeric
+ market_rent_cache            | log_std_dev                   | numeric
+ market_rent_cache            | synthetic_lq                  | numeric
+ market_rent_cache            | synthetic_uq                  | numeric
+ market_rent_cache            | fetched_at                    | timestamp with time zone
+ market_rent_cache            | raw_response                  | jsonb
+ mbie_epb                     | id                            | uuid
+ mbie_epb                     | name                          | text
+ mbie_epb                     | address_line1                 | text
+ mbie_epb                     | address_line2                 | text
+ mbie_epb                     | suburb                        | text
+ mbie_epb                     | city                          | text
+ mbie_epb                     | region                        | text
+ mbie_epb                     | earthquake_rating             | text
+ mbie_epb                     | heritage_status               | text
+ mbie_epb                     | construction_type             | text
+ mbie_epb                     | design_date                   | text
+ mbie_epb                     | priority                      | text
+ mbie_epb                     | notice_date                   | date
+ mbie_epb                     | completion_deadline           | date
+ mbie_epb                     | issued_by                     | text
+ mbie_epb                     | seismic_risk_area             | text
+ mbie_epb                     | geom                          | USER-DEFINED
+ meshblock_deprivation        | fid                           | integer
+ meshblock_deprivation        | geom                          | USER-DEFINED
+ meshblock_deprivation        | mb2023_code                   | character varying
+ meshblock_deprivation        | landwater                     | character varying
+ meshblock_deprivation        | landwater_name                | character varying
+ meshblock_deprivation        | land_area_sq_km               | double precision
+ meshblock_deprivation        | area_sq_km                    | double precision
+ meshblock_deprivation        | shape_length                  | double precision
+ meshblock_deprivation        | nzdep2023                     | integer
+ meshblock_deprivation        | nzdep2023_score               | numeric
+ meshblocks                   | fid                           | integer
+ meshblocks                   | geom                          | USER-DEFINED
+ meshblocks                   | mb2023_code                   | character varying
+ meshblocks                   | landwater                     | character varying
+ meshblocks                   | landwater_name                | character varying
+ meshblocks                   | land_area_sq_km               | double precision
+ meshblocks                   | area_sq_km                    | double precision
+ meshblocks                   | shape_length                  | double precision
+ metlink_stops                | id                            | integer
+ metlink_stops                | stop_id                       | text
+ metlink_stops                | stop_code                     | text
+ metlink_stops                | stop_name                     | text
+ metlink_stops                | zone_id                       | text
+ metlink_stops                | route_types                   | ARRAY
+ metlink_stops                | geom                          | USER-DEFINED
+ metlink_stops                | source_council                | character varying
+ noise_contours               | ogc_fid                       | integer
+ noise_contours               | geom                          | USER-DEFINED
+ noise_contours               | laeq24h                       | integer
+ noise_contours               | source_council                | text
+ notable_trees                | id                            | integer
+ notable_trees                | name                          | text
+ notable_trees                | schedule                      | text
+ notable_trees                | tree_type                     | text
+ notable_trees                | source_council                | character varying
+ notable_trees                | geom                          | USER-DEFINED
+ nzdep                        | mb2023_code                   | character varying
+ nzdep                        | nzdep2023                     | integer
+ nzdep                        | nzdep2023_score               | numeric
+ nzdep                        | sa12023_code                  | character varying
+ osm_amenities                | id                            | integer
+ osm_amenities                | osm_id                        | bigint
+ osm_amenities                | name                          | text
+ osm_amenities                | category                      | text
+ osm_amenities                | subcategory                   | text
+ osm_amenities                | brand                         | text
+ osm_amenities                | opening_hours                 | text
+ osm_amenities                | phone                         | text
+ osm_amenities                | website                       | text
+ osm_amenities                | addr_street                   | text
+ osm_amenities                | addr_housenumber              | text
+ osm_amenities                | geom                          | USER-DEFINED
+ overland_flow_paths          | id                            | integer
+ overland_flow_paths          | catchment_group               | integer
+ overland_flow_paths          | source_council                | character varying
+ overland_flow_paths          | geom                          | USER-DEFINED
+ parcels                      | fid                           | integer
+ parcels                      | geom                          | USER-DEFINED
+ parcels                      | id                            | integer
+ parcels                      | appellation                   | character varying
+ parcels                      | affected_surveys              | character varying
+ parcels                      | parcel_intent                 | character varying
+ parcels                      | topology_type                 | character varying
+ parcels                      | status                        | character varying
+ parcels                      | statutory_actions             | character varying
+ parcels                      | land_district                 | character varying
+ parcels                      | titles                        | character varying
+ parcels                      | survey_area                   | double precision
+ parcels                      | calc_area                     | double precision
+ park_extents                 | id                            | integer
+ park_extents                 | site_name                     | text
+ park_extents                 | asset_group                   | text
+ park_extents                 | tla_desc                      | text
+ park_extents                 | source_council                | character varying
+ park_extents                 | geom                          | USER-DEFINED
+ promo_redemptions            | id                            | integer
+ promo_redemptions            | user_id                       | text
+ promo_redemptions            | code                          | text
+ promo_redemptions            | redeemed_at                   | timestamp with time zone
+ property_titles              | fid                           | integer
+ property_titles              | geom                          | USER-DEFINED
+ property_titles              | id                            | integer
+ property_titles              | title_no                      | character varying
+ property_titles              | status                        | character varying
+ property_titles              | type                          | character varying
+ property_titles              | land_district                 | character varying
+ property_titles              | issue_date                    | timestamp with time zone
+ property_titles              | guarantee_status              | character varying
+ property_titles              | estate_description            | character varying
+ property_titles              | number_owners                 | bigint
+ property_titles              | spatial_extents_shared        | character varying
+ rail_vibration               | id                            | integer
+ rail_vibration               | noise_area                    | text
+ rail_vibration               | noise_area_type               | text
+ rail_vibration               | eplan_category                | text
+ rail_vibration               | geom                          | USER-DEFINED
+ rail_vibration               | source_council                | character varying
+ raster_columns               | r_table_catalog               | name
+ raster_columns               | r_table_schema                | name
+ raster_columns               | r_table_name                  | name
+ raster_columns               | r_raster_column               | name
+ raster_columns               | srid                          | integer
+ raster_columns               | scale_x                       | double precision
+ raster_columns               | scale_y                       | double precision
+ raster_columns               | blocksize_x                   | integer
+ raster_columns               | blocksize_y                   | integer
+ raster_columns               | same_alignment                | boolean
+ raster_columns               | regular_blocking              | boolean
+ raster_columns               | num_bands                     | integer
+ raster_columns               | pixel_types                   | ARRAY
+ raster_columns               | nodata_values                 | ARRAY
+ raster_columns               | out_db                        | ARRAY
+ raster_columns               | extent                        | USER-DEFINED
+ raster_columns               | spatial_index                 | boolean
+ raster_overviews             | o_table_catalog               | name
+ raster_overviews             | o_table_schema                | name
+ raster_overviews             | o_table_name                  | name
+ raster_overviews             | o_raster_column               | name
+ raster_overviews             | r_table_catalog               | name
+ raster_overviews             | r_table_schema                | name
+ raster_overviews             | r_table_name                  | name
+ raster_overviews             | r_raster_column               | name
+ raster_overviews             | overview_factor               | integer
+ rbnz_housing                 | quarter_end                   | date
+ rbnz_housing                 | house_sales                   | integer
+ rbnz_housing                 | house_price_index             | numeric
+ rbnz_housing                 | housing_stock_value_m         | numeric
+ rbnz_housing                 | residential_investment_real_m | numeric
+ report_credits               | id                            | integer
+ report_credits               | user_id                       | text
+ report_credits               | credit_type                   | text
+ report_credits               | credits_remaining             | integer
+ report_credits               | daily_limit                   | integer
+ report_credits               | monthly_limit                 | integer
+ report_credits               | stripe_payment_id             | text
+ report_credits               | stripe_subscription_id        | text
+ report_credits               | stripe_customer_id            | text
+ report_credits               | purchased_at                  | timestamp with time zone
+ report_credits               | expires_at                    | timestamp with time zone
+ report_credits               | cancelled_at                  | timestamp with time zone
+ report_snapshots             | id                            | integer
+ report_snapshots             | user_id                       | text
+ report_snapshots             | guest_purchase_id             | integer
+ report_snapshots             | address_id                    | integer
+ report_snapshots             | full_address                  | text
+ report_snapshots             | persona                       | text
+ report_snapshots             | share_token_hash              | text
+ report_snapshots             | snapshot_json                 | jsonb
+ report_snapshots             | inputs_at_purchase            | jsonb
+ report_snapshots             | created_at                    | timestamp with time zone
+ report_snapshots             | expires_at                    | timestamp with time zone
+ resource_consents            | id                            | integer
+ resource_consents            | consent_id                    | text
+ resource_consents            | file_no                       | text
+ resource_consents            | consent_type                  | text
+ resource_consents            | application_type              | text
+ resource_consents            | status                        | text
+ resource_consents            | commencement_date             | text
+ resource_consents            | expired_date                  | text
+ resource_consents            | purpose_desc                  | text
+ resource_consents            | geom                          | USER-DEFINED
+ resource_consents            | source_council                | character varying
+ sa2_boundaries               | ogc_fid                       | integer
+ sa2_boundaries               | geom                          | USER-DEFINED
+ sa2_boundaries               | objectid                      | integer
+ sa2_boundaries               | sa2_code                      | character varying
+ sa2_boundaries               | sa2_name                      | character varying
+ sa2_boundaries               | regc_code                     | character varying
+ sa2_boundaries               | regc_name                     | character varying
+ sa2_boundaries               | ta_code                       | character varying
+ sa2_boundaries               | ta_name                       | character varying
+ sa2_boundaries               | land_area_sq_km               | double precision
+ sa2_boundaries               | area_sq_km                    | double precision
+ saved_properties             | id                            | integer
+ saved_properties             | user_id                       | text
+ saved_properties             | address_id                    | integer
+ saved_properties             | full_address                  | text
+ saved_properties             | saved_at                      | timestamp with time zone
+ saved_reports                | id                            | integer
+ saved_reports                | user_id                       | text
+ saved_reports                | address_id                    | integer
+ saved_reports                | full_address                  | text
+ saved_reports                | report_html                   | text
+ saved_reports                | persona                       | text
+ saved_reports                | generated_at                  | timestamp with time zone
+ saved_reports                | share_token                   | text
+ school_zones                 | ogc_fid                       | integer
+ school_zones                 | geom                          | USER-DEFINED
+ school_zones                 | objectid                      | integer
+ school_zones                 | school_id                     | integer
+ school_zones                 | school_name                   | character varying
+ school_zones                 | office                        | character varying
+ school_zones                 | approval_date                 | bigint
+ school_zones                 | effective_date                | bigint
+ school_zones                 | institution_type              | character varying
+ school_zones                 | shape__area                   | double precision
+ school_zones                 | shape__length                 | double precision
+ schools                      | school_id                     | integer
+ schools                      | org_name                      | text
+ schools                      | telephone                     | text
+ schools                      | email                         | text
+ schools                      | contact_name                  | text
+ schools                      | url                           | text
+ schools                      | address_line1                 | text
+ schools                      | suburb                        | text
+ schools                      | city                          | text
+ schools                      | postal_address                | text
+ schools                      | postal_suburb                 | text
+ schools                      | postal_city                   | text
+ schools                      | postal_code                   | text
+ schools                      | urban_rural                   | text
+ schools                      | org_type                      | text
+ schools                      | definition                    | text
+ schools                      | authority                     | text
+ schools                      | school_donations              | text
+ schools                      | coed_status                   | text
+ schools                      | takiwa                        | text
+ schools                      | territorial_authority         | text
+ schools                      | regional_council              | text
+ schools                      | education_region              | text
+ schools                      | general_electorate            | text
+ schools                      | maori_electorate              | text
+ schools                      | sa2_code                      | text
+ schools                      | sa2_description               | text
+ schools                      | ward                          | text
+ schools                      | latitude                      | double precision
+ schools                      | longitude                     | double precision
+ schools                      | enrolment_scheme              | text
+ schools                      | eqi_index                     | integer
+ schools                      | roll_date                     | date
+ schools                      | total_roll                    | integer
+ schools                      | european                      | integer
+ schools                      | maori                         | integer
+ schools                      | pacific                       | integer
+ schools                      | asian                         | integer
+ schools                      | melaa                         | integer
+ schools                      | other_ethnicity               | integer
+ schools                      | international                 | integer
+ schools                      | isolation_index               | double precision
+ schools                      | language_of_instruction       | text
+ schools                      | boarding_facilities           | text
+ schools                      | cohort_entry                  | text
+ schools                      | status                        | text
+ schools                      | date_opened                   | date
+ schools                      | geom                          | USER-DEFINED
+ significant_ecological_areas | id                            | integer
+ significant_ecological_areas | name                          | text
+ significant_ecological_areas | schedule                      | text
+ significant_ecological_areas | eco_type                      | text
+ significant_ecological_areas | source_council                | character varying
+ significant_ecological_areas | geom                          | USER-DEFINED
+ slope_failure                | id                            | integer
+ slope_failure                | lskey                         | text
+ slope_failure                | severity                      | text
+ slope_failure                | geom                          | USER-DEFINED
+ slope_failure                | source_council                | character varying
+ slope_failure_zones          | ogc_fid                       | integer
+ slope_failure_zones          | geom                          | USER-DEFINED
+ slope_failure_zones          | objectid                      | integer
+ slope_failure_zones          | lskey                         | integer
+ slope_failure_zones          | severity                      | character varying
+ slope_failure_zones          | shape_length                  | double precision
+ slope_failure_zones          | shape_area                    | double precision
+ slope_failure_zones          | susceptibility                | character varying
+ special_character_areas      | id                            | integer
+ special_character_areas      | name                          | text
+ special_character_areas      | schedule                      | text
+ special_character_areas      | character_type                | text
+ special_character_areas      | source_council                | character varying
+ special_character_areas      | geom                          | USER-DEFINED
+ stormwater_management_area   | id                            | integer
+ stormwater_management_area   | control_type                  | text
+ stormwater_management_area   | area_name                     | text
+ stormwater_management_area   | source_council                | character varying
+ stormwater_management_area   | geom                          | USER-DEFINED
+ transit_stop_frequency       | stop_id                       | text
+ transit_stop_frequency       | peak_trips_per_hour           | numeric
+ transit_stops                | stop_id                       | text
+ transit_stops                | stop_code                     | text
+ transit_stops                | stop_name                     | text
+ transit_stops                | stop_desc                     | text
+ transit_stops                | stop_lat                      | double precision
+ transit_stops                | stop_lon                      | double precision
+ transit_stops                | zone_id                       | text
+ transit_stops                | location_type                 | integer
+ transit_stops                | parent_station                | text
+ transit_stops                | geom                          | USER-DEFINED
+ transit_stops                | source                        | character varying
+ transit_stops                | mode_type                     | character varying
+ transit_travel_times         | id                            | integer
+ transit_travel_times         | stop_id                       | text
+ transit_travel_times         | destination                   | text
+ transit_travel_times         | min_minutes                   | numeric
+ transit_travel_times         | route_names                   | ARRAY
+ transit_travel_times         | peak_window                   | text
+ transmission_lines           | ogc_fid                       | integer
+ transmission_lines           | geom                          | USER-DEFINED
+ transmission_lines           | objectid                      | integer
+ transmission_lines           | mxlocation                    | character varying
+ transmission_lines           | designvolt                    | character varying
+ transmission_lines           | status                        | character varying
+ transmission_lines           | description                   | character varying
+ transmission_lines           | type                          | character varying
+ transmission_lines           | symbol                        | character varying
+ transmission_lines           | globalid                      | character varying
+ transmission_lines           | shape__length                 | double precision
+ tsunami_hazard               | id                            | integer
+ tsunami_hazard               | name                          | text
+ tsunami_hazard               | hazard_ranking                | text
+ tsunami_hazard               | scenario                      | text
+ tsunami_hazard               | return_period                 | text
+ tsunami_hazard               | layer_id                      | integer
+ tsunami_hazard               | geom                          | USER-DEFINED
+ tsunami_hazard               | source_council                | character varying
+ tsunami_zones                | objectid                      | integer
+ tsunami_zones                | geom                          | USER-DEFINED
+ tsunami_zones                | zone_class                    | smallint
+ tsunami_zones                | col_code                      | character varying
+ tsunami_zones                | evac_zone                     | character varying
+ tsunami_zones                | location                      | character varying
+ tsunami_zones                | info                          | character varying
+ tsunami_zones                | heights                       | character varying
+ tsunami_zones                | shape_length                  | double precision
+ tsunami_zones                | shape_area                    | double precision
+ tsunami_zones                | source_council                | text
+ user_budget_inputs           | id                            | integer
+ user_budget_inputs           | address_id                    | integer
+ user_budget_inputs           | sa2_code                      | text
+ user_budget_inputs           | persona                       | text
+ user_budget_inputs           | purchase_price                | integer
+ user_budget_inputs           | deposit_pct                   | numeric
+ user_budget_inputs           | interest_rate                 | numeric
+ user_budget_inputs           | loan_term                     | integer
+ user_budget_inputs           | rates_override                | numeric
+ user_budget_inputs           | insurance_override            | numeric
+ user_budget_inputs           | utilities_override            | numeric
+ user_budget_inputs           | maintenance_override          | numeric
+ user_budget_inputs           | weekly_rent                   | integer
+ user_budget_inputs           | room_only                     | boolean
+ user_budget_inputs           | household_size                | smallint
+ user_budget_inputs           | contents_insurance_override   | numeric
+ user_budget_inputs           | transport_override            | numeric
+ user_budget_inputs           | food_override                 | numeric
+ user_budget_inputs           | annual_income                 | integer
+ user_budget_inputs           | ip_hash                       | text
+ user_budget_inputs           | reported_at                   | timestamp with time zone
+ user_rent_reports            | id                            | integer
+ user_rent_reports            | address_id                    | bigint
+ user_rent_reports            | building_address              | text
+ user_rent_reports            | sa2_code                      | character varying
+ user_rent_reports            | dwelling_type                 | character varying
+ user_rent_reports            | bedrooms                      | character varying
+ user_rent_reports            | reported_rent                 | integer
+ user_rent_reports            | is_outlier                    | boolean
+ user_rent_reports            | reported_at                   | timestamp with time zone
+ user_rent_reports            | ip_hash                       | character varying
+ user_rent_reports            | source                        | character varying
+ users                        | user_id                       | text
+ users                        | email                         | text
+ users                        | display_name                  | text
+ users                        | plan                          | text
+ users                        | created_at                    | timestamp with time zone
+ users                        | updated_at                    | timestamp with time zone
+ v_address_air_quality        | address_id                    | integer
+ v_address_air_quality        | air_site_name                 | text
+ v_address_air_quality        | pm10_trend                    | text
+ v_address_air_quality        | pm25_trend                    | text
+ v_address_air_quality        | air_distance_m                | numeric
+ v_address_building           | address_id                    | integer
+ v_address_building           | building_use                  | character varying
+ v_address_building           | footprint_sqm                 | numeric
+ v_address_climate            | address_id                    | integer
+ v_address_climate            | temp_change                   | double precision
+ v_address_climate            | precip_change_pct             | double precision
+ v_address_climate            | frost_day_change              | double precision
+ v_address_climate            | hot_day_change                | double precision
+ v_address_contamination      | address_id                    | integer
+ v_address_contamination      | contam_site_name              | text
+ v_address_contamination      | anzecc_category               | text
+ v_address_contamination      | contam_distance_m             | numeric
+ v_address_contamination      | contam_count_2km              | integer
+ v_address_earthquakes        | address_id                    | integer
+ v_address_earthquakes        | earthquake_count_30km         | integer
+ v_address_epb                | address_id                    | integer
+ v_address_epb                | epb_count_300m                | integer
+ v_address_hazards            | address_id                    | integer
+ v_address_hazards            | flood_label                   | character varying
+ v_address_hazards            | tsunami_zone_class            | smallint
+ v_address_hazards            | tsunami_evac_zone             | character varying
+ v_address_hazards            | liquefaction_class            | character varying
+ v_address_hazards            | wind_zone                     | character varying
+ v_address_hazards            | coastal_exposure              | character varying
+ v_address_noise              | address_id                    | integer
+ v_address_noise              | road_noise_db                 | integer
+ v_address_nzdep              | address_id                    | integer
+ v_address_nzdep              | nzdep_decile                  | integer
+ v_address_planning           | address_id                    | integer
+ v_address_planning           | zone_name                     | text
+ v_address_planning           | zone_code                     | text
+ v_address_planning           | zone_category                 | text
+ v_address_planning           | max_height_m                  | double precision
+ v_address_sa2                | address_id                    | integer
+ v_address_sa2                | sa2_code                      | character varying
+ v_address_sa2                | sa2_name                      | character varying
+ v_address_sa2                | ta_name                       | character varying
+ v_address_title              | address_id                    | integer
+ v_address_title              | title_no                      | character varying
+ v_address_title              | estate_description            | character varying
+ v_address_title              | title_type                    | character varying
+ v_address_title              | number_owners                 | bigint
+ v_address_transmission       | address_id                    | integer
+ v_address_transmission       | designvolt                    | character varying
+ v_address_transmission       | line_description              | character varying
+ v_address_transmission       | transmission_distance_m       | numeric
+ v_address_water_quality      | address_id                    | integer
+ v_address_water_quality      | water_site_name               | text
+ v_address_water_quality      | ecoli_band                    | text
+ v_address_water_quality      | ammonia_band                  | text
+ v_address_water_quality      | nitrate_band                  | text
+ v_address_water_quality      | drp_band                      | text
+ v_address_water_quality      | clarity_band                  | text
+ v_address_water_quality      | water_distance_m              | numeric
+ v_address_wildfire           | address_id                    | integer
+ v_address_wildfire           | vhe_days                      | real
+ v_address_wildfire           | wildfire_trend                | text
+ viewshafts                   | id                            | integer
+ viewshafts                   | dp_ref                        | text
+ viewshafts                   | name                          | text
+ viewshafts                   | description                   | text
+ viewshafts                   | significance                  | text
+ viewshafts                   | focal_elements                | text
+ viewshafts                   | geom                          | USER-DEFINED
+ viewshafts                   | source_council                | character varying
+ water_quality_sites          | id                            | integer
+ water_quality_sites          | lawa_id                       | text
+ water_quality_sites          | site_name                     | text
+ water_quality_sites          | catchment                     | text
+ water_quality_sites          | region                        | text
+ water_quality_sites          | agency                        | text
+ water_quality_sites          | ecoli_band                    | text
+ water_quality_sites          | ammonia_band                  | text
+ water_quality_sites          | nitrate_band                  | text
+ water_quality_sites          | drp_band                      | text
+ water_quality_sites          | clarity_band                  | text
+ water_quality_sites          | geom                          | USER-DEFINED
+ wcc_fault_zones              | id                            | integer
+ wcc_fault_zones              | name                          | text
+ wcc_fault_zones              | hazard_ranking                | text
+ wcc_fault_zones              | fault_complexity              | text
+ wcc_fault_zones              | ri_class                      | text
+ wcc_fault_zones              | layer_id                      | integer
+ wcc_fault_zones              | geom                          | USER-DEFINED
+ wcc_flood_hazard             | id                            | integer
+ wcc_flood_hazard             | name                          | text
+ wcc_flood_hazard             | hazard_ranking                | text
+ wcc_flood_hazard             | hazard_type                   | text
+ wcc_flood_hazard             | layer_id                      | integer
+ wcc_flood_hazard             | geom                          | USER-DEFINED
+ wcc_rates_cache              | valuation_number              | text
+ wcc_rates_cache              | rate_account_number           | integer
+ wcc_rates_cache              | address                       | text
+ wcc_rates_cache              | identifier                    | text
+ wcc_rates_cache              | rating_category               | text
+ wcc_rates_cache              | billing_code                  | text
+ wcc_rates_cache              | legal_description             | text
+ wcc_rates_cache              | valued_land_area              | integer
+ wcc_rates_cache              | has_water_meter               | boolean
+ wcc_rates_cache              | capital_value                 | integer
+ wcc_rates_cache              | land_value                    | integer
+ wcc_rates_cache              | improvements_value            | integer
+ wcc_rates_cache              | valuation_date                | date
+ wcc_rates_cache              | total_rates                   | numeric
+ wcc_rates_cache              | rates_period                  | text
+ wcc_rates_cache              | valuations                    | jsonb
+ wcc_rates_cache              | levies                        | jsonb
+ wcc_rates_cache              | fetched_at                    | timestamp with time zone
+ wcc_rates_cache              | created_at                    | timestamp with time zone
+ wcc_solar_radiation          | id                            | integer
+ wcc_solar_radiation          | mean_yearly_solar             | numeric
+ wcc_solar_radiation          | max_yearly_solar              | numeric
+ wcc_solar_radiation          | approx_height                 | numeric
+ wcc_solar_radiation          | geom                          | USER-DEFINED
+ wcc_solar_radiation          | source_council                | character varying
+ wcc_tsunami_hazard           | id                            | integer
+ wcc_tsunami_hazard           | name                          | text
+ wcc_tsunami_hazard           | hazard_ranking                | text
+ wcc_tsunami_hazard           | scenario                      | text
+ wcc_tsunami_hazard           | return_period                 | text
+ wcc_tsunami_hazard           | layer_id                      | integer
+ wcc_tsunami_hazard           | geom                          | USER-DEFINED
+ weather_events               | id                            | integer
+ weather_events               | event_date                    | date
+ weather_events               | event_type                    | text
+ weather_events               | severity                      | text
+ weather_events               | title                         | text
+ weather_events               | description                   | text
+ weather_events               | precipitation_mm              | real
+ weather_events               | wind_gust_kmh                 | real
+ weather_events               | temp_max_c                    | real
+ weather_events               | temp_min_c                    | real
+ weather_events               | weather_code                  | integer
+ weather_events               | lat                           | double precision
+ weather_events               | lng                           | double precision
+ weather_events               | geom                          | USER-DEFINED
+ wildfire_risk                | id                            | integer
+ wildfire_risk                | site                          | text
+ wildfire_risk                | fuel_type                     | text
+ wildfire_risk                | ten_year_mean                 | real
+ wildfire_risk                | quantile                      | text
+ wildfire_risk                | slope_decade                  | real
+ wildfire_risk                | trend_likelihood              | text
+ wildfire_risk                | geom                          | USER-DEFINED
+ wind_zones                   | ogc_fid                       | integer
+ wind_zones                   | geom                          | USER-DEFINED
+ wind_zones                   | objectid                      | integer
+ wind_zones                   | zone_name                     | character varying
+ wind_zones                   | ta                            | character varying
+ wind_zones                   | shape_length                  | double precision
+ wind_zones                   | shape_area                    | double precision
+ wind_zones                   | zone_title                    | character varying
+(1273 rows)
+

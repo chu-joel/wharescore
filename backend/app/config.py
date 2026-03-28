@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Valhalla routing engine (walking isochrones + elevation)
+    VALHALLA_URL: str = "http://valhalla:8002"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     def validate_secrets(self):

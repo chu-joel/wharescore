@@ -1,0 +1,1926 @@
+total_datasources: 530
+- key: gns_landslides
+  desc: GNS Landslide Database (National)
+  tables: [landslide_events, landslide_areas]
+- key: gns_active_faults
+  desc: GNS Active Faults (National)
+  tables: [active_faults, fault_avoidance_zones]
+- key: gwrc_earthquake
+  desc: GWRC Earthquake Hazards
+  tables: [earthquake_hazard, ground_shaking, liquefaction_detail, slope_failure]
+- key: wcc_hazards
+  desc: WCC District Plan Hazards
+  tables: [fault_zones, flood_hazard, tsunami_hazard]
+- key: wcc_solar
+  desc: WCC Solar Radiation
+  tables: [wcc_solar_radiation]
+- key: metlink_gtfs
+  desc: Metlink GTFS + Travel Times
+  tables: [metlink_stops, transit_travel_times, transit_stop_frequency]
+- key: contaminated_land
+  desc: GWRC Contaminated Land (SLUR)
+  tables: [contaminated_land]
+- key: epb_wcc
+  desc: WCC Earthquake-Prone Buildings
+  tables: [earthquake_prone_buildings]
+- key: resource_consents
+  desc: GWRC Resource Consents
+  tables: [resource_consents]
+- key: district_plan
+  desc: WCC District Plan Zones
+  tables: [district_plan_zones]
+- key: height_controls
+  desc: WCC Height Controls
+  tables: [height_controls]
+- key: gwrc_landslide
+  desc: GWRC Landslide (GNS QMap)
+  tables: [landslide_susceptibility]
+- key: coastal_elevation
+  desc: GWRC Coastal Elevation
+  tables: [coastal_elevation]
+- key: gwrc_flood_extents
+  desc: GWRC Flood Extents (2%, 1%, 0.23% AEP)
+  tables: [flood_extent]
+- key: corrosion_zones
+  desc: WCC Corrosion Zones
+  tables: [corrosion_zones]
+- key: viewshafts
+  desc: WCC Viewshafts
+  tables: [viewshafts]
+- key: character_precincts
+  desc: WCC Character Precincts
+  tables: [character_precincts]
+- key: coastal_inundation
+  desc: WCC Coastal Inundation (+ SLR)
+  tables: [coastal_inundation]
+- key: rail_vibration
+  desc: WCC Rail Vibration Advisory
+  tables: [rail_vibration]
+- key: erosion_prone_land
+  desc: GWRC Erosion Prone Land
+  tables: [erosion_prone_land]
+- key: auckland_flood
+  desc: Auckland Flood Prone Areas
+  tables: [flood_hazard]
+- key: auckland_coastal
+  desc: Auckland Coastal Inundation
+  tables: [coastal_inundation]
+- key: auckland_liquefaction
+  desc: Auckland Liquefaction
+  tables: [liquefaction_detail]
+- key: auckland_landslide
+  desc: Auckland Landslide Susceptibility
+  tables: [landslide_susceptibility]
+- key: auckland_plan_zones
+  desc: Auckland Unitary Plan Zones
+  tables: [district_plan_zones]
+- key: auckland_stormwater
+  desc: Auckland Stormwater Management Areas
+  tables: [stormwater_management_area]
+- key: auckland_tsunami
+  desc: Auckland Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+- key: auckland_overland_flow
+  desc: Auckland Overland Flow Paths
+  tables: [overland_flow_paths]
+- key: auckland_flood_sensitive
+  desc: Auckland Flood Sensitive Areas
+  tables: [flood_hazard]
+- key: auckland_heritage
+  desc: Auckland Historic Heritage Overlay
+  tables: [historic_heritage_overlay]
+- key: auckland_aircraft_noise
+  desc: Auckland Aircraft Noise Overlay
+  tables: [aircraft_noise_overlay]
+- key: auckland_special_character
+  desc: Auckland Special Character Areas
+  tables: [special_character_areas]
+- key: auckland_notable_trees
+  desc: Auckland Notable Trees
+  tables: [notable_trees]
+- key: auckland_ecological
+  desc: Auckland Significant Ecological Areas
+  tables: [significant_ecological_areas]
+- key: auckland_coastal_erosion
+  desc: Auckland Coastal Erosion (ASCIE)
+  tables: [coastal_erosion]
+- key: auckland_height_variation
+  desc: Auckland Height Variation Control
+  tables: [height_variation_control]
+- key: auckland_mana_whenua
+  desc: Auckland Mana Whenua Sites
+  tables: [mana_whenua_sites]
+- key: auckland_geotech
+  desc: Auckland Geotechnical Reports
+  tables: [geotechnical_reports]
+- key: auckland_schools
+  desc: Auckland School Locations
+  tables: [auckland_schools]
+- key: auckland_parks
+  desc: Auckland Park Extents
+  tables: [park_extents]
+- key: auckland_viewshafts
+  desc: Auckland Viewshafts (Local + Volcanic)
+  tables: [viewshafts]
+- key: auckland_heritage_extent
+  desc: Auckland Heritage Extent of Place
+  tables: [heritage_extent]
+- key: at_gtfs
+  desc: Auckland Transport GTFS + Travel Times
+  tables: [at_stops, at_travel_times, at_stop_frequency]
+- key: chch_liquefaction
+  desc: Christchurch Liquefaction
+  tables: [liquefaction_detail]
+- key: chch_flood
+  desc: Christchurch Flood Management
+  tables: [flood_hazard]
+- key: hamilton_flood
+  desc: Hamilton Flood Hazard
+  tables: [flood_hazard]
+  url: https://maps.hamilton.govt.nz/server/rest/services/hcc_entpublic/portal_floodviewer_floodhazard/FeatureServer/1
+- key: hamilton_plan_zones
+  desc: Hamilton District Plan Zones
+  tables: [district_plan_zones]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Zoning/MapServer/32
+- key: waikato_liquefaction
+  desc: Waikato Liquefaction (Level A)
+  tables: [liquefaction_detail]
+- key: waikato_flood
+  desc: Waikato Local Flood Hazard
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_MOD_LOCAL_FLOOD_HAZ_CLASS/FeatureServer/0
+- key: tauranga_flood
+  desc: Tauranga Flood Risk
+  tables: [flood_hazard]
+  url: https://gis.tauranga.govt.nz/server/rest/services/fv_FloodRisk/FeatureServer/83
+- key: tauranga_liquefaction
+  desc: Tauranga Liquefaction Vulnerability
+  tables: [liquefaction_detail]
+  url: https://gis.tauranga.govt.nz/server/rest/services/Liquefaction/FeatureServer/0
+- key: tauranga_plan_zones
+  desc: Tauranga Planning Zones
+  tables: [district_plan_zones]
+  url: https://gis.tauranga.govt.nz/server/rest/services/City_Planning_Zones/MapServer/10
+- key: tauranga_tsunami
+  desc: Tauranga Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+  url: https://gis.tauranga.govt.nz/server/rest/services/Natural_Hazards__multiple_data_sources/MapServer/26
+- key: dunedin_flood_h1
+  desc: Dunedin Flood Hazard 1
+  tables: [flood_hazard]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/9
+- key: dunedin_flood_h2
+  desc: Dunedin Flood Hazard 2
+  tables: [flood_hazard]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/12
+- key: dunedin_flood_h3
+  desc: Dunedin Flood Hazard 3
+  tables: [flood_hazard]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/14
+- key: dunedin_land_instability
+  desc: Dunedin Land Instability
+  tables: [slope_failure]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/11
+- key: dunedin_tsunami
+  desc: Dunedin/Otago Tsunami
+  tables: [tsunami_hazard]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/Tsunami_AffectedArea_Final/FeatureServer/0
+- key: dunedin_plan_zones
+  desc: Dunedin 2GP Zones (Residential)
+  tables: [district_plan_zones]
+- key: hbrc_flood
+  desc: Hawke's Bay Flood Risk Areas
+  tables: [flood_hazard]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Flooding/MapServer/0
+- key: hbrc_liquefaction
+  desc: Hawke's Bay Liquefaction
+  tables: [liquefaction_detail]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Earthquake_Liquefaction/MapServer/0
+- key: hbrc_tsunami
+  desc: Hawke's Bay Tsunami Inundation
+  tables: [tsunami_hazard]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Tsunami_Inundation/MapServer/0
+- key: hbrc_landslide_high
+  desc: Hawke's Bay High Landslide Risk
+  tables: [slope_failure]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/1
+- key: nelson_flood
+  desc: Nelson River Flooding (Present Day)
+  tables: [flood_hazard]
+- key: nelson_liquefaction
+  desc: Nelson Liquefaction
+  tables: [liquefaction_detail]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/3
+- key: nelson_fault_hazard
+  desc: Nelson Fault Hazard Corridor
+  tables: [fault_zones]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/4
+- key: nelson_slope
+  desc: Nelson Slope Instability
+  tables: [slope_failure]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/SlopeInstabilityOverlay/MapServer/0
+- key: hamilton_overland_flood
+  desc: Hamilton Overland Flowpath Flood Hazard
+  tables: [flood_hazard]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Features/MapServer/194
+- key: hamilton_riverbank_hazard
+  desc: Hamilton Riverbank & Gully Hazard
+  tables: [slope_failure]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Features/MapServer/195
+- key: hamilton_sna
+  desc: Hamilton Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Features/MapServer/3
+- key: waikato_ground_shaking
+  desc: Waikato Earthquake Ground Shaking
+  tables: [ground_shaking]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/WDP_EARTHQUAKE_GROUND_SHAKING/FeatureServer/0
+- key: tauranga_slope
+  desc: Tauranga Slope Hazard Zones
+  tables: [slope_failure]
+  url: https://gis.tauranga.govt.nz/server/rest/services/Natural_Hazards__multiple_data_sources/MapServer/21
+- key: tauranga_coastal_erosion
+  desc: Tauranga Coastal Erosion (NZVD16)
+  tables: [coastal_erosion]
+- key: dunedin_coastal_hazard
+  desc: Dunedin Coastal Hazard
+  tables: [flood_hazard]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/16
+- key: dunedin_heritage_precinct
+  desc: Dunedin Heritage Precincts
+  tables: [character_precincts]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_OverlayZones/MapServer/7
+- key: qldc_flood
+  desc: QLDC Flood Hazard Area
+  tables: [flood_hazard]
+  url: https://gis.qldc.govt.nz/server/rest/services/Hazards/Flooding/MapServer/3
+- key: qldc_liquefaction
+  desc: QLDC Liquefaction (GNS 2019)
+  tables: [liquefaction_detail]
+- key: qldc_landslide
+  desc: QLDC Landslide Areas
+  tables: [landslide_areas]
+  url: https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/3
+- key: otago_liquefaction
+  desc: Otago Region Liquefaction (GNS 2019)
+  tables: [liquefaction_detail]
+- key: orc_hail
+  desc: Otago Region Contaminated Sites (HAIL)
+  tables: [contaminated_land]
+- key: whangarei_flood
+  desc: Whangarei Flood Susceptible Areas
+  tables: [flood_hazard]
+  url: https://geo.wdc.govt.nz/server/rest/services/Floods/MapServer/0
+- key: whangarei_liquefaction
+  desc: Whangarei Liquefaction Vulnerability (T+T 2020)
+  tables: [liquefaction_detail]
+- key: whangarei_land_stability
+  desc: Whangarei Land Instability
+  tables: [slope_failure]
+  url: https://geo.wdc.govt.nz/server/rest/services/Land_Stability/MapServer/1
+- key: taranaki_faults
+  desc: Taranaki Active Faultlines
+  tables: [active_faults]
+- key: taranaki_tsunami
+  desc: Taranaki Tsunami Evacuation Zones
+  tables: [tsunami_zones]
+- key: taranaki_volcanic
+  desc: Taranaki Volcanic Hazard Zones
+  tables: [flood_hazard]
+  url: https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/3
+- key: chch_slope_hazard
+  desc: Christchurch Slope Hazard (CCC)
+  tables: [slope_failure]
+- key: canterbury_faults
+  desc: Canterbury Fault Awareness Areas (ECan 2024)
+  tables: [fault_zones]
+- key: tauranga_heritage
+  desc: Tauranga Built Heritage Sites
+  tables: [heritage_sites]
+- key: tauranga_noise
+  desc: Tauranga Airport + Port Noise Contours
+  tables: [noise_contours]
+- key: hbrc_contaminated
+  desc: Hawke's Bay Contaminated Sites
+  tables: [contaminated_land]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Contaminated_Sites/MapServer/19
+- key: hbrc_earthquake_amp
+  desc: Hawke's Bay Earthquake Amplification
+  tables: [ground_shaking]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Earthquake_Amplification/MapServer/0
+- key: hbrc_coastal_hazard
+  desc: Hawke's Bay Coastal Hazard Zones
+  tables: [flood_hazard]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Coastal_Hazard_Zones/MapServer/25
+- key: chch_plan_zones
+  desc: Christchurch District Plan Zones
+  tables: [district_plan_zones]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/0
+- key: chch_tsunami
+  desc: Christchurch Tsunami Inundation
+  tables: [tsunami_hazard]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/23
+- key: chch_heritage
+  desc: Christchurch Heritage Items (polygons)
+  tables: [heritage_extent]
+- key: chch_notable_trees
+  desc: Christchurch Notable Trees
+  tables: [notable_trees]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/74
+- key: chch_slope
+  desc: Christchurch Slope Hazard
+  tables: [slope_failure]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/38
+- key: chch_coastal_erosion
+  desc: Christchurch Coastal Erosion
+  tables: [coastal_erosion]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/42
+- key: chch_coastal_inundation
+  desc: Christchurch Coastal Inundation
+  tables: [coastal_inundation]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/43
+- key: chch_flood_high
+  desc: Christchurch High Flood Hazard
+  tables: [flood_hazard]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/34
+- key: auckland_rates
+  desc: Auckland Rates/Valuations (623K)
+  tables: [council_valuations]
+- key: chch_rates
+  desc: Christchurch Rates/Valuations (186K)
+  tables: [council_valuations]
+- key: dunedin_rates
+  desc: Dunedin Rates/Valuations (58K)
+  tables: [council_valuations]
+- key: taranaki_rates
+  desc: Taranaki Rates/Valuations (58K)
+  tables: [council_valuations]
+- key: uhcc_rates
+  desc: Upper Hutt Rates/Valuations (10K, scraped)
+  tables: [council_valuations]
+- key: hcc_rates
+  desc: Hutt City Rates/Valuations (46K)
+  tables: [council_valuations]
+- key: pcc_rates
+  desc: Porirua City Rates/Valuations (24K)
+  tables: [council_valuations]
+- key: kcdc_rates
+  desc: Kapiti Coast Rates/Valuations (27K)
+  tables: [council_valuations]
+- key: hdc_rates
+  desc: Horowhenua Rates/Valuations (19K)
+  tables: [council_valuations]
+- key: whanganui_rates
+  desc: Whanganui Rates/Valuations (~25K)
+  tables: [council_valuations]
+- key: manawatu_rates
+  desc: Manawatu District Rates/Valuations (~15K)
+  tables: [council_valuations]
+- key: rangitikei_rates
+  desc: Rangitikei District Rates/Valuations (~10K)
+  tables: [council_valuations]
+- key: tararua_rates
+  desc: Tararua District Rates/Valuations (~10K)
+  tables: [council_valuations]
+- key: ruapehu_rates
+  desc: Ruapehu District Rates/Valuations (~8K)
+  tables: [council_valuations]
+- key: tasman_rates
+  desc: Tasman Rates/Valuations (29K)
+  tables: [council_valuations]
+- key: marlborough_rates
+  desc: Marlborough Rates/Valuations (27K)
+  tables: [council_valuations]
+- key: waikato_dc_rates
+  desc: Waikato District Rates/Valuations (~21K)
+  tables: [council_valuations]
+- key: thames_coromandel_rates
+  desc: Thames-Coromandel Rates/Valuations (~30K)
+  tables: [council_valuations]
+- key: south_waikato_rates
+  desc: South Waikato Rates/Valuations (~12K)
+  tables: [council_valuations]
+- key: matamata_piako_rates
+  desc: Matamata-Piako Rates/Valuations (~16K)
+  tables: [council_valuations]
+- key: waipa_rates
+  desc: Waipa District Rates/Valuations (~25K)
+  tables: [council_valuations]
+- key: hauraki_rates
+  desc: Hauraki District Rates/Valuations (~12K)
+  tables: [council_valuations]
+- key: selwyn_rates
+  desc: Selwyn Rates/Valuations (~30K)
+  tables: [council_valuations]
+- key: waimakariri_rates
+  desc: Waimakariri Rates/Valuations (~30K)
+  tables: [council_valuations]
+- key: ashburton_rates
+  desc: Ashburton Rates/Valuations (~20K)
+  tables: [council_valuations]
+- key: timaru_rates
+  desc: Timaru Rates/Valuations (~25K)
+  tables: [council_valuations]
+- key: hurunui_rates
+  desc: Hurunui Rates/Valuations (~8K)
+  tables: [council_valuations]
+- key: waimate_rates
+  desc: Waimate Rates/Valuations (~5K)
+  tables: [council_valuations]
+- key: mackenzie_rates
+  desc: Mackenzie Rates/Valuations (~4K)
+  tables: [council_valuations]
+- key: waitaki_rates
+  desc: Waitaki Rates/Valuations (~15K)
+  tables: [council_valuations]
+- key: kaikoura_rates
+  desc: Kaikoura Rates/Valuations (~3.5K)
+  tables: [council_valuations]
+- key: central_otago_rates
+  desc: Central Otago Rates/Valuations (~18K)
+  tables: [council_valuations]
+- key: clutha_rates
+  desc: Clutha Rates/Valuations (~15K)
+  tables: [council_valuations]
+- key: dunedin_orc_rates
+  desc: Dunedin Rates/Valuations via ORC (~58K)
+  tables: [council_valuations]
+- key: queenstown_orc_rates
+  desc: Queenstown-Lakes Rates via ORC (~33K)
+  tables: [council_valuations]
+- key: buller_rates
+  desc: Buller Rates/Valuations (~7.8K)
+  tables: [council_valuations]
+- key: grey_westland_rates
+  desc: Grey + Westland Rates/Valuations (~24K)
+  tables: [council_valuations]
+- key: ecan_resource_consents
+  desc: ECan Resource Consents (Canterbury, ~115K)
+  tables: [resource_consents]
+- key: hamilton_heritage
+  desc: Hamilton Built Heritage
+  tables: [historic_heritage_overlay]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Features/MapServer/0
+- key: hamilton_trees
+  desc: Hamilton Significant Trees
+  tables: [notable_trees]
+  url: https://maps.hamilton.govt.nz/server/rest/services/agol_odp2017/DistrictPlan_Proposed_Decisions_2015_Features/MapServer/156
+- key: dunedin_heritage
+  desc: Dunedin Heritage Buildings
+  tables: [historic_heritage_overlay]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_ScheduledItems/MapServer/1
+- key: dunedin_trees
+  desc: Dunedin Scheduled Trees
+  tables: [notable_trees]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_ScheduledItems/MapServer/2
+- key: dunedin_airport_noise
+  desc: Dunedin Airport Flight Fan
+  tables: [aircraft_noise_overlay]
+  url: https://apps.dunedin.govt.nz/arcgis/rest/services/Public/SecondGenerationPlan_ScheduledItems/MapServer/8
+- key: hbrc_plan_zones
+  desc: Hawke's Bay District Plan Zones
+  tables: [district_plan_zones]
+  url: https://gis.hbrc.govt.nz/server/rest/services/ExternalServices/TLA_Regulatory_Planning_Layers/MapServer/2
+- key: nelson_trees
+  desc: Nelson Notable Trees
+  tables: [notable_trees]
+  url: https://gis.nelson.govt.nz/server/rest/services/NelsonPlan/Notable_Trees/MapServer/0
+- key: christchurch_gtfs
+  desc: Christchurch Metro GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://apis.metroinfo.co.nz/rti/gtfs/v1/gtfs.zip
+- key: hamilton_gtfs
+  desc: Hamilton BUSIT GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://wrcscheduledata.blob.core.windows.net/wrcgtfs/busit-nz-public.zip
+- key: dunedin_gtfs
+  desc: Dunedin Orbus GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://www.orc.govt.nz/transit/google_transit.zip
+- key: nelson_gtfs
+  desc: Nelson eBus GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/nsn-nz/nsn-nz.zip
+- key: taranaki_gtfs
+  desc: New Plymouth Citylink GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/trc-nz/trc-nz.zip
+- key: palmerston_north_gtfs
+  desc: Palmerston North Horizons GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://www.horizons.govt.nz/HRC/media/Data/files/tranzit/HRC_GTFS_Production.zip
+- key: hawkes_bay_gtfs
+  desc: Hawke's Bay GoBus GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/hbrc-nz/hbrc-nz.zip
+- key: whangarei_gtfs
+  desc: Whangarei CityLink GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/nrc-nz/nrc-nz.zip
+- key: tauranga_bop_gtfs
+  desc: Tauranga/BOP BayBus GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/boprc-nz/boprc-nz.zip
+- key: rotorua_gtfs
+  desc: Rotorua CityRide GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://data.trilliumtransit.com/gtfs/boprc-nz/boprc-nz.zip
+- key: queenstown_gtfs
+  desc: Queenstown Orbus GTFS + Travel Times
+  tables: [transit_stops, transit_travel_times, transit_stop_frequency]
+  url: https://www.orc.govt.nz/transit/google_transit.zip
+- key: masterton_rates
+  desc: Masterton Rates/Valuations (~14K)
+  tables: [council_valuations]
+- key: carterton_rates
+  desc: Carterton Rates/Valuations (~5K)
+  tables: [council_valuations]
+- key: south_wairarapa_rates
+  desc: South Wairarapa Rates/Valuations (~8K)
+  tables: [council_valuations]
+- key: whakatane_rates
+  desc: Whakatane Rates/Valuations (~17K)
+  tables: [council_valuations]
+- key: taupo_rates
+  desc: Taupo Rates/Valuations (~20K, partial WRC)
+  tables: [council_valuations]
+- key: waitomo_rates
+  desc: Waitomo Rates/Valuations (~3K, partial WRC)
+  tables: [council_valuations]
+- key: otorohanga_rates
+  desc: Otorohanga Rates/Valuations (~3K, partial WRC)
+  tables: [council_valuations]
+- key: southland_hail
+  desc: Southland Contaminated Land Register
+  tables: [contaminated_land]
+  url: https://services1.arcgis.com/bkGMdMdLQmSKFLDY/arcgis/rest/services/Southland_Contaminated_Land_Register/FeatureServer/0
+- key: taranaki_hail
+  desc: Taranaki Selected Land Use Register
+  tables: [contaminated_land]
+  url: https://services1.arcgis.com/R6s0QqCMQdwKY6yp/arcgis/rest/services/Selected_Land_Use/FeatureServer/0
+- key: qldc_active_faults
+  desc: QLDC Active Faults (GNS 2019)
+  tables: [active_faults]
+- key: qldc_active_folds
+  desc: QLDC Active Folds (GNS 2019)
+  tables: [active_faults]
+- key: qldc_avalanche
+  desc: QLDC Avalanche Areas
+  tables: [slope_failure]
+  url: https://gis.qldc.govt.nz/server/rest/services/Hazards/Other_Land_Hazards/MapServer/0
+- key: qldc_debris_rockfall
+  desc: QLDC Debris Flow & Rockfall Risk (BECA 2020)
+  tables: [slope_failure]
+- key: qldc_erosion
+  desc: QLDC Erosion Areas (Opus 2002)
+  tables: [coastal_erosion]
+- key: qldc_alluvial_fans
+  desc: QLDC Alluvial Fan Areas (ORC 2011)
+  tables: [slope_failure]
+- key: qldc_damburst
+  desc: QLDC Damburst Flooding (ORC 2002)
+  tables: [flood_hazard]
+- key: qldc_rainfall_flood
+  desc: QLDC Rainfall Flooding (ORC 2012)
+  tables: [flood_hazard]
+- key: ecan_liquefaction_ashburton
+  desc: Ashburton Liquefaction Vulnerability 2024
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/31
+- key: ecan_liquefaction_mackenzie
+  desc: Mackenzie Liquefaction Vulnerability 2023
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/29
+- key: ecan_liquefaction_waitaki
+  desc: Waitaki Liquefaction Vulnerability 2023
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/30
+- key: ecan_liquefaction_waimate
+  desc: Waimate Liquefaction Vulnerability 2022
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/28
+- key: ecan_liquefaction_timaru
+  desc: Timaru Liquefaction Vulnerability 2020
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/9
+- key: ecan_liquefaction_kaikoura
+  desc: Kaikoura Liquefaction Vulnerability 2019
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/20
+- key: ecan_liquefaction_waimakariri
+  desc: Waimakariri Liquefaction Susceptibility 2009
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/6
+- key: ecan_liquefaction_selwyn
+  desc: Selwyn Liquefaction Susceptibility 2006
+  tables: [liquefaction_detail]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/7
+- key: ecan_liquefaction_hurunui
+  desc: Hurunui Liquefaction (Eastern Canterbury 2012)
+  tables: [liquefaction_detail]
+- key: ecan_tsunami
+  desc: Canterbury Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/4
+- key: ecan_coastal_hazard
+  desc: Canterbury Coastal Hazard Zones
+  tables: [coastal_erosion]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/RPS_RCEP_Coastal_Erosion/MapServer/3
+- key: southland_liquefaction
+  desc: Southland Liquefaction Risk
+  tables: [liquefaction_detail]
+  url: https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/11
+- key: southland_shaking
+  desc: Southland Shaking Amplification
+  tables: [ground_shaking]
+  url: https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/10
+- key: southland_tsunami
+  desc: Southland Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+  url: https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/8
+- key: southland_floodplains
+  desc: Southland Significant Floodplains
+  tables: [flood_hazard]
+  url: https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/7
+- key: southland_active_faults
+  desc: Southland Active Faults
+  tables: [active_faults]
+  url: https://maps.es.govt.nz/server/rest/services/Public/NaturalHazards/MapServer/2
+- key: northland_tsunami
+  desc: Northland Tsunami Inundation Zones 2024
+  tables: [tsunami_hazard]
+  url: https://services9.arcgis.com/QYNojhn6G3lxeEgh/arcgis/rest/services/Tsunami_Inundation_Zones_2024__Public_/FeatureServer/0
+- key: northland_flood_50yr
+  desc: Northland River Flood 50yr (Regionwide)
+  tables: [flood_hazard]
+- key: northland_flood_10yr
+  desc: Northland River Flood 10yr (Regionwide)
+  tables: [flood_hazard]
+- key: northland_coastal_flood
+  desc: Northland Coastal Flood (Current)
+  tables: [flood_hazard]
+- key: bop_tsunami_evac
+  desc: BOP Tsunami Evacuation Zones 2023
+  tables: [tsunami_hazard]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/6
+- key: bop_tsunami_2500yr
+  desc: BOP Tsunami Inundation 2500yr ARI
+  tables: [tsunami_hazard]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/105
+- key: bop_liquefaction_a
+  desc: BOP Liquefaction Level A (Desktop)
+  tables: [liquefaction_detail]
+- key: bop_liquefaction_b
+  desc: BOP Liquefaction Level B (Detailed)
+  tables: [liquefaction_detail]
+- key: bop_active_faults
+  desc: BOP Active Faults (GNS)
+  tables: [active_faults]
+- key: bop_historic_floods
+  desc: BOP Historic Flood Extents
+  tables: [flood_hazard]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/Natural_Hazards/MapServer/5
+- key: bop_calderas
+  desc: BOP Volcanic Calderas (GNS)
+  tables: [flood_hazard]
+- key: waikato_tsunami
+  desc: Waikato Tsunami Hazard Classification
+  tables: [tsunami_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_MOD_TSUNAMI_HAZARD_CLASS/FeatureServer/12
+- key: waikato_tsunami_inundation
+  desc: Waikato Tsunami Inundation Zones
+  tables: [tsunami_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/WAIKATO_HAZ_TSUNAMI_DATA_Apr_2021/FeatureServer/28
+- key: waikato_regional_flood
+  desc: Waikato Regional Flood Hazard Update
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/Regional_Flood_Hazard_Update/FeatureServer/0
+- key: waikato_flood_depth
+  desc: Waikato Local Flood Depth Model
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_MOD_LOCAL_FLOOD_DEPTH/FeatureServer/0
+- key: gisborne_flood
+  desc: Gisborne Flood Hazard Overlays
+  tables: [flood_hazard]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_flood_hazard/FeatureServer/0
+- key: gisborne_tsunami
+  desc: Gisborne Tsunami Evacuation Zones 2019
+  tables: [tsunami_hazard]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/Updated_Tsunami_Evacuation_Zones_2019/FeatureServer/3
+- key: gisborne_liquefaction
+  desc: Gisborne Liquefaction
+  tables: [liquefaction_detail]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/liquefaction/FeatureServer/0
+- key: gisborne_coastal_hazard
+  desc: Gisborne Coastal Hazard Overlays
+  tables: [coastal_erosion]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_coastal_hazard/FeatureServer/0
+- key: gisborne_stability
+  desc: Gisborne Stability Alert Areas
+  tables: [slope_failure]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_stability_alert/FeatureServer/0
+- key: gisborne_coastal_flooding
+  desc: Gisborne Coastal Storm Flooding (1% AEP + 2m SLR)
+  tables: [flood_hazard]
+- key: nelson_flood_future
+  desc: Nelson Future Flooding 2130
+  tables: [flood_hazard]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/1
+- key: nelson_floodway
+  desc: Nelson Floodway
+  tables: [flood_hazard]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/2
+- key: marlborough_tsunami
+  desc: Marlborough Tsunami Inundation (GNS)
+  tables: [tsunami_hazard]
+- key: marlborough_slr
+  desc: Marlborough Sea Level Rise Modelling
+  tables: [coastal_inundation]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Hazard/MapServer/4
+- key: marlborough_liquefaction_a
+  desc: Marlborough Liquefaction Investigation Zone A
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/31
+- key: marlborough_liquefaction_b
+  desc: Marlborough Liquefaction Investigation Zone B
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/30
+- key: marlborough_liquefaction_c
+  desc: Marlborough Liquefaction Investigation Zone C
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/32
+- key: marlborough_liquefaction_d
+  desc: Marlborough Liquefaction Investigation Zone D
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/33
+- key: marlborough_liquefaction_e
+  desc: Marlborough Liquefaction Investigation Zone E
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/34
+- key: marlborough_liquefaction_f
+  desc: Marlborough Liquefaction Investigation Zone F
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/35
+- key: tasman_liquefaction
+  desc: Tasman Liquefaction Vulnerability (Level A)
+  tables: [liquefaction_detail]
+- key: tasman_coastal_slr_present
+  desc: Tasman Coastal SLR Present Day (1% AEP)
+  tables: [coastal_inundation]
+- key: tasman_coastal_slr_1m
+  desc: Tasman Coastal SLR +1.0m Scenario
+  tables: [coastal_inundation]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/5
+- key: tasman_coastal_slr_2m
+  desc: Tasman Coastal SLR +2.0m Scenario
+  tables: [coastal_inundation]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/7
+- key: tasman_faults
+  desc: Tasman Active & Capable Faultlines
+  tables: [active_faults]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards_LimitedAccess/MapServer/0
+- key: tasman_historic_floods
+  desc: Tasman Historic Flood Patterns
+  tables: [flood_hazard]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards_LimitedAccess/MapServer/1
+- key: taranaki_volcanic_evac
+  desc: Taranaki Volcanic Evacuation Zones
+  tables: [flood_hazard]
+  url: https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/4
+- key: doc_huts
+  desc: DOC Huts (National)
+  tables: [doc_huts]
+- key: doc_tracks
+  desc: DOC Tracks (National)
+  tables: [doc_tracks]
+- key: doc_campsites
+  desc: DOC Campsites (National)
+  tables: [doc_campsites]
+- key: school_zones
+  desc: School Enrolment Zones (National)
+  tables: [school_zones]
+- key: nzta_noise_contours
+  desc: NZTA National Road Noise Contours
+  tables: [noise_contours]
+- key: nrc_contaminated_land
+  desc: NRC Contaminated Land (Northland)
+  tables: [contaminated_land]
+- key: whangarei_zones_residential
+  desc: Whangarei Residential Zones
+  tables: [plan_zones]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/65
+- key: whangarei_zones_commercial
+  desc: Whangarei Commercial & Mixed Use Zones
+  tables: [plan_zones]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/67
+- key: whangarei_zones_rural
+  desc: Whangarei Rural Zones
+  tables: [plan_zones]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/66
+- key: whangarei_zones_industrial
+  desc: Whangarei Industrial Zones
+  tables: [plan_zones]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/68
+- key: invercargill_zones
+  desc: Invercargill Planning Zones
+  tables: [plan_zones]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/49
+- key: kapiti_zones
+  desc: Kapiti Coast District Plan Zones
+  tables: [plan_zones]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Zones/MapServer/0
+- key: porirua_zones
+  desc: Porirua Planning Zones
+  tables: [plan_zones]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/19
+- key: palmerston_north_zones
+  desc: Palmerston North Planning Zones
+  tables: [plan_zones]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_PlanningZones/FeatureServer/0
+- key: qldc_zones
+  desc: Queenstown-Lakes Operative Zones
+  tables: [plan_zones]
+  url: https://gis.qldc.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/37
+- key: rotorua_zones
+  desc: Rotorua Zoning
+  tables: [plan_zones]
+  url: https://services6.arcgis.com/NIWVPpy3nWPIOE2J/arcgis/rest/services/Zoning/FeatureServer/0
+- key: taupo_zones
+  desc: Taupo District Plan Zones
+  tables: [plan_zones]
+  url: https://services7.arcgis.com/S7DHOirgbYgdtrbR/arcgis/rest/services/Zone_NPS_view/FeatureServer/0
+- key: timaru_zones
+  desc: Timaru Proposed District Plan Zones
+  tables: [plan_zones]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/57
+- key: waimakariri_zones
+  desc: Waimakariri District Plan Zones
+  tables: [plan_zones]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/0
+- key: gisborne_zones
+  desc: Gisborne District Plan Zones
+  tables: [plan_zones]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_flood_hazard/FeatureServer/0
+- key: whangarei_heritage
+  desc: Whangarei Heritage Items
+  tables: [heritage]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/31
+- key: invercargill_heritage
+  desc: Invercargill Heritage Sites
+  tables: [heritage]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/8
+- key: kapiti_heritage
+  desc: Kapiti Coast Historic Heritage Places
+  tables: [heritage]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/14
+- key: porirua_heritage
+  desc: Porirua Historic Heritage Buildings
+  tables: [heritage]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/1
+- key: palmerston_north_heritage
+  desc: Palmerston North Heritage Sites
+  tables: [heritage]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_HeritageSites/FeatureServer/0
+- key: qldc_heritage
+  desc: Queenstown-Lakes Heritage & Protected Features
+  tables: [heritage]
+  url: https://gis.qldc.govt.nz/server/rest/services/DistrictPlan/PDP_Stage_1_2_3_Decisions/MapServer/13
+- key: taupo_heritage
+  desc: Taupo Historic Heritage Sites
+  tables: [heritage]
+  url: https://services7.arcgis.com/S7DHOirgbYgdtrbR/arcgis/rest/services/Historic_Heritage_NPS_view/FeatureServer/0
+- key: timaru_heritage
+  desc: Timaru Heritage Buildings
+  tables: [heritage]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/6
+- key: waimakariri_heritage
+  desc: Waimakariri Heritage Buildings
+  tables: [heritage]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/7
+- key: whangarei_trees
+  desc: Whangarei Notable Trees
+  tables: [notable_trees]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_Public/MapServer/30
+- key: kapiti_trees
+  desc: Kapiti Coast Notable Trees
+  tables: [notable_trees]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/16
+- key: palmerston_north_trees
+  desc: Palmerston North Notable Trees
+  tables: [notable_trees]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/PARKS_NotableTrees/FeatureServer/0
+- key: taupo_trees
+  desc: Taupo Notable Trees
+  tables: [notable_trees]
+  url: https://services7.arcgis.com/S7DHOirgbYgdtrbR/arcgis/rest/services/Notable_Trees_NPS/FeatureServer/0
+- key: timaru_trees
+  desc: Timaru Notable Trees
+  tables: [notable_trees]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/30
+- key: waimakariri_trees
+  desc: Waimakariri Notable Trees
+  tables: [notable_trees]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/5
+- key: chch_airport_noise_65db
+  desc: Christchurch Airport Noise 65dB Envelope
+  tables: [noise_contours]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/Hosted/Airport_Noise_Corridors_2023/FeatureServer/0
+- key: chch_airport_noise_55db
+  desc: Christchurch Airport Noise 55dB Envelope
+  tables: [noise_contours]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/Hosted/Airport_Noise_Corridors_2023/FeatureServer/1
+- key: chch_airport_noise_50db
+  desc: Christchurch Airport Noise 50dB Envelope
+  tables: [noise_contours]
+  url: https://gis.ccc.govt.nz/arcgis/rest/services/Hosted/Airport_Noise_Corridors_2023/FeatureServer/2
+- key: hamilton_airport_noise
+  desc: Hamilton Airport Noise Overlay (Waipa)
+  tables: [noise_contours]
+- key: pncc_airport_noise
+  desc: Palmerston North Airport Noise Zones
+  tables: [noise_contours]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_AirportNoiseZones/FeatureServer/0
+- key: marlborough_noise
+  desc: Marlborough Noise Control Boundaries
+  tables: [noise_contours]
+  url: https://gis.marlborough.govt.nz/server/rest/services/OpenData/OpenData5/MapServer/34
+- key: bop_contaminated
+  desc: BOP HAIL Contaminated Sites
+  tables: [contaminated_land]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/ConsentsandCompliance/MapServer/2
+- key: invercargill_riverine_inundation
+  desc: Invercargill Riverine Inundation
+  tables: [flood_hazard]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Hazards/MapServer/4
+- key: invercargill_sea_level_rise
+  desc: Invercargill Sea Level Rise Storm Surge
+  tables: [coastal_inundation]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Hazards/MapServer/5
+- key: invercargill_coastal_erosion
+  desc: Invercargill Coastline Prone to Erosion
+  tables: [coastal_erosion]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Hazards/MapServer/3
+- key: porirua_flood
+  desc: Porirua Flood Hazard
+  tables: [flood_hazard]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/5
+- key: kapiti_flood
+  desc: Kapiti Coast Flood Hazard
+  tables: [flood_hazard]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/11
+- key: kapiti_fault_avoidance
+  desc: Kapiti Coast Fault Avoidance Areas
+  tables: [active_faults]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/10
+- key: pncc_flood_prone
+  desc: Palmerston North Flood Prone Areas
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_FLOODPRONEAREAS/FeatureServer/0
+- key: timaru_flood
+  desc: Timaru Flood Assessment Area
+  tables: [flood_hazard]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/38
+- key: timaru_liquefaction
+  desc: Timaru Liquefaction Areas
+  tables: [liquefaction_detail]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/41
+- key: timaru_earthquake_fault
+  desc: Timaru Earthquake Fault Areas
+  tables: [active_faults]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/40
+- key: timaru_coastal_hazard
+  desc: Timaru Coastal High Hazard
+  tables: [coastal_erosion]
+  url: https://maps.timaru.govt.nz/server/rest/services/Vector/Proposed_District_Plan/MapServer/35
+- key: waimakariri_fault_awareness
+  desc: Waimakariri Fault Awareness Overlay
+  tables: [active_faults]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/27
+- key: waimakariri_ashley_fault
+  desc: Waimakariri Ashley Fault Avoidance
+  tables: [active_faults]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/District_Plan_2021/District_Plan_General/MapServer/26
+- key: nelson_slope_instability
+  desc: Nelson Slope Instability Overlay
+  tables: [slope_failure]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/SlopeInstabilityOverlay/MapServer/0
+- key: taupo_fault_avoidance
+  desc: Taupo Fault Avoidance Zones
+  tables: [active_faults]
+  url: https://maps.taupodc.govt.nz/server/rest/services/hazards/Fault_Avoidance_Zone/MapServer/0
+- key: taupo_fault_awareness
+  desc: Taupo Fault Awareness Areas
+  tables: [active_faults]
+  url: https://maps.taupodc.govt.nz/server/rest/services/hazards/Fault_Awareness_Area/MapServer/0
+- key: wcc_heritage
+  desc: Wellington Heritage Buildings (2024 DP)
+  tables: [historic_heritage_overlay]
+- key: wcc_heritage_areas
+  desc: Wellington Heritage Areas (2024 DP)
+  tables: [character_precincts]
+- key: wcc_notable_trees
+  desc: Wellington Notable Trees (2024 DP)
+  tables: [notable_trees]
+- key: gwrc_tsunami
+  desc: GWRC Tsunami Zones (all Greater Wellington)
+  tables: [tsunami_hazard]
+- key: tauranga_slope_hazard
+  desc: Tauranga Slope/Landslide Hazard
+  tables: [slope_failure]
+  url: https://gis.tauranga.govt.nz/server/rest/services/Natural_Hazards__multiple_data_sources/MapServer/21
+- key: waimakariri_flood_ashley
+  desc: Waimakariri 200yr Ashley Breakout Flood
+  tables: [flood_hazard]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/Natural_Hazards/Waimakariri_District_Hazards/MapServer/0
+- key: waimakariri_flood_coastal
+  desc: Waimakariri 100yr Coastal Flood
+  tables: [flood_hazard]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/Natural_Hazards/Waimakariri_District_Hazards/MapServer/7
+- key: waimakariri_flood_localised
+  desc: Waimakariri 200yr Localised Flood
+  tables: [flood_hazard]
+  url: https://gisservices.waimakariri.govt.nz/arcgis/rest/services/Natural_Hazards/Waimakariri_District_Hazards/MapServer/8
+- key: ecan_flood_kaikoura
+  desc: ECan Kaikoura Flood Assessment
+  tables: [flood_hazard]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/9
+- key: ecan_flood_waitaki
+  desc: ECan Waitaki Flood Assessment
+  tables: [flood_hazard]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/16
+- key: ecan_floodways
+  desc: ECan Floodways (Bylaw 2013)
+  tables: [flood_hazard]
+- key: ecan_rcep_coastal_hazard
+  desc: ECan RCEP Coastal Hazard Zones
+  tables: [coastal_erosion]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/RCEP/MapServer/29
+- key: ecan_sea_inundation
+  desc: ECan Sea Water Inundation Zone
+  tables: [coastal_inundation]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/RCEP/MapServer/30
+- key: marlborough_flood
+  desc: Marlborough Flood Hazard Areas (MEP)
+  tables: [flood_hazard]
+- key: marlborough_steep_erosion
+  desc: Marlborough Steep Erosion Prone Land
+  tables: [slope_failure]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/ZonesMEPDecisionOverlays/MapServer/31
+- key: auckland_volcanic_vents
+  desc: Auckland Volcanic Field — Past Vents
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AucklandsHazardViewer20181128/FeatureServer/2
+- key: auckland_volcanic_field
+  desc: Auckland Volcanic Field Boundary
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AucklandsHazardViewer20181128/FeatureServer/3
+- key: auckland_volcanic_5km_buffer
+  desc: Auckland Volcanic Field 5km Buffer
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AucklandsHazardViewer20181128/FeatureServer/4
+- key: auckland_volcanic_deposits
+  desc: Auckland Volcanic Field Past Deposits
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AucklandsHazardViewer20181128/FeatureServer/5
+- key: auckland_coastal_erosion_2130
+  desc: Auckland Coastal Erosion/Instability (ASCIE 2130 RCP8.5)
+  tables: [coastal_erosion]
+- key: nelson_plan_zones
+  desc: Nelson District Plan Zones (NRMP PC29)
+  tables: [district_plan_zones]
+- key: nelson_heritage
+  desc: Nelson Heritage Buildings/Objects/Places (NRMP PC29)
+  tables: [historic_heritage_overlay]
+- key: nelson_flood_overlay
+  desc: Nelson Flood Overlay (NRMP PC29)
+  tables: [flood_hazard]
+- key: nelson_high_flood
+  desc: Nelson High Flood Hazard Overlay (NRMP PC29)
+  tables: [flood_hazard]
+- key: nelson_liquefaction_nrmp
+  desc: Nelson Liquefaction Hazard Overlay (NRMP PC29)
+  tables: [liquefaction_detail]
+- key: nelson_fault_awareness
+  desc: Nelson Fault Awareness Overlay (NRMP PC29)
+  tables: [fault_zones]
+- key: nelson_fault_deformation
+  desc: Nelson Fault Deformation Overlay (NRMP PC29)
+  tables: [fault_zones]
+- key: nelson_fault_hazard_nrmp
+  desc: Nelson Fault Hazard Overlay (NRMP PC29)
+  tables: [fault_zones]
+- key: nelson_inundation
+  desc: Nelson Inundation Overlay (NRMP PC29)
+  tables: [coastal_inundation]
+- key: nelson_slope_instability_pc29
+  desc: Nelson Slope Instability (NRMP PC29)
+  tables: [slope_failure]
+- key: nelson_notable_trees
+  desc: Nelson Notable Trees
+  tables: [notable_trees]
+  url: https://gis.nelson.govt.nz/server/rest/services/NelsonPlan/Notable_Trees/MapServer/0
+- key: nelson_river_flood_present
+  desc: Nelson River Flooding Present Day
+  tables: [flood_hazard]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/0
+- key: nelson_river_flood_2130
+  desc: Nelson River Flooding 2130
+  tables: [flood_hazard]
+  url: https://gis.nelson.govt.nz/server/rest/services/DataPublic/OurNaturalHazards/MapServer/1
+- key: nelson_coastal_inundation
+  desc: Nelson Coastal Inundation
+  tables: [coastal_inundation]
+  url: https://services1.arcgis.com/Y4k7lyf2XTGeQC6V/arcgis/rest/services/Nelson_Coastal_Inundation/FeatureServer/0
+- key: nelson_tasman_tsunami
+  desc: Nelson/Tasman Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+  url: https://topofthesouthmaps.co.nz/arcgis/rest/services/DataHazards/MapServer/0
+- key: tasman_plan_zones
+  desc: Tasman District Plan Zones
+  tables: [district_plan_zones]
+  url: https://topofthesouthmaps.co.nz/arcgis/rest/services/DataPlanning/MapServer/3
+- key: northland_coastal_erosion
+  desc: Northland Coastal Erosion Hazard Zones
+  tables: [coastal_erosion]
+  url: https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Coastal_Erosion_Hazard_Zones/FeatureServer/0
+- key: northland_coastal_flood_full
+  desc: Northland Coastal Flood Hazard Zones (Full)
+  tables: [flood_hazard]
+- key: northland_river_flood_100yr
+  desc: Northland River Flood 100yr+CC
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Northland_RFHZ_100yearCC_Extents/FeatureServer/0
+- key: northland_river_flood_50yr
+  desc: Northland River Flood 50yr
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Northland_RFHZ_50year_Extents/FeatureServer/0
+- key: northland_river_flood_10yr
+  desc: Northland River Flood 10yr
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Northland_RFHZ_10year_Extents/FeatureServer/0
+- key: northland_erosion_prone
+  desc: Northland Erosion Prone Land
+  tables: [slope_failure]
+  url: https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/Erosion_Prone_Land/FeatureServer/0
+- key: bop_coastal_hazard_ohiwa
+  desc: BOP Ohiwa Spit Coastal Hazard
+  tables: [coastal_erosion]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/PlansandRules/MapServer/27
+- key: bop_coastal_hazard_sensitive
+  desc: BOP Area Sensitive Coastal Hazard
+  tables: [coastal_erosion]
+  url: https://gis.boprc.govt.nz/server2/rest/services/BayOfPlentyMaps/PlansandRules/MapServer/34
+- key: taranaki_active_faults
+  desc: Taranaki Active Faultlines
+  tables: [fault_zones]
+  url: https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/1
+- key: westcoast_active_faults
+  desc: West Coast Active Faults
+  tables: [fault_zones]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/3
+- key: westcoast_alpine_fault
+  desc: West Coast Alpine Fault Traces
+  tables: [fault_zones]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/8
+- key: westcoast_landslide_catalog
+  desc: West Coast Landslide Catalog
+  tables: [slope_failure]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/10
+- key: westcoast_earthquake_landslides
+  desc: West Coast Earthquake-Induced Landslides
+  tables: [slope_failure]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/11
+- key: westcoast_rain_landslides
+  desc: West Coast Rain-Induced Landslides
+  tables: [slope_failure]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Natural_Hazards/MapServer/12
+- key: westcoast_plan_zones
+  desc: West Coast District Plan Zones (TTPP)
+  tables: [district_plan_zones]
+- key: marlborough_liq_a
+  desc: Marlborough Liquefaction Zone A
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/31
+- key: marlborough_liq_b
+  desc: Marlborough Liquefaction Zone B
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/30
+- key: marlborough_liq_c
+  desc: Marlborough Liquefaction Zone C
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/32
+- key: marlborough_liq_d
+  desc: Marlborough Liquefaction Zone D
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/33
+- key: marlborough_liq_e
+  desc: Marlborough Liquefaction Zone E
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/34
+- key: marlborough_liq_f
+  desc: Marlborough Liquefaction Zone F
+  tables: [liquefaction_detail]
+  url: https://gis.marlborough.govt.nz/server/rest/services/DataPublic/Environment/MapServer/35
+- key: nelson_tsunami_evac
+  desc: Nelson Tsunami Evacuation Zones (TOTS)
+  tables: [tsunami_hazard]
+- key: nelson_maitai_flood_2013
+  desc: Nelson Maitai River Flood 2013 Model
+  tables: [flood_hazard]
+  url: https://topofthesouthmaps.co.nz/arcgis/rest/services/ArcGISOnline_NCC/Hazards/MapServer/6
+- key: nelson_maitai_flood_2100
+  desc: Nelson Maitai River Flood 2100 Model
+  tables: [flood_hazard]
+  url: https://topofthesouthmaps.co.nz/arcgis/rest/services/ArcGISOnline_NCC/Hazards/MapServer/7
+- key: nelson_fault_corridor
+  desc: Nelson Fault Hazard Corridor (TOTS)
+  tables: [fault_zones]
+- key: nelson_slope_failure_register
+  desc: Nelson Slope Failure Register (TOTS)
+  tables: [slope_failure]
+- key: nelson_tahunanui_liquefaction
+  desc: Nelson Tahunanui Liquefaction
+  tables: [liquefaction_detail]
+  url: https://topofthesouthmaps.co.nz/arcgis/rest/services/ArcGISOnline_NCC/NelsonPlanNaturalHazards/MapServer/1
+- key: hbrc_flood_risk
+  desc: HBRC Flood Risk Areas (region-wide)
+  tables: [flood_hazard]
+- key: hbrc_hastings_ponding
+  desc: HBRC Hastings Areas Subject to Ponding
+  tables: [flood_hazard]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Flooding/MapServer/1
+- key: hbrc_landslide_high_delivery
+  desc: HBRC Landslide Risk — High (Delivery to Stream)
+  tables: [slope_failure]
+- key: hbrc_landslide_high_nodelivery
+  desc: HBRC Landslide Risk — High (Non-Delivery)
+  tables: [slope_failure]
+- key: hbrc_earthflow_moderate
+  desc: HBRC Earthflow Risk — Moderate
+  tables: [slope_failure]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/3
+- key: hbrc_earthflow_severe
+  desc: HBRC Earthflow Risk — Severe
+  tables: [slope_failure]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/4
+- key: hbrc_gully_risk
+  desc: HBRC Gully Erosion Risk
+  tables: [slope_failure]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/5
+- key: hbrc_liquefaction_vulnerability
+  desc: HBRC Heretaunga Plains Liquefaction Vulnerability
+  tables: [liquefaction_detail]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Earthquake_Liquefaction/MapServer/0
+- key: hbrc_liquefaction_chb
+  desc: HBRC CHB/HDC/WDC Liquefaction Severity
+  tables: [liquefaction_detail]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Earthquake_Liquefaction/MapServer/4
+- key: hbrc_amplification
+  desc: HBRC Earthquake Amplification
+  tables: [ground_shaking]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Earthquake_Amplification/MapServer/0
+- key: hbrc_coastal_erosion_present
+  desc: HBRC Coastal Erosion — Present Day
+  tables: [coastal_erosion]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Present_Day_Coastal_Erosion/MapServer/0
+- key: hbrc_coastal_inundation_2023
+  desc: HBRC Coastal Inundation 2023
+  tables: [coastal_inundation]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Coastal_Inundation_2023/MapServer/0
+- key: hbrc_wairoa_bank
+  desc: HBRC Wairoa River Bank Stability
+  tables: [slope_failure]
+  url: https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Wairoa_River_Bank/MapServer/1
+- key: hbrc_tsunami_evac_2024
+  desc: HBRC Tsunami Evacuation Zones 2024
+  tables: [tsunami_hazard]
+  url: https://services1.arcgis.com/hWByVnSkh6ElzHkf/arcgis/rest/services/HawkesBay_Tsunami_Evacuation_Zones_2024/FeatureServer/1
+- key: horizons_flood_200yr
+  desc: Horizons 200yr Modelled Flood Extent
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/Modelled_wet_extents_data_from_flood_plain_mapping_analysis/FeatureServer/11
+- key: horizons_observed_flooding
+  desc: Horizons Observed Flooding Extents
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/NaturalHazards_ObservedFloodingExtent/FeatureServer/21
+- key: horizons_floodways
+  desc: Horizons OnePlan Floodways (Schedule 10)
+  tables: [flood_hazard]
+- key: horizons_lahar_ruapehu
+  desc: Horizons Ruapehu Lahar Risk Zones
+  tables: [flood_hazard]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/Lahar_Risk_Ruapehu/FeatureServer/2
+- key: horizons_coastal_hazard
+  desc: Horizons Coastal Hazard Zones
+  tables: [coastal_erosion]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/Coastal_Hazard_Zones/FeatureServer/0
+- key: gwrc_flood_1pct
+  desc: GWRC 1% AEP Flood Hazard Extent
+  tables: [flood_hazard]
+  url: https://mapping.gw.govt.nz/arcgis/rest/services/Flood_Hazard_Extents_P/MapServer/4
+- key: gwrc_storm_surge_present
+  desc: GWRC Storm Surge 1%AEP Present Day
+  tables: [coastal_inundation]
+  url: https://mapping.gw.govt.nz/arcgis/rest/services/Hazards/Storm_Surge/MapServer/4
+- key: gwrc_storm_surge_50cm
+  desc: GWRC Storm Surge 1%AEP +50cm SLR
+  tables: [coastal_inundation]
+  url: https://mapping.gw.govt.nz/arcgis/rest/services/Hazards/Storm_Surge/MapServer/3
+- key: gwrc_storm_surge_100cm
+  desc: GWRC Storm Surge 1%AEP +100cm SLR
+  tables: [coastal_inundation]
+  url: https://mapping.gw.govt.nz/arcgis/rest/services/Hazards/Storm_Surge/MapServer/2
+- key: ecan_kaikoura_landslide
+  desc: ECan Kaikoura Landslide Assessment
+  tables: [slope_failure]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/8
+- key: ecan_kaikoura_debris_fan
+  desc: ECan Kaikoura Debris Fan Assessment
+  tables: [slope_failure]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/10
+- key: ecan_kaikoura_faults
+  desc: ECan Kaikoura Faults (2015)
+  tables: [fault_zones]
+- key: ecan_fault_awareness_2019
+  desc: ECan Canterbury Fault Awareness Areas 2019
+  tables: [fault_zones]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/EarthquakeFaultsLayers/MapServer/0
+- key: ecan_ostler_fault
+  desc: ECan Mackenzie Ostler Fault Hazard Area
+  tables: [fault_zones]
+  url: https://gis.ecan.govt.nz/arcgis/rest/services/Public/EarthquakeFaultsLayers/MapServer/20
+- key: orc_storm_surge
+  desc: ORC Storm Surge Affected Areas (all scenarios)
+  tables: [coastal_inundation]
+- key: orc_waitaki_floodplain
+  desc: ORC Waitaki River Indicative Floodplain
+  tables: [flood_hazard]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/WaitakiRiverIndicativeFloodplain_DistrictPlanReview2021/MapServer/0
+- key: orc_coastal_hazard
+  desc: ORC Coastal Hazard Areas (CoastPlan)
+  tables: [coastal_erosion]
+- key: westcoast_coastal_hazard
+  desc: West Coast Coastal Hazard
+  tables: [coastal_erosion]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Hazards/MapServer/0
+- key: westcoast_rockfall
+  desc: West Coast Rockfall Hazard
+  tables: [slope_failure]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Hazards/MapServer/1
+- key: westcoast_tsunami_evac
+  desc: West Coast Tsunami Evacuation Zones
+  tables: [tsunami_hazard]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/TsunamiEvacuationZones/MapServer/0
+- key: westcoast_ttpp_floodplain
+  desc: West Coast TTPP Flood Plain
+  tables: [flood_hazard]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/7
+- key: westcoast_ttpp_flood_severe
+  desc: West Coast TTPP Flood Hazard Severe
+  tables: [flood_hazard]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/10
+- key: westcoast_ttpp_flood_suscept
+  desc: West Coast TTPP Flood Susceptibility
+  tables: [flood_hazard]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/11
+- key: westcoast_ttpp_fault_avoid
+  desc: West Coast TTPP Fault Avoidance Zone
+  tables: [fault_zones]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/5
+- key: westcoast_ttpp_tsunami
+  desc: West Coast TTPP Tsunami Hazard Zone
+  tables: [tsunami_hazard]
+  url: https://gis.westcoast.govt.nz/arcgis/rest/services/TeTaiOPoutiniPlan/TToPPDraftPlanData/MapServer/6
+- key: waipa_flood_hazard
+  desc: Waipa District Flood Hazard Area
+  tables: [flood_hazard]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_SpecialFeature_Area_Flood/FeatureServer/0
+- key: waikato_flood_1pct
+  desc: Waikato Flood Extent 1% AEP (Lower Waikato & Waipa Rivers)
+  tables: [flood_hazard]
+- key: nrc_flood_susceptible
+  desc: NRC Flood Susceptible Land
+  tables: [flood_hazard]
+  url: https://nrcmaps.nrc.govt.nz/imagery/rest/services/Land_Hazards/MapServer/0
+- key: hcc_plan_zones
+  desc: Lower Hutt District Plan Activity Areas
+  tables: [plan_zones]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/Essentials/HCC_District_Plan/MapServer/113
+- key: hcc_heritage
+  desc: Lower Hutt Heritage Sites
+  tables: [heritage]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/Essentials/HCC_District_Plan/MapServer/116
+- key: hcc_notable_trees
+  desc: Lower Hutt Notable Trees
+  tables: [notable_trees]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/Essentials/HCC_District_Plan/MapServer/115
+- key: hcc_flood_inundation
+  desc: Lower Hutt Flood Inundation
+  tables: [flood_hazard]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/DP_Flood_Hazard_Overlay/MapServer/60
+- key: hcc_flood_stream_corridor
+  desc: Lower Hutt Stream Corridor Flood
+  tables: [flood_hazard]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/DP_Flood_Hazard_Overlay/MapServer/64
+- key: hcc_flood_overland_flow
+  desc: Lower Hutt Overland Flow Flood
+  tables: [flood_hazard]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/DP_Flood_Hazard_Overlay/MapServer/62
+- key: hcc_tsunami_high
+  desc: Lower Hutt Tsunami Hazard (High)
+  tables: [tsunami_zones]
+- key: hcc_tsunami_medium
+  desc: Lower Hutt Tsunami Hazard (Medium)
+  tables: [tsunami_zones]
+- key: hcc_coastal_inundation_high
+  desc: Lower Hutt Coastal Inundation (High)
+  tables: [coastal_inundation]
+- key: hcc_coastal_inundation_medium
+  desc: Lower Hutt Coastal Inundation (Medium)
+  tables: [coastal_inundation]
+- key: hcc_archaeological
+  desc: Lower Hutt Archaeological Sites
+  tables: [heritage]
+  url: https://maps.huttcity.govt.nz/server02/rest/services/Essentials/HCC_District_Plan/MapServer/119
+- key: uhcc_plan_zones
+  desc: Upper Hutt District Plan Zones
+  tables: [plan_zones]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Zones/MapServer/0
+- key: uhcc_heritage
+  desc: Upper Hutt Heritage Features
+  tables: [heritage]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Features/MapServer/0
+- key: uhcc_notable_trees
+  desc: Upper Hutt Notable Trees
+  tables: [notable_trees]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Features/MapServer/1
+- key: uhcc_wellington_fault
+  desc: Upper Hutt Wellington Fault Band
+  tables: [active_faults]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/1
+- key: uhcc_100yr_flood
+  desc: Upper Hutt 100yr Flood Extent
+  tables: [flood_hazard]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/38
+- key: uhcc_slope_hazard
+  desc: Upper Hutt Slope Hazard Overlay
+  tables: [slope_failure]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/10
+- key: uhcc_peat_overlay
+  desc: Upper Hutt Mangaroa Peat Overlay
+  tables: [liquefaction_detail]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/9
+- key: uhcc_erosion
+  desc: Upper Hutt Mangaroa Erosion Hazard
+  tables: [slope_failure]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/43
+- key: uhcc_pinehaven_flood
+  desc: Upper Hutt Pinehaven Flood Hazard
+  tables: [flood_hazard]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/42
+- key: uhcc_overland_flow
+  desc: Upper Hutt Overland Flow Hazard
+  tables: [flood_hazard]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Hazards/MapServer/11
+- key: uhcc_ecological
+  desc: Upper Hutt Southern Hills Ecological Overlay
+  tables: [significant_ecological_areas]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/District_Plan_Features/MapServer/11
+- key: uhcc_contaminated_land
+  desc: Upper Hutt SLUR Contaminated Sites
+  tables: [contaminated_land]
+  url: https://maps.upperhutt.govt.nz/arcgis/rest/services/Consenting_Information/MapServer/24
+- key: porirua_fault_rupture
+  desc: Porirua Fault Rupture Zones
+  tables: [active_faults]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Earthquake_Hazards/MapServer/1
+- key: porirua_liquefaction
+  desc: Porirua Liquefaction Hazard
+  tables: [liquefaction_detail]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Earthquake_Hazards/MapServer/2
+- key: porirua_ground_shaking
+  desc: Porirua Ground Shaking Zones
+  tables: [ground_shaking]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Earthquake_Hazards/MapServer/3
+- key: porirua_landslide_suscept
+  desc: Porirua Landslide Susceptibility
+  tables: [slope_failure]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Geohazards/MapServer/1
+- key: porirua_landslide_runout
+  desc: Porirua Landslide Run Out
+  tables: [slope_failure]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Geohazards/MapServer/0
+- key: porirua_coastal_erosion_current
+  desc: Porirua Coastal Erosion (Current)
+  tables: [coastal_erosion]
+- key: porirua_coastal_erosion_slr
+  desc: Porirua Coastal Erosion (1m SLR)
+  tables: [coastal_erosion]
+- key: porirua_coastal_inundation
+  desc: Porirua Coastal Inundation (Current)
+  tables: [coastal_inundation]
+- key: porirua_coastal_inundation_slr
+  desc: Porirua Coastal Inundation (1m SLR)
+  tables: [coastal_inundation]
+- key: porirua_tsunami_100yr
+  desc: Porirua Tsunami Inundation 1:100yr
+  tables: [tsunami_zones]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/4
+- key: porirua_tsunami_500yr
+  desc: Porirua Tsunami Inundation 1:500yr
+  tables: [tsunami_zones]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/5
+- key: porirua_tsunami_1000yr
+  desc: Porirua Tsunami Inundation 1:1000yr
+  tables: [tsunami_zones]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/6
+- key: porirua_ecological
+  desc: Porirua Ecosites
+  tables: [significant_ecological_areas]
+  url: https://maps.poriruacity.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/3
+- key: kapiti_tsunami
+  desc: Kapiti Coast Tsunami Evacuation Zones
+  tables: [tsunami_zones]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/Tsunami/MapServer/3
+- key: kapiti_coastal_erosion_present
+  desc: Kapiti Coastal Erosion (Present Day)
+  tables: [coastal_erosion]
+- key: kapiti_coastal_erosion_2120
+  desc: Kapiti Coastal Erosion 2120 (+0.6m SLR)
+  tables: [coastal_erosion]
+- key: kapiti_ecological
+  desc: Kapiti Ecological Sites
+  tables: [significant_ecological_areas]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/District_Plan_Overlays/MapServer/19
+- key: kapiti_flood_river_corridor
+  desc: Kapiti Flood Hazard River Corridor
+  tables: [flood_hazard]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/Latest_Flood_Hazards/MapServer/0
+- key: kapiti_flood_ponding
+  desc: Kapiti Flood Hazard Ponding
+  tables: [flood_hazard]
+  url: https://maps.kapiticoast.govt.nz/server/rest/services/Public/Latest_Flood_Hazards/MapServer/6
+- key: wairarapa_plan_zones
+  desc: Wairarapa District Plan Zones (3 councils)
+  tables: [plan_zones]
+- key: wairarapa_heritage
+  desc: Wairarapa Heritage Sites (3 councils)
+  tables: [heritage]
+- key: wairarapa_notable_trees
+  desc: Wairarapa Notable Trees (3 councils)
+  tables: [notable_trees]
+- key: wairarapa_sna
+  desc: Wairarapa Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/ResourceManagementAndPlanning/SpecialFeatures/MapServer/0
+- key: wairarapa_fault_hazard
+  desc: Wairarapa Fault Line Hazard Areas
+  tables: [active_faults]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/EarthquakeHazards/MapServer/0
+- key: wairarapa_flood_50yr
+  desc: Wairarapa Flood Zones (50yr)
+  tables: [flood_hazard]
+- key: wairarapa_flood_100yr
+  desc: Wairarapa Flood Zones (100yr Greytown)
+  tables: [flood_hazard]
+- key: wairarapa_liquefaction
+  desc: Wairarapa Liquefaction
+  tables: [liquefaction_detail]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/Liquefaction/MapServer/0
+- key: wairarapa_tsunami
+  desc: Wairarapa Tsunami Evacuation Zones
+  tables: [tsunami_zones]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/TsunamiEvacuationZones/MapServer/0
+- key: wairarapa_contaminated
+  desc: Wairarapa Contaminated Sites
+  tables: [contaminated_land]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/ResourceManagementAndPlanning/SpecialFeatures/MapServer/18
+- key: wairarapa_erosion
+  desc: Wairarapa Erosion Hazard Areas
+  tables: [slope_failure]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/ResourceManagementAndPlanning/ManagementAreas/MapServer/5
+- key: wairarapa_noise
+  desc: Wairarapa Airport Noise Contours
+  tables: [noise_contours]
+  url: https://gis.mstn.govt.nz/arcgis/rest/services/ResourceManagementAndPlanning/ManagementAreas/MapServer/14
+- key: invercargill_liquefaction
+  desc: Invercargill Liquefaction Susceptibility
+  tables: [liquefaction_detail]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/63
+- key: invercargill_amplification
+  desc: Invercargill Seismic Amplification
+  tables: [ground_shaking]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/60
+- key: invercargill_noise_airport
+  desc: Invercargill Airport Noise Boundary
+  tables: [noise_contours]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Planning_2024/MapServer/4
+- key: invercargill_noise_port
+  desc: Invercargill Port Noise Boundary
+  tables: [noise_contours]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Planning_2024/MapServer/10
+- key: invercargill_archaeological
+  desc: Invercargill Archaeological Sites
+  tables: [heritage]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Planning_2024/MapServer/6
+- key: invercargill_biodiversity
+  desc: Invercargill Significant Indigenous Biodiversity
+  tables: [significant_ecological_areas]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_DistrictPlan_Planning_2024/MapServer/16
+- key: invercargill_notable_trees
+  desc: Invercargill Notable Trees
+  tables: [notable_trees]
+  url: https://gis.icc.govt.nz/arcgis/rest/services/Essentials/DistrictPlan/MapServer/8
+- key: southland_contaminated
+  desc: Southland Contaminated Land (HAIL)
+  tables: [contaminated_land]
+- key: southland_dc_flood
+  desc: Southland District Flood Inundation Overlay
+  tables: [flood_hazard]
+  url: https://gis.southlanddc.govt.nz/server/rest/services/EPLAN_DISTRICT_PLAN_AGOL/MapServer/73
+- key: southland_dc_heritage
+  desc: Southland District Heritage Sites
+  tables: [heritage]
+  url: https://gis.southlanddc.govt.nz/server/rest/services/EPLAN_DISTRICT_PLAN_AGOL/MapServer/9
+- key: southland_dc_coastal_hazard
+  desc: Southland District Coastal Hazard
+  tables: [coastal_erosion]
+  url: https://gis.southlanddc.govt.nz/server/rest/services/EPLAN_DISTRICT_PLAN_AGOL/MapServer/4
+- key: southland_dc_noise
+  desc: Southland District Noise Control
+  tables: [noise_contours]
+  url: https://gis.southlanddc.govt.nz/server/rest/services/EPLAN_DISTRICT_PLAN_AGOL/MapServer/24
+- key: orc_tsunami_affected
+  desc: ORC Tsunami Affected Areas
+  tables: [tsunami_zones]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/Tsunami_AffectedArea_Final/MapServer/0
+- key: orc_floodway_taieri
+  desc: ORC Taieri River Floodway
+  tables: [flood_hazard]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/FloodProtectionManagementBylaw2022/MapServer/13
+- key: orc_floodway_clutha
+  desc: ORC Lower Clutha Floodway
+  tables: [flood_hazard]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/FloodProtectionManagementBylaw2022/MapServer/17
+- key: orc_floodway_hendersons
+  desc: ORC Hendersons Creek Floodway
+  tables: [flood_hazard]
+  url: https://maps.orc.govt.nz/arcgis/rest/services/FloodProtectionManagementBylaw2022/MapServer/26
+- key: orc_dunedin_tsunami
+  desc: Dunedin Tsunami Zones (ORC)
+  tables: [tsunami_zones]
+- key: tasman_coastal_slr_05m
+  desc: Tasman Coastal SLR +0.5m Scenario
+  tables: [coastal_inundation]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/4
+- key: tasman_coastal_slr_15m
+  desc: Tasman Coastal SLR +1.5m Scenario
+  tables: [coastal_inundation]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/6
+- key: tasman_coastal_erosion_structures
+  desc: Tasman Coastal Erosion Protection
+  tables: [coastal_erosion]
+  url: https://gispublic.tasman.govt.nz/server/rest/services/OpenData/OpenData_Environment_Hazards/MapServer/0
+- key: timaru_notable_trees_extra
+  desc: Timaru Street Trees (supplementary)
+  tables: [notable_trees]
+- key: timaru_ecological
+  desc: Timaru Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://gis.timaru.govt.nz/server/rest/services/Essentials/DistrictPlan/MapServer/3
+- key: timaru_noise
+  desc: Timaru Airport/Port Noise Contours
+  tables: [noise_contours]
+  url: https://gis.timaru.govt.nz/server/rest/services/Essentials/DistrictPlan/MapServer/5
+- key: waimakariri_liquefaction
+  desc: Waimakariri Liquefaction Susceptibility
+  tables: [liquefaction_detail]
+  url: https://gis1.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Liquefaction_Susceptibility/MapServer/6
+- key: waimakariri_ecological
+  desc: Waimakariri Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://gis1.ecan.govt.nz/arcgis/rest/services/Public/Canterbury_Biodiversity/MapServer/0
+- key: hamilton_flood_extents
+  desc: Hamilton Flood Extents (100yr Rainfall)
+  tables: [flood_hazard]
+- key: hamilton_flood_depressions
+  desc: Hamilton Flood Depressions (100yr)
+  tables: [flood_hazard]
+- key: hamilton_seismic
+  desc: Hamilton Seismic Stability (Peacocke)
+  tables: [ground_shaking]
+- key: hamilton_natural_hazard
+  desc: Hamilton Natural Hazard Area (Peacocke)
+  tables: [flood_hazard]
+- key: tauranga_harbour_inundation
+  desc: Tauranga Harbour Inundation (2130 1%AEP)
+  tables: [coastal_inundation]
+- key: tauranga_flood_dxv
+  desc: Tauranga Flood Depth x Velocity (100yr)
+  tables: [flood_hazard]
+- key: tauranga_trees
+  desc: Tauranga Significant Trees (Groups)
+  tables: [notable_trees]
+- key: tauranga_archaeological
+  desc: Tauranga Significant Archaeological Areas
+  tables: [heritage]
+  url: https://gis.tauranga.govt.nz/server/rest/services/ePlan/ePlan_Sections1to3/MapServer/9
+- key: rotorua_geothermal
+  desc: Rotorua Geothermal Systems
+  tables: [flood_hazard]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/240
+- key: rotorua_fault_avoidance
+  desc: Rotorua Fault Avoidance Zones (2021)
+  tables: [active_faults]
+- key: rotorua_liquefaction
+  desc: Rotorua Liquefaction Vulnerability
+  tables: [liquefaction_detail]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/330
+- key: rotorua_soft_ground
+  desc: Rotorua Soft Ground Hazard
+  tables: [ground_shaking]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/335
+- key: rotorua_landslide
+  desc: Rotorua Landslide Susceptibility
+  tables: [slope_failure]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/340
+- key: rotorua_ncm_flood
+  desc: Rotorua Ngongotaha Flood Hazard (1% AEP)
+  tables: [flood_hazard]
+- key: rotorua_scm_flood
+  desc: Rotorua Stormwater Flood Depth (1% AEP)
+  tables: [flood_hazard]
+- key: rotorua_gucm_flood
+  desc: Rotorua Utuhina Flood Depth (1% AEP 2130)
+  tables: [flood_hazard]
+- key: rotorua_trees
+  desc: Rotorua Notable Tree Areas
+  tables: [notable_trees]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/25
+- key: rotorua_heritage
+  desc: Rotorua Archaeological & Heritage Sites
+  tables: [heritage]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/10
+- key: rotorua_sna
+  desc: Rotorua Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/95
+- key: rotorua_airport_noise
+  desc: Rotorua Airport Noise Contours
+  tables: [noise_contours]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/115
+- key: rotorua_caldera
+  desc: Rotorua Caldera Rim Landscape
+  tables: [flood_hazard]
+  url: https://gis.rdc.govt.nz/server/rest/services/Core/Planning_and_Development/MapServer/60
+- key: waikato_geothermal
+  desc: Waikato Geothermal Systems
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/WDP_WRP_GEOTHERMAL_SYSTEM/FeatureServer/0
+- key: waikato_geothermal_subsidence
+  desc: Waikato Geothermal Subsidence Bowl
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/2bzQ0Ix3iO7MItUa/arcgis/rest/services/HAZ_GEOTH_SUBSIDENCE_BOWL_2010/FeatureServer/0
+- key: waipa_zones
+  desc: Waipa District Plan Zones
+  tables: [plan_zones]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_Zones/FeatureServer/0
+- key: waipa_heritage
+  desc: Waipa Heritage Sites
+  tables: [heritage]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_Policy_Heritage_Points/FeatureServer/0
+- key: waipa_trees
+  desc: Waipa Protected Trees & Bushstands
+  tables: [notable_trees]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_Protected_Trees_Bushstands/FeatureServer/0
+- key: waipa_sna
+  desc: Waipa Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_SNA/FeatureServer/0
+- key: waipa_airport_noise
+  desc: Waipa Airport Noise Overlay
+  tables: [noise_contours]
+  url: https://services9.arcgis.com/OsxSXqmTWVTZQ9ie/arcgis/rest/services/WaipaDistrictPlan_Airport_Noise_Overlay/FeatureServer/0
+- key: taupo_flood
+  desc: Taupo Flood Hazard Areas
+  tables: [flood_hazard]
+  url: https://gis.taupodc.govt.nz/arcgis/rest/services/Mapi/TaupoDistrictPlan/MapServer/5
+- key: taupo_noise
+  desc: Taupo Noise Control Areas
+  tables: [noise_contours]
+  url: https://gis.taupodc.govt.nz/arcgis/rest/services/Mapi/TaupoDistrictPlan/MapServer/6
+- key: taupo_geothermal
+  desc: Taupo Geothermal Hazard Zones
+  tables: [flood_hazard]
+  url: https://gis.taupodc.govt.nz/arcgis/rest/services/Mapi/TaupoDistrictPlan/MapServer/8
+- key: taupo_liquefaction
+  desc: Taupo Liquefaction Vulnerability
+  tables: [liquefaction_detail]
+  url: https://gis.taupodc.govt.nz/arcgis/rest/services/Mapi/TaupoDistrictPlan/MapServer/9
+- key: taupo_landslide
+  desc: Taupo Landslide Susceptibility
+  tables: [slope_failure]
+  url: https://gis.taupodc.govt.nz/arcgis/rest/services/Mapi/TaupoDistrictPlan/MapServer/10
+- key: npdc_zones
+  desc: New Plymouth District Plan Zones
+  tables: [plan_zones]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/51
+- key: npdc_heritage
+  desc: New Plymouth Heritage Buildings & Items
+  tables: [heritage]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/4
+- key: npdc_trees
+  desc: New Plymouth Notable Trees
+  tables: [notable_trees]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/5
+- key: npdc_liquefaction
+  desc: New Plymouth Liquefaction Vulnerability
+  tables: [liquefaction_detail]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy/FeatureServer/0
+- key: npdc_flood_plain
+  desc: New Plymouth Flood Plain Areas
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/42
+- key: npdc_stormwater_flood
+  desc: New Plymouth Stormwater Flooding Areas
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/36
+- key: npdc_fault_hazard
+  desc: New Plymouth Fault Hazard Areas
+  tables: [active_faults]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/39
+- key: npdc_coastal_erosion
+  desc: New Plymouth Coastal Erosion Hazard
+  tables: [coastal_erosion]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/38
+- key: npdc_coastal_flood
+  desc: New Plymouth Coastal Flooding Hazard
+  tables: [coastal_inundation]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/37
+- key: npdc_volcanic_hazard
+  desc: New Plymouth Volcanic Hazard Areas
+  tables: [flood_hazard]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/41
+- key: npdc_noise
+  desc: New Plymouth Noise Control Boundaries
+  tables: [noise_contours]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/21
+- key: npdc_sna
+  desc: New Plymouth Significant Natural Areas
+  tables: [significant_ecological_areas]
+  url: https://services2.arcgis.com/JthOmqz8HxPqljUO/arcgis/rest/services/OpenData_Strategy_DistrictPlan_PartOperative/FeatureServer/48
+- key: horizons_liquefaction
+  desc: Horizons Liquefaction Susceptibility
+  tables: [liquefaction_detail]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/Liquefaction_Susceptibility/FeatureServer/0
+- key: horizons_tsunami
+  desc: Horizons Tsunami Evacuation Zones
+  tables: [tsunami_zones]
+  url: https://services1.arcgis.com/VuN78wcRdq1Oj69W/arcgis/rest/services/Tsunami_Evacuation_Zones/FeatureServer/0
+- key: horizons_flood_modelled
+  desc: Horizons Modelled Flood Wet Extents (200yr)
+  tables: [flood_hazard]
+- key: pncc_heritage_dp
+  desc: Palmerston North Heritage Sites (DP)
+  tables: [heritage]
+- key: pncc_notable_trees
+  desc: Palmerston North Notable Trees (Parks)
+  tables: [notable_trees]
+- key: pncc_overlays
+  desc: Palmerston North District Plan Overlays
+  tables: [flood_hazard]
+  url: https://services.arcgis.com/Fv0Tvc98QEDvQyjL/arcgis/rest/services/DISTRICTPLAN_Overlays/FeatureServer/0
+- key: gisborne_heritage
+  desc: Gisborne Heritage Alert Areas
+  tables: [heritage]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_heritage_alert/FeatureServer/0
+- key: gisborne_port_noise
+  desc: Gisborne Port Noise Controls
+  tables: [noise_contours]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_port_controls/FeatureServer/0
+- key: gisborne_airport_noise
+  desc: Gisborne Airport Noise (65Ldn)
+  tables: [noise_contours]
+- key: gisborne_contaminated
+  desc: Gisborne Contaminated Sites
+  tables: [contaminated_land]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/plan_contaminated_sites/FeatureServer/0
+- key: gisborne_coastal_erosion
+  desc: Gisborne Coastal Erosion
+  tables: [coastal_erosion]
+  url: https://services7.arcgis.com/8G10QCd84QpdcTJ9/arcgis/rest/services/coastal_erosion/FeatureServer/0
+- key: whangarei_coastal_hazard
+  desc: Whangarei Coastal Hazard Zones
+  tables: [coastal_erosion]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_District_Wide_Matters/MapServer/20
+- key: whangarei_airport_noise
+  desc: Whangarei Airport Air Noise Boundary
+  tables: [noise_contours]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_District_Wide_Matters/MapServer/50
+- key: whangarei_noise_control
+  desc: Whangarei Noise Control Boundaries
+  tables: [noise_contours]
+  url: https://geo.wdc.govt.nz/server/rest/services/District_Plan_District_Wide_Matters/MapServer/53
+- key: whangarei_tsunami
+  desc: Whangarei Tsunami Zones (NRC 2024)
+  tables: [tsunami_zones]

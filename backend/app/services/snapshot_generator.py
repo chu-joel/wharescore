@@ -479,6 +479,28 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot weather history failed: {e}")
 
+    # 24. Walking isochrone + terrain data
+    terrain_data = {}
+    isochrone_data = {}
+    try:
+        from .walking_isochrone import (
+            count_stops_in_isochrone,
+            get_terrain_at_property,
+            classify_landslide_risk_from_slope,
+        )
+
+        # Terrain: elevation, slope, aspect
+        terrain_data = await get_terrain_at_property(conn, address_id)
+        if terrain_data.get("slope_degrees") is not None:
+            terrain_data["landslide_risk"] = classify_landslide_risk_from_slope(
+                terrain_data["slope_degrees"]
+            )
+
+        # Walking isochrone: 10-min walk transit stops (replaces 400m radius)
+        isochrone_data = await count_stops_in_isochrone(conn, address_id, minutes=10)
+    except Exception as e:
+        logger.warning(f"Snapshot terrain/isochrone failed: {e}")
+
     return {
         "report": report,
         "sa2": dict(sa2),
@@ -507,6 +529,8 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         "school_zones": school_zones,
         "road_noise": road_noise,
         "weather_history": weather_history,
+        "terrain": terrain_data,
+        "isochrone": isochrone_data,
     }
 
 
