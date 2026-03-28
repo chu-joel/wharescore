@@ -86,6 +86,7 @@
 | slope_failure | 470K | lskey, severity, source_council, geom | GWRC + ~6 council DataSources | `get_property_report()` → hazards.council_slope_severity (all cities) + hazards.gwrc_slope_severity (Wellington) |
 | liquefaction_detail | ~50K | liquefaction, simplified, source_council, geom | GWRC + ~16 council DataSources | `get_property_report()` → hazards.council_liquefaction (all cities) + hazards.gwrc_liquefaction (Wellington) |
 | tsunami_hazard | ~10K | name, hazard_ranking, scenario, return_period, layer_id, source_council, geom | WCC + ~12 council DataSources | `get_property_report()` → hazards.council_tsunami_ranking (all cities) + hazards.wcc_tsunami_return_period (Wellington) |
+| landslide_susceptibility | ~5K | accuracy, type, source_council, geom | GWRC + Auckland DataSources | `get_property_report()` → hazards.landslide_susceptibility_rating (worst rating) |
 | district_plan_zones | 198K | zone_name, zone_code, category, source_council, geom | 20+ council DataSources | `get_property_report()` → planning.zone_* |
 | noise_contours | 228K | laeq24h, geom | Waka Kotahi NZTA | `get_property_report()` → liveability.noise_db |
 | osm_amenities | 95K | name, subcategory, brand, geom | OpenStreetMap | nearby/highlights, snapshot nearby_highlights |

@@ -53,6 +53,9 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 | `hazards.council_tsunami_return_period` | tsunami_hazard | Same query | Same |
 | `hazards.council_slope_severity` | slope_failure | SQL spatial intersect, worst-severity first | ~6 councils (GWRC, Dunedin, etc.) |
 | `hazards.council_slope_source` | slope_failure | Same query | Same |
+| `hazards.landslide_susceptibility_rating` | landslide_susceptibility | SQL spatial intersect, worst-rating first | GWRC + Auckland |
+| `hazards.landslide_susceptibility_type` | landslide_susceptibility | Same query | Same |
+| `hazards.landslide_susceptibility_source` | landslide_susceptibility | Same query | Same |
 
 | `hazards.overland_flow_within_50m` | overland_flow_paths | SQL EXISTS within 50m | Wellington + select councils |
 | `hazards.coastal_erosion_exposure` | coastal_erosion | SQL nearest within 500m (source_council IS NULL) | National (NIWA) where loaded |

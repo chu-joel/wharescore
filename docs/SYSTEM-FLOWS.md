@@ -237,6 +237,7 @@ National hazard tables (flood_zones, tsunami_zones, liquefaction_zones, slope_fa
 | Liquefaction | `liquefaction_zones` → `SEVERITY_LIQUEFACTION` | `liquefaction_detail` → same dict + fill-land boost (85) | Council always refines if higher |
 | Tsunami | `tsunami_zones` → `SEVERITY_TSUNAMI` | `tsunami_hazard` → High/Medium/Low → 80/55/30 | Council used when WCC not present |
 | Slope failure | `slope_failure_zones` → `SEVERITY_SLOPE_FAILURE` | `slope_failure` → `SEVERITY_GWRC_SLOPE` or `SEVERITY_SLOPE_FAILURE` | Council always refines if higher |
+| Landslide susceptibility | (no national table) | `landslide_susceptibility` → `SEVERITY_LANDSLIDE_SUSCEPTIBILITY` (Very Low→5, Low→15, Moderate→45, High→75, Very High→90) | Separate indicator in WEIGHTS_HAZARDS (0.10) |
 
 **Key file:** `backend/app/services/risk_score.py` — complete scoring logic
 

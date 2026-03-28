@@ -142,6 +142,10 @@ BEGIN
         'landslide_count_500m', ls_count.cnt,
         'landslide_nearest', ls_nearest.nearest,
         'landslide_in_area', ls_area.in_area,
+        -- Council landslide susceptibility (GWRC + Auckland)
+        'landslide_susceptibility_rating', ls_susc.accuracy,
+        'landslide_susceptibility_type', ls_susc.type,
+        'landslide_susceptibility_source', ls_susc.source_council,
         -- Coastal hazards
         'coastal_elevation_cm', (coast_elev.elevation_m * 100)::int,
         'coastal_inundation_ranking', coast_inund.inundation_ranking,
@@ -304,6 +308,17 @@ BEGIN
         SELECT TRUE AS in_area FROM landslide_areas
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) ls_area ON true
+      -- Council landslide susceptibility (GWRC + Auckland, worst rating)
+      LEFT JOIN LATERAL (
+        SELECT accuracy, type, source_council
+        FROM landslide_susceptibility
+        WHERE ST_Intersects(geom, addr.geom)
+        ORDER BY CASE LOWER(accuracy)
+          WHEN 'very high' THEN 1 WHEN 'high' THEN 2 WHEN 'moderate' THEN 3
+          WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very low' THEN 5
+          ELSE 6 END
+        LIMIT 1
+      ) ls_susc ON true
       -- Coastal elevation band (gridcode = metres above sea level)
       LEFT JOIN LATERAL (
         SELECT gridcode AS elevation_m FROM coastal_elevation
