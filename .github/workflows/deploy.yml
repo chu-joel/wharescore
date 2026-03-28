@@ -29,6 +29,7 @@ jobs:
             git reset --hard origin/main
 
             echo "==> Stopping all running services"
+            docker compose down --remove-orphans --timeout 15 2>/dev/null || true
             $COMPOSE down --remove-orphans --timeout 15
 
             echo "==> Pruning old images to free disk space"
@@ -37,8 +38,8 @@ jobs:
             echo "==> Building fresh images"
             $COMPOSE build --no-cache api web
 
-            echo "==> Starting infrastructure (postgres, redis, martin)"
-            $COMPOSE up -d postgres redis martin
+            echo "==> Starting infrastructure (postgres, redis, martin, valhalla)"
+            $COMPOSE up -d postgres redis martin valhalla
 
             echo "==> Waiting for postgres to be healthy"
             for i in $(seq 1 20); do
@@ -61,12 +62,12 @@ jobs:
               sleep 5
             done
 
-            echo "==> Starting nginx"
-            $COMPOSE up -d nginx
+            echo "==> Restarting host nginx (SSL proxy)"
+            sudo systemctl restart nginx
 
             echo "==> Final health check"
             for i in $(seq 1 18); do
-              if curl -sf http://localhost/health > /dev/null 2>&1; then
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
                 echo "==> Deploy successful! Health check passed (attempt $i)"
                 exit 0
               fi
@@ -78,7 +79,7 @@ jobs:
             echo "==> Container status:"
             $COMPOSE ps
             echo "==> Last 100 lines of logs:"
-            $COMPOSE logs --tail 100 api web nginx
+            $COMPOSE logs --tail 100 api web
             exit 1
 
       - name: Kick off data sync (background on VM)
