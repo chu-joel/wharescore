@@ -198,7 +198,7 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 |------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Wellington | Y | Y | Y | Y | Y | Y | - | Y | Y | Y | - |
 | Auckland | Y | Y | Y | - | Y | Y | Y | Y | Y | Y | Y |
-| Christchurch | Y | Y | Y | Y | - | Y | Y | Y | - | Y | - |
+| Christchurch | Y | Y | Y | Y | - | Y | Y | Y | Y* | Y | - |
 | Hamilton | Y | Y | Y | Y | - | Y | - | Y | Y | Y | - |
 | Dunedin | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Tauranga | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
@@ -217,9 +217,9 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | Upper Hutt | Y | Y | - | Y | Y* | Y | - | Y | - | Y | - |
 | Porirua | Y | Y | Y | Y | Y* | Y | Y | - | - | Y | - |
 | Blenheim | Y | Y | Y | Y | - | Y | - | Y | - | Y | - |
-| Whanganui | Y | Y | Y | - | - | - | - | - | - | Y | - |
+| Whanganui | Y | Y | Y | Y | - | Y | Y | Y | - | Y | - |
 
-**Y* = covered by GWRC regional data** (Greater Wellington Regional Council layers cover all cities in the Wellington region: Wellington, Lower Hutt, Upper Hutt, Porirua, Kapiti Coast). These cities get liquefaction, slope failure, earthquake hazard, ground shaking, and landslide susceptibility data from GWRC.
+**Y* = covered by regional data.** GWRC layers cover all Wellington region cities (Wellington, Lower Hutt, Upper Hutt, Porirua, Kapiti Coast) for liquefaction, slope failure, earthquake hazard, ground shaking, and landslide susceptibility. Christchurch GTFS requires `METROINFO_API_KEY` env var (register at apidevelopers.metroinfo.co.nz).
 
 ### Wellington-only fields (null for all other cities)
 

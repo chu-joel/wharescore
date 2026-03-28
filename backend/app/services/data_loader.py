@@ -42,9 +42,12 @@ def _db_url_to_sync() -> str:
     return url.replace("postgresql+asyncpg://", "postgresql://")
 
 
-def _fetch_url(url: str, timeout: int = 120) -> bytes:
+def _fetch_url(url: str, timeout: int = 120, extra_headers: dict | None = None) -> bytes:
     """Fetch URL with SSL fallback (dev only — prod always verifies)."""
-    req = urllib.request.Request(url, headers={"User-Agent": "WhareScore/1.0"})
+    headers = {"User-Agent": "WhareScore/1.0"}
+    if extra_headers:
+        headers.update(extra_headers)
+    req = urllib.request.Request(url, headers=headers)
     for attempt in range(4):
         try:
             ctx = _SSL_CTX if attempt == 0 else _SSL_NOVERIFY
@@ -1399,6 +1402,56 @@ def _load_council_arcgis(
     return count
 
 
+def _load_council_wfs(
+    conn: psycopg.Connection, log: Callable,
+    base_url: str, type_name: str, table: str, council: str,
+    cols: list[str], extract: Callable,
+    srid: int = 4326, geom_type: str = "polygon",
+    max_features: int = 50000,
+) -> int:
+    """Generic WFS GeoJSON loader. Deletes council rows, re-inserts."""
+    _progress(log, f"Fetching {table} ({council}) via WFS...")
+    url = (
+        f"{base_url}?service=WFS&version=1.1.0&request=GetFeature"
+        f"&typeName={type_name}&outputFormat=application/json&maxFeatures={max_features}"
+    )
+    try:
+        data = json.loads(_fetch_url(url, timeout=180))
+    except Exception as e:
+        _progress(log, f"  WFS error for {type_name}: {e}")
+        return 0
+    features = data.get("features", [])
+    cur = conn.cursor()
+    cur.execute(
+        sql.SQL("DELETE FROM {} WHERE source_council = %s").format(sql.Identifier(table)),
+        (council,),
+    )
+    col_ids = sql.SQL(", ").join([sql.Identifier(c) for c in cols])
+    placeholders = sql.SQL(", ").join([sql.Placeholder()] * len(cols))
+    insert_q = sql.SQL(
+        "INSERT INTO {} ({}, source_council, geom) "
+        "VALUES ({}, %s, ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(%s), %s), 4326))"
+    ).format(sql.Identifier(table), col_ids, placeholders)
+    count = 0
+    for feat in features:
+        props = feat.get("properties", {})
+        geom_json = feat.get("geometry")
+        if not geom_json:
+            continue
+        vals = extract(props)
+        try:
+            cur.execute(insert_q, (*vals, council, json.dumps(geom_json), srid))
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 2000 == 0:
+            conn.commit()
+    conn.commit()
+    _progress(log, f"  {table} ({council}): {count} rows")
+    return count
+
+
 def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
     """Auckland flood prone areas."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0"
@@ -2536,10 +2589,11 @@ REGIONAL_DESTINATIONS = {
 def _load_regional_gtfs(
     conn: psycopg.Connection, log: Callable,
     gtfs_url: str, region_name: str,
+    extra_headers: dict | None = None,
 ) -> int:
     """Regional GTFS loader — loads stops + computes travel times to key destinations."""
     _progress(log, f"Downloading {region_name} GTFS...")
-    zip_data = _fetch_url(gtfs_url, timeout=180)
+    zip_data = _fetch_url(gtfs_url, timeout=180, extra_headers=extra_headers)
     if not zip_data:
         _progress(log, f"  Empty response from {gtfs_url}")
         return 0
@@ -4624,7 +4678,9 @@ DATA_SOURCES: list[DataSource] = [
     DataSource("christchurch_gtfs", "Christchurch Metro GTFS + Travel Times",
         ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
         lambda conn, log=None: _load_regional_gtfs(conn, log,
-            "https://apis.metroinfo.co.nz/rti/gtfs/v1/gtfs.zip", "christchurch")),
+            "https://apis.metroinfo.co.nz/rti/gtfs/v1/gtfs.zip", "christchurch",
+            extra_headers={"Ocp-Apim-Subscription-Key": settings.METROINFO_API_KEY}
+            if getattr(settings, "METROINFO_API_KEY", None) else None)),
     DataSource("hamilton_gtfs", "Hamilton BUSIT GTFS + Travel Times",
         ["transit_stops", "transit_travel_times", "transit_stop_frequency"],
         lambda conn, log=None: _load_regional_gtfs(conn, log,
@@ -8960,6 +9016,149 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 _clean(a.get("Zone")) or "Tsunami Zone",
                 "Whangarei (NRC 2024)",
+            ))),
+
+    # ══════════════════════════════════════════════════════════
+    # WHANGANUI — district data via GeoServer WFS
+    # Base: https://data.whanganui.govt.nz/geoserver/ows
+    # ══════════════════════════════════════════════════════════
+    DataSource("whanganui_plan_zones", "Whanganui District Plan Zones (ePlan)",
+        ["district_plan_zones"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:property_eplan_zones",
+            "district_plan_zones", "whanganui",
+            ["zone_name", "zone_code", "category"],
+            lambda p: (
+                _clean(p.get("name")) or "Unknown Zone",
+                _clean(p.get("eplan_ref")),
+                _clean(p.get("category")),
+            ))),
+    DataSource("whanganui_flood_risk_a", "Whanganui Flood Risk Area A",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_flood_risk_area_a",
+            "flood_hazard", "whanganui_flood_a",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda p: (
+                "Flood Risk Area A",
+                "High",
+                "Flood Risk Area A (ePlan)",
+            ))),
+    DataSource("whanganui_flood_risk_b", "Whanganui Flood Risk Area B",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_flood_risk_area_b",
+            "flood_hazard", "whanganui_flood_b",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda p: (
+                "Flood Risk Area B",
+                "Medium",
+                "Flood Risk Area B (ePlan)",
+            ))),
+    DataSource("whanganui_liquefaction_high", "Whanganui High Liquefaction",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:highliquefaction",
+            "liquefaction_detail", "whanganui_high",
+            ["liquefaction", "simplified"],
+            lambda p: ("High", "High Liquefaction Susceptibility"))),
+    DataSource("whanganui_liquefaction_moderate", "Whanganui Moderate Liquefaction",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:moderateliquefaction",
+            "liquefaction_detail", "whanganui_moderate",
+            ["liquefaction", "simplified"],
+            lambda p: ("Moderate", "Moderate Liquefaction Susceptibility"),
+            max_features=100000)),
+    DataSource("whanganui_liquefaction_low", "Whanganui Low Liquefaction",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:lowliquefaction",
+            "liquefaction_detail", "whanganui_low",
+            ["liquefaction", "simplified"],
+            lambda p: ("Low", "Low Liquefaction Susceptibility"),
+            max_features=100000)),
+    DataSource("whanganui_tsunami_red", "Whanganui Tsunami Red Zone",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:tsunamiredzone",
+            "tsunami_hazard", "whanganui_red",
+            ["name", "hazard_ranking", "scenario"],
+            lambda p: ("Tsunami Red Zone", "High", "Immediate evacuation"))),
+    DataSource("whanganui_tsunami_orange", "Whanganui Tsunami Orange Zone",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:tsunamiorangezone",
+            "tsunami_hazard", "whanganui_orange",
+            ["name", "hazard_ranking", "scenario"],
+            lambda p: ("Tsunami Orange Zone", "Medium", "Evacuation on warning"))),
+    DataSource("whanganui_tsunami_yellow", "Whanganui Tsunami Yellow Zone",
+        ["tsunami_hazard"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:tsunamiyellowzone",
+            "tsunami_hazard", "whanganui_yellow",
+            ["name", "hazard_ranking", "scenario"],
+            lambda p: ("Tsunami Yellow Zone", "Low", "Long/strong evacuation"))),
+    DataSource("whanganui_heritage", "Whanganui Heritage Sites (ePlan)",
+        ["heritage_sites"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_heritage_sites",
+            "heritage_sites", "whanganui",
+            ["name", "category"],
+            lambda p: (
+                _clean(p.get("name")) or "Heritage Site",
+                _clean(p.get("category")),
+            ),
+            geom_type="point")),
+    DataSource("whanganui_protected_trees", "Whanganui Protected Trees (ePlan)",
+        ["notable_trees"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_protected_trees",
+            "notable_trees", "whanganui",
+            ["species", "common_name"],
+            lambda p: (
+                _clean(p.get("name")) or "Protected Tree",
+                _clean(p.get("category")),
+            ),
+            geom_type="point")),
+    DataSource("whanganui_land_stability_a", "Whanganui Land Stability Area A",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_land_stability_assessment_area_a",
+            "slope_failure", "whanganui_stability_a",
+            ["lskey", "severity"],
+            lambda p: ("Land Stability A", "High"))),
+    DataSource("whanganui_land_stability_b", "Whanganui Land Stability Area B",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:eplan_land_stability_assessment_area_b",
+            "slope_failure", "whanganui_stability_b",
+            ["lskey", "severity"],
+            lambda p: ("Land Stability B", "Medium"))),
+    DataSource("whanganui_coastal_erosion", "Whanganui Coastal Erosion Hazard (Current)",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_wfs(conn, log,
+            "https://data.whanganui.govt.nz/geoserver/ows",
+            "geonode:tt24_1_current_ceha",
+            "coastal_erosion", "whanganui",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda p: (
+                "Coastal Erosion Hazard (Current)",
+                "High",
+                "Coastal Erosion",
             ))),
 ]
 

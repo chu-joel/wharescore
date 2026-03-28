@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Valhalla routing engine (walking isochrones + elevation)
     VALHALLA_URL: str = "http://valhalla:8002"
 
+    # Christchurch Metro GTFS (register at apidevelopers.metroinfo.co.nz)
+    METROINFO_API_KEY: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     def validate_secrets(self):
