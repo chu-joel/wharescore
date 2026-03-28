@@ -196,15 +196,15 @@ function transformHazards(raw: any): HazardData {
 
   return {
     flood_zone: raw.flood ?? null,
-    tsunami_zone: raw.tsunami_evac_zone ?? raw.tsunami_zone_class?.toString() ?? null,
-    liquefaction_zone: raw.liquefaction ?? null,
+    tsunami_zone: raw.tsunami_evac_zone ?? raw.tsunami_zone_class?.toString() ?? raw.council_tsunami_ranking ?? null,
+    liquefaction_zone: raw.liquefaction ?? raw.council_liquefaction ?? null,
     fault_distance_m: null, // not in API
     earthquake_count: raw.earthquake_count_30km ?? null,
     earthquake_max_mag: raw.earthquake_max_mag ?? null,
     coastal_erosion: raw.coastal_exposure ?? null,
     wildfire_risk: raw.wildfire_trend ?? null,
     epb_count: raw.epb_count_300m ?? null,
-    slope_failure: raw.slope_failure ?? null,
+    slope_failure: raw.slope_failure ?? raw.council_slope_severity ?? null,
     contamination_count: null, // moved to planning
     // Wellington-specific
     earthquake_hazard_index: raw.earthquake_hazard_index ?? null,
@@ -220,6 +220,16 @@ function transformHazards(raw: any): HazardData {
     wcc_flood_ranking: raw.wcc_flood_ranking ?? null,
     wcc_tsunami_return_period: raw.wcc_tsunami_return_period ?? null,
     wcc_tsunami_ranking: raw.wcc_tsunami_ranking ?? null,
+    // Council-specific regional hazard data (all cities)
+    council_liquefaction: raw.council_liquefaction ?? null,
+    council_liquefaction_geology: raw.council_liquefaction_geology ?? null,
+    council_liquefaction_source: raw.council_liquefaction_source ?? null,
+    council_tsunami_ranking: raw.council_tsunami_ranking ?? null,
+    council_tsunami_scenario: raw.council_tsunami_scenario ?? null,
+    council_tsunami_return_period: raw.council_tsunami_return_period ?? null,
+    council_tsunami_source: raw.council_tsunami_source ?? null,
+    council_slope_severity: raw.council_slope_severity ?? null,
+    council_slope_source: raw.council_slope_source ?? null,
     epb_rating: epbNearest?.rating ?? null,
     epb_construction_type: epbNearest?.construction_type ?? null,
     epb_deadline: epbNearest?.deadline ?? null,

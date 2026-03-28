@@ -200,6 +200,16 @@ export interface HazardData {
   wcc_flood_ranking: string | null;
   wcc_tsunami_return_period: string | null;
   wcc_tsunami_ranking: string | null;
+  // Council-specific regional hazard data (all cities)
+  council_liquefaction: string | null;
+  council_liquefaction_geology: string | null;
+  council_liquefaction_source: string | null;
+  council_tsunami_ranking: string | null;
+  council_tsunami_scenario: string | null;
+  council_tsunami_return_period: string | null;
+  council_tsunami_source: string | null;
+  council_slope_severity: string | null;
+  council_slope_source: string | null;
   epb_rating: string | null;
   epb_construction_type: string | null;
   epb_deadline: string | null;

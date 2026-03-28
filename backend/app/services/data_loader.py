@@ -3005,43 +3005,18 @@ def load_taranaki_faults(conn: psycopg.Connection, log: Callable = None) -> int:
 
 
 def load_taranaki_tsunami(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Taranaki tsunami evacuation zones → tsunami_zones table (national schema)."""
-    url = "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/2"
-    _progress(log, "Fetching tsunami_zones (taranaki)...")
-    features = _fetch_arcgis(url, 2000)
-    cur = conn.cursor()
-    cur.execute("DELETE FROM tsunami_zones WHERE location = %s", ("Taranaki",))
-    count = 0
-    for f in features:
-        a = f.get("attributes", {})
-        geom = f.get("geometry")
-        if not geom or not geom.get("rings"):
-            continue
-        wkt = _mp_wkt(geom)
-        if not wkt:
-            continue
-        try:
-            cur.execute(
-                "INSERT INTO tsunami_zones "
-                "(evac_zone, zone_class, location, geom) "
-                "VALUES (%s, %s, %s, "
-                "ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
-                (
-                    _clean(a.get("Name")) or _clean(a.get("Zone")) or "Tsunami Zone",
-                    _clean(a.get("Class")) or 1,
-                    "Taranaki",
-                    wkt,
-                ),
-            )
-            count += 1
-        except Exception:
-            conn.rollback()
-            continue
-        if count % 2000 == 0:
-            conn.commit()
-    conn.commit()
-    _progress(log, f"  tsunami_zones (taranaki): {count} rows")
-    return count
+    """Taranaki tsunami evacuation zones → tsunami_hazard table (council schema)."""
+    return _load_council_arcgis(
+        conn, log,
+        "https://maps.trc.govt.nz/arcgis/rest/services/LocalMaps/EmergencyManagement/MapServer/2",
+        "tsunami_hazard", "taranaki",
+        ["name", "hazard_ranking", "scenario"],
+        lambda a: (
+            _clean(a.get("Name")) or _clean(a.get("Zone")) or "Tsunami Zone",
+            "High",
+            "Taranaki Tsunami Evacuation",
+        ),
+    )
 
 
 def load_tauranga_heritage(conn: psycopg.Connection, log: Callable = None) -> int:
@@ -4209,7 +4184,7 @@ DATA_SOURCES: list[DataSource] = [
     ),
     DataSource(
         "taranaki_tsunami", "Taranaki Tsunami Evacuation Zones",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         load_taranaki_tsunami,
     ),
     DataSource(
@@ -7473,24 +7448,26 @@ DATA_SOURCES: list[DataSource] = [
                 "Overland Flow Flood Hazard",
             ))),
     DataSource("hcc_tsunami_high", "Lower Hutt Tsunami Hazard (High)",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.huttcity.govt.nz/server02/rest/services/DP_Coastal_Hazard_Overlay___Tsunami/MapServer/66",
-            "tsunami_zones", "lower_hutt_high",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "lower_hutt_high",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                "High",
                 _clean(a.get("Type")) or "Tsunami High",
+                "High",
+                "DP Coastal Hazard Overlay",
             ))),
     DataSource("hcc_tsunami_medium", "Lower Hutt Tsunami Hazard (Medium)",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.huttcity.govt.nz/server02/rest/services/DP_Coastal_Hazard_Overlay___Tsunami/MapServer/68",
-            "tsunami_zones", "lower_hutt_medium",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "lower_hutt_medium",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                "Medium",
                 _clean(a.get("Type")) or "Tsunami Medium",
+                "Medium",
+                "DP Coastal Hazard Overlay",
             ))),
     DataSource("hcc_coastal_inundation_high", "Lower Hutt Coastal Inundation (High)",
         ["coastal_inundation"],
@@ -7759,34 +7736,37 @@ DATA_SOURCES: list[DataSource] = [
                 "Coastal Inundation — 1m Sea Level Rise",
             ))),
     DataSource("porirua_tsunami_100yr", "Porirua Tsunami Inundation 1:100yr",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/4",
-            "tsunami_zones", "porirua_100yr",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "porirua_100yr",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                "1:100yr",
-                "Tsunami Inundation 100yr",
+                "Tsunami Inundation 1:100yr",
+                "High",
+                "1:100yr return period",
             ))),
     DataSource("porirua_tsunami_500yr", "Porirua Tsunami Inundation 1:500yr",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/5",
-            "tsunami_zones", "porirua_500yr",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "porirua_500yr",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                "1:500yr",
-                "Tsunami Inundation 500yr",
+                "Tsunami Inundation 1:500yr",
+                "Medium",
+                "1:500yr return period",
             ))),
     DataSource("porirua_tsunami_1000yr", "Porirua Tsunami Inundation 1:1000yr",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.poriruacity.govt.nz/server/rest/services/Hazards/Coastal_Hazards/MapServer/6",
-            "tsunami_zones", "porirua_1000yr",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "porirua_1000yr",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                "1:1000yr",
-                "Tsunami Inundation 1000yr",
+                "Tsunami Inundation 1:1000yr",
+                "Low",
+                "1:1000yr return period",
             ))),
     DataSource("porirua_ecological", "Porirua Ecosites",
         ["significant_ecological_areas"],
@@ -7803,13 +7783,15 @@ DATA_SOURCES: list[DataSource] = [
     # KAPITI COAST — additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("kapiti_tsunami", "Kapiti Coast Tsunami Evacuation Zones",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.kapiticoast.govt.nz/server/rest/services/Public/Tsunami/MapServer/3",
-            "tsunami_zones", "kapiti_coast",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "kapiti_coast",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                _clean(a.get("Zone_Class")) or _clean(a.get("Evac_Zone")) or "Evacuation Zone",
+                _clean(a.get("Evac_Zone")) or "Tsunami Evacuation Zone",
+                "High" if "red" in (_clean(a.get("Col_Code")) or "").lower() else
+                "Medium" if "orange" in (_clean(a.get("Col_Code")) or "").lower() else "Low",
                 _clean(a.get("Location")) or "Kapiti Coast",
             ))),
     DataSource("kapiti_coastal_erosion_present", "Kapiti Coastal Erosion (Present Day)",
@@ -7959,14 +7941,16 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Simplified")),
             ))),
     DataSource("wairarapa_tsunami", "Wairarapa Tsunami Evacuation Zones",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.mstn.govt.nz/arcgis/rest/services/EmergencyManagementAndHazards/TsunamiEvacuationZones/MapServer/0",
-            "tsunami_zones", "wairarapa",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "wairarapa",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                _clean(a.get("Zone_class")) or "Evacuation Zone",
-                _clean(a.get("Location")) or "Wairarapa",
+                _clean(a.get("Location")) or "Wairarapa Tsunami Zone",
+                "High" if "red" in (_clean(a.get("Zone_class")) or "").lower() else
+                "Medium" if "orange" in (_clean(a.get("Zone_class")) or "").lower() else "Low",
+                "Tsunami Evacuation Zone",
             ))),
     DataSource("wairarapa_contaminated", "Wairarapa Contaminated Sites",
         ["contaminated_land"],
@@ -8139,14 +8123,15 @@ DATA_SOURCES: list[DataSource] = [
     # OTAGO (ORC) — additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("orc_tsunami_affected", "ORC Tsunami Affected Areas",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.orc.govt.nz/arcgis/rest/services/Tsunami_AffectedArea_Final/MapServer/0",
-            "tsunami_zones", "otago_tsunami",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "otago_tsunami",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                _clean(a.get("Scenario")) or "Tsunami Affected",
-                _clean(a.get("LayerDescription")) or "Otago",
+                _clean(a.get("LayerDescription")) or "Tsunami Affected Area",
+                "High",
+                _clean(a.get("Scenario")) or "ORC Tsunami",
             ))),
     DataSource("orc_floodway_taieri", "ORC Taieri River Floodway",
         ["flood_hazard"],
@@ -8182,14 +8167,15 @@ DATA_SOURCES: list[DataSource] = [
                 "Floodway (ORC Bylaw 2022)",
             ))),
     DataSource("orc_dunedin_tsunami", "Dunedin Tsunami Zones (ORC)",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://maps.orc.govt.nz/arcgis/rest/services/Tsunami_AffectedArea_Final/MapServer/0",
-            "tsunami_zones", "dunedin_orc",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "dunedin_orc",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                _clean(a.get("Scenario")) or "Tsunami",
-                _clean(a.get("LayerDescription")) or "Dunedin",
+                _clean(a.get("LayerDescription")) or "Dunedin Tsunami Zone",
+                "High",
+                _clean(a.get("Scenario")) or "ORC Tsunami",
             ),
             skip_delete=True)),
 
@@ -9008,14 +8994,15 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("LABEL")),
             ))),
     DataSource("whangarei_tsunami", "Whangarei Tsunami Zones (NRC 2024)",
-        ["tsunami_zones"],
+        ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://nrcmaps.nrc.govt.nz/server/rest/services/Tsunami_Inundation_Zones_2024/MapServer/11",
-            "tsunami_zones", "whangarei",
-            ["zone_class", "zone_name"],
+            "tsunami_hazard", "whangarei",
+            ["name", "hazard_ranking", "scenario"],
             lambda a: (
                 _clean(a.get("Zone")) or "Tsunami Zone",
-                "Whangarei (NRC 2024)",
+                "High",
+                "NRC Tsunami 2024",
             ))),
 
     # ══════════════════════════════════════════════════════════
