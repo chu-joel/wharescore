@@ -119,24 +119,29 @@ function deriveWatchItems(snapshot: ReportSnapshot): WatchItem[] {
   // Active fault proximity
   const activeFault = hazards.active_fault_nearest as Record<string, unknown> | null;
   if (activeFault && (activeFault.distance_m as number) < 2000) {
+    const faultName = activeFault.name as string;
+    const faultDist = ((activeFault.distance_m as number) / 1000).toFixed(1);
     items.push({
       icon: <Zap className="h-5 w-5" />,
       color: 'bg-orange-500',
       dotColor: 'bg-orange-500',
       label: 'NEAR ACTIVE FAULT',
-      description: `${activeFault.name} fault is ${((activeFault.distance_m as number) / 1000).toFixed(1)} km away (Class ${activeFault.class}).`,
+      description: faultName
+        ? `${faultName} is ${faultDist} km away. Properties near active faults face elevated seismic risk.`
+        : `Active fault ${faultDist} km away. Properties near active faults face elevated seismic risk.`,
     });
   }
 
   // Fault avoidance zone
-  const faz = hazards.fault_avoidance_zone as Record<string, unknown> | null;
+  const faz = hazards.fault_avoidance_zone;
   if (faz) {
+    const fazStr = typeof faz === 'string' ? faz : (faz as Record<string, unknown>)?.zone_type ?? (faz as Record<string, unknown>)?.fault_name ?? 'Active Fault';
     items.push({
       icon: <Zap className="h-5 w-5" />,
       color: 'bg-red-600',
       dotColor: 'bg-red-600',
       label: 'FAULT AVOIDANCE ZONE',
-      description: `Within ${faz.zone_type} zone for ${faz.fault_name} (${faz.setback_m}m setback).`,
+      description: `This property is within a Fault Avoidance Zone (${fazStr}). Building restrictions may apply.`,
     });
   }
 
@@ -390,6 +395,64 @@ function WeatherTimelineEvent({ event }: { event: NonNullable<ReportSnapshot['we
 }
 
 // ---------------------------------------------------------------------------
+// Expandable Timeline — shows important events, accordion for rest
+// ---------------------------------------------------------------------------
+
+type TimelineItem =
+  | { kind: 'feed'; event: AreaFeedEvent; date: Date }
+  | { kind: 'weather'; event: NonNullable<ReportSnapshot['weather_history']>[number]; date: Date };
+
+function ExpandableTimeline({ timeline }: { timeline: TimelineItem[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Split into important (critical/warning) and rest
+  const important = timeline.filter(item => {
+    if (item.kind === 'feed') return item.event.severity === 'critical' || item.event.severity === 'warning';
+    return item.event.severity === 'critical' || item.event.severity === 'warning' || item.event.severity === 'extreme';
+  });
+  const rest = timeline.filter(item => !important.includes(item));
+  const shown = important.length > 0 ? important : timeline.slice(0, 3);
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        Event Timeline {timeline.length > shown.length && <span className="font-normal">({timeline.length} total)</span>}
+      </p>
+      <div className="relative space-y-1 ml-1.5">
+        <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
+        {shown.map((item, i) =>
+          item.kind === 'feed'
+            ? <TimelineEvent key={`f-${i}`} event={item.event} />
+            : <WeatherTimelineEvent key={`w-${i}`} event={item.event} />,
+        )}
+      </div>
+
+      {rest.length > 0 && (
+        <>
+          {expanded && (
+            <div className="relative space-y-1 ml-1.5">
+              <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
+              {rest.map((item, i) =>
+                item.kind === 'feed'
+                  ? <TimelineEvent key={`fr-${i}`} event={item.event} />
+                  : <WeatherTimelineEvent key={`wr-${i}`} event={item.event} />,
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1.5 text-xs font-medium text-piq-primary hover:text-piq-primary/80 transition-colors ml-1.5"
+          >
+            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            {expanded ? 'Show less' : `Show all ${timeline.length} events`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -400,12 +463,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
   const hazardAdvice = snapshot.hazard_advice ?? [];
   const topEvents = pickTopEvents(feedEvents, snapshot.weather_history);
 
-  // Remaining feed events (skip those used in top events — just show all in compact form)
-  // Merge weather_history into timeline, sorted by date descending
-  type TimelineItem =
-    | { kind: 'feed'; event: AreaFeedEvent; date: Date }
-    | { kind: 'weather'; event: NonNullable<ReportSnapshot['weather_history']>[number]; date: Date };
-
+  // Merge feed + weather into unified timeline, sorted by date descending
   const timeline: TimelineItem[] = [
     ...feedEvents.map(e => ({ kind: 'feed' as const, event: e, date: new Date(e.timestamp) })),
     ...weatherHistory.map(e => ({ kind: 'weather' as const, event: e, date: new Date(e.date) })),
@@ -478,20 +536,9 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
           </div>
         )}
 
-        {/* ═══ TIMELINE — all events compact ═══ */}
+        {/* ═══ TIMELINE — important events shown, rest expandable ═══ */}
         {timeline.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Event Timeline</p>
-            <div className="relative space-y-1 ml-1.5">
-              {/* Vertical line */}
-              <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
-              {timeline.map((item, i) =>
-                item.kind === 'feed'
-                  ? <TimelineEvent key={`f-${i}`} event={item.event} />
-                  : <WeatherTimelineEvent key={`w-${i}`} event={item.event} />,
-              )}
-            </div>
-          </div>
+          <ExpandableTimeline timeline={timeline} />
         )}
 
         {/* Source attribution */}
