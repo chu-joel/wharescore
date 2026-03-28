@@ -137,6 +137,9 @@ services:
         condition: service_healthy
 
   nginx:
+    # Dev only — prod uses host nginx for SSL termination.
+    # Start with: docker compose --profile dev up
+    profiles: ["dev"]
     restart: unless-stopped
     image: nginx:alpine
     ports:

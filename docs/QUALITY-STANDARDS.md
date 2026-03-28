@@ -145,6 +145,7 @@ print(result)
 | Mistake | Why it happens | How to avoid |
 |---------|---------------|-------------|
 | Creating `get_property_report(INT)` migration | PostgreSQL creates an overload that shadows the `BIGINT` version | Never create new migrations with this function. Edit 0022 in place. |
+| `jsonb_build_object()` exceeds 100 args | PostgreSQL hard limit: max 100 arguments per function call. The `hazards` section is already at ~72 args (split into two calls). | Split into `jsonb_build_object(...) \|\| jsonb_build_object(...)`. Pre-commit hook enforces this. |
 | Rates module not working for free reports | Wired into snapshot_generator.py but NOT property.py `_fix_unit_cv()` | Always wire in BOTH places. |
 | Transit data missing for a city | Data loaded but `_overlay_transit_data()` not running | Check that `get_transit_data()` SQL function exists (migration 0023). |
 | Report shows stale data after code change | Redis cache serving old version | Flush Redis after ANY report logic change. |

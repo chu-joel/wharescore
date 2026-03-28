@@ -137,7 +137,8 @@ BEGIN
         'council_slope_source', sf_council.source_council,
         'epb_nearest', epb_detail.nearest,
         'solar_mean_kwh', solar.mean_yearly_solar,
-        'solar_max_kwh', solar.max_yearly_solar,
+        'solar_max_kwh', solar.max_yearly_solar
+      ) || jsonb_build_object(
         -- GNS Landslide Database
         'landslide_count_500m', ls_count.cnt,
         'landslide_nearest', ls_nearest.nearest,
@@ -153,10 +154,10 @@ BEGIN
         -- Erosion prone land
         'on_erosion_prone_land', coalesce(epl.on_erosion_prone, false),
         'erosion_min_angle', epl.erosion_min_angle,
-        -- GNS Active Faults (national) — NEW
+        -- GNS Active Faults (national)
         'active_fault_nearest', af_nearest.nearest,
         'fault_avoidance_zone', faz.zone_type,
-        -- Aircraft noise overlay — NEW
+        -- Aircraft noise overlay
         'aircraft_noise_name', ano.name,
         'aircraft_noise_dba', ano.noise_level_dba,
         'aircraft_noise_category', ano.noise_category,
