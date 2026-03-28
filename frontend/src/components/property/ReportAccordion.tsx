@@ -134,7 +134,7 @@ function SectionContent({
         />
       );
     case 'transport':
-      return <TransportSection category={category} liveability={report.liveability} />;
+      return <TransportSection category={category} liveability={report.liveability} walkingReach={report.walking_reach} elevation={report.terrain?.elevation_m} />;
     case 'planning':
       return <PlanningSection category={category} planning={report.planning} />;
   }

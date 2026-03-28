@@ -15,6 +15,7 @@ from .. import db
 from ..deps import limiter
 from ..redis import cache_get, cache_set, cache_del
 from ..services.auth import _extract_bearer, verify_jwt
+from ..services.event_writer import track_event, log_error
 from slowapi.util import get_remote_address
 
 
@@ -202,6 +203,47 @@ async def _overlay_transit_data(report: dict, address_id: int) -> None:
         logger.debug(f"Transit overlay failed for {address_id}: {e}")
 
 
+async def _overlay_terrain_data(report: dict, address_id: int) -> None:
+    """Add terrain (elevation, slope, aspect) and walking isochrone data to the report.
+
+    Calls Valhalla for hill-aware walking isochrone + multi-point elevation sampling.
+    Falls back gracefully if Valhalla is unavailable — terrain section simply won't appear."""
+    try:
+        from ..services.walking_isochrone import (
+            get_terrain_at_property,
+            count_stops_in_isochrone,
+            classify_landslide_risk_from_slope,
+        )
+
+        async with db.pool.connection() as conn:
+            # Fetch terrain + isochrone sequentially (share same connection)
+            terrain = await get_terrain_at_property(conn, address_id)
+            isochrone = await count_stops_in_isochrone(conn, address_id, minutes=10)
+
+        # Add landslide risk classification from slope
+        if terrain.get("slope_degrees") is not None:
+            terrain["landslide_risk"] = classify_landslide_risk_from_slope(
+                terrain["slope_degrees"]
+            )
+
+        report["terrain"] = terrain
+        report["walking_reach"] = {
+            "minutes": 10,
+            "method": isochrone.get("isochrone_method", "none"),
+            "total_stops": isochrone.get("transit_stops_walk_10min", 0),
+            "bus_stops": isochrone.get("bus_stops_walk_10min", 0),
+            "rail_stops": isochrone.get("rail_stops_walk_10min", 0),
+            "ferry_stops": isochrone.get("ferry_stops_walk_10min", 0),
+        }
+
+        # Also update liveability section with walking reach data for backwards compat
+        live = report.get("liveability") or {}
+        live["walking_reach_10min"] = isochrone.get("transit_stops_walk_10min", 0)
+        live["walking_reach_method"] = isochrone.get("isochrone_method", "none")
+    except Exception as e:
+        logger.warning(f"Terrain overlay failed for {address_id}: {e}")
+
+
 @router.get("/property/{address_id}/report")
 @limiter.limit("20/minute", key_func=_verified_user_or_ip)
 @limiter.limit("5/minute", key_func=get_remote_address)
@@ -273,9 +315,13 @@ async def get_report(request: Request, address_id: int):
     # Overlay universal transit data (metlink + AT + regional)
     await _overlay_transit_data(report, address_id)
 
+    # Overlay terrain + walking isochrone data (elevation, slope, 10-min walk)
+    await _overlay_terrain_data(report, address_id)
+
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
 
+    track_event("report_view", properties={"address_id": address_id})
     return report
 
 
@@ -1296,7 +1342,7 @@ async def _generate_pdf_background(
     job_id: str, address_id: int, persona: str = "buyer",
     user_id: str | None = None, credit_id: int | None = None, is_pro: bool = False,
     budget_inputs: dict | None = None, rent_inputs: dict | None = None,
-    buyer_inputs: dict | None = None,
+    buyer_inputs: dict | None = None, report_tier: str = "full",
 ):
     """Background task to generate PDF report. Saves report + deducts credit on success."""
     try:
@@ -1730,6 +1776,7 @@ async def _generate_pdf_background(
                     user_id=user_id,
                     inputs_at_purchase={**(rent_inputs or {}), **(buyer_inputs or {})},
                     skip_ai=True,  # PDF task handles AI separately
+                    report_tier=report_tier,
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
@@ -1871,7 +1918,10 @@ async def start_pdf_export(
         budget_inputs=budget_inputs,
         rent_inputs=rent_inputs,
         buyer_inputs=buyer_inputs,
+        report_tier=credit_info.report_tier,
     )
+    track_event("report_generated", user_id=credit_info.user_id,
+                properties={"address_id": address_id, "persona": persona})
     return JSONResponse({
         "job_id": job_id,
         "status_url": f"/api/v1/property/{address_id}/export/pdf/status/{job_id}",
@@ -1898,7 +1948,7 @@ async def start_guest_pdf_export(
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT id, address_id, persona, job_id, expires_at
+            SELECT id, address_id, persona, job_id, expires_at, report_tier
             FROM guest_purchases
             WHERE download_token_hash = %s AND address_id = %s
               AND expires_at > now()
@@ -1948,6 +1998,7 @@ async def start_guest_pdf_export(
         budget_inputs=budget_inputs,
         rent_inputs=rent_inputs,
         buyer_inputs=buyer_inputs,
+        report_tier=row.get("report_tier", "quick"),
     )
 
     return JSONResponse({

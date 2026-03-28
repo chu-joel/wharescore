@@ -26,6 +26,7 @@ class CreditInfo:
     monthly_limit: Optional[int]
     downloads_today: int
     downloads_this_month: int
+    report_tier: str = "full"  # "quick" or "full"
 
     @property
     def is_pro(self) -> bool:
@@ -72,7 +73,7 @@ async def require_paid_user(
         # Get active credits (check BEFORE blocking free plan — user may have promo/purchased credits)
         cur = await conn.execute(
             """
-            SELECT id, credit_type, credits_remaining, daily_limit, monthly_limit
+            SELECT id, credit_type, credits_remaining, daily_limit, monthly_limit, report_tier
             FROM report_credits
             WHERE user_id = %s
               AND (expires_at IS NULL OR expires_at > now())
@@ -127,4 +128,5 @@ async def require_paid_user(
             monthly_limit=credit["monthly_limit"],
             downloads_today=downloads_today,
             downloads_this_month=downloads_this_month,
+            report_tier=credit.get("report_tier", "full"),
         )

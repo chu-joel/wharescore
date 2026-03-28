@@ -116,13 +116,20 @@ Request hits authenticated endpoint
 ## Payment & Credit System
 
 ### Plans and pricing
-| Plan | Price | Credits | Limits | Stripe mode |
-|------|-------|---------|--------|-------------|
-| free | $0 | 0 | — | — |
-| single | $4.99 | 1 report | No expiry | One-time payment |
-| pack3 | $9.99 | 3 reports | No expiry | One-time payment |
-| pro | $49/mo | Unlimited | 10/day, 30/month | Subscription |
-| promo | Free | 1 per redemption | Per-code max | Via redeem-promo |
+| Plan | Price | Credits | Report Tier | Limits | Stripe mode |
+|------|-------|---------|-------------|--------|-------------|
+| free | $0 | 0 | — | — | — |
+| quick_single | $4.99 | 1 report | Quick (~8 sections) | No expiry | One-time payment |
+| full_single | $9.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
+| pro | $99/mo | Unlimited | Full | 10/day, 30/month | Subscription |
+| promo | Free | 1 per redemption | Full | Per-code max | Via redeem-promo |
+| upgrade | $5.00 | — | Quick→Full | Per-snapshot | One-time payment |
+
+### Report tiers
+- **Quick Report** ($4.99): Score, AI verdict, RAG grid, rent/price band, hazard summary, schools, neighbourhood highlights, top 3 actions. Single-column, no sidebar.
+- **Full Report** ($9.99): All 25+ sections with full detail, interactive sidebar, rent/price methodology, hazard intelligence timeline, terrain analysis, neighbourhood deep-dive.
+- Same snapshot data — tier controls frontend rendering only. Stored as `report_tier` column on `report_snapshots`.
+- Upgrade: `POST /report/{token}/upgrade` creates Stripe checkout for $5.00 difference. Webhook updates `report_tier` to `'full'` on same snapshot row.
 
 ### Authenticated purchase flow
 ```

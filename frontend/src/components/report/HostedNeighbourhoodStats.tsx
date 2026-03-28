@@ -64,11 +64,15 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   const climatePrecip = env.climate_precip_change_pct as number;
   const solarMean = hazards.solar_mean_kwh as number;
 
-  // Transit mode breakdown
-  const busStops = live.bus_stops_800m as number;
-  const railStops = live.rail_stops_800m as number;
-  const ferryStops = live.ferry_stops_800m as number;
-  const cableCarStops = live.cable_car_stops_800m as number;
+  // Walking reach (10-min walk via Valhalla) — preferred over 800m radius
+  const walkingReach = (rawReport.walking_reach ?? null) as { minutes: number; method: string; total_stops: number; bus_stops: number; rail_stops: number; ferry_stops: number } | null;
+  const hasWalkingReach = walkingReach && walkingReach.method !== 'none' && walkingReach.total_stops > 0;
+
+  // Transit mode breakdown (fallback to 800m radius)
+  const busStops = hasWalkingReach ? walkingReach.bus_stops : (live.bus_stops_800m as number);
+  const railStops = hasWalkingReach ? walkingReach.rail_stops : (live.rail_stops_800m as number);
+  const ferryStops = hasWalkingReach ? walkingReach.ferry_stops : (live.ferry_stops_800m as number);
+  const cableCarStops = hasWalkingReach ? 0 : (live.cable_car_stops_800m as number);
   const transitModes: { mode: string; count: number }[] = [];
   if (busStops) transitModes.push({ mode: 'Bus', count: busStops });
   if (railStops) transitModes.push({ mode: 'Rail', count: railStops });
@@ -146,7 +150,16 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
         {/* Transit mode breakdown */}
         {transitModes.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2">Transit Stops (800m)</h4>
+            <div className="flex items-center gap-2 mb-2">
+              <h4 className="text-sm font-semibold">
+                {hasWalkingReach ? 'Transit Stops (10-min walk)' : 'Transit Stops (800m)'}
+              </h4>
+              {hasWalkingReach && walkingReach.method === 'valhalla' && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-piq-primary/10 text-piq-primary">
+                  Hill-adjusted
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {transitModes.map((t) => (
                 <span key={t.mode} className="px-2.5 py-1 rounded-lg bg-piq-primary/10 text-piq-primary text-xs font-medium">

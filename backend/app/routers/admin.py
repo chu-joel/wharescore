@@ -1301,3 +1301,203 @@ async def admin_recommendations_list(request: Request):
         rules.append(merged)
 
     return {"rules": rules}
+
+
+# =============================================================================
+# Analytics endpoints
+# =============================================================================
+
+@router.get("/analytics/overview", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def analytics_overview(request: Request, days: int = Query(7, le=90)):
+    """Analytics overview: today's stats, trends, top endpoints, slow requests, recent errors."""
+    async with _db.pool.connection() as conn:
+        result: dict = {}
+
+        # --- Today's live stats ---
+        cur = await conn.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN event_type = 'search' THEN 1 END), 0) AS searches,
+                COALESCE(SUM(CASE WHEN event_type = 'report_view' THEN 1 END), 0) AS report_views,
+                COALESCE(SUM(CASE WHEN event_type = 'report_generated' THEN 1 END), 0) AS reports_generated,
+                COALESCE(SUM(CASE WHEN event_type = 'payment_completed' THEN 1 END), 0) AS payments,
+                COUNT(DISTINCT session_id) AS active_sessions
+            FROM app_events
+            WHERE created_at >= CURRENT_DATE
+        """)
+        today_events = cur.fetchone() or {}
+
+        cur = await conn.execute("""
+            SELECT
+                COUNT(*) AS total_requests,
+                ROUND(AVG(duration_ms)::numeric, 1) AS avg_response_ms,
+                COALESCE(SUM(CASE WHEN status_code >= 500 THEN 1 END), 0) AS server_errors
+            FROM perf_metrics
+            WHERE created_at >= CURRENT_DATE
+        """)
+        today_perf = cur.fetchone() or {}
+
+        cur = await conn.execute("""
+            SELECT COUNT(*) AS count FROM error_log
+            WHERE created_at >= CURRENT_DATE
+        """)
+        today_errors = cur.fetchone() or {}
+
+        result["today"] = {
+            "searches": today_events.get("searches", 0),
+            "report_views": today_events.get("report_views", 0),
+            "reports_generated": today_events.get("reports_generated", 0),
+            "payments": today_events.get("payments", 0),
+            "active_sessions": today_events.get("active_sessions", 0),
+            "total_requests": today_perf.get("total_requests", 0),
+            "avg_response_ms": float(today_perf.get("avg_response_ms") or 0),
+            "server_errors": today_perf.get("server_errors", 0),
+            "errors": today_errors.get("count", 0),
+        }
+
+        # --- Trends (from daily_metrics, falling back to live for recent days) ---
+        cur = await conn.execute("""
+            SELECT day::text, metric_name, metric_value
+            FROM daily_metrics
+            WHERE day >= CURRENT_DATE - %s * INTERVAL '1 day'
+            ORDER BY day
+        """, [days])
+        trend_rows = cur.fetchall()
+
+        trends: dict = {}
+        for row in trend_rows:
+            name = row["metric_name"]
+            trends.setdefault(name, []).append({
+                "day": row["day"], "value": row["metric_value"]
+            })
+        result["trends"] = trends
+
+        # --- Top endpoints (last 24h) ---
+        cur = await conn.execute("""
+            SELECT
+                COALESCE(path_template, path) AS endpoint,
+                COUNT(*) AS count,
+                ROUND(AVG(duration_ms)::numeric, 1) AS avg_ms,
+                ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ms)::numeric, 1) AS p95_ms
+            FROM perf_metrics
+            WHERE created_at >= now() - INTERVAL '24 hours'
+            GROUP BY COALESCE(path_template, path)
+            ORDER BY count DESC
+            LIMIT 15
+        """)
+        result["top_endpoints"] = cur.fetchall()
+
+        # --- Slow requests (>2s, last 24h) ---
+        cur = await conn.execute("""
+            SELECT path, duration_ms, method, status_code, created_at::text, request_id
+            FROM perf_metrics
+            WHERE duration_ms > 2000 AND created_at >= now() - INTERVAL '24 hours'
+            ORDER BY duration_ms DESC
+            LIMIT 10
+        """)
+        result["slow_requests"] = cur.fetchall()
+
+        # --- Recent errors ---
+        cur = await conn.execute("""
+            SELECT id, category, level, message, path, created_at::text,
+                   properties->>'resolved_at' AS resolved_at
+            FROM error_log
+            ORDER BY created_at DESC
+            LIMIT 20
+        """)
+        result["recent_errors"] = cur.fetchall()
+
+        # --- Unresolved error count (for badge) ---
+        cur = await conn.execute("""
+            SELECT COUNT(*) AS count FROM error_log
+            WHERE NOT (properties ? 'resolved_at')
+              AND created_at >= now() - INTERVAL '24 hours'
+        """)
+        result["unresolved_errors_24h"] = (cur.fetchone() or {}).get("count", 0)
+
+    return result
+
+
+@router.get("/analytics/events", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def analytics_events(
+    request: Request,
+    event_type: str | None = None,
+    days: int = Query(7, le=90),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, le=100),
+):
+    """Paginated event browser."""
+    offset = (page - 1) * per_page
+    async with _db.pool.connection() as conn:
+        where = "WHERE created_at >= CURRENT_DATE - %s * INTERVAL '1 day'"
+        params: list = [days]
+        if event_type:
+            where += " AND event_type = %s"
+            params.append(event_type)
+
+        cur = await conn.execute(
+            f"SELECT COUNT(*) AS total FROM app_events {where}", params
+        )
+        total = (cur.fetchone() or {}).get("total", 0)
+
+        cur = await conn.execute(
+            f"""SELECT id, event_type, created_at::text, user_id, session_id, properties
+                FROM app_events {where}
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s""",
+            params + [per_page, offset],
+        )
+        events = cur.fetchall()
+
+    return {"total": total, "page": page, "per_page": per_page, "events": events}
+
+
+@router.get("/analytics/errors", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def analytics_errors(
+    request: Request,
+    category: str | None = None,
+    days: int = Query(7, le=90),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, le=100),
+):
+    """Paginated error browser."""
+    offset = (page - 1) * per_page
+    async with _db.pool.connection() as conn:
+        where = "WHERE created_at >= CURRENT_DATE - %s * INTERVAL '1 day'"
+        params: list = [days]
+        if category:
+            where += " AND category = %s"
+            params.append(category)
+
+        cur = await conn.execute(
+            f"SELECT COUNT(*) AS total FROM error_log {where}", params
+        )
+        total = (cur.fetchone() or {}).get("total", 0)
+
+        cur = await conn.execute(
+            f"""SELECT id, category, level, message, traceback, path,
+                       request_id, user_id, created_at::text, properties
+                FROM error_log {where}
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s""",
+            params + [per_page, offset],
+        )
+        errors = cur.fetchall()
+
+    return {"total": total, "page": page, "per_page": per_page, "errors": errors}
+
+
+@router.post("/analytics/errors/{error_id}/resolve", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def resolve_error(request: Request, error_id: int):
+    """Mark an error as resolved."""
+    async with _db.pool.connection() as conn:
+        await conn.execute(
+            """UPDATE error_log
+               SET properties = properties || jsonb_build_object('resolved_at', now()::text)
+               WHERE id = %s""",
+            [error_id],
+        )
+    return {"status": "resolved"}

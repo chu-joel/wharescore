@@ -2,6 +2,7 @@
 
 import { use } from 'react';
 import { HostedReport } from '@/components/report/HostedReport';
+import { HostedQuickReport } from '@/components/report/HostedQuickReport';
 import { useReportSnapshot } from '@/hooks/useReportSnapshot';
 import { Loader2 } from 'lucide-react';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -30,6 +31,10 @@ export default function ReportPage({ params }: { params: Promise<{ token: string
         />
       </div>
     );
+  }
+
+  if (snapshot.report_tier === 'quick') {
+    return <HostedQuickReport snapshot={snapshot} token={token} />;
   }
 
   return <HostedReport snapshot={snapshot} token={token} />;

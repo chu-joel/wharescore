@@ -137,6 +137,9 @@ function transformLiveability(raw: any): LiveabilityData {
     transit_travel_times_pm: Array.isArray(raw.transit_travel_times_pm) ? raw.transit_travel_times_pm : null,
     peak_trips_per_hour: raw.peak_trips_per_hour ?? null,
     nearest_stop_name: raw.nearest_stop_name ?? null,
+    // Walking reach (10-min walk via Valhalla)
+    walking_reach_10min: raw.walking_reach_10min ?? null,
+    walking_reach_method: raw.walking_reach_method ?? null,
   };
 }
 
@@ -455,5 +458,7 @@ export function transformReport(raw: any): PropertyReport {
     area_profile: raw.area_profile ?? null,
     property_detection: raw.property_detection ?? null,
     coverage,
+    terrain: raw.terrain ?? undefined,
+    walking_reach: raw.walking_reach ?? undefined,
   };
 }

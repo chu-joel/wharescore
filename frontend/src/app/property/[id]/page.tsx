@@ -8,10 +8,13 @@ import { PropertyReport } from '@/components/property/PropertyReport';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
 import { ReportConfirmModal } from '@/components/property/ReportConfirmModal';
 import { ErrorState } from '@/components/common/ErrorState';
+import { useTrackPageView } from '@/hooks/useTrackPageView';
 
 export default function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const addressId = parseInt(id, 10);
+
+  useTrackPageView({ address_id: addressId });
 
   if (isNaN(addressId) || addressId <= 0 || !Number.isSafeInteger(addressId)) {
     return (

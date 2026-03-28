@@ -348,27 +348,33 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
 
     lat, lon = row["lat"], row["lon"]
 
-    # Try PostGIS raster first (more data: slope + aspect)
+    # Try PostGIS raster if SRTM has been loaded (check function exists first
+    # to avoid aborting the transaction on error)
     try:
         cur = await conn.execute(
-            "SELECT * FROM get_terrain_summary(%s, %s)",
-            [lon, lat],
+            "SELECT EXISTS(SELECT 1 FROM pg_proc WHERE proname = 'get_terrain_summary')"
         )
-        terrain = cur.fetchone()
-        if terrain and terrain["elevation_m"] is not None:
-            return {
-                "elevation_m": round(terrain["elevation_m"], 1),
-                "slope_degrees": round(terrain["slope_degrees"], 1) if terrain["slope_degrees"] else None,
-                "slope_category": terrain["slope_category"],
-                "aspect_degrees": round(terrain["aspect_degrees"], 1) if terrain["aspect_degrees"] else None,
-                "aspect_label": terrain["aspect_label"],
-                "terrain_source": "postgis",
-            }
+        fn_exists = cur.fetchone()
+        if fn_exists and list(fn_exists.values())[0]:
+            cur = await conn.execute(
+                "SELECT * FROM get_terrain_summary(%s, %s)",
+                [lon, lat],
+            )
+            terrain = cur.fetchone()
+            if terrain and terrain["elevation_m"] is not None:
+                return {
+                    "elevation_m": round(terrain["elevation_m"], 1),
+                    "slope_degrees": round(terrain["slope_degrees"], 1) if terrain["slope_degrees"] else None,
+                    "slope_category": terrain["slope_category"],
+                    "aspect_degrees": round(terrain["aspect_degrees"], 1) if terrain["aspect_degrees"] else None,
+                    "aspect_label": terrain["aspect_label"],
+                    "terrain_source": "postgis",
+                }
     except Exception:
-        # get_terrain_summary doesn't exist yet (SRTM not loaded)
+        # PostGIS raster query failed — fall through to Valhalla
         pass
 
-    # Fallback: Valhalla /height with multi-point slope estimation
+    # Valhalla /height with multi-point slope estimation
     # Sample center + 4 cardinal neighbors (~30m apart = 1 SRTM pixel)
     offset = 0.00027  # ~30m in degrees at NZ latitudes
     sample_points = [

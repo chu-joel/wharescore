@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { FileText, Check, Shield, Zap, Loader2, Gift } from 'lucide-react';
 import { useSession, signIn } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
+import { trackEvent } from '@/lib/analytics';
 import {
   Dialog,
   DialogContent,
@@ -178,12 +179,20 @@ function InputReadinessTip({ persona }: { persona: string }) {
   );
 }
 
-const FEATURES = [
-  'Premium PDF property report',
-  'Risk & hazard analysis with maps',
-  'AI-powered neighbourhood insights',
-  'Rent fairness & market data',
-  'School, transport & amenity breakdown',
+const QUICK_FEATURES = [
+  'Overall risk score & AI verdict',
+  'Hazard traffic-light summary',
+  'School zones & nearby schools',
+  'Rent or price estimate with band',
+  'Top 3 personalised action items',
+] as const;
+
+const FULL_FEATURES = [
+  'Everything in Quick Report, plus:',
+  '25+ detailed analysis sections',
+  'Full rent/price methodology & breakdown',
+  'Hazard intelligence timeline & advice',
+  'Neighbourhood deep-dive & terrain analysis',
 ] as const;
 
 function getHeadline(
@@ -253,6 +262,13 @@ export function UpgradeModal() {
   const [loading, setLoading] = useState<string | null>(null);
   const [canClose, setCanClose] = useState(false);
 
+  // Track modal shown
+  useEffect(() => {
+    if (showUpgradeModal) {
+      trackEvent('upgrade_modal_shown', { trigger: modalTrigger });
+    }
+  }, [showUpgradeModal, modalTrigger]);
+
   // Delayed close button — force 3s look at modal (research: improves conversion)
   useEffect(() => {
     if (showUpgradeModal) {
@@ -262,7 +278,7 @@ export function UpgradeModal() {
     }
   }, [showUpgradeModal]);
 
-  const handlePurchase = async (plan: 'single' | 'pack3' | 'pro') => {
+  const handlePurchase = async (plan: 'quick_single' | 'full_single' | 'pro') => {
     // If not signed in, redirect to Google sign-in
     if (!isSignedIn) {
       setShowUpgradeModal(false);
@@ -312,7 +328,7 @@ export function UpgradeModal() {
       const res = await fetch('/api/v1/checkout/guest-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address_id: targetAddressId, persona: targetPersona }),
+        body: JSON.stringify({ address_id: targetAddressId, persona: targetPersona, plan: 'quick_single' }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Failed to create checkout' }));
@@ -382,38 +398,28 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Feature list */}
-        <ul className="space-y-1 sm:space-y-1.5 py-0.5 sm:py-1">
-          {FEATURES.map((feature) => (
-            <li key={feature} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
-              <Check className="mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-piq-success" />
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
-
         {/* Pricing options */}
         <div className="grid gap-1.5 sm:gap-2">
-          {/* Single report */}
+          {/* Quick Report */}
           <button
-            onClick={() => handlePurchase('single')}
+            onClick={() => handlePurchase('quick_single')}
             disabled={!!loading}
             className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
           >
             <div>
-              <p className="text-xs sm:text-sm font-semibold">Single report</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">One property</p>
+              <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
             </div>
-            {loading === 'single' ? (
+            {loading === 'quick_single' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
               <span className="text-base sm:text-lg font-bold text-piq-primary">$4.99</span>
             )}
           </button>
 
-          {/* 3-pack */}
+          {/* Full Report */}
           <button
-            onClick={() => handlePurchase('pack3')}
+            onClick={() => handlePurchase('full_single')}
             disabled={!!loading}
             className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
           >
@@ -421,10 +427,10 @@ export function UpgradeModal() {
               Best value
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-semibold">3-pack</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Compare properties — $3.33 each</p>
+              <p className="text-xs sm:text-sm font-semibold">Full Report</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
             </div>
-            {loading === 'pack3' ? (
+            {loading === 'full_single' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
               <span className="text-base sm:text-lg font-bold text-piq-primary">$9.99</span>
@@ -442,14 +448,40 @@ export function UpgradeModal() {
                 Pro monthly
                 <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">For professionals</span>
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">30 reports/month — agents & investors</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Full Reports — 30/month, agents & investors</p>
             </div>
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-base sm:text-lg font-bold text-piq-primary">$49/mo</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$99/mo</span>
             )}
           </button>
+        </div>
+
+        {/* Feature comparison */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Quick</p>
+            <ul className="space-y-0.5">
+              {QUICK_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-piq-success" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-piq-primary uppercase tracking-wide mb-1">Full</p>
+            <ul className="space-y-0.5">
+              {FULL_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-1 text-[10px] sm:text-xs">
+                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-piq-success" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         {/* Guest checkout option for non-signed-in users */}

@@ -1,6 +1,6 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-28 (session 68 — data loader fixes, West Coast bypass, hosted report enhancements)
+**Last Updated:** 2026-03-28 (session 70 — Two-tier report system: Quick Report + Full Report)
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.
@@ -17,9 +17,63 @@ A NZ property intelligence platform — "Everything the listing doesn't tell you
 
 ## Current Status
 
-**Session 68 (2026-03-28) — Data loader bug fixes, West Coast bypass, hosted report data display improvements.**
+**Session 70 (2026-03-28) — Two-tier report system: Quick Report ($4.99) + Full Report ($9.99).**
 
 ### What Was Done This Session
+
+**(A) Two-tier report system:**
+- Added Quick Report ($4.99, ~8 curated sections) alongside Full Report ($9.99, 25+ detailed sections)
+- Same snapshot data, tier controls frontend rendering only
+- New `report_tier` column on `report_snapshots`, `report_credits`, `guest_purchases`
+- New components: `HostedQuickReport.tsx`, `QuickVerdict.tsx`, `QuickHazardSummary.tsx`, `QuickActions.tsx`, `QuickUpgradeBanner.tsx`
+- Report page routes Quick vs Full based on `report_tier` from API response
+- UpgradeModal redesigned: Quick/Full/Pro tiers with feature comparison
+- Upgrade endpoint: `POST /report/{token}/upgrade` creates Stripe checkout for $5.00 diff
+- Webhook handles `upgrade_quick_to_full` plan, updates tier + invalidates cache
+- Payment flow updated: `quick_single`/`full_single` plan slugs with backward-compatible `single`/`pack3` aliases
+- Guest checkout supports tier selection
+- Migration: `0026_report_tiers.sql`
+
+### What Was Done Previous Session
+
+**(A) Valhalla routing engine deployed:**
+- Docker container (gis-ops/docker-valhalla) added to docker-compose.prod.yml
+- Auto-downloaded NZ OSM extract (375MB) + 68 SRTM 30m elevation tiles
+- Built 713 routing tiles with hill-aware elevation data
+- Serves walking isochrones + elevation queries at http://valhalla:8002
+
+**(B) Terrain & topography in reports (free + paid):**
+- New service: backend/app/services/walking_isochrone.py
+- Free report: elevation pill + slope pill in PropertySummaryCard, "Transit stops within 10-min walk (hill-adjusted)" in TransportSection
+- Paid report: full HostedTerrain component with slope bar, aspect compass, terrain insights with expandable "What to do" actions
+- Terrain insight engine: 10+ cross-referenced insight types (elevation risk, slope stability, aspect sun exposure, slope+rainfall, slope+landslide history, walking reach)
+- Terrain-based hazard advice: steep slope, south-facing, low elevation
+
+**(C) Walking isochrone replaces 800m radius:**
+- Transit stops counted within actual 10-min walking polygon (Valhalla pedestrian routing with hill penalties)
+- Falls back to radius if Valhalla unavailable
+- Bus/rail/ferry breakdown shown with "Hill-adjusted" badge
+
+**(D) Stripe webhook fix:**
+- Stripe SDK v8+ StripeObject doesn't support .get() — webhook was 500ing on every checkout
+- Fixed with .to_dict() deep conversion
+- Payment success page: increased polling (5→10 attempts), added "pending" state for slow webhooks
+
+**(E) UI deduplication fixes:**
+- InsuranceRiskCard removed from true-cost (already in deal-breakers)
+- TrajectoryIndicator + CrimeTrendSparkline removed from neighbourhood for renters (already in neighbourhood-improving)
+- Event Timeline collapsed by default, Hazard Advice sections open by default
+
+**(F) Migration 0024 deployed:**
+- PostGIS raster extension, count_transit_in_polygon() function, partial indexes on transit stop route types
+
+---
+
+### Previous Session
+
+**Session 68 (2026-03-28) — Data loader bug fixes, West Coast bypass, hosted report data display improvements.**
+
+### What Was Done Previous Session
 
 **(A) Data loader bug fixes:**
 - Added `maxAllowableOffset` parameter to `_fetch_arcgis()` for dense geometry simplification

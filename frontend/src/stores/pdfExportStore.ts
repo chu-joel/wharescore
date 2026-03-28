@@ -44,9 +44,9 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // If we already have a hosted report for this address+persona, open it
-    if (state.addressId === addressId && state.persona === persona && (state.shareUrl || state.downloadUrl)) {
-      window.open((state.shareUrl || state.downloadUrl)!, '_blank', 'noopener,noreferrer');
+    // If we already have a hosted report for this address+persona, navigate to it
+    if (state.addressId === addressId && state.persona === persona && state.shareUrl) {
+      window.location.href = state.shareUrl;
       return;
     }
 
@@ -191,9 +191,9 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             }
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
-          // Auto-open the hosted report
+          // Navigate to the hosted report (same tab — avoids popup blockers from async context)
           if (status.share_url) {
-            window.open(status.share_url, '_blank', 'noopener,noreferrer');
+            window.location.href = status.share_url;
           }
           return;
         }

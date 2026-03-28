@@ -97,7 +97,7 @@
 | transit_travel_times | 16.2K | stop_id, destination, min_minutes, route_names, peak_window | Regional GTFS | `get_transit_data()` → liveability.transit_travel_times |
 | metlink_stops | 3,154 | stop_id, route_types[], geom | Metlink GTFS | `get_property_report()` SQL (Wellington direct) |
 | at_stops | 7,023 | stop_id, route_types[], geom | AT GTFS | `get_transit_data()` (Auckland fallback) |
-| report_snapshots | per-report | snapshot_json (JSONB), share_token_hash, inputs_at_purchase | `create_report_snapshot()` | `/report/{token}` endpoint |
+| report_snapshots | per-report | snapshot_json (JSONB), share_token_hash, inputs_at_purchase, report_tier ('quick'/'full') | `create_report_snapshot()` | `/report/{token}` endpoint, `POST /report/{token}/upgrade` |
 | hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section, price advisor |
 | rbnz_housing | 143 | quarter_end, house_price_index, house_sales, housing_stock_value_m | RBNZ M10 | Source for hpi_national |
 | data_versions | 366 | source, loaded_at | data_loader.py | Track which DataSources loaded |

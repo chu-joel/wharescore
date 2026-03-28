@@ -12,7 +12,7 @@ import { create } from 'zustand';
  *   - Call `clearUser()` on sign-out.
  */
 
-export type PlanType = 'free' | 'single' | 'pack3' | 'pro' | 'promo';
+export type PlanType = 'free' | 'single' | 'pack3' | 'pro' | 'promo' | 'quick_single' | 'full_single';
 
 interface UserCredits {
   plan: PlanType;

@@ -11,9 +11,18 @@ import { PremiumGate } from '../PremiumGate';
 interface TransportSectionProps {
   category: CategoryScore;
   liveability: LiveabilityData;
+  walkingReach?: {
+    minutes: number;
+    method: string;
+    total_stops: number;
+    bus_stops: number;
+    rail_stops: number;
+    ferry_stops: number;
+  };
+  elevation?: number | null;
 }
 
-export function TransportSection({ category, liveability }: TransportSectionProps) {
+export function TransportSection({ category, liveability, walkingReach, elevation }: TransportSectionProps) {
   const available = category.indicators.filter((i) => i.is_available);
   const unavailable = category.indicators.filter((i) => !i.is_available);
 
@@ -54,9 +63,54 @@ export function TransportSection({ category, liveability }: TransportSectionProp
         </div>
       )}
 
-      {/* Metlink mode breakdown */}
-      {(liveability.bus_stops_800m != null || liveability.rail_stops_800m != null ||
-        liveability.ferry_stops_800m != null || liveability.cable_car_stops_800m != null) && (
+      {/* Walking reach (10-min walk via Valhalla) — preferred over 800m radius */}
+      {walkingReach && walkingReach.method !== 'none' && walkingReach.total_stops > 0 ? (
+        <div className="rounded-xl border border-border bg-card p-4 card-elevated">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              Transit stops within 10-min walk
+            </p>
+            {walkingReach.method === 'valhalla' && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-piq-primary/10 text-piq-primary">
+                Hill-adjusted
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {walkingReach.bus_stops > 0 && (
+              <div className="flex items-center gap-2">
+                <Bus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold tabular-nums">{walkingReach.bus_stops}</p>
+                  <p className="text-[10px] text-muted-foreground">Bus</p>
+                </div>
+              </div>
+            )}
+            {walkingReach.rail_stops > 0 && (
+              <div className="flex items-center gap-2">
+                <TrainFront className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold tabular-nums">{walkingReach.rail_stops}</p>
+                  <p className="text-[10px] text-muted-foreground">Rail</p>
+                </div>
+              </div>
+            )}
+            {walkingReach.ferry_stops > 0 && (
+              <div className="flex items-center gap-2">
+                <Ship className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold tabular-nums">{walkingReach.ferry_stops}</p>
+                  <p className="text-[10px] text-muted-foreground">Ferry</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Based on actual walking routes{walkingReach.method === 'valhalla' ? ' with hill penalties' : ''}, not straight-line distance.
+          </p>
+        </div>
+      ) : (liveability.bus_stops_800m != null || liveability.rail_stops_800m != null ||
+        liveability.ferry_stops_800m != null || liveability.cable_car_stops_800m != null) ? (
         <div className="rounded-xl border border-border bg-card p-4 card-elevated">
           <p className="text-xs font-medium text-muted-foreground mb-2.5">Transit stops within 800m</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -98,7 +152,7 @@ export function TransportSection({ category, liveability }: TransportSectionProp
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Transit travel times — top 3 AM free, rest gated */}
       {liveability.transit_travel_times && liveability.transit_travel_times.length > 0 && (() => {

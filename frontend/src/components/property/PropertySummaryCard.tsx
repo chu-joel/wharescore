@@ -208,6 +208,22 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
                 Title: {property.title_ref}
               </span>
             )}
+            {report.terrain?.elevation_m != null && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                {report.terrain.elevation_m.toFixed(0)}m elevation
+              </span>
+            )}
+            {report.terrain?.slope_category && report.terrain.slope_category !== 'unknown' && report.terrain.slope_category !== 'flat' && (
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                report.terrain.slope_category === 'extreme' || report.terrain.slope_category === 'very steep'
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  : report.terrain.slope_category === 'steep'
+                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                  : 'bg-muted/60'
+              }`}>
+                {report.terrain.slope_category.charAt(0).toUpperCase() + report.terrain.slope_category.slice(1)} slope
+              </span>
+            )}
           </div>
         )}
 

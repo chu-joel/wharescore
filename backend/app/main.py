@@ -21,6 +21,7 @@ from . import db
 from .migrate import run_migrations
 from . import redis as app_redis
 from .deps import limiter
+from .services.event_writer import start_writer, stop_writer
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,9 @@ async def lifespan(app: FastAPI):
     run_migrations(settings.DATABASE_URL)
     await db.init_pool(settings.DATABASE_URL)
     await app_redis.init_redis(settings.REDIS_URL)
+    await start_writer()
     yield
+    await stop_writer()
     await app_redis.close_redis()
     await db.close_pool()
 
@@ -79,7 +82,11 @@ app.add_middleware(
 from .middleware.bot_detection import bot_detection_middleware
 app.middleware("http")(bot_detection_middleware)
 
-# 5. Rate limiter
+# 5. Request metrics — timing, request IDs, perf logging
+from .middleware.request_metrics import request_metrics_middleware
+app.middleware("http")(request_metrics_middleware)
+
+# 6. Rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -87,8 +94,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    import traceback as tb
     logger.error(f"Unhandled error: {exc}", exc_info=True,
                  extra={"path": request.url.path, "method": request.method})
+    from .services.event_writer import log_error
+    log_error(
+        category="unhandled",
+        message=str(exc),
+        traceback=tb.format_exc(),
+        request_id=getattr(request.state, "request_id", None),
+        path=request.url.path,
+    )
     return JSONResponse(status_code=500, content={"error": "Internal server error"})
 
 
@@ -139,3 +155,6 @@ app.include_router(account.router, prefix="/api/v1")
 
 from .routers import budget
 app.include_router(budget.router, prefix="/api/v1")
+
+from .routers import events
+app.include_router(events.router, prefix="/api/v1")

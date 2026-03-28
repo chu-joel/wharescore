@@ -12,19 +12,21 @@ from .. import redis as app_redis
 from ..config import settings
 from ..deps import limiter
 from ..services.auth import require_user
+from ..services.event_writer import track_event, log_error
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["payments"])
 
 
 class CheckoutRequest(BaseModel):
-    plan: str  # "single" | "pack3" | "pro"
+    plan: str  # "quick_single" | "full_single" | "pro" (legacy: "single" | "pack3")
     address_id: int | None = None
 
 
 class GuestCheckoutRequest(BaseModel):
     address_id: int
     persona: str = "buyer"
+    plan: str = "quick_single"  # "quick_single" | "full_single"
 
 
 @router.post("/checkout/session")
@@ -35,8 +37,9 @@ async def create_checkout_session(
     user_id: str = Depends(require_user),
 ):
     """Create a Stripe Checkout session. Returns checkout_url for redirect."""
-    if body.plan not in ("single", "pack3", "pro"):
-        raise HTTPException(400, "Invalid plan. Must be single, pack3, or pro.")
+    valid_plans = ("quick_single", "full_single", "pro", "single", "pack3")
+    if body.plan not in valid_plans:
+        raise HTTPException(400, "Invalid plan. Must be quick_single, full_single, or pro.")
 
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
@@ -46,18 +49,27 @@ async def create_checkout_session(
     # Get or create Stripe customer for this user
     customer_id = await _get_or_create_customer(user_id)
 
-    # Map plan to Stripe price
+    # Map plan to Stripe price (legacy "single"→quick, "pack3"→full)
     price_map = {
-        "single": settings.STRIPE_PRICE_SINGLE,
-        "pack3": settings.STRIPE_PRICE_PACK3,
+        "quick_single": settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE,
+        "full_single": settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3,
+        "single": settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE,
+        "pack3": settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3,
         "pro": settings.STRIPE_PRICE_PRO,
     }
     price_id = price_map[body.plan]
     if not price_id:
         raise HTTPException(500, f"Stripe price not configured for plan: {body.plan}")
 
+    # Determine report tier from plan
+    plan_tier_map = {
+        "quick_single": "quick", "single": "quick",
+        "full_single": "full", "pack3": "full",
+        "pro": "full",
+    }
+
     mode = "subscription" if body.plan == "pro" else "payment"
-    metadata = {"user_id": user_id, "plan": body.plan}
+    metadata = {"user_id": user_id, "plan": body.plan, "report_tier": plan_tier_map[body.plan]}
     if body.address_id:
         metadata["address_id"] = str(body.address_id)
 
@@ -73,8 +85,12 @@ async def create_checkout_session(
         )
     except stripe.StripeError as e:
         logger.error(f"Stripe checkout creation failed: {e}")
+        log_error("payment", f"Checkout creation failed: {e}", user_id=user_id,
+                  properties={"plan": body.plan})
         raise HTTPException(500, "Failed to create checkout session")
 
+    track_event("payment_started", user_id=user_id,
+                properties={"plan": body.plan, "address_id": body.address_id})
     return {"checkout_url": session.url}
 
 
@@ -124,9 +140,13 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
 
-    price_id = settings.STRIPE_PRICE_SINGLE
+    guest_tier = "quick" if body.plan == "quick_single" else "full"
+    if guest_tier == "quick":
+        price_id = settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE
+    else:
+        price_id = settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3
     if not price_id:
-        raise HTTPException(500, "Stripe price not configured for single report")
+        raise HTTPException(500, "Stripe price not configured for report")
 
     # Validate address exists
     async with db.pool.connection() as conn:
@@ -142,6 +162,7 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
         "plan": "guest_single",
         "address_id": str(body.address_id),
         "persona": body.persona,
+        "report_tier": guest_tier,
     }
 
     try:

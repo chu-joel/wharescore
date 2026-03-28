@@ -32,13 +32,14 @@ interface QuestionContentProps {
   questionId: QuestionId;
   report: PropertyReport;
   locked?: boolean;
+  persona?: 'renter' | 'buyer';
 }
 
 function findCategory(report: PropertyReport, name: string): CategoryScore | undefined {
   return report.scores?.categories?.find((c) => c.name === name);
 }
 
-export function QuestionContent({ questionId, report, locked = false }: QuestionContentProps) {
+export function QuestionContent({ questionId, report, locked = false, persona }: QuestionContentProps) {
   const hosted = useHostedReport();
   if (locked && !hosted) {
     return (
@@ -182,7 +183,6 @@ export function QuestionContent({ questionId, report, locked = false }: Question
           {/* Skip PriceAdvisorCard in hosted mode — HostedPriceAdvisor shown above */}
           {!hosted && <PriceAdvisorCard addressId={report.address.address_id} />}
           <BuyerBudgetCalculator report={report} />
-          <InsuranceRiskCard report={report} />
         </div>
       );
     }
@@ -215,7 +215,7 @@ export function QuestionContent({ questionId, report, locked = false }: Question
       return (
         <div className="space-y-4">
           <WalkabilityScore report={report} />
-          <TransportSection category={transCat} liveability={report.liveability} />
+          <TransportSection category={transCat} liveability={report.liveability} walkingReach={report.walking_reach} elevation={report.terrain?.elevation_m} />
           <NoiseLevelGauge noiseDb={report.environment.noise_db} />
         </div>
       );
@@ -234,14 +234,16 @@ export function QuestionContent({ questionId, report, locked = false }: Question
       );
     }
 
-    // ── Buyer Q4: Neighbourhood ──
-    // NeighbourhoodSection includes CrimeCard + NZDep + amenities, so no need to add them separately
+    // ── Neighbourhood overview ──
+    // For buyers: trajectory + crime + full section (buyers don't have 'neighbourhood-improving')
+    // For renters: only the section (trajectory + crime already shown in 'neighbourhood-improving')
     case 'neighbourhood': {
       const livCat = findCategory(report, 'liveability');
+      const isRenter = persona === 'renter';
       return (
         <div className="space-y-4">
-          <TrajectoryIndicator report={report} />
-          <CrimeTrendSparkline addressId={report.address.address_id} />
+          {!isRenter && <TrajectoryIndicator report={report} />}
+          {!isRenter && <CrimeTrendSparkline addressId={report.address.address_id} />}
           {livCat && (
             <NeighbourhoodSection
               category={livCat}

@@ -303,7 +303,7 @@ function TopEventCard({ event }: { event: TopEvent }) {
 }
 
 function AdviceSection({ advice }: { advice: NonNullable<ReportSnapshot['hazard_advice']>[number] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const colors = adviceSeverityColors(advice.severity);
 
   return (
@@ -403,6 +403,7 @@ type TimelineItem =
   | { kind: 'weather'; event: NonNullable<ReportSnapshot['weather_history']>[number]; date: Date };
 
 function ExpandableTimeline({ timeline }: { timeline: TimelineItem[] }) {
+  const [sectionOpen, setSectionOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   // Split into important (critical/warning) and rest
@@ -415,37 +416,48 @@ function ExpandableTimeline({ timeline }: { timeline: TimelineItem[] }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-        Event Timeline {timeline.length > shown.length && <span className="font-normal">({timeline.length} total)</span>}
-      </p>
-      <div className="relative space-y-1 ml-1.5">
-        <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
-        {shown.map((item, i) =>
-          item.kind === 'feed'
-            ? <TimelineEvent key={`f-${i}`} event={item.event} />
-            : <WeatherTimelineEvent key={`w-${i}`} event={item.event} />,
-        )}
-      </div>
+      <button
+        onClick={() => setSectionOpen(!sectionOpen)}
+        className="flex items-center gap-1.5 w-full text-left"
+      >
+        {sectionOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Event Timeline <span className="font-normal">({timeline.length} total)</span>
+        </p>
+      </button>
 
-      {rest.length > 0 && (
+      {sectionOpen && (
         <>
-          {expanded && (
-            <div className="relative space-y-1 ml-1.5">
-              <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
-              {rest.map((item, i) =>
-                item.kind === 'feed'
-                  ? <TimelineEvent key={`fr-${i}`} event={item.event} />
-                  : <WeatherTimelineEvent key={`wr-${i}`} event={item.event} />,
+          <div className="relative space-y-1 ml-1.5">
+            <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
+            {shown.map((item, i) =>
+              item.kind === 'feed'
+                ? <TimelineEvent key={`f-${i}`} event={item.event} />
+                : <WeatherTimelineEvent key={`w-${i}`} event={item.event} />,
+            )}
+          </div>
+
+          {rest.length > 0 && (
+            <>
+              {expanded && (
+                <div className="relative space-y-1 ml-1.5">
+                  <div className="absolute left-[4px] top-2 bottom-2 w-px bg-border" />
+                  {rest.map((item, i) =>
+                    item.kind === 'feed'
+                      ? <TimelineEvent key={`fr-${i}`} event={item.event} />
+                      : <WeatherTimelineEvent key={`wr-${i}`} event={item.event} />,
+                  )}
+                </div>
               )}
-            </div>
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-1.5 text-xs font-medium text-piq-primary hover:text-piq-primary/80 transition-colors ml-1.5"
+              >
+                {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {expanded ? 'Show less' : `Show all ${timeline.length} events`}
+              </button>
+            </>
           )}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1.5 text-xs font-medium text-piq-primary hover:text-piq-primary/80 transition-colors ml-1.5"
-          >
-            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            {expanded ? 'Show less' : `Show all ${timeline.length} events`}
-          </button>
         </>
       )}
     </div>

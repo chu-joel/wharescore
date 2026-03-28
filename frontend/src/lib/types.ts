@@ -29,6 +29,25 @@ export interface PropertyReport {
   area_profile: string | null;
   property_detection: PropertyDetection | null;
   coverage?: CoverageInfo;
+  terrain?: {
+    elevation_m: number | null;
+    slope_degrees: number | null;
+    slope_category: string;
+    aspect_label: string;
+    terrain_source: string;
+    landslide_risk?: {
+      slope_risk: string;
+      slope_risk_score: number | null;
+    };
+  };
+  walking_reach?: {
+    minutes: number;
+    method: string;
+    total_stops: number;
+    bus_stops: number;
+    rail_stops: number;
+    ferry_stops: number;
+  };
 }
 
 export interface AddressInfo {
@@ -291,6 +310,9 @@ export interface LiveabilityData {
   transit_travel_times_pm: TransitTravelTime[] | null;
   peak_trips_per_hour: number | null;
   nearest_stop_name: string | null;
+  // Walking reach (10-min walk via Valhalla)
+  walking_reach_10min: number | null;
+  walking_reach_method: string | null;
 }
 
 export interface TransitTravelTime {
@@ -592,7 +614,36 @@ export interface ReportSnapshot {
     actions: string[];
     source: string;
   }>;
+  terrain?: {
+    elevation_m: number | null;
+    slope_degrees: number | null;
+    slope_category: string;
+    aspect_degrees: number | null;
+    aspect_label: string;
+    terrain_source: string;
+    landslide_risk?: {
+      slope_risk: string;
+      slope_risk_score: number | null;
+      slope_risk_detail: string | null;
+    };
+  };
+  isochrone?: {
+    transit_stops_walk_10min: number;
+    bus_stops_walk_10min: number;
+    rail_stops_walk_10min: number;
+    ferry_stops_walk_10min: number;
+    isochrone_method: string;
+    isochrone_geojson: Record<string, unknown> | null;
+  };
+  terrain_insights?: Array<{
+    severity: 'critical' | 'warning' | 'info' | 'positive';
+    title: string;
+    detail: string;
+    action: string;
+    category: string;
+  }>;
   meta: SnapshotMeta;
+  report_tier?: 'quick' | 'full';
 }
 
 // --- Feedback ---
