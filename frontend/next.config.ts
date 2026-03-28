@@ -4,6 +4,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
   async rewrites() {
     // In Docker, nginx handles routing — these rewrites are for local dev only
     if (process.env.NEXT_PUBLIC_USE_PROXY === 'false') return [];
@@ -28,7 +29,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://fonts.openmaptiles.org",
               "connect-src 'self' https://basemaps.linz.govt.nz https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://accounts.google.com https://tiles.openfreemap.org https://fonts.openmaptiles.org",
               "worker-src 'self' blob:",
-              "frame-src https://accounts.google.com",
+              "frame-src https://accounts.google.com https://checkout.stripe.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },

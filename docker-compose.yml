@@ -44,7 +44,7 @@ services:
       - force_rebuild=False
       - server_threads=2
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8002/status || exit 1"]
       interval: 15s
@@ -57,7 +57,7 @@ services:
     image: redis:7-alpine
     command: redis-server --requirepass devredis123
     ports:
-      - "6380:6379"  # 6380 to avoid conflict with host Redis
+      - "127.0.0.1:6380:6379"  # 6380 to avoid conflict with host Redis
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "devredis123", "ping"]
       interval: 5s
@@ -70,7 +70,7 @@ services:
     volumes:
       - ./martin.yaml:/config/martin.yaml:ro
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -104,7 +104,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -132,7 +132,7 @@ services:
       AUTH_TRUST_HOST: "true"
       AUTH_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       api:
         condition: service_healthy
