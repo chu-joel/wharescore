@@ -37,12 +37,24 @@ export const metadata: Metadata = {
     description:
       "Free NZ property report. Flood risk, earthquake zones, school ratings, crime stats, fair rent — for any NZ address.",
     url: siteUrl,
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "WhareScore — Free NZ property intelligence",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "WhareScore — NZ Property Intelligence",
     description:
       "Free property report for any NZ address. Hazards, schools, crime, rent fairness — everything the listing doesn't tell you.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
   },
   robots: {
     index: true,
