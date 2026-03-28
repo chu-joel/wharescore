@@ -60,12 +60,12 @@ async def bot_detection_middleware(request: Request, call_next):
         })
         raise HTTPException(403, "Forbidden")
 
-    # 4. Scraping pattern detection: >50 unique property lookups in 10min
-    #    Exclude PDF status polling (fires every 1s, would blow the limit)
+    # 4. Scraping pattern detection: >200 property API calls in 10min
+    #    Exclude PDF status polling (fires every 1s) and export endpoints
     path = request.url.path
-    if "/property/" in path and "/export/pdf/status/" not in path:
+    if "/property/" in path and "/export/" not in path:
         count = await cache_incr(f"scrape_detect:{ip}", expire=600)
-        if count > 50:
+        if count > 200:
             logger.warning("scraping_detected", extra={
                 "ip": ip, "unique_properties_10min": count})
             raise HTTPException(429, "Too many requests — suspected automated access")
