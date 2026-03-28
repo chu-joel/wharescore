@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileText, Loader2, ChevronDown } from 'lucide-react';
 import {
   Dialog,
@@ -16,7 +16,6 @@ import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
 import { create } from 'zustand';
-import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import type { PropertyReport } from '@/lib/types';
 
 /* ── Store ──────────────────────────────────────────────── */
@@ -504,64 +503,9 @@ function BuyerFields({ addressId }: { addressId: number }) {
   );
 }
 
-/* ── Tier Picker ───────────────────────────────────────── */
-function TierPicker() {
-  const credits = useDownloadGateStore((s) => s.credits);
-  const { selectedTier, setSelectedTier } = useReportConfirmStore();
-
-  // Pro users always get Full — no picker needed
-  if (credits?.plan === 'pro') return null;
-
-  const quickCount = credits?.quickCredits ?? 0;
-  const fullCount = credits?.fullCredits ?? 0;
-
-  // If user has only one type, no picker needed (auto-selected in effect below)
-  if ((quickCount > 0 && fullCount === 0) || (quickCount === 0 && fullCount > 0)) return null;
-
-  // If no credits at all, don't show picker (UpgradeModal handles this)
-  if (quickCount === 0 && fullCount === 0) return null;
-
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs text-muted-foreground font-medium">Report type</label>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setSelectedTier('quick')}
-          disabled={quickCount <= 0}
-          className={`rounded-lg border-2 p-2.5 text-left transition-all ${
-            selectedTier === 'quick'
-              ? 'border-piq-primary bg-piq-primary/5'
-              : 'border-border hover:border-piq-primary/50'
-          } ${quickCount <= 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
-        >
-          <p className="text-xs font-semibold">Quick Report</p>
-          <p className="text-[10px] text-muted-foreground">Key insights at a glance</p>
-          <p className="text-[10px] font-medium text-piq-primary mt-1">{quickCount} credit{quickCount !== 1 ? 's' : ''}</p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setSelectedTier('full')}
-          disabled={fullCount <= 0}
-          className={`relative rounded-lg border-2 p-2.5 text-left transition-all ${
-            selectedTier === 'full'
-              ? 'border-piq-primary bg-piq-primary/5'
-              : 'border-border hover:border-piq-primary/50'
-          } ${fullCount <= 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
-        >
-          <p className="text-xs font-semibold">Full Report</p>
-          <p className="text-[10px] text-muted-foreground">25+ detailed sections</p>
-          <p className="text-[10px] font-medium text-piq-primary mt-1">{fullCount} credit{fullCount !== 1 ? 's' : ''}</p>
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main Component ─────────────────────────────────────── */
 export function ReportConfirmModal() {
-  const { open, addressId, selectedTier, onConfirm, close, setSelectedTier } = useReportConfirmStore();
-  const credits = useDownloadGateStore((s) => s.credits);
+  const { open, addressId, selectedTier, onConfirm, close } = useReportConfirmStore();
   const persona = usePersonaStore((s) => s.persona);
   const [generating, setGenerating] = useState(false);
   const queryClient = useQueryClient();
@@ -582,19 +526,6 @@ export function ReportConfirmModal() {
   const renterReady = !!(dwellingType && bedrooms);
   const buyerReady = !!buyerBedrooms;
   const isReady = persona === 'renter' ? renterReady : buyerReady;
-
-  // Auto-select tier based on available credits
-  const quickCount = credits?.quickCredits ?? 0;
-  const fullCount = credits?.fullCredits ?? 0;
-  const isPro = credits?.plan === 'pro';
-
-  useEffect(() => {
-    if (!open) return;
-    if (isPro) { setSelectedTier('full'); return; }
-    if (quickCount > 0 && fullCount === 0) setSelectedTier('quick');
-    else setSelectedTier('full');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   const handleConfirm = () => {
     setGenerating(true);
@@ -630,9 +561,6 @@ export function ReportConfirmModal() {
                 : 'Fill in the required fields (*) for a personalised analysis.'}
           </DialogDescription>
         </DialogHeader>
-
-        {/* Tier picker — shown when user has both quick and full credits */}
-        <TierPicker />
 
         {/* Editable fields */}
         <div className="py-1">

@@ -35,14 +35,8 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
     const state = get();
     if (state.isGenerating) return;
 
-    // --- Paywall gate ---
     const gate = useDownloadGateStore.getState();
     const persona = usePersonaStore.getState().persona;
-    const { allowed } = gate.canDownload();
-    if (!allowed) {
-      gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
-      return;
-    }
 
     // If we already have a hosted report for this address+persona, navigate to it
     if (state.addressId === addressId && state.persona === persona && state.shareUrl) {
@@ -50,11 +44,17 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // Show confirmation modal — user reviews inputs and selects tier before generating
-    set({ _pendingToken: token ?? null });
-    useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
-      get()._doExport(addressId, get()._pendingToken, tier);
-    });
+    // Pro users → straight to ReportConfirmModal (always Full, unlimited)
+    if (gate.credits?.plan === 'pro') {
+      set({ _pendingToken: token ?? null });
+      useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
+        get()._doExport(addressId, get()._pendingToken, tier);
+      });
+      return;
+    }
+
+    // Everyone else → UpgradeModal (unified report picker: use credits OR purchase)
+    gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
   },
 
   _doExport: async (addressId: number, _token?: string | null, reportTier?: 'quick' | 'full') => {

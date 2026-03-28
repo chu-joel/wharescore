@@ -18,6 +18,8 @@ import { safeRedirect } from '@/lib/utils';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
+import { useReportConfirmStore } from '@/components/property/ReportConfirmModal';
+import { usePdfExportStore } from '@/stores/pdfExportStore';
 
 function useInputReadiness(persona: string) {
   const rent = useRentInputStore();
@@ -196,7 +198,7 @@ const FULL_FEATURES = [
 ] as const;
 
 function getHeadline(
-  credits: { plan: PlanType; creditsRemaining: number | null; dailyLimit: number | null; monthlyLimit: number | null; downloadsToday: number; downloadsThisMonth: number } | null,
+  credits: { plan: PlanType; creditsRemaining: number | null; quickCredits: number; fullCredits: number; dailyLimit: number | null; monthlyLimit: number | null; downloadsToday: number; downloadsThisMonth: number } | null,
   trigger: ModalTrigger,
   context: Record<string, number | string>,
 ) {
@@ -211,6 +213,12 @@ function getHeadline(
   }
   if (credits?.creditsRemaining !== null && credits?.creditsRemaining !== undefined && credits.creditsRemaining <= 0 && credits.plan !== 'free' && credits.plan !== 'pro') {
     return "You've used all your credits";
+  }
+
+  // User has credits — show a "choose your report" headline
+  const hasCredits = (credits?.quickCredits ?? 0) > 0 || (credits?.fullCredits ?? 0) > 0;
+  if (hasCredits) {
+    return 'Choose your report';
   }
 
   // Contextual headlines based on trigger
@@ -270,13 +278,19 @@ export function UpgradeModal() {
   }, [showUpgradeModal, modalTrigger]);
 
   // Delayed close button — force 3s look at modal (research: improves conversion)
+  // Skip delay when user has credits (they're choosing a tier, not being sold to)
+  const hasAnyCredits = (credits?.quickCredits ?? 0) > 0 || (credits?.fullCredits ?? 0) > 0;
   useEffect(() => {
     if (showUpgradeModal) {
-      setCanClose(false);
-      const t = setTimeout(() => setCanClose(true), 3000);
-      return () => clearTimeout(t);
+      if (hasAnyCredits) {
+        setCanClose(true);
+      } else {
+        setCanClose(false);
+        const t = setTimeout(() => setCanClose(true), 3000);
+        return () => clearTimeout(t);
+      }
     }
-  }, [showUpgradeModal]);
+  }, [showUpgradeModal, hasAnyCredits]);
 
   const handlePurchase = async (plan: 'quick_single' | 'full_single' | 'pro') => {
     // If not signed in, redirect to Google sign-in
@@ -374,6 +388,19 @@ export function UpgradeModal() {
     }
   };
 
+  const quickCredits = credits?.quickCredits ?? 0;
+  const fullCredits = credits?.fullCredits ?? 0;
+
+  const handleUseCredit = (tier: 'quick' | 'full') => {
+    if (!targetAddressId) return;
+    setShowUpgradeModal(false);
+    // Set the tier on the confirm store before opening it
+    useReportConfirmStore.getState().setSelectedTier(tier);
+    useReportConfirmStore.getState().show(targetAddressId, (confirmedTier: 'quick' | 'full') => {
+      usePdfExportStore.getState()._doExport(targetAddressId, null, confirmedTier);
+    });
+  };
+
   const headline = getHeadline(credits, modalTrigger, modalContext);
   const description = getDescription(modalTrigger);
 
@@ -401,41 +428,75 @@ export function UpgradeModal() {
         {/* Pricing options */}
         <div className="grid gap-1.5 sm:gap-2">
           {/* Quick Report */}
-          <button
-            onClick={() => handlePurchase('quick_single')}
-            disabled={!!loading}
-            className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
-          >
-            <div>
-              <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
-            </div>
-            {loading === 'quick_single' ? (
-              <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
-            ) : (
-              <span className="text-base sm:text-lg font-bold text-piq-primary">$4.99</span>
-            )}
-          </button>
+          {quickCredits > 0 ? (
+            <button
+              onClick={() => handleUseCredit('quick')}
+              disabled={!!loading}
+              className="flex items-center justify-between rounded-lg border-2 border-piq-success/60 bg-piq-success/5 p-2.5 sm:p-3 text-left transition-all hover:border-piq-success hover:bg-piq-success/10 hover:shadow-md disabled:opacity-60"
+            >
+              <div>
+                <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs sm:text-sm font-bold text-piq-success">Use credit</span>
+                <p className="text-[10px] text-muted-foreground">{quickCredits} remaining</p>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => handlePurchase('quick_single')}
+              disabled={!!loading}
+              className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
+            >
+              <div>
+                <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
+              </div>
+              {loading === 'quick_single' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
+              ) : (
+                <span className="text-base sm:text-lg font-bold text-piq-primary">$4.99</span>
+              )}
+            </button>
+          )}
 
           {/* Full Report */}
-          <button
-            onClick={() => handlePurchase('full_single')}
-            disabled={!!loading}
-            className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
-          >
-            <div className="absolute -top-2.5 left-3 rounded-full bg-piq-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm shadow-piq-primary/30">
-              Best value
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-semibold">Full Report</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
-            </div>
-            {loading === 'full_single' ? (
-              <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
-            ) : (
-              <span className="text-base sm:text-lg font-bold text-piq-primary">$9.99</span>
-            )}
-          </button>
+          {fullCredits > 0 ? (
+            <button
+              onClick={() => handleUseCredit('full')}
+              disabled={!!loading}
+              className="relative flex items-center justify-between rounded-lg border-2 border-piq-success/60 bg-piq-success/5 p-2.5 sm:p-3 text-left transition-all hover:border-piq-success hover:bg-piq-success/10 hover:shadow-md disabled:opacity-60"
+            >
+              <div>
+                <p className="text-xs sm:text-sm font-semibold">Full Report</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs sm:text-sm font-bold text-piq-success">Use credit</span>
+                <p className="text-[10px] text-muted-foreground">{fullCredits} remaining</p>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => handlePurchase('full_single')}
+              disabled={!!loading}
+              className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
+            >
+              <div className="absolute -top-2.5 left-3 rounded-full bg-piq-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm shadow-piq-primary/30">
+                Best value
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-semibold">Full Report</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+              </div>
+              {loading === 'full_single' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
+              ) : (
+                <span className="text-base sm:text-lg font-bold text-piq-primary">$9.99</span>
+              )}
+            </button>
+          )}
 
           {/* Pro monthly */}
           <button

@@ -192,20 +192,20 @@ Hardcoded in `account.py` `_PROMO_CODES` dict:
 - `WHARESCOREJOEL`: 1 Full report credit, 999 max uses per user
 - `WHARESCOREPONY`: 1 Quick report credit, 10 max uses per user
 
-### Report export flow (token + credit deduction)
+### Report export flow (unified tier picker + credit deduction)
 ```
 User clicks Generate Report → usePdfExport.startExport()
-  → getToken() fetches JWT from /api/auth/token (5-min HS256)
-  → pdfExportStore.startExport(addressId, token)
-  → canDownload() checks: auth + plan + credits/limits
-  → If blocked: show UpgradeModal with context → STOP
-  → Show ReportConfirmModal with tier picker (Quick/Full based on available credits)
-  → User selects tier + fills dwelling type, bedrooms, etc.
+  → Pro user? → straight to ReportConfirmModal(tier=full) → generate
+  → Everyone else → UpgradeModal (unified report picker)
+     → Each tier card shows "Use credit (X remaining)" OR "$4.99/$9.99"
+     → Click "Use credit" → close UpgradeModal → open ReportConfirmModal(tier)
+     → Click price → Stripe checkout (existing purchase flow)
+  → ReportConfirmModal: user fills dwelling type, bedrooms, etc.
   → User clicks "Generate Quick/Full Report" → _doExport(addr, token, tier) fires
   → ALWAYS fetches FRESH token (pre-modal token may have expired)
   → POST /property/{id}/export/pdf/start?report_tier={tier} with Bearer token
   → Backend: require_paid_user finds credit matching requested tier
-  → If 401/403 AND user has credits: show "Session expired" toast (not plan selector)
+  → If 401/403 AND user has credits: show "Session expired" toast
   → If 401/403 AND no credits: show UpgradeModal
   → Poll status every 2s (up to 90 attempts)
   → On completed: deductCredit(tier) or recordDownload(), navigate to hosted report
