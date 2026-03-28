@@ -200,7 +200,7 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | Auckland | Y | Y | Y | - | Y | Y | Y | Y | Y | Y | Y |
 | Christchurch | Y | Y | Y | Y | - | Y | Y | Y | - | Y | - |
 | Hamilton | Y | Y | Y | Y | - | Y | - | Y | Y | Y | - |
-| Dunedin | Y | - | Y | Y | - | Y | Y | Y | Y | Y | - |
+| Dunedin | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Tauranga | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Nelson/Tasman | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
 | Queenstown | Y | Y | - | Y | - | Y | Y | - | Y | Y | - |

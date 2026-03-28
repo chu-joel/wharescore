@@ -8094,6 +8094,17 @@ DATA_SOURCES: list[DataSource] = [
             ),
             skip_delete=True)),
 
+    DataSource("orc_liquefaction_otago", "ORC Seismic Liquefaction Otago 2019",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.orc.govt.nz/arcgis/rest/services/Seismic_LiquefactionOtago_2019/FeatureServer/0",
+            "liquefaction_detail", "otago",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LiqSuscept")) or _clean(a.get("Susceptibility")) or "Liquefaction",
+                _clean(a.get("Geology")) or _clean(a.get("Description")),
+            ))),
+
     # ══════════════════════════════════════════════════════════
     # TASMAN — additional layers (extends existing 7)
     # ══════════════════════════════════════════════════════════
