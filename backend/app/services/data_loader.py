@@ -5379,6 +5379,38 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("ZoneName")) or "LIZ F",
                 "LIZ F",
             ))),
+    DataSource("marlborough_plan_zones", "Marlborough District Plan Zones (MEP Decision)",
+        ["district_plan_zones"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/ZonesMEPDecision/MapServer/19",
+            "district_plan_zones", "marlborough",
+            ["zone_name", "zone_code", "category"],
+            lambda a: (
+                _clean(a.get("ZoningCodeLabel")) or "Unknown Zone",
+                _clean(a.get("ZoningCodeLabel")),
+                None,
+            ))),
+    DataSource("marlborough_notable_trees", "Marlborough Notable Trees (MEP)",
+        ["notable_trees"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/ZonesMEPDecision/MapServer/7",
+            "notable_trees", "marlborough",
+            ["species", "common_name"],
+            lambda a: (
+                _clean(a.get("SpeciesName")) or "Notable Tree",
+                _clean(a.get("CommonName")),
+            ))),
+    DataSource("marlborough_steep_erosion", "Marlborough Steep Erosion Prone Land",
+        ["slope_failure"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.marlborough.govt.nz/server/rest/services/DataPublic/ZonesMEPDecisionOverlays/MapServer/31",
+            "slope_failure", "marlborough",
+            ["lskey", "severity"],
+            lambda a: (
+                "Steep Erosion Prone",
+                "High",
+            ))),
+
     # ══════════════════════════════════════════════════════════
     # TASMAN — hazards
     # ══════════════════════════════════════════════════════════
@@ -5955,6 +5987,17 @@ DATA_SOURCES: list[DataSource] = [
                 None,
             ),
             geom_type="line")),
+    DataSource("invercargill_liquefaction", "Invercargill Liquefaction Vulnerability",
+        ["liquefaction_detail"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.icc.govt.nz/arcgis/rest/services/LocalMaps/LocalMaps_LiquefactionVulnerability/MapServer/0",
+            "liquefaction_detail", "invercargill",
+            ["liquefaction", "simplified"],
+            lambda a: (
+                _clean(a.get("LIQ_CAT")) or "Liquefaction",
+                _clean(a.get("Geomorphic_Terrain")),
+            ))),
+
     # ══════════════════════════════════════════════════════════
     # PORIRUA — hazard layers
     # ══════════════════════════════════════════════════════════

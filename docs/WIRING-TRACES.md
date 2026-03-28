@@ -216,7 +216,7 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | Lower Hutt | Y | Y* | Y | Y* | Y* | Y | - | Y | - | Y | - |
 | Upper Hutt | Y | Y | - | Y | Y* | Y | - | Y | - | Y | - |
 | Porirua | Y | Y | Y | Y | Y* | Y | Y | - | - | Y | - |
-| Blenheim | Y | Y | Y | Y | - | - | - | - | - | Y | - |
+| Blenheim | Y | Y | Y | Y | - | Y | - | Y | - | Y | - |
 | Whanganui | Y | Y | Y | - | - | - | - | - | - | Y | - |
 
 **Y* = covered by GWRC regional data** (Greater Wellington Regional Council layers cover all cities in the Wellington region: Wellington, Lower Hutt, Upper Hutt, Porirua, Kapiti Coast). These cities get liquefaction, slope failure, earthquake hazard, ground shaking, and landslide susceptibility data from GWRC.
