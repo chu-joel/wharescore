@@ -364,6 +364,15 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         elif "hastings" in city.lower() or city.lower() in ("havelock north", "flaxmere", "clive"):
             from .hastings_rates import fetch_hastings_rates
             rates_data = await fetch_hastings_rates(full_address)
+        elif "upper hutt" in city.lower():
+            from .uhcc_rates import fetch_uhcc_rates
+            rates_data = await fetch_uhcc_rates(full_address)
+        elif "gisborne" in city.lower():
+            from .gdc_rates import fetch_gdc_rates
+            rates_data = await fetch_gdc_rates(full_address)
+        elif "nelson" in city.lower() and city.lower() != "nelson south":
+            from .ncc_rates import fetch_ncc_rates
+            rates_data = await fetch_ncc_rates(full_address)
 
         # Apply CV from rates data (generic handler for all councils)
         if rates_data and rates_data.get("current_valuation"):
