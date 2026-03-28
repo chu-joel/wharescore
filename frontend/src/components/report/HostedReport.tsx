@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Calendar, Share2, Printer, Home, TrendingUp } from 'lucide-react';
+import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft } from 'lucide-react';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
 import { ReportSidebar } from './ReportSidebar';
@@ -26,6 +26,7 @@ import { HostedSchoolZones } from './HostedSchoolZones';
 import { HostedRoadNoise } from './HostedRoadNoise';
 import { HostedAreaFeed } from './HostedAreaFeed';
 import { HostedHazardAdvice } from './HostedHazardAdvice';
+import { HostedTerrain } from './HostedTerrain';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -91,7 +92,10 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="text-piq-primary font-bold text-sm tracking-tight shrink-0">WhareScore</span>
+            <a href="/" className="flex items-center gap-1.5 text-piq-primary font-bold text-sm tracking-tight shrink-0 hover:opacity-80 transition-opacity" title="Back to WhareScore">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              WhareScore
+            </a>
             <span className="text-border hidden sm:inline">|</span>
             <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snapshot.meta.full_address}</span>
           </div>
@@ -142,6 +146,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             {report.coverage && (
               <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
                 {report.coverage.available}/{report.coverage.total} data layers
+              </span>
+            )}
+            {snapshot.terrain?.elevation_m != null && (
+              <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
+                {snapshot.terrain.elevation_m.toFixed(0)}m elevation
               </span>
             )}
           </div>
@@ -228,7 +237,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                   <h3 className="text-lg font-bold">{q.question}</h3>
                 </div>
                 <div className="px-5 pb-5">
-                  <QuestionContent questionId={q.id} report={report} />
+                  <QuestionContent questionId={q.id} report={report} persona={persona} />
                 </div>
               </div>
             </div>
@@ -250,6 +259,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
 
         <div className="pb-6">
           <HostedRoadNoise snapshot={snapshot} />
+        </div>
+
+        {/* ═══ TERRAIN & WALKING REACH — elevation, slope, aspect, transit isochrone ═══ */}
+        <div className="pb-6">
+          <HostedTerrain snapshot={snapshot} />
         </div>
 
         <div className="pb-6">
