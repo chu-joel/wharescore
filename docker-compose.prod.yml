@@ -113,6 +113,7 @@ services:
       STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
       FRONTEND_URL: ${FRONTEND_URL:-https://wharescore.co.nz}
       VALHALLA_URL: http://valhalla:8002
+      METROINFO_API_KEY: ${METROINFO_API_KEY:-}
       ENVIRONMENT: production
     restart: unless-stopped
     depends_on:

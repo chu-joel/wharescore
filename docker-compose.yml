@@ -91,6 +91,7 @@ services:
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
       AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-5-mini}
       VALHALLA_URL: http://valhalla:8002
+      METROINFO_API_KEY: ${METROINFO_API_KEY:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost","http://localhost:3000"]'}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-'["localhost","127.0.0.1","nginx","api"]'}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
