@@ -180,20 +180,29 @@ Keys: `hamilton_*`, `waikato_*`, `waipa_*`. Tables: flood_hazard, district_plan_
 ### Bay of Plenty/Tauranga (~12 DataSources)
 Keys: `tauranga_*`, `bop_*`. Tables: flood_hazard, coastal_erosion, district_plan_zones, heritage_sites, liquefaction, tsunami_hazard, contaminated_land.
 
-### Otago/Dunedin/Queenstown (~15 DataSources)
-Keys: `dunedin_*`, `qldc_*`, `orc_*`, `otago_*`. Tables: flood_hazard, coastal_erosion, district_plan_zones, heritage_sites, liquefaction, avalanche, debris.
+### Otago/Dunedin/Queenstown (~17 DataSources)
+Keys: `dunedin_*`, `qldc_*`, `orc_*`, `otago_*`. Tables: flood_hazard, coastal_erosion, district_plan_zones, heritage_sites, liquefaction_detail (`orc_liquefaction_otago`), avalanche, debris, tsunami_zones.
 
 ### Hawke's Bay (~20 DataSources)
-Keys: `hbrc_*`. Tables: flood_hazard, coastal_erosion, coastal_inundation, district_plan_zones, liquefaction, tsunami_hazard, contaminated_land, earthquake amplification, earthflow, gully, landslide.
+Keys: `hbrc_*`. Tables: flood_hazard, coastal_erosion, coastal_inundation, district_plan_zones, liquefaction_detail, tsunami_hazard, contaminated_land, earthquake amplification, earthflow, gully, landslide.
 
 ### Nelson/Tasman (~20 DataSources)
-Keys: `nelson_*`, `tasman_*`. Tables: flood_hazard, coastal_inundation, district_plan_zones, heritage_sites, liquefaction, slope_failure, notable_trees, tsunami.
+Keys: `nelson_*`, `tasman_*`. Tables: flood_hazard, coastal_inundation, district_plan_zones, heritage_sites, liquefaction_detail, slope_failure, notable_trees, tsunami_hazard.
 
-### Southland/Invercargill (~10 DataSources)
-Keys: `southland_*`, `invercargill_*`. Tables: flood_hazard, coastal_erosion, district_plan_zones, heritage_sites, liquefaction, tsunami.
+### Southland/Invercargill (~12 DataSources)
+Keys: `southland_*`, `invercargill_*`. Tables: flood_hazard, coastal_erosion, coastal_inundation, district_plan_zones, heritage_sites, liquefaction_detail (`invercargill_liquefaction`), tsunami_zones.
+
+### Marlborough/Blenheim (~12 DataSources)
+Keys: `marlborough_*`. Tables: flood_hazard, liquefaction_detail (zones A-F), tsunami_hazard, coastal_inundation, district_plan_zones (`marlborough_plan_zones`), notable_trees (`marlborough_notable_trees`), slope_failure (`marlborough_steep_erosion`).
+
+### Whanganui (~16 DataSources, via GeoServer WFS)
+Keys: `whanganui_*`. Base: `https://data.whanganui.govt.nz/geoserver/ows`. Tables: flood_hazard (risk areas A/B), liquefaction_detail (high/moderate/low), tsunami_hazard (red/orange/yellow zones), slope_failure (land stability A/B), district_plan_zones, heritage_sites, notable_trees, coastal_erosion. Uses `_load_council_wfs()` helper (not ArcGIS).
+
+### Horizons/Manawatu (~10 DataSources)
+Keys: `horizons_*`, `pncc_*`. Tables: flood_hazard (200yr modelled + observed + floodways + lahar), coastal_erosion, liquefaction_detail, tsunami_hazard. Covers Whanganui + Palmerston North + surrounding region.
 
 ### Other Regions
-Marlborough (~10), Northland/Whangarei (~10), Gisborne (~7), Taranaki (~8), Horizons/Manawatu (~8), West Coast (~5). Each follows same pattern → flood_hazard + district_plan_zones + heritage + regional hazards.
+Northland/Whangarei (~10), Gisborne (~7), Taranaki (~8), West Coast (~5). Each follows same pattern → flood_hazard + district_plan_zones + heritage + regional hazards.
 
 ### Rates/Valuations (~45 DataSources)
 Keys: `*_rates`. All write to `council_valuations` table. Separate from live rates APIs above — these are bulk-loaded spatial datasets used as fallback when no live API exists.
