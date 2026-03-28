@@ -190,21 +190,52 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | cbd_distance_m | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y |
 | hpi_latest | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y | Y |
 
+### Council-specific hazard data (regional tables)
+
+<!-- UPDATE: When adding council hazard data for a city, update the relevant cell. -->
+
+| City | Flood | Liquefaction | Tsunami | Slope | Landslide Susc | Plan Zones | Coastal Eros | Trees | GTFS | Rates API | Overland Flow |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Wellington | Y | Y | Y | Y | Y | Y | - | Y | Y | Y | - |
+| Auckland | Y | Y | Y | - | Y | Y | Y | Y | Y | Y | Y |
+| Christchurch | Y | Y | Y | Y | - | Y | Y | Y | - | Y | - |
+| Hamilton | Y | Y | Y | Y | - | Y | - | Y | Y | Y | - |
+| Dunedin | Y | - | Y | Y | - | Y | Y | Y | Y | Y | - |
+| Tauranga | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
+| Nelson/Tasman | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
+| Queenstown | Y | Y | - | Y | - | Y | Y | - | Y | Y | - |
+| Whangarei | Y | Y | Y | Y | - | Y | Y | Y | Y | Y | - |
+| New Plymouth | Y | Y | Y | - | - | Y | Y | Y | Y | Y | - |
+| Palmerston Nth | Y | Y | Y | - | - | Y | Y | Y | Y | Y | - |
+| Rotorua | Y | Y | - | Y | - | Y | - | Y | Y | Y | - |
+| Hastings | Y | Y | Y | Y | - | Y | Y | - | Y | Y | - |
+| Invercargill | Y | Y | Y | - | - | Y | Y | Y | - | Y | - |
+| Gisborne | Y | Y | Y | Y | - | Y | Y | - | - | Y | - |
+| Timaru | Y | Y | - | - | - | Y | Y | Y | - | Y | - |
+| Kapiti Coast | Y | Y* | Y | Y* | Y* | Y | Y | Y | - | Y | - |
+| Lower Hutt | Y | Y* | Y | Y* | Y* | Y | - | Y | - | Y | - |
+| Upper Hutt | Y | Y | - | Y | Y* | Y | - | Y | - | Y | - |
+| Porirua | Y | Y | Y | Y | Y* | Y | Y | - | - | Y | - |
+| Blenheim | Y | Y | Y | Y | - | - | - | - | - | Y | - |
+| Whanganui | Y | Y | Y | - | - | - | - | - | - | Y | - |
+
+**Y* = covered by GWRC regional data** (Greater Wellington Regional Council layers cover all cities in the Wellington region: Wellington, Lower Hutt, Upper Hutt, Porirua, Kapiti Coast). These cities get liquefaction, slope failure, earthquake hazard, ground shaking, and landslide susceptibility data from GWRC.
+
 ### Wellington-only fields (null for all other cities)
 
-`earthquake_hazard_index`, `ground_shaking_zone`, `gwrc_liquefaction`, `gwrc_slope_severity`, `fault_zone_name`, `wcc_flood_type`, `wcc_tsunami_return_period`, `solar_mean_kwh`
+`earthquake_hazard_index`, `ground_shaking_zone`, `fault_zone_name`, `wcc_flood_type`, `wcc_tsunami_return_period`, `solar_mean_kwh`
 
 ### Select-city fields
 
 | Field | Which cities have data |
 |---|---|
-| aircraft_noise_dba | Auckland, Christchurch, Hamilton, Dunedin, Palmerston North, Tauranga, Invercargill |
+| aircraft_noise_dba | Auckland, Dunedin |
 | in_viewshaft | Wellington, Auckland |
 | in_heritage_overlay | Auckland |
 | in_ecological_area | Auckland, Hamilton |
-| notable_tree_count_50m | Wellington, Auckland, Christchurch, Hamilton, Dunedin, Nelson, Whangarei, Kapiti, Taupo, Waimakariri, Timaru |
+| notable_tree_count_50m | Wellington, Auckland, Christchurch, Hamilton, Dunedin, Nelson, Whangarei, Kapiti, Taupo, Waimakariri, Timaru, New Plymouth, Palmerston Nth, Lower Hutt, Upper Hutt, Rotorua, Invercargill |
 | resource_consents_500m_2yr | Wellington region only (GWRC) |
-| contamination_count | Wellington, Tauranga, Dunedin, Queenstown, Hawke's Bay, Northland, BOP, Taranaki |
+| contamination_count | Wellington, Upper Hutt, Hawke's Bay, BOP, Gisborne, Taranaki, Southland, Wairarapa, Northland |
 
 ---
 
