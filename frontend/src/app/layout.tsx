@@ -19,13 +19,34 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+const siteUrl = "https://wharescore.co.nz";
+
 export const metadata: Metadata = {
-  title: "WhareScore — Everything the listing doesn't tell you",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "WhareScore — Everything the listing doesn't tell you",
+    template: "%s | WhareScore",
+  },
   description:
-    "Free NZ property intelligence. Enter any address for hazard exposure, crime data, school zones, fair rent analysis, and more — powered by 12+ government data sources.",
+    "Free NZ property intelligence. Enter any address for hazard exposure, crime data, school zones, fair rent analysis, and more — powered by 40+ government data sources.",
+  openGraph: {
+    type: "website",
+    locale: "en_NZ",
+    siteName: "WhareScore",
+    title: "WhareScore — Everything the listing doesn't tell you",
+    description:
+      "Free NZ property report. Flood risk, earthquake zones, school ratings, crime stats, fair rent — for any NZ address.",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WhareScore — NZ Property Intelligence",
+    description:
+      "Free property report for any NZ address. Hazards, schools, crime, rent fairness — everything the listing doesn't tell you.",
+  },
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
   },
 };
 

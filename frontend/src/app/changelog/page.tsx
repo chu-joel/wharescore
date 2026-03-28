@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Changelog | WhareScore',
+  title: 'Changelog',
   description: "What's new in WhareScore — recent updates and improvements.",
 };
 

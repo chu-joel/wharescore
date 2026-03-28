@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Privacy Policy | WhareScore',
+  title: 'Privacy Policy',
   description: 'WhareScore privacy policy — how we handle your data.',
 };
 

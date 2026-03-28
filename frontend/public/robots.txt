@@ -1,2 +1,10 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /guest
+Disallow: /api
+Disallow: /tiles
+Disallow: /report
+
+Sitemap: https://wharescore.co.nz/sitemap.xml

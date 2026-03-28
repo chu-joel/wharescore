@@ -2,7 +2,7 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 import { MessageSquare } from 'lucide-react';
 
 export const metadata = {
-  title: 'Contact | WhareScore',
+  title: 'Contact',
   description: 'Get in touch with the WhareScore team.',
 };
 

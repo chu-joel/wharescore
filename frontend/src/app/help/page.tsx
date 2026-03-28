@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Help & FAQ | WhareScore',
+  title: 'Help & FAQ',
   description: 'Frequently asked questions about WhareScore property reports.',
 };
 

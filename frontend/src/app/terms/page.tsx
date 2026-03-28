@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Terms of Use | WhareScore',
+  title: 'Terms of Use',
   description: 'WhareScore terms of use — disclaimers and usage conditions.',
 };
 

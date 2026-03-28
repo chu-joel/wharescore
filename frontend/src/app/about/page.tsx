@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'About | WhareScore',
+  title: 'About',
   description: 'About WhareScore — free property intelligence for New Zealand.',
 };
 
