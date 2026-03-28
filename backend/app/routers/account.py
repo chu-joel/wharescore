@@ -284,10 +284,10 @@ async def manage_subscription(user_id: str = Depends(require_user)):
     return {"portal_url": session.url}
 
 
-# Valid promo codes: {code: {credits_per_use, max_uses_per_user}}
+# Valid promo codes: {code: {credits_per_use, max_uses_per_user, report_tier}}
 _PROMO_CODES = {
-    "WHARESCOREJOEL": {"credits": 1, "max_uses_per_user": 999},
-    "WHARESCOREPONY": {"credits": 1, "max_uses_per_user": 10},
+    "WHARESCOREJOEL": {"credits": 1, "max_uses_per_user": 999, "report_tier": "full"},
+    "WHARESCOREPONY": {"credits": 1, "max_uses_per_user": 10, "report_tier": "quick"},
 }
 
 
@@ -331,10 +331,10 @@ async def redeem_promo(request: Request, user_id: str = Depends(require_user)):
         # Add credits
         await conn.execute(
             """
-            INSERT INTO report_credits (user_id, credit_type, credits_remaining)
-            VALUES (%s, 'promo', %s)
+            INSERT INTO report_credits (user_id, credit_type, credits_remaining, report_tier)
+            VALUES (%s, 'promo', %s, %s)
             """,
-            [user_id, promo["credits"]],
+            [user_id, promo["credits"], promo.get("report_tier", "full")],
         )
 
         # Fetch updated total
@@ -351,5 +351,7 @@ async def redeem_promo(request: Request, user_id: str = Depends(require_user)):
         )
         total = cur.fetchone()["total"]
 
-    logger.info(f"Promo redeemed: user={user_id}, code={code}, credits={promo['credits']}")
-    return {"message": "1 free report unlocked!", "credits_remaining": total}
+    tier = promo.get("report_tier", "full")
+    tier_label = "Full" if tier == "full" else "Quick"
+    logger.info(f"Promo redeemed: user={user_id}, code={code}, credits={promo['credits']}, tier={tier}")
+    return {"message": f"1 free {tier_label} report unlocked!", "credits_remaining": total, "report_tier": tier}

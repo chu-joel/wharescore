@@ -176,13 +176,14 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
       }
       // Update local state with server response
       const { credits: currentCredits } = get();
+      const promoTier = data.report_tier as 'quick' | 'full' | undefined;
       set({
         isAuthenticated: true,
         credits: {
           plan: 'promo',
           creditsRemaining: data.credits_remaining ?? (currentCredits?.creditsRemaining ?? 0) + 1,
-          quickCredits: currentCredits?.quickCredits ?? 0,
-          fullCredits: (data.credits_remaining ?? (currentCredits?.fullCredits ?? 0) + 1),
+          quickCredits: (currentCredits?.quickCredits ?? 0) + (promoTier === 'quick' ? 1 : 0),
+          fullCredits: (currentCredits?.fullCredits ?? 0) + (promoTier !== 'quick' ? 1 : 0),
           dailyLimit: null,
           monthlyLimit: null,
           downloadsToday: currentCredits?.downloadsToday ?? 0,

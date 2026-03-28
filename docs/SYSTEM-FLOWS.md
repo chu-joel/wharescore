@@ -189,8 +189,8 @@ Pro users always get Full (no picker).
 
 ### Promo codes
 Hardcoded in `account.py` `_PROMO_CODES` dict:
-- `WHARESCOREJOEL`: 1 credit, 999 max uses per user
-- `WHARESCOREPONY`: 1 credit, 10 max uses per user
+- `WHARESCOREJOEL`: 1 Full report credit, 999 max uses per user
+- `WHARESCOREPONY`: 1 Quick report credit, 10 max uses per user
 
 ### Report export flow (token + credit deduction)
 ```
