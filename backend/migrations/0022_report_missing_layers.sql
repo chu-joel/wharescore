@@ -125,6 +125,16 @@ BEGIN
         'wcc_flood_ranking', fh_wcc.hazard_ranking,
         'wcc_tsunami_return_period', th_wcc.return_period,
         'wcc_tsunami_ranking', th_wcc.hazard_ranking,
+        -- Council-specific regional hazard data (all cities)
+        'council_liquefaction', liq_council.liquefaction,
+        'council_liquefaction_geology', liq_council.simplified,
+        'council_liquefaction_source', liq_council.source_council,
+        'council_tsunami_ranking', tsu_council.hazard_ranking,
+        'council_tsunami_scenario', tsu_council.scenario,
+        'council_tsunami_return_period', tsu_council.return_period,
+        'council_tsunami_source', tsu_council.source_council,
+        'council_slope_severity', sf_council.severity,
+        'council_slope_source', sf_council.source_council,
         'epb_nearest', epb_detail.nearest,
         'solar_mean_kwh', solar.mean_yearly_solar,
         'solar_max_kwh', solar.max_yearly_solar,
@@ -204,44 +214,48 @@ BEGIN
         SELECT susceptibility FROM slope_failure_zones
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) sf ON true
-      -- Wellington: GWRC combined earthquake hazard
+      -- Wellington: GWRC combined earthquake hazard (renamed from gwrc_earthquake_hazard)
       LEFT JOIN LATERAL (
         SELECT chi, chi_hazard_grade AS chi_grade
-        FROM gwrc_earthquake_hazard
+        FROM earthquake_hazard
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) gwrc_eq ON true
-      -- Wellington: GWRC ground shaking amplification
+      -- Wellington: GWRC ground shaking amplification (renamed from gwrc_ground_shaking)
       LEFT JOIN LATERAL (
-        SELECT zone, severity FROM gwrc_ground_shaking
+        SELECT zone, severity FROM ground_shaking
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) gwrc_gs ON true
-      -- Wellington: GWRC liquefaction (regional detail)
+      -- Regional liquefaction detail (GWRC data, renamed from gwrc_liquefaction)
       LEFT JOIN LATERAL (
-        SELECT liquefaction, simplified FROM gwrc_liquefaction
+        SELECT liquefaction, simplified FROM liquefaction_detail
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) gwrc_liq ON true
-      -- Wellington: GWRC slope failure
+      -- Regional slope failure (GWRC data, renamed from gwrc_slope_failure)
       LEFT JOIN LATERAL (
-        SELECT severity FROM gwrc_slope_failure
+        SELECT severity FROM slope_failure
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) gwrc_sf ON true
-      -- Wellington: WCC fault zones
+      -- Wellington: WCC fault zones (renamed from wcc_fault_zones)
       LEFT JOIN LATERAL (
-        SELECT name, hazard_ranking FROM wcc_fault_zones
+        SELECT name, hazard_ranking FROM fault_zones
         WHERE ST_Intersects(geom, addr.geom) LIMIT 1
       ) fz_wcc ON true
-      -- Wellington: WCC 2024 DP flood hazard (worst tier)
+      -- Wellington: WCC 2024 DP flood hazard (renamed from wcc_flood_hazard → flood_hazard)
+      -- Uses source_council filter to get WCC-specific flood data separate from council flood_hazard
       LEFT JOIN LATERAL (
-        SELECT hazard_type, hazard_ranking FROM wcc_flood_hazard
-        WHERE ST_Intersects(geom, addr.geom)
+        SELECT hazard_type, hazard_ranking FROM flood_hazard
+        WHERE source_council = 'wellington_city'
+          AND ST_Intersects(geom, addr.geom)
         ORDER BY CASE hazard_ranking
           WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END
         LIMIT 1
       ) fh_wcc ON true
       -- Wellington: WCC 2024 DP tsunami tiers (worst return period)
+      -- Table renamed from wcc_tsunami_hazard → tsunami_hazard by migration 0004
       LEFT JOIN LATERAL (
-        SELECT return_period, hazard_ranking FROM wcc_tsunami_hazard
-        WHERE ST_Intersects(geom, addr.geom)
+        SELECT return_period, hazard_ranking FROM tsunami_hazard
+        WHERE source_council = 'wellington_city'
+          AND ST_Intersects(geom, addr.geom)
         ORDER BY layer_id ASC LIMIT 1
       ) th_wcc ON true
       -- MBIE EPB nearest within 50m (same-building match)
@@ -391,6 +405,38 @@ BEGIN
           AND ST_DWithin(geom::geography, addr.geom::geography, 500)
         ORDER BY geom <-> addr.geom LIMIT 1
       ) geo_nearest ON true
+      -- Council liquefaction (all cities — from liquefaction_detail, multi-council)
+      LEFT JOIN LATERAL (
+        SELECT liquefaction, simplified, source_council
+        FROM liquefaction_detail
+        WHERE ST_Intersects(geom, addr.geom)
+        ORDER BY CASE liquefaction
+          WHEN 'Very High' THEN 1 WHEN 'High' THEN 2 WHEN 'Moderate' THEN 3
+          WHEN 'Low' THEN 4 ELSE 5 END
+        LIMIT 1
+      ) liq_council ON true
+      -- Council tsunami (all cities — from tsunami_hazard, multi-council)
+      LEFT JOIN LATERAL (
+        SELECT hazard_ranking, scenario, return_period, source_council
+        FROM tsunami_hazard
+        WHERE ST_Intersects(geom, addr.geom)
+        ORDER BY CASE hazard_ranking
+          WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END
+        LIMIT 1
+      ) tsu_council ON true
+      -- Council slope failure (all cities — from slope_failure, multi-council)
+      LEFT JOIN LATERAL (
+        SELECT severity, source_council
+        FROM slope_failure
+        WHERE ST_Intersects(geom, addr.geom)
+        ORDER BY CASE severity
+          WHEN '5 High' THEN 1 WHEN '4' THEN 2 WHEN '3 Moderate' THEN 3
+          WHEN '2' THEN 4 WHEN '1 Low' THEN 5
+          WHEN 'Very High' THEN 1 WHEN 'High' THEN 2 WHEN 'Medium' THEN 3
+          WHEN 'Low' THEN 4 WHEN 'Very Low' THEN 5
+          ELSE 6 END
+        LIMIT 1
+      ) sf_council ON true
     ),
 
     -- ENVIRONMENT

@@ -83,7 +83,9 @@
 | bonds_detailed | 1.2M | sa2_code, dwelling_type, bedrooms, median_rent, quarter_end | MBIE Tenancy Bonds | Market endpoint, rent advisor, snapshot rent_baselines |
 | crime | 1.2M | year_month, meshblock, anzsoc_*, victimisations | NZ Police | `get_property_report()` → liveability.crime_*, crime-trend |
 | crashes | 904K | crash_year, crash_severity, geom | Waka Kotahi CAS | `get_property_report()` → liveability.crashes_300m |
-| slope_failure | 470K | geom | GWRC/council DataSources | Report hazard indicators |
+| slope_failure | 470K | lskey, severity, source_council, geom | GWRC + ~6 council DataSources | `get_property_report()` → hazards.council_slope_severity (all cities) + hazards.gwrc_slope_severity (Wellington) |
+| liquefaction_detail | ~50K | liquefaction, simplified, source_council, geom | GWRC + ~16 council DataSources | `get_property_report()` → hazards.council_liquefaction (all cities) + hazards.gwrc_liquefaction (Wellington) |
+| tsunami_hazard | ~10K | name, hazard_ranking, scenario, return_period, layer_id, source_council, geom | WCC + ~12 council DataSources | `get_property_report()` → hazards.council_tsunami_ranking (all cities) + hazards.wcc_tsunami_return_period (Wellington) |
 | district_plan_zones | 198K | zone_name, zone_code, category, source_council, geom | 20+ council DataSources | `get_property_report()` → planning.zone_* |
 | noise_contours | 228K | laeq24h, geom | Waka Kotahi NZTA | `get_property_report()` → liveability.noise_db |
 | osm_amenities | 95K | name, subcategory, brand, geom | OpenStreetMap | nearby/highlights, snapshot nearby_highlights |
@@ -99,6 +101,10 @@
 | rbnz_housing | 143 | quarter_end, house_price_index, house_sales, housing_stock_value_m | RBNZ M10 | Source for hpi_national |
 | data_versions | 366 | source, loaded_at | data_loader.py | Track which DataSources loaded |
 | srtm_elevation | 0 (until loaded via `load_srtm_postgis.py`) | rast (raster), rid | SRTM 30m tiles (68 .hgt files) | `walking_isochrone.py` → snapshot terrain |
+| app_events | growing | event_type, created_at, user_id, session_id, ip_hash, properties (JSONB) | `event_writer.py` | Admin analytics dashboard (90-day retention) |
+| perf_metrics | growing | method, path, path_template, status_code, duration_ms, request_id | `request_metrics.py` middleware | Admin performance dashboard (30-day retention) |
+| error_log | growing | category, level, message, traceback, request_id, path, properties (JSONB) | `event_writer.py` log_error() | Admin error tracking (90-day retention) |
+| daily_metrics | growing | day (PK), metric_name (PK), metric_value, properties (JSONB) | `event_writer.py` midnight aggregation | Pre-aggregated rollups for admin dashboard (2-year retention) |
 
 ---
 

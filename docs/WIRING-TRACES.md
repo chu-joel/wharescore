@@ -39,29 +39,36 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 | `hazards.coastal_inundation_ranking` | coastal_inundation | SQL spatial intersect | 252K rows — coastal cities only |
 | `hazards.epb_count_300m` | earthquake_prone_buildings / mbie_epb | SQL count within 300m | Mainly Wellington (544 WCC EPBs + 20 MBIE) |
 
-### Hazards — Council-specific (flood_hazard table)
+### Hazards — Council-specific (regional tables, all cities)
 
 | Report field | Table | Query step | Source |
 |---|---|---|---|
-| `hazards.council_flood_aep` | flood_hazard | SQL spatial intersect, extracts AEP from hazard_type | 63 source_councils — ALL major cities have data |
-| `hazards.council_flood_ranking` | flood_hazard | Same query | Same |
-| `hazards.council_flood_type` | flood_hazard | Same query | Same |
+| `hazards.flood_extent_aep` | flood_hazard | SQL spatial intersect, worst-ranking first | 63 source_councils — ALL major cities have data |
+| `hazards.flood_extent_label` | flood_hazard | Same query | Same |
+| `hazards.council_liquefaction` | liquefaction_detail | SQL spatial intersect, worst-class first | ~16 councils (Auckland, ChCh, Waikato, Tauranga, Hawke's Bay, GWRC) |
+| `hazards.council_liquefaction_geology` | liquefaction_detail | Same query | Same |
+| `hazards.council_liquefaction_source` | liquefaction_detail | Same query | Same |
+| `hazards.council_tsunami_ranking` | tsunami_hazard | SQL spatial intersect, worst-ranking first | ~12 councils (Auckland, Tauranga, Dunedin, Hawke's Bay, WCC) |
+| `hazards.council_tsunami_scenario` | tsunami_hazard | Same query | Same |
+| `hazards.council_tsunami_return_period` | tsunami_hazard | Same query | Same |
+| `hazards.council_slope_severity` | slope_failure | SQL spatial intersect, worst-severity first | ~6 councils (GWRC, Dunedin, etc.) |
+| `hazards.council_slope_source` | slope_failure | Same query | Same |
 
-**This is the main flood data for all cities.** The national `flood_zones` table (14 rows) is nearly empty.
+**These are the main hazard data for all cities.** The national tables (flood_zones, tsunami_zones, liquefaction_zones, slope_failure_zones) are small Wellington-only datasets. Council tables provide regional coverage. `risk_score.py` uses council data to refine or override national scores.
 
 ### Hazards — Wellington-only layers
 
-These fields ONLY have data for Wellington region properties:
+These fields ONLY have data for Wellington region properties. Tables were renamed by migration 0004 (gwrc_* → generic names).
 
-| Report field | Table | Notes |
+| Report field | Table (current name) | Notes |
 |---|---|---|
-| `hazards.earthquake_hazard_index` | gwrc_earthquake_hazard | GWRC CHI model |
-| `hazards.ground_shaking_zone` | gwrc_ground_shaking | GWRC zones |
-| `hazards.gwrc_liquefaction` | gwrc_liquefaction | GWRC liquefaction |
-| `hazards.gwrc_slope_severity` | gwrc_slope_failure | GWRC slope |
-| `hazards.fault_zone_name` | wcc_fault_zones | WCC fault zones |
-| `hazards.wcc_flood_type` | wcc_flood_hazard | WCC flood (separate from flood_hazard) |
-| `hazards.wcc_tsunami_return_period` | wcc_tsunami_hazard | WCC tsunami |
+| `hazards.earthquake_hazard_index` | earthquake_hazard | GWRC CHI model (renamed from gwrc_earthquake_hazard) |
+| `hazards.ground_shaking_zone` | ground_shaking | GWRC zones (renamed from gwrc_ground_shaking) |
+| `hazards.gwrc_liquefaction` | liquefaction_detail | GWRC liquefaction (renamed from gwrc_liquefaction; now multi-council) |
+| `hazards.gwrc_slope_severity` | slope_failure | GWRC slope (renamed from gwrc_slope_failure; now multi-council) |
+| `hazards.fault_zone_name` | fault_zones | WCC fault zones (renamed from wcc_fault_zones) |
+| `hazards.wcc_flood_type` | flood_hazard | WCC flood (renamed from wcc_flood_hazard; now multi-council, filtered by source_council) |
+| `hazards.wcc_tsunami_return_period` | tsunami_hazard | WCC tsunami (renamed from wcc_tsunami_hazard; now multi-council, filtered by source_council) |
 | `hazards.solar_mean_kwh` | wcc_solar_radiation | WCC solar |
 
 ### Liveability
@@ -110,7 +117,23 @@ These fields ONLY have data for Wellington region properties:
 | `planning.in_special_character` | special_character_areas | SQL spatial intersect | Auckland only |
 | `planning.in_mana_whenua` | mana_whenua_sites | SQL spatial intersect | Auckland only |
 
-### Terrain & Isochrone (snapshot-only, not in live report)
+### Terrain & Walking Reach (free + paid reports via `_overlay_terrain_data()`)
+
+| Report field | Table/Service | Query step | Source | All cities? |
+|---|---|---|---|---|
+| `report.terrain.elevation_m` | srtm_elevation (raster) | `_overlay_terrain_data()` → `walking_isochrone.py` → `ST_Value()` | SRTM 30m tiles | Yes (where SRTM tiles loaded) |
+| `report.terrain.slope_degrees` | srtm_elevation (raster) | `_overlay_terrain_data()` → `ST_Slope()` on 3×3 neighbourhood | Same | Yes |
+| `report.terrain.slope_category` | (computed) | Python binning of slope_degrees | Same | Yes |
+| `report.terrain.aspect_label` | srtm_elevation (raster) | `_overlay_terrain_data()` → `ST_Aspect()` → compass label | Same | Yes |
+| `report.terrain.aspect_degrees` | srtm_elevation (raster) | `_overlay_terrain_data()` → `ST_Aspect()` raw degrees | Same | Yes |
+| `report.terrain.ruggedness` | srtm_elevation (raster) | `_overlay_terrain_data()` → TRI on 3×3 window | Same | Yes |
+| `report.walking_reach.bus` | transit_stops + Valhalla | `_overlay_terrain_data()` → Valhalla 10-min walk isochrone → `count_transit_in_polygon()` | Valhalla + GTFS | 12 GTFS cities |
+| `report.walking_reach.rail` | transit_stops + Valhalla | Same, mode_type filter | Same | Cities with rail |
+| `report.walking_reach.ferry` | transit_stops + Valhalla | Same, mode_type filter | Same | Cities with ferry |
+
+**Why terrain is in the live report:** `_overlay_terrain_data()` in `property.py` calls Valhalla for elevation/slope and walking isochrone, available in both free on-screen and paid hosted reports. Falls back gracefully if Valhalla is unavailable.
+
+### Terrain & Isochrone (snapshot-only, additional fields not in live report)
 
 | Snapshot field | Table/Service | Query step | Source | All cities? |
 |---|---|---|---|---|

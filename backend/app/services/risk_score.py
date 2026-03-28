@@ -415,12 +415,60 @@ def enrich_with_scores(report: dict) -> dict:
         if wcc_flood_score > (indicators.get("flood") or 0):
             indicators["flood"] = wcc_flood_score
 
+    # Council flood AEP (all cities — from flood_hazard table)
+    council_flood_aep = haz.get("flood_extent_aep")
+    if council_flood_aep and not wcc_flood:
+        # AEP-based: lower AEP % = more frequent = worse
+        aep_str = str(council_flood_aep).lower()
+        if "0.5%" in aep_str or "1 in 200" in aep_str:
+            council_flood_score = 45
+        elif "1%" in aep_str or "1 in 100" in aep_str:
+            council_flood_score = 75
+        elif "2%" in aep_str or "1 in 50" in aep_str:
+            council_flood_score = 85
+        elif "10%" in aep_str or "1 in 10" in aep_str:
+            council_flood_score = 90
+        else:
+            council_flood_score = 60  # unknown flood zone
+        if council_flood_score > (indicators.get("flood") or 0):
+            indicators["flood"] = council_flood_score
+
     # WCC tsunami return period → refine national tsunami score
     wcc_tsunami = haz.get("wcc_tsunami_return_period")
     if wcc_tsunami:
         tsunami_score = {"1:100yr": 80, "1:500yr": 55, "1:1000yr": 25}.get(wcc_tsunami, 30)
         if tsunami_score > (indicators.get("tsunami") or 0):
             indicators["tsunami"] = tsunami_score
+
+    # Council tsunami (all cities — from tsunami_hazard table)
+    council_tsunami_ranking = haz.get("council_tsunami_ranking")
+    if council_tsunami_ranking and not wcc_tsunami:
+        tsunami_score = {"High": 80, "Medium": 55, "Low": 30}.get(
+            council_tsunami_ranking, 40
+        )
+        if tsunami_score > (indicators.get("tsunami") or 0):
+            indicators["tsunami"] = tsunami_score
+
+    # Council liquefaction (all cities — from liquefaction_detail table)
+    council_liq = haz.get("council_liquefaction")
+    if council_liq:
+        council_liq_score = SEVERITY_LIQUEFACTION.get(council_liq, 0)
+        # Also check geology — reclaimed/fill land is especially vulnerable
+        council_liq_geo = haz.get("council_liquefaction_geology")
+        if council_liq_geo and "fill" in str(council_liq_geo).lower():
+            council_liq_score = max(council_liq_score, 85)
+        if council_liq_score > (indicators.get("liquefaction") or 0):
+            indicators["liquefaction"] = council_liq_score
+
+    # Council slope failure (all cities — from slope_failure table)
+    council_slope = haz.get("council_slope_severity")
+    if council_slope:
+        # Handle both GWRC format ("1 Low"..."5 High") and generic ("Low"..."Very High")
+        council_slope_score = SEVERITY_GWRC_SLOPE.get(council_slope)
+        if council_slope_score is None:
+            council_slope_score = SEVERITY_SLOPE_FAILURE.get(council_slope, 0)
+        if council_slope_score and council_slope_score > (indicators.get("slope_failure") or 0):
+            indicators["slope_failure"] = council_slope_score
 
     # Council landslide susceptibility (Auckland etc.)
     ls_rating = haz.get("landslide_susceptibility_rating")
