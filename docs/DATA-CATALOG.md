@@ -98,6 +98,7 @@
 | hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section, price advisor |
 | rbnz_housing | 143 | quarter_end, house_price_index, house_sales, housing_stock_value_m | RBNZ M10 | Source for hpi_national |
 | data_versions | 366 | source, loaded_at | data_loader.py | Track which DataSources loaded |
+| srtm_elevation | 0 (until loaded via `load_srtm_postgis.py`) | rast (raster), rid | SRTM 30m tiles (68 .hgt files) | `walking_isochrone.py` → snapshot terrain |
 
 ---
 

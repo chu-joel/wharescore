@@ -110,6 +110,21 @@ These fields ONLY have data for Wellington region properties:
 | `planning.in_special_character` | special_character_areas | SQL spatial intersect | Auckland only |
 | `planning.in_mana_whenua` | mana_whenua_sites | SQL spatial intersect | Auckland only |
 
+### Terrain & Isochrone (snapshot-only, not in live report)
+
+| Snapshot field | Table/Service | Query step | Source | All cities? |
+|---|---|---|---|---|
+| `terrain.elevation_m` | srtm_elevation (raster) | `ST_Value()` on SRTM raster at property point | SRTM 30m tiles via `walking_isochrone.py` | Yes (where SRTM tiles loaded) |
+| `terrain.slope_degrees` | srtm_elevation (raster) | `ST_Slope()` on 3×3 neighbourhood | Same | Yes |
+| `terrain.aspect_label` | srtm_elevation (raster) | `ST_Aspect()` → compass label | Same | Yes |
+| `terrain.aspect_degrees` | srtm_elevation (raster) | `ST_Aspect()` raw degrees | Same | Yes |
+| `terrain.ruggedness` | srtm_elevation (raster) | Terrain Ruggedness Index on 3×3 window | Same | Yes |
+| `isochrone.geojson` | Valhalla service | HTTP POST to Valhalla `/isochrone` (15-min walk) | Valhalla Docker container | Yes |
+| `isochrone.transit_within.bus` | transit_stops | `count_transit_in_polygon()` SQL function | GTFS transit_stops + metlink_stops + at_stops | 12 GTFS cities |
+| `isochrone.transit_within.rail` | transit_stops | Same function, mode_type filter | Same | Cities with rail |
+| `isochrone.transit_within.ferry` | transit_stops | Same function, mode_type filter | Same | Cities with ferry |
+| `terrain_insights[]` | (computed) | `_build_terrain_insights()` rule engine in snapshot_generator.py | Terrain + isochrone data | Yes |
+
 ---
 
 ## City Coverage Matrix
