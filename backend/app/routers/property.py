@@ -45,41 +45,123 @@ router = APIRouter()
 
 
 async def _fix_unit_cv(report: dict, address_id: int) -> None:
-    """Fix unit CV from rates cache. Spatial match in council_valuations often
-    returns a random unit's CV (e.g. parking space). The rates cache has the
-    correct per-unit data matched by unit identifier."""
+    """Fix CV using live council rates API for all supported cities.
+    Falls back to WCC rates cache for Wellington unit lookups."""
+    full_address = (report.get("address") or {}).get("full_address", "")
+    city = (report.get("address") or {}).get("city", "")
+    city_lower = city.lower()
+
     try:
-        async with db.pool.connection() as conn_cv:
-            cur_cv = await conn_cv.execute(
-                "SELECT unit_value, address_number, road_name, road_type_name FROM addresses WHERE address_id = %s",
-                [address_id],
-            )
-            addr_row = cur_cv.fetchone()
-            if addr_row and addr_row.get("unit_value"):
-                uv = addr_row["unit_value"]
-                street = f"{addr_row.get('address_number', '')} {addr_row.get('road_name', '')}"
-                if addr_row.get("road_type_name"):
-                    street += f" {addr_row['road_type_name']}"
-                street = street.strip()
-                if street:
-                    cur_cv = await conn_cv.execute(
-                        """
-                        SELECT capital_value, land_value, improvements_value
-                        FROM wcc_rates_cache
-                        WHERE capital_value > 0
-                          AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
-                        LIMIT 1
-                        """,
-                        [f"Unit {uv} {street}%", f"Apt {uv} {street}%", f"Flat {uv} {street}%"],
-                    )
-                    rates = cur_cv.fetchone()
-                    if rates and report.get("property"):
-                        report["property"]["capital_value"] = rates["capital_value"]
-                        report["property"]["land_value"] = rates["land_value"] or 0
-                        report["property"]["improvements_value"] = rates["improvements_value"] or 0
-                        report["property"]["cv_is_per_unit"] = True
+        rates_data = None
+        if "wellington" in city_lower:
+            # Wellington: try WCC rates cache first (fast, for units)
+            async with db.pool.connection() as conn_cv:
+                cur_cv = await conn_cv.execute(
+                    "SELECT unit_value, address_number, road_name, road_type_name FROM addresses WHERE address_id = %s",
+                    [address_id],
+                )
+                addr_row = cur_cv.fetchone()
+                if addr_row and addr_row.get("unit_value"):
+                    uv = addr_row["unit_value"]
+                    street = f"{addr_row.get('address_number', '')} {addr_row.get('road_name', '')}"
+                    if addr_row.get("road_type_name"):
+                        street += f" {addr_row['road_type_name']}"
+                    street = street.strip()
+                    if street:
+                        cur_cv = await conn_cv.execute(
+                            "SELECT capital_value, land_value, improvements_value FROM wcc_rates_cache "
+                            "WHERE capital_value > 0 AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s) LIMIT 1",
+                            [f"Unit {uv} {street}%", f"Apt {uv} {street}%", f"Flat {uv} {street}%"],
+                        )
+                        rates = cur_cv.fetchone()
+                        if rates and report.get("property"):
+                            report["property"]["capital_value"] = rates["capital_value"]
+                            report["property"]["land_value"] = rates["land_value"] or 0
+                            report["property"]["improvements_value"] = rates["improvements_value"] or 0
+                            report["property"]["cv_is_per_unit"] = True
+        elif "auckland" in city_lower:
+            from ..services.auckland_rates import fetch_auckland_rates
+            async with db.pool.connection() as c:
+                rates_data = await fetch_auckland_rates(full_address, c)
+        elif city_lower == "lower hutt":
+            from ..services.hcc_rates import fetch_hcc_rates
+            rates_data = await fetch_hcc_rates(full_address)
+        elif "upper hutt" in city_lower:
+            from ..services.uhcc_rates import fetch_uhcc_rates
+            rates_data = await fetch_uhcc_rates(full_address)
+        elif city_lower == "porirua":
+            from ..services.pcc_rates import fetch_pcc_rates
+            rates_data = await fetch_pcc_rates(full_address)
+        elif "kapiti" in city_lower or city_lower in ("paraparaumu", "waikanae", "otaki"):
+            from ..services.kcdc_rates import fetch_kcdc_rates
+            rates_data = await fetch_kcdc_rates(full_address)
+        elif "hamilton" in city_lower:
+            from ..services.hamilton_rates import fetch_hamilton_rates
+            rates_data = await fetch_hamilton_rates(full_address)
+        elif "dunedin" in city_lower:
+            from ..services.dcc_rates import fetch_dcc_rates
+            rates_data = await fetch_dcc_rates(full_address)
+        elif "christchurch" in city_lower:
+            from ..services.ccc_rates import fetch_ccc_rates
+            async with db.pool.connection() as c:
+                rates_data = await fetch_ccc_rates(full_address, c)
+        elif city_lower == "new plymouth":
+            from ..services.taranaki_rates import fetch_taranaki_rates
+            rates_data = await fetch_taranaki_rates(full_address)
+        elif city_lower in ("richmond", "motueka", "takaka", "mapua"):
+            from ..services.tasman_rates import fetch_tasman_rates
+            rates_data = await fetch_tasman_rates(full_address)
+        elif "tauranga" in city_lower or city_lower == "mount maunganui":
+            from ..services.tcc_rates import fetch_tcc_rates
+            rates_data = await fetch_tcc_rates(full_address)
+        elif "palmerston" in city_lower:
+            from ..services.pncc_rates import fetch_pncc_rates
+            rates_data = await fetch_pncc_rates(full_address)
+        elif "whangarei" in city_lower or "whangārei" in city_lower:
+            from ..services.wdc_rates import fetch_wdc_rates
+            rates_data = await fetch_wdc_rates(full_address)
+        elif "queenstown" in city_lower or city_lower in ("wanaka", "arrowtown", "frankton"):
+            from ..services.qldc_rates import fetch_qldc_rates
+            rates_data = await fetch_qldc_rates(full_address)
+        elif "invercargill" in city_lower:
+            from ..services.icc_rates import fetch_icc_rates
+            rates_data = await fetch_icc_rates(full_address)
+        elif "hastings" in city_lower or city_lower in ("havelock north", "flaxmere"):
+            from ..services.hastings_rates import fetch_hastings_rates
+            rates_data = await fetch_hastings_rates(full_address)
+        elif "gisborne" in city_lower:
+            from ..services.gdc_rates import fetch_gdc_rates
+            rates_data = await fetch_gdc_rates(full_address)
+        elif "nelson" in city_lower:
+            from ..services.ncc_rates import fetch_ncc_rates
+            rates_data = await fetch_ncc_rates(full_address)
+        elif "rotorua" in city_lower:
+            from ..services.rlc_rates import fetch_rlc_rates
+            rates_data = await fetch_rlc_rates(full_address)
+        elif "timaru" in city_lower or city_lower in ("temuka", "geraldine"):
+            from ..services.timaru_rates import fetch_timaru_rates
+            rates_data = await fetch_timaru_rates(full_address)
+        elif "blenheim" in city_lower or "marlborough" in city_lower or city_lower in ("picton", "renwick"):
+            from ..services.mdc_rates import fetch_mdc_rates
+            rates_data = await fetch_mdc_rates(full_address)
+        elif "whanganui" in city_lower or "wanganui" in city_lower:
+            from ..services.wdc_whanganui_rates import fetch_whanganui_rates
+            rates_data = await fetch_whanganui_rates(full_address)
+        elif "horowhenua" in city_lower or city_lower in ("levin", "foxton"):
+            from ..services.hdc_rates import fetch_hdc_rates
+            rates_data = await fetch_hdc_rates(full_address)
+
+        # Apply CV from rates API (generic handler)
+        if rates_data and rates_data.get("current_valuation"):
+            cv_data = rates_data["current_valuation"]
+            live_cv = cv_data.get("capital_value")
+            if live_cv and report.get("property"):
+                report["property"]["capital_value"] = live_cv
+                report["property"]["land_value"] = cv_data.get("land_value") or 0
+                report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
+                report["property"]["cv_is_per_unit"] = True
     except Exception:
-        pass  # non-critical fallback
+        pass  # non-critical — fall back to SQL report CV
     report["_cv_from_rates"] = True
 
 
