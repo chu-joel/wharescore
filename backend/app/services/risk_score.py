@@ -480,8 +480,8 @@ def enrich_with_scores(report: dict) -> dict:
         else:
             indicators["landslide_susceptibility"] = ls_score
 
-    # Overland flow path (binary: on/near a flow path)
-    if haz.get("on_overland_flow_path") or haz.get("overland_flow_within_50m"):
+    # Overland flow path proximity (within 50m of polyline flow path)
+    if haz.get("overland_flow_within_50m"):
         indicators["overland_flow"] = 45  # moderate risk — surface flooding possible
 
     # Aircraft noise
