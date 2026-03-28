@@ -29,8 +29,9 @@ jobs:
             git reset --hard origin/main
 
             echo "==> Stopping all running services"
-            docker compose down --remove-orphans --timeout 15 2>/dev/null || true
-            $COMPOSE down --remove-orphans --timeout 15
+            $COMPOSE down --remove-orphans --timeout 15 2>/dev/null || true
+            # Clean up any orphaned containers from previous deploys
+            docker rm -f app-postgres-1 app-api-1 app-web-1 app-martin-1 app-valhalla-1 app-redis-1 2>/dev/null || true
 
             echo "==> Pruning old images to free disk space"
             docker image prune -f
