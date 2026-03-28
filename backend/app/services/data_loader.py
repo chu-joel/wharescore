@@ -6679,6 +6679,77 @@ DATA_SOURCES: list[DataSource] = [
                 "High",
             ))),
 
+    # ── Far North — district plan hazards (via FNDC MapServer) ──
+    DataSource("far_north_flood", "Far North NRC Flood Susceptible Land",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.fndc.govt.nz/server/rest/services/District_Plan_Hazards/MapServer/0",
+            "flood_hazard", "far_north",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                "NRC Flood Susceptible Land",
+                "High",
+                "Flood Susceptible (District Plan)",
+            ))),
+    DataSource("far_north_coastal", "Far North NRC Coastal Hazards",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.fndc.govt.nz/server/rest/services/District_Plan_Hazards/MapServer/1",
+            "coastal_erosion", "far_north",
+            ["name", "coast_type"],
+            lambda a: (
+                _clean(a.get("PLACE")) or "Coastal Hazard",
+                _clean(a.get("CODE")) or "Coastal",
+            ),
+            geom_type="line")),
+
+    # ── Selwyn — district plan hazards (via ECAN-hosted) ──
+    DataSource("selwyn_flood_zones", "Selwyn ECan Defined Flood Zones",
+        ["flood_hazard"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Selwyn_DC/SDC_DistrictPlan/MapServer/22",
+            "flood_hazard", "selwyn",
+            ["name", "hazard_ranking", "hazard_type"],
+            lambda a: (
+                _clean(a.get("Name")) or "ECan Flood Zone",
+                "High",
+                "Flood Zone (Selwyn DP)",
+            ))),
+    DataSource("selwyn_faults", "Selwyn Fault Lines (via ECAN)",
+        ["fault_zones"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://gis.ecan.govt.nz/arcgis/rest/services/Selwyn_DC/SDC_DistrictPlan/MapServer/6",
+            "fault_zones", "selwyn",
+            ["name", "hazard_ranking"],
+            lambda a: (
+                _clean(a.get("NAME")) or "Fault Line",
+                _clean(a.get("Certainty")) or "Medium",
+            ),
+            geom_type="line")),
+
+    # ── ORC Storm Surge (coastal inundation for Otago coast) ──
+    DataSource("orc_storm_surge", "ORC Storm Surge Affected Areas (All Scenarios)",
+        ["coastal_inundation"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.orc.govt.nz/arcgis/rest/services/Stormsurge_Affectedareas_allscenarios/FeatureServer/0",
+            "coastal_inundation", "otago_storm_surge",
+            ["name", "hazard_ranking", "scenario"],
+            lambda a: (
+                _clean(a.get("Description")) or "Storm Surge Affected Area",
+                "High",
+                _clean(a.get("Source_Report")) or "ORC Storm Surge",
+            ))),
+    DataSource("orc_coastal_erosion_dunedin", "ORC Dunedin Coast Revised Hazard Area",
+        ["coastal_erosion"],
+        lambda conn, log=None: _load_council_arcgis(conn, log,
+            "https://maps.orc.govt.nz/arcgis/rest/services/A___Land_below_1_100_year_Storm_Surge/FeatureServer/0",
+            "coastal_erosion", "dunedin_orc",
+            ["name", "coast_type"],
+            lambda a: (
+                _clean(a.get("Community")) or "Dunedin Coast Hazard",
+                _clean(a.get("HazardArea")) or "Coastal",
+            ))),
+
     # ── Bay of Plenty — coastal hazard (Ohiwa Spit + Area Sensitive) ──
     DataSource("bop_coastal_hazard_ohiwa", "BOP Ohiwa Spit Coastal Hazard",
         ["coastal_erosion"],
