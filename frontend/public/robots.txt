@@ -5,6 +5,7 @@ Disallow: /account
 Disallow: /guest
 Disallow: /api
 Disallow: /tiles
+Disallow: /property
 Disallow: /report
 
 Sitemap: https://wharescore.co.nz/sitemap.xml
