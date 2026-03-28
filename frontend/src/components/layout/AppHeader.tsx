@@ -69,14 +69,14 @@ export function AppHeader() {
               )}
               {!selectedAddress && (
                 <span className="flex items-center gap-1.5">
-                  <Image src="/wharescore-logo.png" alt="WhareScore" width={28} height={26} className="shrink-0" />
+                  <img src="/wharescore-logo.png" alt="WhareScore" width={34} height={32} className="shrink-0" />
                   <span className="hidden sm:inline text-lg font-bold text-piq-primary">WhareScore</span>
                 </span>
               )}
             </>
           ) : (
             <a href="/" className="flex items-center gap-1.5">
-              <Image src="/wharescore-logo.png" alt="WhareScore" width={28} height={26} className="shrink-0" />
+              <img src="/wharescore-logo.png" alt="WhareScore" width={34} height={32} className="shrink-0" />
               <span className="hidden sm:inline text-xl font-bold text-piq-primary">
                 Whare<span className="text-foreground">Score</span>
               </span>
