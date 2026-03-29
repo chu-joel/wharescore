@@ -78,8 +78,13 @@ def send_report_ready_email(
                   padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 15px;">
           View Report
         </a>
-        <p style="margin: 28px 0 0; font-size: 12px; color: #9ca3af;">
-          This report reflects data at the time of generation. The link will remain accessible.
+        <p style="margin: 16px 0 0; font-size: 13px; color: #6b7280;">
+          You can also access this report anytime from
+          <a href="{frontend_url}/account" style="color: #1a56db; text-decoration: underline;">My Reports</a>
+          in your account.
+        </p>
+        <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af;">
+          This report reflects data at the time of generation.
           If you did not request this report, you can ignore this email.
         </p>
       </div>

@@ -187,6 +187,12 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
       const { job_id, download_url } = await res.json();
 
+      // Show generating toast
+      toast.info('Generating your report...', {
+        description: 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready, or find it in My Reports.',
+        duration: 8000,
+      });
+
       // Poll for completion (every 2s, up to 90 attempts = 3 min max)
       for (let i = 0; i < 90; i++) {
         await new Promise(r => setTimeout(r, 2000));
@@ -204,21 +210,19 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
           const gateState = useDownloadGateStore.getState();
           if (gateState.credits?.plan === 'pro') {
             gateState.recordDownload();
-            showPaymentToast('report_generated');
           } else {
-            const remaining = (gateState.credits?.creditsRemaining ?? 1) - 1;
             gateState.deductCredit(tier);
-            if (remaining <= 0) {
-              showPaymentToast('last_credit');
-            } else {
-              showPaymentToast('report_generated', remaining);
-            }
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
-          // Navigate to the hosted report (same tab — avoids popup blockers from async context)
-          if (status.share_url) {
-            window.location.href = status.share_url;
-          }
+          // Show completion toast with link to My Reports
+          toast.success('Your report is ready!', {
+            description: 'We\'ll also email you a link. View it anytime from My Reports.',
+            duration: 10000,
+            action: {
+              label: 'Go to My Reports',
+              onClick: () => { window.location.href = '/account'; },
+            },
+          });
           return;
         }
 

@@ -140,7 +140,7 @@ export default function PaymentSuccessPage() {
 
           const status = await statusRes.json();
 
-          if (status.status === 'completed' && status.share_url) {
+          if (status.status === 'completed') {
             // Clean up localStorage
             try { localStorage.removeItem('wharescore-checkout-target'); } catch {}
             // Deduct credit in store
@@ -150,8 +150,9 @@ export default function PaymentSuccessPage() {
             } else {
               gate.deductCredit();
             }
-            // Auto-redirect to hosted report
-            window.location.href = status.share_url;
+            // Show success — don't navigate, let user go to My Reports
+            if (!cancelled) setStage('fallback');
+            showPaymentToast('report_generated');
             return;
           }
 
@@ -172,8 +173,8 @@ export default function PaymentSuccessPage() {
   }, [plan, addressId, getToken]);
 
   const planLabel = plan === 'pro' ? 'Pro plan activated' :
-    plan === 'pack3' ? '1 Full report credit' :
-    plan === 'single' ? '1 Quick report credit' :
+    plan === 'pack3' ? '3 Full report credits' :
+    plan === 'single' || plan === 'full_single' ? '1 Full report credit' :
     plan === 'pending' ? 'Payment received' :
     'Credits added';
 
@@ -212,26 +213,30 @@ export default function PaymentSuccessPage() {
           </div>
         )}
 
-        {/* Fallback: webhook slow, generation failed, or no addressId */}
+        {/* Report ready or fallback */}
         {(stage === 'fallback' || (plan === 'pending') || (stage === 'waiting' && plan && !addressId)) && (
           <div className="space-y-3">
-            {plan === 'pending' && (
+            {plan === 'pending' ? (
               <p className="text-xs text-muted-foreground mb-2">
-                Your payment was received but is still processing. You can generate your report from the property page — your credit will be available within a few minutes.
+                Your payment was received but is still processing. Your credit will be available within a few minutes.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-2">
+                We&apos;ll email you a link to your report when it&apos;s ready. You can also find it in My Reports.
               </p>
             )}
             <a
-              href={addressId ? `/property/${addressId}` : '/'}
+              href="/account"
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
             >
-              {addressId ? 'Go to your property report' : 'Browse properties'}
+              Go to My Reports
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href="/account"
+              href="/"
               className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background font-medium hover:bg-muted transition-colors text-sm"
             >
-              View your account
+              Browse more properties
             </a>
           </div>
         )}

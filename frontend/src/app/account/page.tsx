@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
+import { FileText, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
@@ -90,26 +90,9 @@ export default function AccountPage() {
     }
   };
 
-  const handleViewReport = async (reportId: number, shareToken?: string | null) => {
-    // Prefer hosted interactive report if share_token exists
+  const handleViewReport = (shareToken?: string | null) => {
     if (shareToken) {
       window.open(`/report/${shareToken}`, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    // Fallback to old HTML blob for legacy reports
-    const token = await getToken();
-    try {
-      const res = await fetch(`/api/v1/account/saved-reports/${reportId}/download`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error('Failed to load report');
-      const html = await res.text();
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (err) {
-      console.error('Failed to view report:', err);
     }
   };
 
@@ -330,15 +313,22 @@ export default function AccountPage() {
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewReport(report.id, report.share_token)}
-                        className="shrink-0 ml-2"
-                      >
-                        {report.share_token ? <ExternalLink className="h-4 w-4 mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-                        View
-                      </Button>
+                      {report.share_token ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewReport(report.share_token)}
+                          className="shrink-0 ml-2"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-2 animate-pulse">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Generating…
+                        </span>
+                      )}
                     </div>
                     {isQuick && report.share_token && (() => {
                       const daysLeft = report.expires_at
