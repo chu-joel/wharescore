@@ -116,8 +116,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-https://wharescore.co.nz}
       VALHALLA_URL: http://valhalla:8002
       METROINFO_API_KEY: ${METROINFO_API_KEY:-}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-WhareScore <noreply@wharescore.co.nz>}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
       ENVIRONMENT: production
     restart: unless-stopped
     depends_on:

@@ -55,33 +55,25 @@ async def send_code(request: Request, body: SendCodeRequest):
     # Reset attempt counter
     await cache_del(_otp_attempts_key(email))
 
-    # Send via Resend
-    if settings.RESEND_API_KEY:
-        try:
-            import resend
-            resend.api_key = settings.RESEND_API_KEY
-            resend.Emails.send({
-                "from": settings.RESEND_FROM_EMAIL,
-                "to": [email],
-                "subject": f"WhareScore sign-in code: {code}",
-                "html": f"""
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-                        <h2 style="color: #0f172a; margin-bottom: 8px;">Sign in to WhareScore</h2>
-                        <p style="color: #64748b; margin-bottom: 24px;">Enter this code to sign in:</p>
-                        <div style="background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                            <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">{code}</span>
-                        </div>
-                        <p style="color: #94a3b8; font-size: 14px;">This code expires in 5 minutes. If you didn't request this, you can ignore this email.</p>
-                    </div>
-                """,
-            })
-            logger.info(f"OTP sent to {email[:3]}***")
-        except Exception as e:
-            logger.error(f"Failed to send OTP email: {e}")
-            raise HTTPException(500, "Failed to send verification email")
-    else:
-        # Dev mode — log the code
-        logger.info(f"[DEV] OTP for {email}: {code}")
+    # Send via Brevo
+    from ..services.email import send_email
+
+    sent = send_email(
+        email,
+        f"WhareScore sign-in code: {code}",
+        f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+            <h2 style="color: #0f172a; margin-bottom: 8px;">Sign in to WhareScore</h2>
+            <p style="color: #64748b; margin-bottom: 24px;">Enter this code to sign in:</p>
+            <div style="background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">{code}</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 14px;">This code expires in 5 minutes. If you didn't request this, you can ignore this email.</p>
+        </div>
+        """,
+    )
+    if not sent and settings.BREVO_API_KEY:
+        raise HTTPException(500, "Failed to send verification email")
 
     return {"ok": True, "message": "Code sent to your email"}
 
