@@ -45,10 +45,10 @@ import { useEffect, useMemo } from 'react';
 const FREE_FINDINGS = 2;
 
 export function PropertyReport({ addressId }: { addressId: number }) {
-  const { data: report, isLoading, error, refetch } = usePropertyReport(addressId);
+  const { data: report, isLoading, isEnriching, error, refetch } = usePropertyReport(addressId);
   const { data: aiData, isLoading: aiLoading } = useAISummary(addressId, !isLoading && !error);
-  // Fire-and-forget: fetch live council rates in parallel — updates CV in DB + invalidates report cache
-  usePropertyRates(addressId, !isLoading && !error);
+  // Lazily fetch live council rates — DB CV shown first, updates inline when this resolves
+  const { data: liveRates, isLoading: ratesLoading } = usePropertyRates(addressId, !isLoading && !error);
   // Area activity feed — seismic, weather, emergency events near the property
   const { data: areaFeed } = useAreaFeed(addressId, !isLoading && !error);
   const clearSelection = useSearchStore((s) => s.clearSelection);
@@ -137,13 +137,20 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         <BetaBanner />
 
         {/* Summary Card + Save Button */}
-        <PropertySummaryCard report={report} />
+        <PropertySummaryCard report={report} liveRates={liveRates} ratesLoading={ratesLoading} />
         <div className="flex items-center justify-between -mt-2">
           <SavePropertyButton
             addressId={addressId}
             fullAddress={report.address.full_address}
           />
-          <SocialProof suburbName={report.address.sa2_name} />
+          {isEnriching ? (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground animate-pulse">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-pulse" />
+              Finalising score…
+            </span>
+          ) : (
+            <SocialProof suburbName={report.address.sa2_name} />
+          )}
         </div>
 
         {/* Persona Toggle */}

@@ -3,11 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
+import { UpgradeModal } from '@/components/property/UpgradeModal';
 import { toast } from 'sonner';
 import { safeRedirect } from '@/lib/utils';
+
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Free',
+  single: 'Single Report',
+  pack3: '3-Pack',
+  promo: 'Promo',
+  pro: 'Pro',
+  quick_single: 'Quick Report',
+  full_single: 'Full Report',
+};
 
 interface SavedReport {
   id: number;
@@ -118,8 +129,8 @@ export default function AccountPage() {
             ) : (
               <CreditCard className="h-5 w-5 text-piq-primary" />
             )}
-            <h2 className="text-lg font-semibold capitalize">
-              {credits.plan === 'free' ? 'Free' : credits.plan} Plan
+            <h2 className="text-lg font-semibold">
+              {PLAN_LABELS[credits.plan] ?? credits.plan} Plan
             </h2>
           </div>
           {isPro && (
@@ -157,9 +168,25 @@ export default function AccountPage() {
             </div>
           </div>
         ) : credits.plan !== 'free' ? (
-          <div>
-            <p className="text-3xl font-bold">{credits.creditsRemaining ?? 0}</p>
-            <p className="text-sm text-muted-foreground">credit{credits.creditsRemaining === 1 ? '' : 's'} remaining</p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-3xl font-bold">{credits.creditsRemaining ?? 0}</p>
+              <p className="text-sm text-muted-foreground">credit{credits.creditsRemaining === 1 ? '' : 's'} remaining</p>
+            </div>
+            {((credits.quickCredits ?? 0) > 0 || (credits.fullCredits ?? 0) > 0) && (
+              <div className="flex gap-3 text-xs text-muted-foreground">
+                {(credits.quickCredits ?? 0) > 0 && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
+                    {credits.quickCredits} quick
+                  </span>
+                )}
+                {(credits.fullCredits ?? 0) > 0 && (
+                  <span className="rounded-full bg-piq-primary/10 text-piq-primary px-2 py-0.5 font-medium">
+                    {credits.fullCredits} full
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -221,10 +248,19 @@ export default function AccountPage() {
   }
 
   return (
+    <>
+    <UpgradeModal />
     <div className="min-h-screen bg-background pt-14">
       <div className="mx-auto max-w-3xl px-4 py-8">
         {/* Header */}
         <div className="mb-6">
+          <a
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </a>
           <h1 className="text-2xl font-bold">My Account</h1>
           <p className="text-muted-foreground">
             {user.name || user.email}
@@ -300,5 +336,6 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
 
 import type { PropertyReport, RatingBin } from '@/lib/types';
+import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
 
 function ratingVariant(rating: RatingBin) {
@@ -52,11 +53,24 @@ function TradeMeLink({ address }: { address: string }) {
   );
 }
 
-export function PropertySummaryCard({ report }: { report: PropertyReport }) {
+export function PropertySummaryCard({
+  report,
+  liveRates,
+  ratesLoading,
+}: {
+  report: PropertyReport;
+  liveRates?: LiveRates | null;
+  ratesLoading?: boolean;
+}) {
   const { address, property, scores, coverage, market } = report;
   const hasScore = Number.isFinite(scores?.overall);
   const bin = hasScore ? getRatingBin(scores.overall) : null;
   const persona = usePersonaStore((s) => s.persona);
+
+  // Use live CV when available, fall back to DB value from report
+  const liveCV = liveRates?.current_valuation?.capital_value;
+  const effectiveCV = liveCV ?? property.capital_value;
+  const cvIsLive = !!liveCV;
 
   const pdf = usePdfExport(address.address_id, persona);
 
@@ -69,12 +83,11 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
       const parts: string[] = [];
       const isMulti = !!report.property_detection?.is_multi_unit;
       const units = report.property_detection?.unit_count ?? 1;
-      const cv = property.capital_value;
-      const alreadyPerUnit = !!property.cv_is_per_unit;
-      const effectiveCv = (isMulti && cv && units > 1 && !alreadyPerUnit) ? Math.round(cv / units) : cv;
-      if (effectiveCv) {
+      const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
+      const displayCv = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : effectiveCV;
+      if (displayCv) {
         const isEstimated = isMulti && units > 1 && !alreadyPerUnit;
-        parts.push(`${isEstimated ? '~' : 'CV: '}$${(effectiveCv / 1000).toFixed(0)}k${isEstimated ? ' est.' : ''}`);
+        parts.push(`${isEstimated ? '~' : 'CV: '}$${(displayCv / 1000).toFixed(0)}k${isEstimated ? ' est.' : ''}`);
       }
       if (market.rent_assessment?.median && effectiveCv) {
         const annualRent = market.rent_assessment.median * 52;
@@ -178,18 +191,29 @@ export function PropertySummaryCard({ report }: { report: PropertyReport }) {
         </div>
 
         {/* Property info — key-value pills */}
-        {(property.capital_value || property.land_area_sqm || property.building_area_sqm || property.title_ref) && (
+        {(effectiveCV || ratesLoading || property.land_area_sqm || property.building_area_sqm || property.title_ref) && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {property.capital_value && (() => {
+            {(effectiveCV || ratesLoading) && (() => {
               const isMulti = !!report.property_detection?.is_multi_unit;
               const units = report.property_detection?.unit_count ?? 1;
-              const alreadyPerUnit = !!property.cv_is_per_unit;
-              const perUnit = (isMulti && units > 1 && !alreadyPerUnit) ? Math.round(property.capital_value / units) : null;
+              const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
+              const perUnit = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : null;
               return (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                  {perUnit
-                    ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
-                    : <>CV {formatCurrency(property.capital_value)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+                  {ratesLoading && !effectiveCV ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      <span className="text-muted-foreground">Checking live pricing…</span>
+                    </>
+                  ) : effectiveCV ? (
+                    <>
+                      {perUnit
+                        ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
+                        : <>CV {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
+                      {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                      {cvIsLive && <span className="text-muted-foreground font-normal">live</span>}
+                    </>
+                  ) : null}
                 </span>
               );
             })()}

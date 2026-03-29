@@ -8,7 +8,7 @@
 ## Live Rates APIs
 <!-- UPDATE: When adding a new council rates module, add a row here. -->
 
-25 councils. Wired in TWO places: `snapshot_generator.py` (~line 309-470) AND `property.py _fix_unit_cv()` (~line 47-165). Both must match.
+25 councils. Live rates are now fetched lazily via `GET /property/{id}/rates` (unified router in `routers/rates.py`). CV no longer blocks the report endpoint — DB value shown first, live value updates inline. `snapshot_generator.py` (~line 309-470) still calls rates directly for snapshot generation.
 
 | # | Council | Module file | City match (lowercase) | Endpoint type | CV | LV | IV | Rates |
 |---|---------|------------|----------------------|--------------|:--:|:--:|:--:|:-----:|
@@ -25,7 +25,7 @@
 | 11 | New Plymouth | `taranaki_rates.py` | new plymouth | ArcGIS FeatureServer | Y | Y | Y | - |
 | 12 | Tasman | `tasman_rates.py` | richmond, motueka, takaka, mapua | ArcGIS MapServer | Y | Y | Y | - |
 | 13 | Tauranga | `tcc_rates.py` | tauranga, mount maunganui | ArcGIS 2-step | Y | Y | Y | Y |
-| 14 | Western BOP | `wbop_rates.py` | papamoa, te puke, katikati, omokoroa | ArcGIS 4-layer | Y | Y | Y | - |
+| 14 | Western BOP | `wbop_rates.py` | katikati, te puke, waihi beach, ōmokoroa, paengaroa, western bay | ArcGIS 3-layer | Y | Y | Y | - |
 | 15 | Palmerston Nth | `pncc_rates.py` | palmerston | ArcGIS Online | Y | Y | - | Y |
 | 16 | Whangarei | `wdc_rates.py` | whangarei, whangārei | ArcGIS MapServer | Y | Y | Y | - |
 | 17 | Queenstown | `qldc_rates.py` | queenstown, wanaka, arrowtown, frankton, cromwell, alexandra | ArcGIS FeatureServer | Y | Y | Y | - |

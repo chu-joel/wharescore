@@ -41,6 +41,7 @@ from ..services.pdf_jobs import (
     create_job, get_job_status, get_job_html,
     set_job_generating, set_job_completed, set_job_failed,
 )
+from ..config import settings
 
 router = APIRouter()
 
@@ -355,11 +356,14 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
 @router.get("/property/{address_id}/report")
 @limiter.limit("20/minute", key_func=_verified_user_or_ip)
 @limiter.limit("5/minute", key_func=get_remote_address)
-async def get_report(request: Request, address_id: int):
+async def get_report(request: Request, address_id: int, fast: bool = Query(False)):
     """Full property report with risk scores.
     Calls get_property_report() PL/pgSQL function, enriches with Python scoring.
     AI summary is NOT included — fetch separately from /ai-summary.
-    Cached 24h in Redis."""
+    Cached 24h in Redis.
+
+    ?fast=true skips Valhalla terrain/isochrone overlay (saves ~5-15s on cold cache).
+    The full report (without ?fast) should be fetched in the background to enrich terrain data."""
 
     logger.info(f"get_report called for address_id={address_id}, db.pool={db.pool}")
 
@@ -373,10 +377,7 @@ async def get_report(request: Request, address_id: int):
         if not (report.get("scores") or {}).get("composite"):
             report = enrich_with_scores(report)
             dirty = True
-        # Re-run unit CV fix if not yet applied (stale cache from before rates cache fix)
-        if not report.get("_cv_from_rates"):
-            await _fix_unit_cv(report, address_id)
-            dirty = True
+        # _cv_from_rates check removed — CV is now fetched lazily via /rates endpoint
         if dirty:
             await cache_set(cache_key, orjson.dumps(report), ex=86400)
         return report
@@ -417,21 +418,26 @@ async def get_report(request: Request, address_id: int):
     report["area_profile"] = area_profile
     report["ai_summary"] = None  # fetched separately via /ai-summary
 
-    # Unit CV from rates cache
-    await _fix_unit_cv(report, address_id)
+    # Run all overlays concurrently — each writes to distinct report keys so no conflicts.
+    # CV is no longer fetched here — the frontend /rates endpoint handles it lazily.
+    # fast=True skips Valhalla terrain calls (~5-15s) for a quick first render;
+    # the frontend follows up with a full request to fill in terrain/walking_reach.
+    overlays = [
+        _overlay_transit_data(report, address_id),
+        _overlay_event_history(report, address_id),
+    ]
+    if not fast:
+        overlays.append(_overlay_terrain_data(report, address_id))
 
-    # Overlay universal transit data (metlink + AT + regional)
-    await _overlay_transit_data(report, address_id)
-
-    # Overlay terrain + walking isochrone data (elevation, slope, 10-min walk)
-    await _overlay_terrain_data(report, address_id)
-
-    # Overlay event history (weather events + earthquakes near property)
-    await _overlay_event_history(report, address_id)
+    await asyncio.gather(*overlays)
 
     # Re-enrich scores now that terrain + event_history are available
     # (terrain-inferred flood/wind boosts and event-history boosts need these fields)
     report = enrich_with_scores(report)
+
+    # Tag fast responses so the frontend knows terrain is pending
+    if fast:
+        report["_terrain_pending"] = True
 
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
@@ -1811,14 +1817,17 @@ async def _generate_pdf_background(
                             await conn_upd.execute(
                                 """
                                 UPDATE saved_reports SET share_token = %s
-                                WHERE user_id = %s AND address_id = %s
-                                  AND share_token IS NULL
-                                ORDER BY generated_at DESC LIMIT 1
+                                WHERE id = (
+                                    SELECT id FROM saved_reports
+                                    WHERE user_id = %s AND address_id = %s
+                                      AND share_token IS NULL
+                                    ORDER BY generated_at DESC LIMIT 1
+                                )
                                 """,
                                 [share_token, user_id, address_id],
                             )
-                    except Exception:
-                        pass
+                    except Exception as upd_err:
+                        logger.warning(f"Failed to update share_token in saved_reports for {user_id}/{address_id}: {upd_err}")
         except Exception as e:
             import traceback
             logger.warning(f"Snapshot generation failed for {address_id}: {e}\n{traceback.format_exc()}")
@@ -1858,6 +1867,27 @@ async def _generate_pdf_background(
 
         await set_job_completed(job_id, html, share_token=share_token)
         logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'}, hosted={'yes' if share_token else 'no'})")
+
+        # --- Send report-ready email ---
+        if share_token and user_id:
+            try:
+                from ..services.email import send_report_ready_email
+                async with db.pool.connection() as conn_email:
+                    cur_email = await conn_email.execute(
+                        "SELECT email FROM users WHERE user_id = %s", [user_id]
+                    )
+                    row_email = cur_email.fetchone()
+                if row_email and row_email["email"]:
+                    await asyncio.to_thread(
+                        send_report_ready_email,
+                        row_email["email"],
+                        full_address,
+                        share_token,
+                        persona,
+                        settings.FRONTEND_URL,
+                    )
+            except Exception as email_err:
+                logger.warning(f"Failed to send report-ready email for job {job_id}: {email_err}")
 
         # --- Phase 2: Background AI enrichment ---
         if ai_insights is None:

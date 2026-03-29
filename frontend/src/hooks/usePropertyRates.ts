@@ -1,7 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 
-export interface RatesData {
+export interface LiveRates {
   current_valuation?: {
     capital_value?: number;
     land_value?: number;
@@ -9,29 +9,29 @@ export interface RatesData {
   };
   rates_breakdown?: Array<{ name: string; amount: number }>;
   total_rates?: number;
-  [key: string]: unknown;
 }
 
 /**
- * Fetch live council rates/valuation for a property.
- * Called in parallel with the main report — fills in accurate CV after load.
- * On success, invalidates the property report cache so next render picks up updated CV.
+ * Lazily fetch live council rates for a property.
+ * Fires after the report has loaded. Supports all 25 councils.
+ * Returns null when the city has no rates integration (404).
+ *
+ * The caller is responsible for displaying the live CV in place of the DB CV.
+ * No report cache invalidation — the UI updates inline.
  */
 export function usePropertyRates(addressId: number | null, enabled: boolean = true) {
-  const queryClient = useQueryClient();
-
-  return useQuery({
+  return useQuery<LiveRates | null>({
     queryKey: ['property-rates', addressId],
     queryFn: async () => {
-      const data = await apiFetch<RatesData | null>(`/api/v1/property/${addressId}/rates`);
-      // Invalidate the property report query so it refetches with updated CV
-      if (data?.current_valuation?.capital_value) {
-        queryClient.invalidateQueries({ queryKey: ['property-report', addressId] });
+      try {
+        return await apiFetch<LiveRates>(`/api/v1/property/${addressId}/rates`);
+      } catch {
+        // 404 = no rates integration for this city — not an error
+        return null;
       }
-      return data;
     },
     enabled: addressId !== null && enabled,
-    staleTime: 60 * 60 * 1000, // 1h — matches backend cache
+    staleTime: 60 * 60 * 1000, // 1h
     retry: false,
   });
 }
