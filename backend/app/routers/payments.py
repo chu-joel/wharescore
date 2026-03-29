@@ -49,22 +49,20 @@ async def create_checkout_session(
     # Get or create Stripe customer for this user
     customer_id = await _get_or_create_customer(user_id)
 
-    # Map plan to Stripe price (legacy "single"→quick, "pack3"→full)
+    # Map plan to Stripe price
     price_map = {
-        "quick_single": settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE,
-        "full_single": settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3,
-        "single": settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE,
-        "pack3": settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3,
+        "quick_single": settings.STRIPE_PRICE_QUICK_SINGLE,
+        "full_single": settings.STRIPE_PRICE_FULL_SINGLE,
         "pro": settings.STRIPE_PRICE_PRO,
     }
-    price_id = price_map[body.plan]
+    price_id = price_map.get(body.plan)
     if not price_id:
         raise HTTPException(500, f"Stripe price not configured for plan: {body.plan}")
 
     # Determine report tier from plan
     plan_tier_map = {
-        "quick_single": "quick", "single": "quick",
-        "full_single": "full", "pack3": "full",
+        "quick_single": "quick",
+        "full_single": "full",
         "pro": "full",
     }
 
@@ -142,9 +140,9 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
 
     guest_tier = "quick" if body.plan == "quick_single" else "full"
     if guest_tier == "quick":
-        price_id = settings.STRIPE_PRICE_QUICK_SINGLE or settings.STRIPE_PRICE_SINGLE
+        price_id = settings.STRIPE_PRICE_QUICK_SINGLE
     else:
-        price_id = settings.STRIPE_PRICE_FULL_SINGLE or settings.STRIPE_PRICE_PACK3
+        price_id = settings.STRIPE_PRICE_FULL_SINGLE
     if not price_id:
         raise HTTPException(500, "Stripe price not configured for report")
 
