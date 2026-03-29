@@ -14,6 +14,9 @@ from ..config import settings
 logger = logging.getLogger(__name__)
 
 
+REPLY_TO = {"name": "WhareScore", "email": "wharescore@gmail.com"}
+
+
 def send_email(to: str, subject: str, html: str) -> bool:
     """Send a transactional email via Brevo. Returns True on success."""
     if not settings.BREVO_API_KEY:
@@ -32,6 +35,7 @@ def send_email(to: str, subject: str, html: str) -> bool:
         email = sib_api_v3_sdk.SendSmtpEmail(
             sender={"name": settings.EMAIL_FROM_NAME, "email": settings.EMAIL_FROM_ADDRESS},
             to=[{"email": to}],
+            reply_to=REPLY_TO,
             subject=subject,
             html_content=html,
         )
