@@ -66,7 +66,7 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          Unlock full report — $4.99
+          Unlock full report — $9.99
         </p>
       </button>
     </div>

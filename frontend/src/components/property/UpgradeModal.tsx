@@ -344,7 +344,7 @@ export function UpgradeModal() {
       const res = await fetch('/api/v1/checkout/guest-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address_id: targetAddressId, persona: targetPersona, plan: 'quick_single' }),
+        body: JSON.stringify({ address_id: targetAddressId, persona: targetPersona, plan: 'full_single' }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Failed to create checkout' }));
@@ -429,40 +429,6 @@ export function UpgradeModal() {
 
         {/* Pricing options */}
         <div className="grid gap-1.5 sm:gap-2">
-          {/* Quick Report */}
-          {quickCredits > 0 ? (
-            <button
-              onClick={() => handleUseCredit('quick')}
-              disabled={!!loading}
-              className="flex items-center justify-between rounded-lg border-2 border-piq-success/60 bg-piq-success/5 p-2.5 sm:p-3 text-left transition-all hover:border-piq-success hover:bg-piq-success/10 hover:shadow-md disabled:opacity-60"
-            >
-              <div>
-                <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs sm:text-sm font-bold text-piq-success">Use credit</span>
-                <p className="text-[10px] text-muted-foreground">{quickCredits} remaining</p>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => handlePurchase('quick_single')}
-              disabled={!!loading}
-              className="flex items-center justify-between rounded-lg border-2 border-border p-2.5 sm:p-3 text-left transition-all hover:border-piq-primary hover:bg-piq-primary/5 hover:shadow-md disabled:opacity-60"
-            >
-              <div>
-                <p className="text-xs sm:text-sm font-semibold">Quick Report</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Key insights at a glance</p>
-              </div>
-              {loading === 'quick_single' ? (
-                <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
-              ) : (
-                <span className="text-base sm:text-lg font-bold text-piq-primary">$4.99</span>
-              )}
-            </button>
-          )}
-
           {/* Full Report */}
           {fullCredits > 0 ? (
             <button
@@ -566,7 +532,7 @@ export function UpgradeModal() {
                   Redirecting...
                 </span>
               ) : (
-                'Continue without account — $4.99'
+                'Continue without account — $9.99'
               )}
             </button>
           </div>

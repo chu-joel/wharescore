@@ -79,20 +79,21 @@
 
 ### Quick Report (`/report/{token}`, component: `HostedQuickReport.tsx`, tier=quick)
 
-Rendered when `report_tier === 'quick'`. Single-column, no sidebar, ~8 sections. Same snapshot data, curated view.
+Rendered when `report_tier === 'quick'`. **Free with sign-in.** Single-column, no sidebar, 8 sections. Same snapshot data, curated lightweight view. Free on-screen=2 findings, Quick=3, Full=all.
 
 <!-- UPDATE: When adding a Quick Report section, add a row here. -->
 | Snapshot field | Component | Reused from Full? |
 |---|---|---|
 | `report.scores` | ScoreGauge + ScoreStrip | Yes (shared) |
-| `ai_insights.bottom_line, key_takeaways` | (inline in HostedQuickReport) | Subset |
+| `ai_insights.bottom_line, key_takeaways` | (inline in HostedQuickReport) | Subset (3 takeaways) |
 | `report.scores.categories` | HostedAtAGlance | Yes |
+| `report` | KeyFindings (maxFree=3) | Yes (capped at 3, Full shows all) |
 | `rent_baselines` / `price_advisor` | QuickVerdict | New (simplified) |
 | `report.hazards` | QuickHazardSummary | New (traffic lights) |
 | `school_zones` | HostedSchoolZones | Yes |
 | `nearby_highlights` | HostedNearbyHighlights | Yes |
 | `recommendations` | QuickActions | New (top 3 only) |
-| — | QuickUpgradeBanner | New (upgrade CTA) |
+| — | QuickUpgradeBanner | Wired to POST /report/{token}/upgrade → Stripe $9.99 checkout |
 
 ---
 

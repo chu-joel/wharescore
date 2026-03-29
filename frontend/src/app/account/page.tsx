@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { FileText, Download, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
@@ -12,11 +12,11 @@ import { safeRedirect } from '@/lib/utils';
 
 const PLAN_LABELS: Record<string, string> = {
   free: 'Free',
-  single: 'Single Report',
+  single: 'Full Report',
   pack3: '3-Pack',
   promo: 'Promo',
   pro: 'Pro',
-  quick_single: 'Quick Report',
+  quick_single: 'Quick (Free)',
   full_single: 'Full Report',
 };
 
@@ -27,6 +27,7 @@ interface SavedReport {
   persona: string;
   generated_at: string;
   share_token?: string | null;
+  report_tier?: 'quick' | 'full' | null;
 }
 
 export default function AccountPage() {
@@ -296,35 +297,65 @@ export default function AccountPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {reports.map((report) => (
-                <div
-                  key={report.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{report.full_address}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        Generated {new Date(report.generated_at).toLocaleDateString('en-NZ', {
-                          day: 'numeric', month: 'short', year: 'numeric',
-                        })}
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize">
-                        {report.persona}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleViewReport(report.id, report.share_token)}
-                    className="shrink-0 ml-2"
+              {reports.map((report) => {
+                const isQuick = report.report_tier === 'quick';
+                const isFull = report.report_tier === 'full';
+                return (
+                  <div
+                    key={report.id}
+                    className="rounded-lg border border-border overflow-hidden hover:bg-muted/50 transition-colors"
                   >
-                    {report.share_token ? <ExternalLink className="h-4 w-4 mr-1" /> : <Download className="h-4 w-4 mr-1" />}
-                    View
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between p-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{report.full_address}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            Generated {new Date(report.generated_at).toLocaleDateString('en-NZ', {
+                              day: 'numeric', month: 'short', year: 'numeric',
+                            })}
+                          </span>
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize">
+                            {report.persona}
+                          </span>
+                          {isQuick && (
+                            <span className="rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold">
+                              Quick
+                            </span>
+                          )}
+                          {isFull && (
+                            <span className="rounded-full bg-piq-primary/10 text-piq-primary px-2 py-0.5 text-[10px] font-semibold">
+                              Full
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewReport(report.id, report.share_token)}
+                        className="shrink-0 ml-2"
+                      >
+                        {report.share_token ? <ExternalLink className="h-4 w-4 mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+                        View
+                      </Button>
+                    </div>
+                    {isQuick && report.share_token && (
+                      <div className="border-t border-border bg-gradient-to-r from-piq-primary/5 to-transparent px-4 py-3 flex items-center justify-between gap-3">
+                        <p className="text-xs text-muted-foreground">
+                          Upgrade to Full for detailed hazard analysis, rent/price advisor, terrain data, and 25+ sections.
+                        </p>
+                        <a
+                          href={`/report/${report.share_token}`}
+                          className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Upgrade $5
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

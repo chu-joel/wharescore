@@ -116,7 +116,7 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
       icon: ShieldAlert,
       iconColor: 'text-red-500',
       message: `${totalRisks} risk findings affect this property. See the full hazard analysis.`,
-      cta: 'Unlock full report — $4.99',
+      cta: 'Unlock full report — $9.99',
     };
   }
 
@@ -125,7 +125,7 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
       icon: ShieldAlert,
       iconColor: 'text-amber-500',
       message: `${totalRisks} finding${totalRisks > 1 ? 's' : ''} to review before making a decision.`,
-      cta: 'Get the complete analysis — $4.99',
+      cta: 'Get the complete analysis — $9.99',
     };
   }
 
@@ -133,6 +133,6 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
     icon: TrendingUp,
     iconColor: 'text-piq-primary',
     message: 'Get the full 27-indicator analysis with AI insights and personalised recommendations.',
-    cta: 'Download full report — $4.99',
+    cta: 'Download full report — $9.99',
   };
 }

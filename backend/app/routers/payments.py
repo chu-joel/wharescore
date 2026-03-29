@@ -37,9 +37,9 @@ async def create_checkout_session(
     user_id: str = Depends(require_user),
 ):
     """Create a Stripe Checkout session. Returns checkout_url for redirect."""
-    valid_plans = ("quick_single", "full_single", "pro", "single", "pack3")
+    valid_plans = ("full_single", "pro", "single", "pack3")
     if body.plan not in valid_plans:
-        raise HTTPException(400, "Invalid plan. Must be quick_single, full_single, or pro.")
+        raise HTTPException(400, "Invalid plan. Must be full_single or pro.")
 
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
@@ -51,7 +51,6 @@ async def create_checkout_session(
 
     # Map plan to Stripe price
     price_map = {
-        "quick_single": settings.STRIPE_PRICE_QUICK_SINGLE,
         "full_single": settings.STRIPE_PRICE_FULL_SINGLE,
         "pro": settings.STRIPE_PRICE_PRO,
     }
@@ -61,7 +60,6 @@ async def create_checkout_session(
 
     # Determine report tier from plan
     plan_tier_map = {
-        "quick_single": "quick",
         "full_single": "full",
         "pro": "full",
     }
@@ -138,11 +136,8 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
 
-    guest_tier = "quick" if body.plan == "quick_single" else "full"
-    if guest_tier == "quick":
-        price_id = settings.STRIPE_PRICE_QUICK_SINGLE
-    else:
-        price_id = settings.STRIPE_PRICE_FULL_SINGLE
+    guest_tier = "full"  # Guests always get full reports ($9.99)
+    price_id = settings.STRIPE_PRICE_FULL_SINGLE
     if not price_id:
         raise HTTPException(500, "Stripe price not configured for report")
 

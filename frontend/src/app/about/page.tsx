@@ -96,8 +96,8 @@ export default function AboutPage() {
             <p className="text-sm text-muted-foreground mt-1">Score + top findings</p>
           </div>
           <div className="rounded-xl border border-border p-4 text-center">
-            <p className="text-2xl font-bold">$4.99</p>
-            <p className="text-sm text-muted-foreground mt-1">Quick Report</p>
+            <p className="text-2xl font-bold">Free</p>
+            <p className="text-sm text-muted-foreground mt-1">Quick Report (sign in)</p>
           </div>
           <div className="rounded-xl border border-piq-primary p-4 text-center ring-1 ring-piq-primary">
             <p className="text-2xl font-bold">$9.99</p>

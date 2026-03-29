@@ -88,7 +88,7 @@ async def upgrade_report_tier(
     share_token: str,
     user_id: str = Depends(optional_user),
 ):
-    """Upgrade a Quick report to Full. Creates a Stripe checkout for the $5 difference.
+    """Upgrade a Quick report to Full ($9.99). Quick reports are free with sign-in.
     Returns checkout_url for redirect. On payment completion, the webhook updates the tier."""
 
     if not share_token or len(share_token) < 8:
@@ -97,7 +97,7 @@ async def upgrade_report_tier(
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
 
-    price_id = settings.STRIPE_PRICE_UPGRADE
+    price_id = settings.STRIPE_PRICE_UPGRADE or settings.STRIPE_PRICE_FULL_SINGLE
     if not price_id:
         raise HTTPException(500, "Upgrade price not configured")
 

@@ -122,10 +122,18 @@ async def get_saved_reports(
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT id, address_id, full_address, persona, generated_at, share_token
-            FROM saved_reports
-            WHERE user_id = %s
-            ORDER BY generated_at DESC
+            SELECT sr.id, sr.address_id, sr.full_address, sr.persona,
+                   sr.generated_at, sr.share_token,
+                   rs.report_tier
+            FROM saved_reports sr
+            LEFT JOIN LATERAL (
+                SELECT report_tier
+                FROM report_snapshots
+                WHERE address_id = sr.address_id
+                ORDER BY created_at DESC LIMIT 1
+            ) rs ON sr.share_token IS NOT NULL
+            WHERE sr.user_id = %s
+            ORDER BY sr.generated_at DESC
             LIMIT %s OFFSET %s
             """,
             [user_id, per_page, offset],

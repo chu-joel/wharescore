@@ -13,6 +13,7 @@ import { QuickVerdict } from './QuickVerdict';
 import { QuickUpgradeBanner } from './QuickUpgradeBanner';
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
+import { KeyFindings } from '@/components/property/KeyFindings';
 import { getRatingBin } from '@/lib/constants';
 import { formatCurrency } from '@/lib/format';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
@@ -157,7 +158,12 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           <HostedAtAGlance report={report} />
         </div>
 
-        {/* ═══ 3. RENT/PRICE VERDICT ═══ */}
+        {/* ═══ 3. KEY FINDINGS (top 3 — upgrade for all) ═══ */}
+        <div className="pb-6">
+          <KeyFindings report={report} maxFree={3} persona={persona} />
+        </div>
+
+        {/* ═══ 4. RENT/PRICE VERDICT ═══ */}
         <div className="pb-6">
           <QuickVerdict
             snapshot={snapshot}

@@ -110,8 +110,8 @@ BEGIN
       ttt.destination, ttt.min_minutes, ttt.route_names
     FROM metlink_stops ms
     JOIN transit_travel_times ttt ON ttt.stop_id = ms.stop_id
-    WHERE ms.geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(ms.geom::geography, addr_geom::geography, 400)
+    WHERE ms.geom && ST_Expand(addr_geom, 0.01)
+      AND ST_DWithin(ms.geom::geography, addr_geom::geography, 800)
     ORDER BY ttt.destination, ttt.min_minutes
   ) best;
 
@@ -128,8 +128,8 @@ BEGIN
         att.destination, att.min_minutes, att.route_names
       FROM at_stops ats
       JOIN at_travel_times att ON att.stop_id = ats.stop_id
-      WHERE ats.geom && ST_Expand(addr_geom, 0.005)
-        AND ST_DWithin(ats.geom::geography, addr_geom::geography, 400)
+      WHERE ats.geom && ST_Expand(addr_geom, 0.01)
+        AND ST_DWithin(ats.geom::geography, addr_geom::geography, 800)
       ORDER BY att.destination, att.min_minutes
     ) best;
   END IF;
@@ -147,8 +147,8 @@ BEGIN
         ttt.destination, ttt.min_minutes, ttt.route_names
       FROM transit_stops ts
       JOIN transit_travel_times ttt ON ttt.stop_id = ts.stop_id
-      WHERE ts.geom && ST_Expand(addr_geom, 0.005)
-        AND ST_DWithin(ts.geom::geography, addr_geom::geography, 400)
+      WHERE ts.geom && ST_Expand(addr_geom, 0.01)
+        AND ST_DWithin(ts.geom::geography, addr_geom::geography, 800)
       ORDER BY ttt.destination, ttt.min_minutes
     ) best;
   END IF;
@@ -158,8 +158,8 @@ BEGIN
   INTO peak_freq, nearest_stop
   FROM metlink_stops ms2
   JOIN transit_stop_frequency tsf ON tsf.stop_id = ms2.stop_id
-  WHERE ms2.geom && ST_Expand(addr_geom, 0.005)
-    AND ST_DWithin(ms2.geom::geography, addr_geom::geography, 400)
+  WHERE ms2.geom && ST_Expand(addr_geom, 0.01)
+    AND ST_DWithin(ms2.geom::geography, addr_geom::geography, 800)
   ORDER BY tsf.peak_trips_per_hour DESC
   LIMIT 1;
 
@@ -168,8 +168,8 @@ BEGIN
     INTO peak_freq, nearest_stop
     FROM at_stops ats2
     JOIN at_stop_frequency atsf ON atsf.stop_id = ats2.stop_id
-    WHERE ats2.geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(ats2.geom::geography, addr_geom::geography, 400)
+    WHERE ats2.geom && ST_Expand(addr_geom, 0.01)
+      AND ST_DWithin(ats2.geom::geography, addr_geom::geography, 800)
     ORDER BY atsf.peak_trips_per_hour DESC
     LIMIT 1;
   END IF;
@@ -179,8 +179,8 @@ BEGIN
     INTO peak_freq, nearest_stop
     FROM transit_stops ts2
     JOIN transit_stop_frequency tsf2 ON tsf2.stop_id = ts2.stop_id
-    WHERE ts2.geom && ST_Expand(addr_geom, 0.005)
-      AND ST_DWithin(ts2.geom::geography, addr_geom::geography, 400)
+    WHERE ts2.geom && ST_Expand(addr_geom, 0.01)
+      AND ST_DWithin(ts2.geom::geography, addr_geom::geography, 800)
     ORDER BY tsf2.peak_trips_per_hour DESC
     LIMIT 1;
   END IF;

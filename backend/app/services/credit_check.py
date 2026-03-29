@@ -75,6 +75,20 @@ async def require_paid_user(
         if requested_tier not in ("quick", "full"):
             requested_tier = "full"
 
+        # Quick reports are free for signed-in users — no credits needed
+        if requested_tier == "quick":
+            return CreditInfo(
+                user_id=user_id,
+                plan=plan,
+                credit_id=None,
+                credits_remaining=None,
+                daily_limit=None,
+                monthly_limit=None,
+                downloads_today=0,
+                downloads_this_month=0,
+                report_tier="quick",
+            )
+
         # Get active credits — prefer matching tier, fall back to any (for Pro/promo)
         cur = await conn.execute(
             """

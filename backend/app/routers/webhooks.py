@@ -90,7 +90,7 @@ async def _handle_checkout_completed(session: dict):
                 properties={"plan": plan, "customer_id": customer_id, "report_tier": report_tier})
 
     async with db.pool.connection() as conn:
-        if plan in ("single", "quick_single"):
+        if plan in ("single", "quick_single", "full_single"):
             await conn.execute(
                 """
                 INSERT INTO report_credits (user_id, credit_type, credits_remaining,

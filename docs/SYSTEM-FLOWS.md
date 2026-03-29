@@ -133,17 +133,17 @@ Admin page load → AdminAuthGate checks session
 | Plan | Price | Credits | Report Tier | Limits | Stripe mode |
 |------|-------|---------|-------------|--------|-------------|
 | free | $0 | 0 | — | — | — |
-| quick_single | $4.99 | 1 report | Quick (~8 sections) | No expiry | One-time payment |
+| quick (free) | $0 | Free with sign-in | Quick (~8 sections) | Unlimited | No payment |
 | full_single | $9.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
-| pro | $99/mo | Unlimited | Full | 10/day, 30/month | Subscription |
+| pro | $140/mo | Unlimited | Full | 10/day, 30/month | Subscription |
 | promo | Free | 1 per redemption | Full | Per-code max | Via redeem-promo |
-| upgrade | $5.00 | — | Quick→Full | Per-snapshot | One-time payment |
+| upgrade | $9.99 | — | Quick→Full | Per-snapshot | One-time payment |
 
 ### Report tiers
-- **Quick Report** ($4.99): Score, AI verdict, RAG grid, rent/price band, hazard summary, schools, neighbourhood highlights, top 3 actions. Single-column, no sidebar.
+- **Quick Report** (free, sign-in required): Score, AI bottom line, RAG grid, 3 key findings, rent/price band, hazard summary, schools, neighbourhood highlights, top actions. Single-column, no sidebar. Shareable hosted link + printable PDF.
 - **Full Report** ($9.99): All 25+ sections with full detail, interactive sidebar, rent/price methodology, hazard intelligence timeline, terrain analysis, neighbourhood deep-dive.
 - Same snapshot data — tier controls frontend rendering only. Stored as `report_tier` column on `report_snapshots`.
-- Upgrade: `POST /report/{token}/upgrade` creates Stripe checkout for $5.00 difference. Webhook updates `report_tier` to `'full'` on same snapshot row.
+- Upgrade: `POST /report/{token}/upgrade` creates Stripe checkout for $9.99. Webhook updates `report_tier` to `'full'` on same snapshot row.
 
 ### Authenticated purchase flow
 ```

@@ -53,7 +53,30 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // Everyone else → UpgradeModal (unified report picker: use credits OR purchase)
+    // Signed-in users with credits → ReportConfirmModal (choose Quick free or Full with credit)
+    if (gate.isAuthenticated && gate.credits && gate.credits.plan !== 'free' && (gate.credits.creditsRemaining ?? 0) > 0) {
+      set({ _pendingToken: token ?? null });
+      useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
+        get()._doExport(addressId, get()._pendingToken, tier);
+      });
+      return;
+    }
+
+    // Signed-in users without credits → generate free Quick Report directly
+    if (gate.isAuthenticated) {
+      set({ _pendingToken: token ?? null });
+      useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
+        if (tier === 'full') {
+          // Need to purchase — show UpgradeModal
+          gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+        } else {
+          get()._doExport(addressId, get()._pendingToken, 'quick');
+        }
+      });
+      return;
+    }
+
+    // Not signed in → UpgradeModal (sign-in prompt + purchase options)
     gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
   },
 

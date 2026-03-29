@@ -33,18 +33,18 @@ const RENTER_CONTENTS = [
 function getSubheadline(persona: 'buyer' | 'renter', capitalValue?: number | null, medianRent?: number | null): string {
   if (persona === 'renter') {
     if (medianRent) {
-      return `$4.99 before you commit to $${medianRent}/week`;
+      return `$9.99 before you commit to $${medianRent}/week`;
     }
-    return '$4.99 to know before you sign the lease';
+    return '$9.99 to know before you sign the lease';
   }
   // Buyer
   if (capitalValue && capitalValue >= 100_000) {
     const formatted = capitalValue >= 1_000_000
       ? `$${(capitalValue / 1_000_000).toFixed(1)}M`
       : `$${(capitalValue / 1_000).toFixed(0)}k`;
-    return `$4.99 to protect a ${formatted} decision`;
+    return `$9.99 to protect a ${formatted} decision`;
   }
-  return '$4.99 to protect your biggest investment';
+  return '$9.99 to protect your biggest investment';
 }
 
 export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRent }: ReportCTABannerProps) {
@@ -79,7 +79,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
         {pdf.isGenerating ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating Report...</>
         ) : (
-          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — $4.99</>
+          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — $9.99</>
         )}
       </Button>
       <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
