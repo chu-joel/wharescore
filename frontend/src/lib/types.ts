@@ -700,6 +700,7 @@ export interface ReportSnapshot {
   }>;
   meta: SnapshotMeta;
   report_tier?: 'quick' | 'full';
+  expires_at?: string | null;
 }
 
 // --- Feedback ---

@@ -248,7 +248,7 @@ async def _handle_upgrade(session: dict, metadata: dict):
 
     async with db.pool.connection() as conn:
         await conn.execute(
-            "UPDATE report_snapshots SET report_tier = 'full' WHERE id = %s AND report_tier = 'quick'",
+            "UPDATE report_snapshots SET report_tier = 'full', expires_at = NULL WHERE id = %s AND report_tier = 'quick'",
             [int(snapshot_id)],
         )
 

@@ -71,9 +71,11 @@ async def get_report_snapshot(request: Request, share_token: str):
     snapshot = row["snapshot_json"]
     report_tier = row.get("report_tier", "full")
 
-    # Inject tier into response (not into snapshot JSONB itself)
+    # Inject tier + expiry into response (not into snapshot JSONB itself)
     response_data = snapshot if isinstance(snapshot, dict) else {}
     response_data["report_tier"] = report_tier
+    if row.get("expires_at"):
+        response_data["expires_at"] = row["expires_at"].isoformat()
 
     # Cache in Redis for 1 hour (snapshots are immutable)
     await cache_set(cache_key, orjson.dumps(response_data, default=str).decode(), ex=3600)

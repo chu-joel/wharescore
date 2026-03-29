@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, Clock, Sparkles } from 'lucide-react';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
 import { HostedAtAGlance } from './HostedAtAGlance';
@@ -193,8 +193,40 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           <QuickActions snapshot={snapshot} persona={persona} />
         </div>
 
-        {/* ═══ UPGRADE BANNER ═══ */}
-        <div className="pb-6">
+        {/* ═══ EXPIRY WARNING + UPGRADE BANNER ═══ */}
+        {(() => {
+          if (!snapshot.expires_at) return null;
+          const expiresAt = new Date(snapshot.expires_at);
+          const now = new Date();
+          const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysLeft > 7) return null; // Only show warning in last 7 days
+          const isUrgent = daysLeft <= 3;
+          return (
+            <div className={`pb-4 rounded-xl border-2 ${isUrgent ? 'border-red-500/40 bg-red-50 dark:bg-red-950/20' : 'border-amber-500/40 bg-amber-50 dark:bg-amber-950/20'} p-4 flex items-start gap-3`}>
+              <Clock className={`h-5 w-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+              <div className="flex-1 space-y-1">
+                <p className={`text-sm font-semibold ${isUrgent ? 'text-red-800 dark:text-red-300' : 'text-amber-800 dark:text-amber-300'}`}>
+                  {daysLeft <= 0
+                    ? 'This report expires today'
+                    : `This report expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Quick Reports are available for 30 days. Upgrade to a Full Report to keep it permanently
+                  and unlock 25+ sections of detailed analysis.
+                </p>
+                <a
+                  href="#upgrade"
+                  onClick={(e) => { e.preventDefault(); document.getElementById('upgrade-banner')?.scrollIntoView({ behavior: 'smooth' }); }}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-piq-primary hover:underline mt-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Upgrade to Full Report — $9.99
+                </a>
+              </div>
+            </div>
+          );
+        })()}
+        <div className="pb-6" id="upgrade-banner">
           <QuickUpgradeBanner token={token} />
         </div>
 

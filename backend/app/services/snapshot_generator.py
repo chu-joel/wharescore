@@ -1511,13 +1511,14 @@ async def create_report_snapshot(
         """
         INSERT INTO report_snapshots
             (address_id, full_address, persona,
-             share_token_hash, snapshot_json, inputs_at_purchase, report_tier, created_at)
-        VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, now())
+             share_token_hash, snapshot_json, inputs_at_purchase, report_tier, created_at, expires_at)
+        VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, now(),
+                CASE WHEN %s = 'quick' THEN now() + interval '30 days' ELSE NULL END)
         """,
         [
             address_id, full_address, persona,
             token_hash, snapshot_bytes.decode(), orjson.dumps(inputs_at_purchase or {}).decode(),
-            report_tier,
+            report_tier, report_tier,
         ],
     )
 

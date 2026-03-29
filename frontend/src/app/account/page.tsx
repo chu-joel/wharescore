@@ -28,6 +28,7 @@ interface SavedReport {
   generated_at: string;
   share_token?: string | null;
   report_tier?: 'quick' | 'full' | null;
+  expires_at?: string | null;
 }
 
 export default function AccountPage() {
@@ -339,20 +340,28 @@ export default function AccountPage() {
                         View
                       </Button>
                     </div>
-                    {isQuick && report.share_token && (
-                      <div className="border-t border-border bg-gradient-to-r from-piq-primary/5 to-transparent px-4 py-3 flex items-center justify-between gap-3">
-                        <p className="text-xs text-muted-foreground">
-                          Upgrade to Full for detailed hazard analysis, rent/price advisor, terrain data, and 25+ sections.
-                        </p>
-                        <a
-                          href={`/report/${report.share_token}`}
-                          className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Upgrade $5
-                        </a>
-                      </div>
-                    )}
+                    {isQuick && report.share_token && (() => {
+                      const daysLeft = report.expires_at
+                        ? Math.ceil((new Date(report.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                        : null;
+                      const isExpiring = daysLeft !== null && daysLeft <= 7;
+                      return (
+                        <div className={`border-t px-4 py-3 flex items-center justify-between gap-3 ${isExpiring ? 'border-amber-300 bg-gradient-to-r from-amber-50 to-transparent dark:from-amber-950/20' : 'border-border bg-gradient-to-r from-piq-primary/5 to-transparent'}`}>
+                          <p className="text-xs text-muted-foreground">
+                            {isExpiring
+                              ? `Expires in ${daysLeft! <= 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} — upgrade to keep permanently with 25+ sections.`
+                              : 'Upgrade to Full for hazard analysis, rent/price advisor, terrain data, and 25+ sections.'}
+                          </p>
+                          <a
+                            href={`/report/${report.share_token}`}
+                            className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Upgrade $9.99
+                          </a>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

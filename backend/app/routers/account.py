@@ -124,10 +124,10 @@ async def get_saved_reports(
             """
             SELECT sr.id, sr.address_id, sr.full_address, sr.persona,
                    sr.generated_at, sr.share_token,
-                   rs.report_tier
+                   rs.report_tier, rs.expires_at
             FROM saved_reports sr
             LEFT JOIN LATERAL (
-                SELECT report_tier
+                SELECT report_tier, expires_at
                 FROM report_snapshots
                 WHERE address_id = sr.address_id
                 ORDER BY created_at DESC LIMIT 1
