@@ -1,3 +1,12 @@
+# ┌─────────────────────────────────────────────────────────────┐
+# │  .env.prod is generated from GitHub Secrets on every deploy │
+# │  To add/change an env var:                                  │
+# │    1. Go to repo Settings > Secrets and variables > Actions │
+# │    2. Add or update the secret                              │
+# │    3. Add it to the `env:` and `envs:` sections below       │
+# │    4. Add the line to the "Writing .env.prod" heredoc       │
+# │  DO NOT edit .env.prod on the VM — it will be overwritten   │
+# └─────────────────────────────────────────────────────────────┘
 name: Deploy to Azure VM
 
 on:
@@ -14,11 +23,36 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          # All secrets passed as env vars to the SSH session
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          MBIE_API_KEY: ${{ secrets.MBIE_API_KEY }}
+          LINZ_API_KEY: ${{ secrets.LINZ_API_KEY }}
+          NEXT_PUBLIC_LINZ_API_KEY: ${{ secrets.LINZ_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          ADMIN_PASSWORD_HASH: ${{ secrets.ADMIN_PASSWORD_HASH }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_SINGLE: ${{ secrets.STRIPE_PRICE_SINGLE }}
+          STRIPE_PRICE_PACK3: ${{ secrets.STRIPE_PRICE_PACK3 }}
+          STRIPE_PRICE_PRO: ${{ secrets.STRIPE_PRICE_PRO }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_KEY }}
+          METROINFO_API_KEY: ${{ secrets.METROINFO_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: wharescore
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          envs: POSTGRES_USER,POSTGRES_PASSWORD,REDIS_PASSWORD,AUTH_SECRET,AUTH_GOOGLE_ID,AUTH_GOOGLE_SECRET,MBIE_API_KEY,LINZ_API_KEY,NEXT_PUBLIC_LINZ_API_KEY,AZURE_OPENAI_ENDPOINT,AZURE_OPENAI_API_KEY,AZURE_OPENAI_DEPLOYMENT,ADMIN_PASSWORD_HASH,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,STRIPE_PRICE_SINGLE,STRIPE_PRICE_PACK3,STRIPE_PRICE_PRO,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,NEXT_PUBLIC_GOOGLE_MAPS_KEY,METROINFO_API_KEY,RESEND_API_KEY
           script: |
             set -e
             COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.prod"
@@ -28,9 +62,38 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            echo "==> Writing .env.prod from GitHub Secrets"
+            cat > .env.prod << 'ENVEOF'
+            POSTGRES_USER=${POSTGRES_USER}
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            REDIS_PASSWORD=${REDIS_PASSWORD}
+            AUTH_SECRET=${AUTH_SECRET}
+            AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+            AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+            AUTH_URL=https://wharescore.co.nz
+            FRONTEND_URL=https://wharescore.co.nz
+            CORS_ORIGINS=["https://wharescore.co.nz","https://wharescore.australiaeast.cloudapp.azure.com"]
+            ALLOWED_HOSTS=["*"]
+            MBIE_API_KEY=${MBIE_API_KEY}
+            LINZ_API_KEY=${LINZ_API_KEY}
+            NEXT_PUBLIC_LINZ_API_KEY=${NEXT_PUBLIC_LINZ_API_KEY}
+            AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+            AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+            AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
+            ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+            STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+            STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+            STRIPE_PRICE_SINGLE=${STRIPE_PRICE_SINGLE}
+            STRIPE_PRICE_PACK3=${STRIPE_PRICE_PACK3}
+            STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+            NEXT_PUBLIC_GOOGLE_MAPS_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_KEY}
+            METROINFO_API_KEY=${METROINFO_API_KEY}
+            RESEND_API_KEY=${RESEND_API_KEY}
+            ENVEOF
+
             echo "==> Stopping all running services"
             $COMPOSE down --remove-orphans --timeout 15 2>/dev/null || true
-            # Clean up any orphaned containers from previous deploys
             docker rm -f app-postgres-1 app-api-1 app-web-1 app-martin-1 app-valhalla-1 app-redis-1 2>/dev/null || true
 
             echo "==> Pruning old images to free disk space"
