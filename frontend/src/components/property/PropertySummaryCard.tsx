@@ -89,9 +89,9 @@ export function PropertySummaryCard({
         const isEstimated = isMulti && units > 1 && !alreadyPerUnit;
         parts.push(`${isEstimated ? '~' : 'CV: '}$${(displayCv / 1000).toFixed(0)}k${isEstimated ? ' est.' : ''}`);
       }
-      if (market.rent_assessment?.median && effectiveCv) {
+      if (market.rent_assessment?.median && effectiveCV) {
         const annualRent = market.rent_assessment.median * 52;
-        const grossYield = (annualRent / effectiveCv) * 100;
+        const grossYield = (annualRent / effectiveCV) * 100;
         parts.push(`Est. yield: ${grossYield.toFixed(1)}%`);
       }
       return parts.length > 0 ? parts.join(' · ') : null;
