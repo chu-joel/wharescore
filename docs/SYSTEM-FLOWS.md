@@ -16,9 +16,9 @@
 - SHOW: Overall score (0-100 with colour), 5 category scores (Risk, Area, Market, Transit, Planning), first 2 key findings with full detail, basic overview of each question section (hazards, neighbourhood, transport, market, planning), AI summary preview, CV and property details
 - GATE (blur/lock with count badge): Findings beyond first 2 (show "X more findings" count — creates urgency), PM transit times, HPI trend chart, detailed rent/price analysis
 - NEVER SHOW (hosted-report-only): Rent advisor, price advisor, school zones, DOC facilities, road noise detail, weather history, hazard-specific advice, actionable recommendations, neighbourhood stats, infrastructure detail, healthy homes — these are the premium value
-- DATA: Uses live API call (`GET /property/{id}/report`), cached 24h. Live council rates API for CV. Transit overlay for all cities. AI summary fetched separately.
+- DATA: Uses live API call (`GET /property/{id}/report?fast=true` first, then full in background). CV fetched lazily via `/property/{id}/rates`. Transit overlay for all cities. AI summary fetched separately.
 - PERSONA: Toggle between renter/buyer changes which questions show and finding priority order. The toggle should be prominent — users should feel the report adapts to them.
-- CONVERSION: Every gated section should make the value of upgrading obvious. "3 critical risks found — unlock full report to see details" not just a generic blur.
+- CONVERSION: Every gated section should make the value of upgrading obvious. "3 critical risks found — unlock full report to see details" not just a generic blur. CTAs show $9.99 (Full Report). Signed-in users can get a free Quick Report (8 sections, 30-day expiry).
 
 ### Paid Hosted Report (`/report/{token}`)
 **Purpose:** This is the product people pay money for. It must be professional, comprehensive, truthful, and actionable. The user should finish reading it and know exactly what to do next — whether to proceed with the property, what to investigate further, what risks to price in, and what questions to ask the landlord/agent. It replaces the need for hours of manual research.
@@ -206,29 +206,31 @@ Hardcoded in `account.py` `_PROMO_CODES` dict:
 - `WHARESCOREJOEL`: 1 Full report credit, 999 max uses per user
 - `WHARESCOREPONY`: 1 Quick report credit, 10 max uses per user
 
-### Report export flow (unified tier picker + credit deduction)
+### Report export flow (tiered: Quick free, Full $9.99)
 ```
 User clicks Generate Report → usePdfExport.startExport()
-  → Pro user? → straight to ReportConfirmModal(tier=full) → generate
-  → Everyone else → UpgradeModal (unified report picker)
-     → Each tier card shows "Use credit (X remaining)" OR "$4.99/$9.99"
-     → Click "Use credit" → close UpgradeModal → open ReportConfirmModal(tier)
-     → Click price → Stripe checkout (existing purchase flow)
+  → Pro user? → ReportConfirmModal(tier=full) → generate
+  → Signed-in with credits? → ReportConfirmModal (choose Quick free or Full with credit)
+  → Signed-in without credits? → ReportConfirmModal (Quick free only; Full → UpgradeModal)
+  → Not signed in? → UpgradeModal (sign-in prompt + $9.99 Full purchase)
   → ReportConfirmModal: user fills dwelling type, bedrooms, etc.
-  → User clicks "Generate Quick/Full Report" → _doExport(addr, token, tier) fires
-  → ALWAYS fetches FRESH token (pre-modal token may have expired)
+  → User clicks Generate → _doExport(addr, token, tier) fires
+  → Toast: "Generating your report... We'll email you a link"
   → POST /property/{id}/export/pdf/start?report_tier={tier} with Bearer token
-  → Backend: require_paid_user finds credit matching requested tier
-  → If 401/403 AND user has credits: show "Session expired" toast
-  → If 401/403 AND no credits: show UpgradeModal
+  → Backend: require_paid_user — Quick tier skips credit check (free with auth),
+    Full tier requires credits as before
   → Poll status every 2s (up to 90 attempts)
-  → On completed: deductCredit(tier) or recordDownload(), navigate to hosted report
+  → On completed: toast "Your report is ready!" with "Go to report" link
+    (no auto-navigation — user stays on current page)
   → Backend (Phase 1 complete): send_report_ready_email() fires if user has email
-     → Brevo transactional email with "View Report" button → /report/{share_token}
-     → No-op in dev (BREVO_API_KEY not set); silently skipped if email send fails
+     → Brevo email with "View Report" + "or access from My Reports" links
+  → My Reports shows "Generating..." placeholder until share_token populated
+
+Quick reports: expires_at = now() + 30 days. Warning shown in last 7 days.
+Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expiry.
 ```
 
-**Key files:** `routers/checkout.py` (Stripe sessions + webhooks), `routers/account.py` (credits, promo), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + token refresh), `UpgradeModal.tsx` (purchase UI), `services/email.py` (send_report_ready_email)
+**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + toasts), `UpgradeModal.tsx` (purchase UI — Full $9.99 + Pro only, no Quick card), `services/email.py` (send_report_ready_email)
 
 ---
 

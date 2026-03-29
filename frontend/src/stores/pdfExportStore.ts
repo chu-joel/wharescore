@@ -214,12 +214,15 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             gateState.deductCredit(tier);
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
-          // Show completion toast with link to My Reports
+          // Show completion toast with link to the report
           toast.success('Your report is ready!', {
-            description: 'We\'ll also email you a link. View it anytime from My Reports.',
+            description: 'Also emailed to you. Available anytime in My Reports.',
             duration: 10000,
-            action: {
-              label: 'Go to My Reports',
+            action: status.share_url ? {
+              label: 'Go to report',
+              onClick: () => { window.location.href = status.share_url; },
+            } : {
+              label: 'My Reports',
               onClick: () => { window.location.href = '/account'; },
             },
           });
