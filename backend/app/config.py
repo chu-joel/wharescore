@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # Valhalla routing engine (walking isochrones + elevation)
     VALHALLA_URL: str = "http://valhalla:8002"
 
+    # Resend (email OTP + report delivery)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "WhareScore <noreply@wharescore.co.nz>"
+
     # Christchurch Metro GTFS (register at apidevelopers.metroinfo.co.nz)
     METROINFO_API_KEY: str = ""
 

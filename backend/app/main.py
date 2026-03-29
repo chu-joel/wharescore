@@ -158,3 +158,6 @@ app.include_router(budget.router, prefix="/api/v1")
 
 from .routers import events
 app.include_router(events.router, prefix="/api/v1")
+
+from .routers import auth_otp
+app.include_router(auth_otp.router)
