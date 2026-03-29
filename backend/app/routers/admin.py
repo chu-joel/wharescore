@@ -10,7 +10,7 @@ import re
 import logging
 
 import orjson
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from psycopg import sql
 
