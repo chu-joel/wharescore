@@ -50,6 +50,9 @@ test_report.html
 tools/martin/*.exe
 tools/martin/*.zip
 
+# VM dashboard (local-only tool)
+tools/vm-dashboard/
+
 # Server logs
 *.log
 

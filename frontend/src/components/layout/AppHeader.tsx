@@ -126,15 +126,13 @@ export function AppHeader() {
               </Button>
             </>
           ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => signIn('google')}
+            <a
+              href="/signin"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
               aria-label="Sign in"
             >
               <LogIn className="h-4 w-4" />
-            </Button>
+            </a>
           )}
 
           <Button
