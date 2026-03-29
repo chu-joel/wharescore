@@ -841,27 +841,28 @@ async def get_area_feed(request: Request, address_id: int):
         results.sort(key=lambda e: e["timestamp"], reverse=True)
         return results
 
-    def _fetch_nema_alerts() -> list[dict]:
-        """Fetch NEMA CAP/Atom emergency alerts."""
+    def _fetch_metservice_warnings() -> list[dict]:
+        """Fetch MetService CAP/Atom weather warnings (watches, warnings, advisories).
+
+        MetService publishes a CC-BY-4.0 CAP Atom feed at:
+          https://alerts.metservice.com/cap/atom
+        Each <entry> has a title, summary, and category. We filter by region relevance.
+        """
         try:
             resp = req_lib.get(
-                "https://api.preparedness.nema.govt.nz/api/v1/cap-feed",
+                "https://alerts.metservice.com/cap/atom",
                 timeout=10,
             )
             resp.raise_for_status()
             raw_xml = resp.text
         except Exception as e:
-            logger.warning(f"NEMA alert fetch failed: {e}")
+            logger.warning(f"MetService CAP fetch failed: {e}")
             return []
 
         results = []
         try:
             root = ET.fromstring(raw_xml)
-            # CAP Atom feed namespaces
-            ns = {
-                "atom": "http://www.w3.org/2005/Atom",
-                "cap": "urn:oasis:names:tc:emergency:cap:1.2",
-            }
+            ns = {"atom": "http://www.w3.org/2005/Atom"}
 
             for entry in root.findall(".//atom:entry", ns):
                 title_el = entry.find("atom:title", ns)
@@ -872,26 +873,24 @@ async def get_area_feed(request: Request, address_id: int):
                 summary = summary_el.text if summary_el is not None else ""
                 updated = updated_el.text if updated_el is not None else ""
 
-                # Check if alert is relevant to this property's region/city/TA
+                # Check if alert is relevant to this property's region/city
                 text_blob = f"{title} {summary}".lower()
                 is_relevant = False
-                for term in [city_lower, ta_lower]:
+                for term in [city_lower, ta_lower, ms_region.lower() if ms_region else ""]:
                     if term and term in text_blob:
                         is_relevant = True
                         break
-                # Also check for national-level alerts
                 if "new zealand" in text_blob or "nationwide" in text_blob:
                     is_relevant = True
-
                 if not is_relevant:
                     continue
 
-                # Determine severity from title/summary keywords
+                # Determine severity from title keywords
                 severity = "info"
-                text_upper = text_blob.upper()
-                if any(w in text_upper for w in ["EXTREME", "EMERGENCY", "EVACUAT"]):
+                title_upper = title.upper()
+                if any(w in title_upper for w in ["EXTREME", "EMERGENCY", "EVACUAT", "RED"]):
                     severity = "critical"
-                elif any(w in text_upper for w in ["WARNING", "SEVERE", "WATCH"]):
+                elif any(w in title_upper for w in ["WARNING", "SEVERE"]):
                     severity = "warning"
 
                 try:
@@ -900,104 +899,17 @@ async def get_area_feed(request: Request, address_id: int):
                     ts = now
 
                 results.append({
-                    "source": "nema",
-                    "type": "emergency_alert",
+                    "source": "metservice",
+                    "type": "weather_warning",
                     "severity": severity,
-                    "title": title.strip() if title else "Emergency Alert",
+                    "title": title.strip() if title else "Weather Alert",
                     "description": (summary.strip() if summary else "")[:500],
                     "timestamp": ts.isoformat(),
                     "distance_km": None,
                     "active": True,
                 })
         except ET.ParseError as e:
-            logger.warning(f"NEMA XML parse failed: {e}")
-
-        return results
-
-    def _fetch_metservice_warnings() -> list[dict]:
-        """Fetch MetService severe weather warnings."""
-        if not ms_region:
-            return []
-        try:
-            resp = req_lib.get(
-                "https://www.metservice.com/publicData/webdata/warnings/all",
-                timeout=10,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as e:
-            logger.warning(f"MetService fetch failed: {e}")
-            return []
-
-        results = []
-        region_lower = ms_region.lower()
-
-        # MetService returns varying structures — try to handle robustly
-        warnings_list = []
-        if isinstance(data, dict):
-            # Could be nested under various keys
-            for key in ("warnings", "watches", "all"):
-                val = data.get(key)
-                if isinstance(val, list):
-                    warnings_list.extend(val)
-            # Sometimes the whole dict is a single region map
-            if not warnings_list:
-                for key, val in data.items():
-                    if isinstance(val, list):
-                        warnings_list.extend(val)
-                    elif isinstance(val, dict) and isinstance(val.get("warnings"), list):
-                        warnings_list.extend(val["warnings"])
-        elif isinstance(data, list):
-            warnings_list = data
-
-        for w in warnings_list:
-            if not isinstance(w, dict):
-                continue
-
-            # Check if this warning applies to our region
-            w_text = orjson.dumps(w).decode().lower()
-            if region_lower not in w_text and city_lower not in w_text:
-                continue
-
-            w_type = w.get("type", w.get("warningType", "Weather Warning"))
-            threat = w.get("threat_level", w.get("threatLevel", w.get("severity", "")))
-            text = w.get("text", w.get("body", w.get("description", "")))
-            valid_from = w.get("valid_from", w.get("validFrom", w.get("onset", "")))
-            valid_to = w.get("valid_to", w.get("validTo", w.get("expires", "")))
-
-            # Determine severity
-            threat_lower = str(threat).lower()
-            if "extreme" in threat_lower or "red" in threat_lower:
-                severity = "critical"
-            elif "warning" in threat_lower or "orange" in threat_lower:
-                severity = "warning"
-            else:
-                severity = "info"
-
-            # Check if still active
-            active = True
-            if valid_to:
-                try:
-                    expires = datetime.fromisoformat(str(valid_to).replace("Z", "+00:00"))
-                    active = expires > now
-                except Exception:
-                    pass
-
-            try:
-                ts = datetime.fromisoformat(str(valid_from).replace("Z", "+00:00")) if valid_from else now
-            except Exception:
-                ts = now
-
-            results.append({
-                "source": "metservice",
-                "type": "weather_warning",
-                "severity": severity,
-                "title": str(w_type),
-                "description": (str(text))[:500],
-                "timestamp": ts.isoformat(),
-                "distance_km": None,
-                "active": active,
-            })
+            logger.warning(f"MetService CAP XML parse failed: {e}")
 
         return results
 
@@ -1117,10 +1029,9 @@ async def get_area_feed(request: Request, address_id: int):
             return []
 
     # 4. Fetch all sources in parallel (live APIs + DB)
-    quakes, historical, nema, metservice, volcanic = await asyncio.gather(
+    quakes, historical, metservice, volcanic = await asyncio.gather(
         asyncio.to_thread(_fetch_geonet_quakes),
         _fetch_historical_quakes(),
-        asyncio.to_thread(_fetch_nema_alerts),
         asyncio.to_thread(_fetch_metservice_warnings),
         asyncio.to_thread(_fetch_volcanic_alerts),
     )
@@ -1131,7 +1042,6 @@ async def get_area_feed(request: Request, address_id: int):
     for hq in historical:
         if hq["timestamp"][:16] not in existing_times:
             events.append(hq)
-    events.extend(nema)
     events.extend(metservice)
     events.extend(volcanic)
 

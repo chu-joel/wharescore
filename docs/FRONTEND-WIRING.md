@@ -15,7 +15,7 @@
 | `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | Header | No |
 | `scores.overall, .rating` | PropertySummaryCard, ScoreGauge | Header | No |
 | `scores.categories[]` | ScoreStrip, CategoryRadar | Scores | No |
-| `coverage.available, .total` | CoverageRing | Scores | No |
+| `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | Scores (expandable accordion) | No |
 | `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | Header | No |
 | `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | Header (per-unit CV calc) | No |
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | Header (elevation pill + slope pill) | No |
