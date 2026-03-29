@@ -75,6 +75,49 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "WhareScore",
+                url: siteUrl,
+                description:
+                  "Free NZ property intelligence. Hazard exposure, school zones, crime data, fair rent analysis — everything the listing doesn't tell you.",
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: {
+                    "@type": "EntryPoint",
+                    urlTemplate: `${siteUrl}/?q={search_term_string}`,
+                  },
+                  "query-input": "required name=search_term_string",
+                },
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "WhareScore",
+                url: siteUrl,
+                logo: `${siteUrl}/ws-favicon-192.png`,
+                sameAs: [],
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "SiteNavigationElement",
+                name: ["About", "Help & FAQ", "Contact", "Sign In", "My Reports"],
+                url: [
+                  `${siteUrl}/about`,
+                  `${siteUrl}/help`,
+                  `${siteUrl}/contact`,
+                  `${siteUrl}/signin`,
+                  `${siteUrl}/account`,
+                ],
+              },
+            ]),
+          }}
+        />
         <SessionProvider>
           <Providers>
             <AuthSync />

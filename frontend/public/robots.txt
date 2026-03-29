@@ -1,7 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /account
+Disallow: /account/payment
+Disallow: /account/saved
 Disallow: /guest
 Disallow: /api
 Disallow: /tiles
