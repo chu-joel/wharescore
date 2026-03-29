@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import logging
 
-from fastapi import HTTPException, Request
+from fastapi import Request
+from starlette.responses import JSONResponse
 
 from ..config import settings
 from ..redis import cache_incr
@@ -44,7 +45,7 @@ async def bot_detection_middleware(request: Request, call_next):
     # 1. Block empty User-Agent
     if not ua.strip():
         logger.warning("bot_blocked", extra={"ip": ip, "reason": "empty_ua"})
-        raise HTTPException(403, "Forbidden")
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
 
     # 2. Allow known good bots
     ua_lower = ua.lower()
@@ -58,7 +59,7 @@ async def bot_detection_middleware(request: Request, call_next):
             "reason": "blocked_ua",
             "ua": ua[:200],
         })
-        raise HTTPException(403, "Forbidden")
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
 
     # 4. Scraping pattern detection: >200 property API calls in 10min
     #    Exclude PDF status polling (fires every 1s) and export endpoints
@@ -68,6 +69,6 @@ async def bot_detection_middleware(request: Request, call_next):
         if count > 200:
             logger.warning("scraping_detected", extra={
                 "ip": ip, "unique_properties_10min": count})
-            raise HTTPException(429, "Too many requests — suspected automated access")
+            return JSONResponse(status_code=429, content={"detail": "Too many requests — suspected automated access"})
 
     return await call_next(request)
