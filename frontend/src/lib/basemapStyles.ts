@@ -51,14 +51,28 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
     label: 'Light',
     color: '#f5f3ef',
     previewUrl: `https://a.basemaps.cartocdn.com/light_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
-    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    style: rasterStyle(
+      [
+        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      ],
+      CARTO_ATTRIBUTION,
+    ),
   },
   {
     id: 'dark',
     label: 'Dark',
     color: '#1a1a2e',
     previewUrl: `https://a.basemaps.cartocdn.com/dark_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
-    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    style: rasterStyle(
+      [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      ],
+      CARTO_ATTRIBUTION,
+    ),
   },
   {
     id: 'standard',
