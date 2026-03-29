@@ -111,6 +111,20 @@ Request hits authenticated endpoint
 
 **What requires auth:** `/account/*`, `/admin/*` (frontend middleware). `POST /export/pdf/start`, `POST /checkout/session`, `GET /account/credits`, `POST /account/redeem-promo` (backend require_user).
 
+### Admin auth (email allowlist)
+```
+Admin page load → AdminAuthGate checks session
+  → Not signed in? → "Sign in with Google" button
+  → Signed in → GET /admin/check (Bearer JWT)
+    → require_admin dependency: extracts email from JWT/DB
+    → Checks email against ADMIN_EMAILS env var (comma-separated)
+    → 200 → admin UI rendered
+    → 403 → "Access Denied" with email shown
+```
+- **Config:** `ADMIN_EMAILS` env var (set in GitHub Secrets, written to .env.prod on deploy)
+- **Dev mode:** If `ADMIN_EMAILS` is empty and `ENVIRONMENT=development`, all authenticated users get admin access
+- **Key files:** `services/admin_auth.py` (require_admin), `config.py` (get_admin_emails), `AdminAuthGate.tsx`, `useAdminAuth.ts`
+
 ---
 
 ## Payment & Credit System
