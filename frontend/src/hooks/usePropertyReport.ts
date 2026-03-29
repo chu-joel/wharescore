@@ -42,6 +42,8 @@ export function usePropertyReport(addressId: number | null) {
     // True while terrain data is still incoming (fast data shown, full not yet ready)
     isEnriching: fullQuery.isLoading && !!fastQuery.data,
     error: fastQuery.error ?? fullQuery.error,
+    // Refetch both queries (used by error states)
+    refetch: () => Promise.all([fastQuery.refetch(), fullQuery.refetch()]),
     // Expose individual query states for fine-grained UI if needed
     isFastReady: !!fastQuery.data,
     isFullReady: !!fullQuery.data,
