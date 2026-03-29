@@ -279,6 +279,15 @@ Waterway data from LINZ Topo50 (774K features: rivers, streams, drains) — tabl
 
 National hazard tables (flood_zones, tsunami_zones, liquefaction_zones, slope_failure_zones) are Wellington-only. For all other cities, council-specific regional tables provide hazard data. `risk_score.py` uses a "take the worst" strategy: council data refines/overrides national scores via `max()`.
 
+### Coverage & data layers display
+
+`coverage_summary()` in `risk_score.py` returns per-category breakdown with available indicator keys. Shape:
+```python
+{"available": 25, "total": 34, "per_category": {"hazards": {"available": 9, "total": 11, "indicators": ["flood", ...]}, ...}}
+```
+
+Frontend `DataLayersAccordion` component (replaces old `CoverageRing`) shows this as an expandable accordion in the free report and a compact summary in the UpgradeModal. `transformReport.ts` also appends `bonus_features` (AI insights, council valuation, national data) detected from the raw report — these are non-indicator features shown alongside the category breakdown. Coverage is piped to the UpgradeModal via `downloadGateStore.coverage`.
+
 | Hazard | National table (Wellington-only) | Council table (all cities) | Normalisation |
 |--------|--------------------------------|---------------------------|---------------|
 | Flood | `flood_zones` → `severity_flood()` | `flood_hazard` → AEP string parsing (0.5%→45, 1%→75, 2%→85, 10%→90) | Council used when WCC not present |

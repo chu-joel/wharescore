@@ -23,12 +23,11 @@ import { AppFooter } from '@/components/layout/AppFooter';
 import { getRatingBin } from '@/lib/constants';
 import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
 import { CategoryRadar } from './CategoryRadar';
 import { PremiumGate } from './PremiumGate';
-import { CoverageRing } from './CoverageRing';
+import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
 import { ScrollPrompt } from './ScrollPrompt';
 import { SocialProof } from './SocialProof';
@@ -58,11 +57,13 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   const questions = getQuestionsForPersona(persona);
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const canDownload = useDownloadGateStore((s) => s.canDownload);
+  const setCoverage = useDownloadGateStore((s) => s.setCoverage);
 
   // Track property visit for second-visit detection
   useEffect(() => {
     if (!report) return;
     trackVisit(addressId);
+    setCoverage(report.coverage ?? null);
     // If second property visit + can't download → show "comparing" upsell after 30s (once per session)
     if (shouldShowComparisonUpsell() && !canDownload().allowed) {
       const t = setTimeout(() => {
@@ -209,25 +210,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Score Strip — 5 circles */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
-        {/* Coverage Ring */}
+        {/* Data Layers Accordion */}
         {report.coverage && (
-          <div className="flex items-center justify-center gap-1.5">
-            <Tooltip>
-              <TooltipTrigger className="cursor-help">
-                <CoverageRing
-                  available={report.coverage.available}
-                  total={report.coverage.total}
-                  percentage={report.coverage.percentage}
-                />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-xs">
-                  This report covers {report.coverage.available} of {report.coverage.total} risk
-                  indicators. Coverage depends on available data for this location.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <DataLayersAccordion coverage={report.coverage} />
         )}
 
         {/* Category Radar — visual profile */}

@@ -407,6 +407,12 @@ export function transformReport(raw: any): PropertyReport {
 
   // Build coverage from scores.coverage (backend nests it there)
   const rawCoverage = scores.coverage;
+  // Detect non-indicator bonus features available for this property
+  const bonusFeatures: string[] = [];
+  if (raw.ai_summary) bonusFeatures.push('ai_insights');
+  const rawPropCheck = raw.property ?? {};
+  if (rawPropCheck.capital_value) bonusFeatures.push('council_valuation');
+  bonusFeatures.push('national_earthquake', 'national_climate', 'national_wind');
   const coverage: CoverageInfo | undefined = rawCoverage
     ? {
         available: rawCoverage.available ?? 0,
@@ -414,7 +420,8 @@ export function transformReport(raw: any): PropertyReport {
         percentage: rawCoverage.total
           ? Math.round((rawCoverage.available / rawCoverage.total) * 100)
           : 0,
-        per_category: {},
+        per_category: rawCoverage.per_category ?? {},
+        bonus_features: bonusFeatures,
       }
     : undefined;
 

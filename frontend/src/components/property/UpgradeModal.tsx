@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useDownloadGateStore, type PlanType, type ModalTrigger } from '@/stores/downloadGateStore';
+import { DataLayersAccordion } from './DataLayersAccordion';
 import { safeRedirect } from '@/lib/utils';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
@@ -264,6 +265,7 @@ export function UpgradeModal() {
   const modalContext = useDownloadGateStore((s) => s.modalContext);
   const targetAddressId = useDownloadGateStore((s) => s.targetAddressId);
   const targetPersona = useDownloadGateStore((s) => s.targetPersona);
+  const coverage = useDownloadGateStore((s) => s.coverage);
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const { getToken } = useAuthToken();
@@ -518,6 +520,11 @@ export function UpgradeModal() {
             )}
           </button>
         </div>
+
+        {/* Data layers available */}
+        {coverage && (
+          <DataLayersAccordion coverage={coverage} compact />
+        )}
 
         {/* Feature comparison */}
         <div className="grid grid-cols-2 gap-2 pt-1">

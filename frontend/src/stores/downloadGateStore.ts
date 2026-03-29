@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { CoverageInfo } from '@/lib/types';
 
 /**
  * Download gate store — controls paywall for PDF exports.
@@ -43,6 +44,9 @@ interface DownloadGateState {
   targetAddressId: number | null;
   /** Target persona for guest checkout */
   targetPersona: string;
+  /** Coverage info for current property (used by UpgradeModal) */
+  coverage: CoverageInfo | null;
+  setCoverage: (c: CoverageInfo | null) => void;
 
   /** Check if user can download right now */
   canDownload: () => { allowed: boolean; reason: string };
@@ -69,6 +73,8 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
   modalContext: {},
   targetAddressId: null,
   targetPersona: 'buyer',
+  coverage: null,
+  setCoverage: (c) => set({ coverage: c }),
 
   canDownload: () => {
     const { isAuthenticated, credits } = get();

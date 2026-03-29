@@ -313,11 +313,34 @@ def confidence_score(available_per_category: dict[str, int]) -> float:
     return (sum(cat_scores) / len(cat_scores)) * 100
 
 
-def coverage_summary(available_per_category: dict[str, int]) -> dict:
-    """Returns {available, total, label} for CoverageBadge.tsx."""
-    total = sum(CATEGORY_INDICATOR_COUNTS.values())  # 27
+_CATEGORY_WEIGHTS = {
+    "hazards": WEIGHTS_HAZARDS, "environment": WEIGHTS_ENVIRONMENT,
+    "liveability": WEIGHTS_LIVEABILITY, "transport": WEIGHTS_TRANSPORT,
+    "market": WEIGHTS_MARKET, "planning": WEIGHTS_PLANNING,
+}
+
+
+def coverage_summary(
+    available_per_category: dict[str, int],
+    indicators: dict[str, float | None],
+) -> dict:
+    """Returns {available, total, label, per_category} for DataLayersAccordion."""
+    total = sum(CATEGORY_INDICATOR_COUNTS.values())
     available = sum(available_per_category.values())
-    return {"available": available, "total": total, "label": f"{available} of {total} layers"}
+    per_category = {}
+    for cat, weights in _CATEGORY_WEIGHTS.items():
+        avail_keys = [k for k in weights if indicators.get(k) is not None]
+        per_category[cat] = {
+            "available": len(avail_keys),
+            "total": CATEGORY_INDICATOR_COUNTS[cat],
+            "indicators": avail_keys,
+        }
+    return {
+        "available": available,
+        "total": total,
+        "label": f"{available} of {total} layers",
+        "per_category": per_category,
+    }
 
 
 def score_interval(
@@ -698,7 +721,7 @@ def enrich_with_scores(report: dict) -> dict:
         )
 
     conf = confidence_score(available_per_cat)
-    coverage = coverage_summary(available_per_cat)
+    coverage = coverage_summary(available_per_cat, indicators)
 
     report["scores"] = {
         "composite": round(comp, 1) if comp else None,

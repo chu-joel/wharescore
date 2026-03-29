@@ -418,11 +418,18 @@ export interface ComparisonData {
 }
 
 // --- Coverage ---
+export interface CategoryCoverage {
+  available: number;
+  total: number;
+  indicators: string[];
+}
+
 export interface CoverageInfo {
   available: number;
   total: number;
   percentage: number;
-  per_category: Record<string, number>;
+  per_category: Record<string, CategoryCoverage>;
+  bonus_features: string[];
 }
 
 // --- Suburb ---
