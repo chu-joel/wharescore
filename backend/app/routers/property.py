@@ -530,12 +530,12 @@ async def get_earthquake_timeline(request: Request, address_id: int):
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT EXTRACT(YEAR FROM origin_time)::int AS year,
+            SELECT EXTRACT(YEAR FROM event_time)::int AS year,
                    COUNT(*)::int AS count,
                    ROUND(MAX(magnitude)::numeric, 1) AS max_mag
             FROM earthquakes
             WHERE ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, 50000)
-              AND origin_time >= (CURRENT_DATE - INTERVAL '10 years')
+              AND event_time >= (CURRENT_DATE - INTERVAL '10 years')
             GROUP BY 1
             ORDER BY 1
             """,
@@ -986,13 +986,13 @@ async def get_area_feed(request: Request, address_id: int):
             async with db.pool.connection() as conn_eq:
                 cur = await conn_eq.execute(
                     """
-                    SELECT origin_time, magnitude, depth, locality,
+                    SELECT event_time, magnitude, depth_km, location_name,
                            ST_Y(geom) AS lat, ST_X(geom) AS lng,
                            round(ST_Distance(geom::geography,
                                 ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography) / 1000) AS dist_km
                     FROM earthquakes
                     WHERE magnitude >= 5.0
-                      AND origin_time >= (now() - interval '10 years')
+                      AND event_time >= (now() - interval '10 years')
                       AND ST_DWithin(geom::geography,
                           ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, 100000)
                     ORDER BY magnitude DESC
@@ -1006,15 +1006,15 @@ async def get_area_feed(request: Request, address_id: int):
                 mag = float(r["magnitude"])
                 dist = float(r["dist_km"])
                 severity = "critical" if mag >= 6.0 else "warning" if mag >= 5.0 else "info"
-                ts = r["origin_time"]
+                ts = r["event_time"]
                 results.append({
                     "source": "geonet",
                     "type": "earthquake",
                     "severity": severity,
                     "title": f"M{mag:.1f} earthquake — {dist:.0f}km from property",
                     "description": (
-                        f"Magnitude {mag:.1f}, depth {r['depth']}km"
-                        + (f", near {r['locality']}" if r.get("locality") else "")
+                        f"Magnitude {mag:.1f}, depth {r['depth_km']}km"
+                        + (f", near {r['location_name']}" if r.get("location_name") else "")
                     ),
                     "timestamp": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
                     "distance_km": dist,
