@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: 'How much does WhareScore cost?',
-    a: 'Every address gets a free preview with risk scores, hazard flags, and neighbourhood overview. Full PDF reports with detailed analysis, buyer/renter checklists, and AI insights are $4.99 per property — or $9.99 for a 3-pack when comparing properties. Professionals can get 30 reports/month for $49.',
+    a: 'Every address gets a free on-screen report with risk scores, hazard flags, and neighbourhood overview. Quick Reports ($4.99) include key findings and hazard summary. Full Reports ($9.99) add AI-written summary, rent/price advice, and detailed analysis. Professionals can get 30 Full Reports per month for $140.',
   },
   {
     q: 'Can I use this data for legal or financial decisions?',

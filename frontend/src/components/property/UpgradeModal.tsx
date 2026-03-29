@@ -514,7 +514,7 @@ export function UpgradeModal() {
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-base sm:text-lg font-bold text-piq-primary">$99/mo</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$140/mo</span>
             )}
           </button>
         </div>

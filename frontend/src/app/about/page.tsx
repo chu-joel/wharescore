@@ -90,18 +90,22 @@ export default function AboutPage() {
         <p className="text-sm text-muted-foreground mb-4">
           Free on-screen reports show your risk score and top findings. Full reports include complete hazard breakdowns, AI-written summaries, personalised advice, and a permanent shareable report link.
         </p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-border p-4 text-center">
             <p className="text-2xl font-bold">Free</p>
             <p className="text-sm text-muted-foreground mt-1">Score + top findings</p>
           </div>
-          <div className="rounded-xl border border-piq-primary p-4 text-center ring-1 ring-piq-primary">
+          <div className="rounded-xl border border-border p-4 text-center">
             <p className="text-2xl font-bold">$4.99</p>
             <p className="text-sm text-muted-foreground mt-1">Quick Report</p>
           </div>
-          <div className="rounded-xl border border-border p-4 text-center">
+          <div className="rounded-xl border border-piq-primary p-4 text-center ring-1 ring-piq-primary">
             <p className="text-2xl font-bold">$9.99</p>
             <p className="text-sm text-muted-foreground mt-1">Full Report</p>
+          </div>
+          <div className="rounded-xl border border-border p-4 text-center">
+            <p className="text-2xl font-bold">$140<span className="text-sm font-normal">/mo</span></p>
+            <p className="text-sm text-muted-foreground mt-1">Pro — 30 reports/mo</p>
           </div>
         </div>
       </section>
