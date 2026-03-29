@@ -54,7 +54,12 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/ws-favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/ws-favicon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/ws-favicon-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
   robots: {
     index: true,
