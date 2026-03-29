@@ -17,9 +17,11 @@ interface MapPopupProps {
   onClose: () => void;
   /** Overlay layer info collected at the tap/click point (flood zone, school zone, etc.) */
   overlayLines?: string[];
+  /** Override the CTA button text (default: "Get the Full Report") */
+  ctaLabel?: string;
 }
 
-export function MapPopup({ addressId, onViewReport, onClose, overlayLines }: MapPopupProps) {
+export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLabel }: MapPopupProps) {
   const { data: summary, isLoading } = useQuery({
     queryKey: ['property-summary', addressId],
     queryFn: () => apiFetch<PropertySummary>(`/api/v1/property/${addressId}/summary`),
@@ -117,7 +119,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines }: Map
           className="w-full h-auto px-4 py-2 text-sm font-semibold inline-flex items-center justify-center gap-1.5 flex-wrap"
           onClick={() => onViewReport(addressId)}
         >
-          Get the Full Report
+          {ctaLabel ?? 'Get the Full Report'}
           <ArrowRight className="h-4 w-4 shrink-0" />
         </Button>
         <p className="text-[10px] text-muted-foreground text-center mt-1.5">

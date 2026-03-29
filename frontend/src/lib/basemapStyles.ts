@@ -47,6 +47,20 @@ const WLG = { z: 10, x: 1008, y: 642 };
 
 export const BASEMAP_STYLES: BasemapStyle[] = [
   {
+    id: 'light',
+    label: 'Light',
+    color: '#f5f3ef',
+    previewUrl: `https://a.basemaps.cartocdn.com/light_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  },
+  {
+    id: 'dark',
+    label: 'Dark',
+    color: '#1a1a2e',
+    previewUrl: `https://a.basemaps.cartocdn.com/dark_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
+    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  },
+  {
     id: 'standard',
     label: 'Standard',
     color: '#e8e0d8',
@@ -54,34 +68,6 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
     style: rasterStyle(
       ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       OSM_ATTRIBUTION,
-    ),
-  },
-  {
-    id: 'light',
-    label: 'Light',
-    color: '#f5f3ef',
-    previewUrl: `https://a.basemaps.cartocdn.com/light_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
-    style: rasterStyle(
-      [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      ],
-      CARTO_ATTRIBUTION,
-    ),
-  },
-  {
-    id: 'dark',
-    label: 'Dark',
-    color: '#1a1a2e',
-    previewUrl: `https://a.basemaps.cartocdn.com/dark_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
-    style: rasterStyle(
-      [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      ],
-      CARTO_ATTRIBUTION,
     ),
   },
   // Esri World Imagery + CARTO labels — hybrid satellite mode
@@ -121,7 +107,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
 
 export const SATELLITE_STYLE_IDS = new Set(['satellite', 'satellite-hd']);
 
-export const DEFAULT_BASEMAP_ID = 'satellite';
+export const DEFAULT_BASEMAP_ID = 'light';
 
 export function getBasemapStyle(id: string): BasemapStyle {
   return BASEMAP_STYLES.find((s) => s.id === id) ?? BASEMAP_STYLES[0];

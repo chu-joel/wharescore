@@ -200,6 +200,29 @@ async def _overlay_transit_data(report: dict, address_id: int) -> None:
                 val = transit.get(key)
                 if val is not None and val != 0:
                     liveability[key] = val
+
+            # Fix nearest_train — the base SQL only checks metlink (Wellington).
+            # Look up the actual nearest rail station from AT or regional tables.
+            if transit.get("rail_stops_800m", 0) > 0:
+                try:
+                    cur_rail = await conn_tt.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT stop_name, round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS dist_m
+                        FROM (
+                            SELECT stop_name, geom FROM at_stops WHERE 2 = ANY(route_types)
+                            UNION ALL
+                            SELECT stop_name, geom FROM transit_stops WHERE location_type = 1
+                            UNION ALL
+                            SELECT stop_name, geom FROM metlink_stops WHERE route_type = 2
+                        ) s, addr
+                        ORDER BY s.geom <-> addr.geom LIMIT 1
+                    """, [address_id])
+                    rail_row = cur_rail.fetchone()
+                    if rail_row:
+                        liveability["nearest_train_name"] = rail_row["stop_name"]
+                        liveability["nearest_train_distance_m"] = int(rail_row["dist_m"])
+                except Exception:
+                    pass  # non-critical
     except Exception as e:
         logger.debug(f"Transit overlay failed for {address_id}: {e}")
 

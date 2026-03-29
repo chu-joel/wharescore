@@ -26,7 +26,9 @@ import { MapStylePicker } from './MapStylePicker';
 import { MapPopup } from './MapPopup';
 import { MapControls } from './MapControls';
 import { MapPin } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
+import { usePersonaStore } from '@/stores/personaStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface HoverInfo {
@@ -217,6 +219,10 @@ export function MapContainer() {
   const selectedPropertyId = useMapStore((s) => s.selectedPropertyId);
   const baseStyleId = useMapStore((s) => s.baseStyleId);
   const router = useRouter();
+  const pathname = usePathname();
+  const isOnPropertyPage = /^\/property\/\d+/.test(pathname);
+  const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
+  const persona = usePersonaStore((s) => s.persona);
   const bp = useBreakpoint();
 
   const currentBasemap = getBasemapStyle(baseStyleId);
@@ -340,14 +346,17 @@ export function MapContainer() {
   const handleViewReport = useCallback(
     (addressId: number) => {
       setShowPopup(false);
-      if (window.innerWidth < 640) {
+      if (isOnPropertyPage) {
+        // Already viewing a report — open the report selector for this property
+        setShowUpgradeModal(true, 'default', {}, addressId, persona);
+      } else if (window.innerWidth < 640) {
         // On mobile, report is already in the drawer — snap it to full
         window.dispatchEvent(new Event('drawer:snap-full'));
       } else {
         router.push(`/property/${addressId}`);
       }
     },
-    [router],
+    [router, isOnPropertyPage, setShowUpgradeModal, persona],
   );
 
   const handlePopupClose = useCallback(() => {
@@ -911,6 +920,7 @@ export function MapContainer() {
                 onViewReport={handleViewReport}
                 onClose={handlePopupClose}
                 overlayLines={popupOverlayLines}
+                ctaLabel={isOnPropertyPage ? 'Get Report' : undefined}
               />
             </div>
           </Popup>
