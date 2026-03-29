@@ -121,7 +121,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
 
 export const SATELLITE_STYLE_IDS = new Set(['satellite', 'satellite-hd']);
 
-export const DEFAULT_BASEMAP_ID = 'light';
+export const DEFAULT_BASEMAP_ID = 'satellite';
 
 export function getBasemapStyle(id: string): BasemapStyle {
   return BASEMAP_STYLES.find((s) => s.id === id) ?? BASEMAP_STYLES[0];
