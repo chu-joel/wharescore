@@ -1,56 +1,50 @@
 # backend/app/services/admin_auth.py
 """
-Admin authentication: bcrypt password verification + Redis session tokens.
-Falls back to in-memory sessions when Redis is unavailable (dev mode).
-No user accounts in MVP — single admin password.
+Admin authentication: email-based allowlist via OAuth/JWT.
+Admin users are defined in the ADMIN_EMAILS environment variable.
 """
 from __future__ import annotations
 
+import logging
 
-import secrets
-import time
+from fastapi import Depends, HTTPException, Request
 
-import bcrypt
-from fastapi import HTTPException, Request
+from ..config import settings
+from .auth import optional_user
 
-from ..redis import cache_get, cache_set
-
-ADMIN_SESSION_DURATION = 86400  # 24h
-
-# In-memory fallback when Redis is unavailable: {token: expiry_timestamp}
-_memory_sessions: dict[str, float] = {}
+logger = logging.getLogger(__name__)
 
 
-async def verify_admin(password: str, hashed_password: str) -> str | None:
-    """Timing-safe password comparison. Returns session token or None."""
-    if bcrypt.checkpw(password.encode(), hashed_password.encode()):
-        token = secrets.token_urlsafe(32)
-        await cache_set(f"admin_session:{token}", "1", ex=ADMIN_SESSION_DURATION)
-        # Also store in memory as fallback
-        _memory_sessions[token] = time.time() + ADMIN_SESSION_DURATION
-        return token
-    return None
+async def get_admin_email(request: Request, user_id: str = Depends(optional_user)) -> str:
+    """Extract email from the authenticated user. Returns email or raises 401."""
+    if not user_id:
+        raise HTTPException(401, "Sign in required")
+
+    # user_id in our system is the email from OAuth
+    # But let's also check the DB to be safe
+    from .. import db
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT email FROM users WHERE user_id = %s", [user_id]
+        )
+        row = cur.fetchone()
+
+    email = (row["email"] if row else user_id).lower().strip()
+    if not email:
+        raise HTTPException(401, "Sign in required")
+    return email
 
 
-async def delete_admin_session(token: str):
-    """Invalidate an admin session token."""
-    from ..redis import redis_client as _rc
-    try:
-        if _rc:
-            await _rc.delete(f"admin_session:{token}")
-    except Exception:
-        pass
-    _memory_sessions.pop(token, None)
+async def require_admin(request: Request, email: str = Depends(get_admin_email)):
+    """FastAPI dependency — checks if the signed-in user's email is in the admin allowlist."""
+    admin_emails = settings.get_admin_emails()
 
+    # Dev mode: allow all authenticated users when no ADMIN_EMAILS configured
+    if not admin_emails and settings.ENVIRONMENT == "development":
+        return email
 
-async def require_admin(request: Request):
-    """FastAPI dependency — validates admin session token from cookie."""
-    token = request.cookies.get("admin_token")
-    if not token:
-        raise HTTPException(401, "Admin authentication required")
-    # Check Redis first, fall back to in-memory
-    session = await cache_get(f"admin_session:{token}")
-    if not session:
-        expiry = _memory_sessions.get(token)
-        if not expiry or time.time() > expiry:
-            raise HTTPException(401, "Session expired — please log in again")
+    if email not in admin_emails:
+        logger.warning(f"ADMIN_AUDIT: access_denied for {email}")
+        raise HTTPException(403, "You don't have admin access")
+
+    return email

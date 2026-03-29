@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     MAPBOX_ACCESS_TOKEN: str = ""
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
-    ADMIN_PASSWORD_HASH: str = ""
+    ADMIN_EMAILS: str = ""  # Comma-separated list of admin email addresses
     ENVIRONMENT: str = "development"  # "production" enables HSTS, bot UA blocking
 
     # Auth.js shared secret (same value as frontend AUTH_SECRET)
@@ -44,12 +44,18 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
+    def get_admin_emails(self) -> set[str]:
+        """Return set of lowercased admin email addresses."""
+        if not self.ADMIN_EMAILS:
+            return set()
+        return {e.strip().lower() for e in self.ADMIN_EMAILS.split(",") if e.strip()}
+
     def validate_secrets(self):
-        """Warn if secrets missing in production. Only ADMIN_PASSWORD_HASH is fatal."""
+        """Warn if secrets missing in production."""
         if self.ENVIRONMENT == "production":
             # Fatal — admin panel won't work without this
-            if not self.ADMIN_PASSWORD_HASH:
-                raise RuntimeError("Missing required secret: ADMIN_PASSWORD_HASH")
+            if not self.ADMIN_EMAILS:
+                raise RuntimeError("Missing required secret: ADMIN_EMAILS")
 
             # Warn-only — features degrade gracefully without these
             optional = {

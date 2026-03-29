@@ -10,7 +10,7 @@ import re
 import logging
 
 import orjson
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from psycopg import sql
 
@@ -18,12 +18,7 @@ from ..config import settings
 from .. import db as _db
 from ..deps import limiter
 from ..redis import redis_client
-from ..services.admin_auth import (
-    ADMIN_SESSION_DURATION,
-    delete_admin_session,
-    require_admin,
-    verify_admin,
-)
+from ..services.admin_auth import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -669,73 +664,121 @@ DEFAULT_RECOMMENDATIONS = [
 ]
 
 
-# --- Login (no auth required) ---
+# --- Admin check (requires OAuth sign-in + email in ADMIN_EMAILS) ---
 
-@router.post("/login")
-@limiter.limit("5/15minutes" if settings.ENVIRONMENT == "production" else "100/minute")
-async def admin_login(request: Request, password: str = Body(..., embed=True)):
-    """Authenticate admin. Returns session cookie (httpOnly, secure, sameSite)."""
-    client_ip = request.client.host if request.client else "unknown"
-
-    # M1: Brute force protection — 5 failures from same IP = 15min lockout
-    if redis_client:
-        lockout_key = f"admin_lockout:{client_ip}"
-        try:
-            lockout = await redis_client.get(lockout_key)
-            if lockout and int(lockout) >= 5:
-                raise HTTPException(429, "Too many login attempts. Try again in 15 minutes.")
-        except HTTPException:
-            raise
-        except Exception:
-            pass
-
-    token = await verify_admin(password, settings.ADMIN_PASSWORD_HASH)
-    if not token:
-        # Track failed attempt
-        if redis_client:
-            try:
-                pipe = redis_client.pipeline()
-                pipe.incr(f"admin_lockout:{client_ip}")
-                pipe.expire(f"admin_lockout:{client_ip}", 900)  # 15 minutes
-                await pipe.execute()
-            except Exception:
-                pass
-        logger.warning(f"ADMIN_AUDIT: login_failed from {client_ip}")
-        raise HTTPException(401, "Invalid password")
-
-    # Clear lockout on success
-    if redis_client:
-        try:
-            await redis_client.delete(f"admin_lockout:{client_ip}")
-        except Exception:
-            pass
-
-    logger.info(f"ADMIN_AUDIT: login_success from {client_ip}")
-    response = JSONResponse({"status": "authenticated"})
-    is_prod = settings.ENVIRONMENT == "production"
-    response.set_cookie(
-        "admin_token",
-        token,
-        httponly=True,
-        secure=is_prod,
-        samesite="strict" if is_prod else "lax",
-        max_age=ADMIN_SESSION_DURATION,
-    )
-    return response
+@router.get("/check", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def admin_check(request: Request):
+    """Check if the signed-in user has admin access. Returns 200 or 403."""
+    return {"status": "admin"}
 
 
-@router.post("/logout", dependencies=[Depends(require_admin)])
-@limiter.limit("10/minute")
-async def admin_logout(request: Request):
-    """Invalidate admin session."""
-    token = request.cookies.get("admin_token")
-    if token:
-        await delete_admin_session(token)
-    client_ip = request.client.host if request.client else "unknown"
-    logger.info(f"ADMIN_AUDIT: logout from {client_ip}")
-    response = JSONResponse({"ok": True})
-    response.delete_cookie("admin_token")
-    return response
+# --- Credit management ---
+
+@router.get("/users", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def admin_list_users(
+    request: Request,
+    q: str = Query("", description="Search by email or name"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, ge=1, le=100),
+):
+    """List users with their credit balances."""
+    offset = (page - 1) * per_page
+    async with _db.pool.connection() as conn:
+        if q.strip():
+            pattern = f"%{q.strip().lower()}%"
+            cur = await conn.execute(
+                """
+                SELECT u.user_id, u.email, u.display_name, u.plan, u.created_at,
+                  COALESCE(SUM(rc.credits_remaining) FILTER (WHERE rc.report_tier = 'quick'
+                    AND rc.cancelled_at IS NULL AND (rc.expires_at IS NULL OR rc.expires_at > now())), 0)::int AS quick_credits,
+                  COALESCE(SUM(rc.credits_remaining) FILTER (WHERE rc.report_tier = 'full'
+                    AND rc.cancelled_at IS NULL AND (rc.expires_at IS NULL OR rc.expires_at > now())), 0)::int AS full_credits,
+                  (SELECT COUNT(*) FROM saved_reports sr WHERE sr.user_id = u.user_id)::int AS total_reports
+                FROM users u
+                LEFT JOIN report_credits rc ON rc.user_id = u.user_id
+                WHERE LOWER(u.email) LIKE %s OR LOWER(COALESCE(u.display_name, '')) LIKE %s
+                GROUP BY u.user_id
+                ORDER BY u.created_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                [pattern, pattern, per_page, offset],
+            )
+        else:
+            cur = await conn.execute(
+                """
+                SELECT u.user_id, u.email, u.display_name, u.plan, u.created_at,
+                  COALESCE(SUM(rc.credits_remaining) FILTER (WHERE rc.report_tier = 'quick'
+                    AND rc.cancelled_at IS NULL AND (rc.expires_at IS NULL OR rc.expires_at > now())), 0)::int AS quick_credits,
+                  COALESCE(SUM(rc.credits_remaining) FILTER (WHERE rc.report_tier = 'full'
+                    AND rc.cancelled_at IS NULL AND (rc.expires_at IS NULL OR rc.expires_at > now())), 0)::int AS full_credits,
+                  (SELECT COUNT(*) FROM saved_reports sr WHERE sr.user_id = u.user_id)::int AS total_reports
+                FROM users u
+                LEFT JOIN report_credits rc ON rc.user_id = u.user_id
+                GROUP BY u.user_id
+                ORDER BY u.created_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                [per_page, offset],
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.post("/users/{user_id}/credits", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def admin_adjust_credits(
+    request: Request,
+    user_id: str,
+    amount: int = Query(..., description="Credits to add (positive) or remove (negative)"),
+    tier: str = Query("full", description="quick or full"),
+):
+    """Add or remove credits for a user. Positive = add, negative = remove."""
+    if tier not in ("quick", "full"):
+        raise HTTPException(400, "tier must be 'quick' or 'full'")
+
+    async with _db.pool.connection() as conn:
+        # Verify user exists
+        cur = await conn.execute("SELECT 1 FROM users WHERE user_id = %s", [user_id])
+        if not cur.fetchone():
+            raise HTTPException(404, "User not found")
+
+        if amount > 0:
+            # Add credits — insert a new admin-granted credit row
+            await conn.execute(
+                """
+                INSERT INTO report_credits (user_id, credit_type, credits_remaining, report_tier)
+                VALUES (%s, 'promo', %s, %s)
+                """,
+                [user_id, amount, tier],
+            )
+        elif amount < 0:
+            # Remove credits — decrement from most recent matching credit rows
+            remaining = abs(amount)
+            cur = await conn.execute(
+                """
+                SELECT id, credits_remaining FROM report_credits
+                WHERE user_id = %s AND report_tier = %s
+                  AND credits_remaining > 0
+                  AND cancelled_at IS NULL
+                  AND (expires_at IS NULL OR expires_at > now())
+                ORDER BY purchased_at DESC
+                """,
+                [user_id, tier],
+            )
+            for row in cur.fetchall():
+                if remaining <= 0:
+                    break
+                deduct = min(remaining, row["credits_remaining"])
+                await conn.execute(
+                    "UPDATE report_credits SET credits_remaining = credits_remaining - %s WHERE id = %s",
+                    [deduct, row["id"]],
+                )
+                remaining -= deduct
+
+    logger.info(f"ADMIN_AUDIT: credits_adjusted user={user_id} amount={amount} tier={tier}")
+    return {"ok": True, "user_id": user_id, "amount": amount, "tier": tier}
 
 
 # --- Dashboard ---
