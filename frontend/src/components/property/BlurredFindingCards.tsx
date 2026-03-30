@@ -20,6 +20,7 @@ export function BlurredFindingCards({
   const hosted = useHostedReport();
   if (hosted) return null; // User has paid — no blurred cards
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
 
   if (findings.length === 0) return null;
 
@@ -66,7 +67,7 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          Unlock full report — $9.99
+          Unlock full report — {isPro ? '$4.99' : '$9.99'}
         </p>
       </button>
     </div>

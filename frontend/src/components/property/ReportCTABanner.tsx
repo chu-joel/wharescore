@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { SocialProof } from './SocialProof';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 
 interface ReportCTABannerProps {
   addressId: number;
@@ -30,25 +31,27 @@ const RENTER_CONTENTS = [
   { icon: Sparkles,      label: 'AI-generated property summary' },
 ];
 
-function getSubheadline(persona: 'buyer' | 'renter', capitalValue?: number | null, medianRent?: number | null): string {
+function getSubheadline(persona: 'buyer' | 'renter', price: string, capitalValue?: number | null, medianRent?: number | null): string {
   if (persona === 'renter') {
     if (medianRent) {
-      return `$9.99 before you commit to $${medianRent}/week`;
+      return `${price} before you commit to $${medianRent}/week`;
     }
-    return '$9.99 to know before you sign the lease';
+    return `${price} to know before you sign the lease`;
   }
   // Buyer
   if (capitalValue && capitalValue >= 100_000) {
     const formatted = capitalValue >= 1_000_000
       ? `$${(capitalValue / 1_000_000).toFixed(1)}M`
       : `$${(capitalValue / 1_000).toFixed(0)}k`;
-    return `$9.99 to protect a ${formatted} decision`;
+    return `${price} to protect a ${formatted} decision`;
   }
-  return '$9.99 to protect your biggest investment';
+  return `${price} to protect your biggest investment`;
 }
 
 export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRent }: ReportCTABannerProps) {
   const persona = usePersonaStore((s) => s.persona);
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
+  const fullPrice = isPro ? '$4.99' : '$9.99';
   const pdf = usePdfExport(addressId, persona);
   const contents = persona === 'renter' ? RENTER_CONTENTS : BUYER_CONTENTS;
 
@@ -64,7 +67,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
             : 'Everything the listing doesn\u2019t tell you'}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          {getSubheadline(persona, capitalValue, medianRent)}
+          {getSubheadline(persona, fullPrice, capitalValue, medianRent)}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -79,7 +82,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
         {pdf.isGenerating ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating Report...</>
         ) : (
-          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — $9.99</>
+          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — {fullPrice}</>
         )}
       </Button>
       <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">

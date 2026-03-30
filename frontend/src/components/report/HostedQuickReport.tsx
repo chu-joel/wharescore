@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, Clock, Sparkles } from 'lucide-react';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
 import { HostedAtAGlance } from './HostedAtAGlance';
@@ -42,6 +43,8 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
   const persona = snapshot.meta.persona;
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
+  const fullPrice = isPro ? '$4.99' : '$9.99';
   const generatedDate = new Date(snapshot.meta.generated_at).toLocaleDateString('en-NZ', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
@@ -220,7 +223,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
                   className="inline-flex items-center gap-1 text-xs font-semibold text-piq-primary hover:underline mt-1"
                 >
                   <Sparkles className="h-3 w-3" />
-                  Upgrade to Full Report — $9.99
+                  Upgrade to Full Report — {fullPrice}
                 </a>
               </div>
             </div>

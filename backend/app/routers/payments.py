@@ -37,9 +37,9 @@ async def create_checkout_session(
     user_id: str = Depends(require_user),
 ):
     """Create a Stripe Checkout session. Returns checkout_url for redirect."""
-    valid_plans = ("full_single", "pro", "single", "pack3")
+    valid_plans = ("full_single", "pro", "single", "pack3", "pro_extra")
     if body.plan not in valid_plans:
-        raise HTTPException(400, "Invalid plan. Must be full_single or pro.")
+        raise HTTPException(400, "Invalid plan. Must be full_single, pro, or pro_extra.")
 
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
@@ -49,10 +49,11 @@ async def create_checkout_session(
     # Get or create Stripe customer for this user
     customer_id = await _get_or_create_customer(user_id)
 
-    # Map plan to Stripe price
+    # Map plan to Stripe price — Pro users get discounted extras ($4.99)
     price_map = {
         "full_single": settings.STRIPE_PRICE_FULL_SINGLE,
         "pro": settings.STRIPE_PRICE_PRO,
+        "pro_extra": settings.STRIPE_PRICE_PRO_EXTRA or settings.STRIPE_PRICE_FULL_SINGLE,
     }
     price_id = price_map.get(body.plan)
     if not price_id:
@@ -62,6 +63,7 @@ async def create_checkout_session(
     plan_tier_map = {
         "full_single": "full",
         "pro": "full",
+        "pro_extra": "full",
     }
 
     mode = "subscription" if body.plan == "pro" else "payment"

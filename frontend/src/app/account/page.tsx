@@ -347,7 +347,7 @@ export default function AccountPage() {
                             className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors"
                           >
                             <Sparkles className="h-3 w-3" />
-                            Upgrade $9.99
+                            Upgrade {credits?.plan === 'pro' ? '$4.99' : '$9.99'}
                           </a>
                         </div>
                       );

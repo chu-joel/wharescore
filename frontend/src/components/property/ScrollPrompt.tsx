@@ -68,9 +68,11 @@ export function ScrollPrompt({ report }: ScrollPromptProps) {
     };
   }, [allowed, dismissed]);
 
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
+
   if (!visible || dismissed || allowed) return null;
 
-  const variant = getPromptVariant(report);
+  const variant = getPromptVariant(report, isPro ? '$4.99' : '$9.99');
 
   return (
     <div className="fixed bottom-[4.5rem] right-4 left-4 z-[9990] animate-in slide-in-from-bottom-4 duration-500 sm:left-auto sm:max-w-sm">
@@ -105,7 +107,7 @@ export function ScrollPrompt({ report }: ScrollPromptProps) {
   );
 }
 
-function getPromptVariant(report: PropertyReport): PromptVariant {
+function getPromptVariant(report: PropertyReport, price: string): PromptVariant {
   const findings = generateFindings(report);
   const criticalCount = findings.filter((f: Finding) => f.severity === 'critical').length;
   const warningCount = findings.filter((f: Finding) => f.severity === 'warning').length;
@@ -116,7 +118,7 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
       icon: ShieldAlert,
       iconColor: 'text-red-500',
       message: `${totalRisks} risk findings affect this property. See the full hazard analysis.`,
-      cta: 'Unlock full report — $9.99',
+      cta: `Unlock full report — ${price}`,
     };
   }
 
@@ -125,7 +127,7 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
       icon: ShieldAlert,
       iconColor: 'text-amber-500',
       message: `${totalRisks} finding${totalRisks > 1 ? 's' : ''} to review before making a decision.`,
-      cta: 'Get the complete analysis — $9.99',
+      cta: `Get the complete analysis — ${price}`,
     };
   }
 
@@ -133,6 +135,6 @@ function getPromptVariant(report: PropertyReport): PromptVariant {
     icon: TrendingUp,
     iconColor: 'text-piq-primary',
     message: 'Get the full 27-indicator analysis with AI insights and personalised recommendations.',
-    cta: 'Download full report — $9.99',
+    cta: `Download full report — ${price}`,
   };
 }

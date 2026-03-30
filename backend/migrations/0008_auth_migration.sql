@@ -25,13 +25,13 @@ RETURNS INT AS $$
       AND generated_at < CURRENT_DATE + INTERVAL '1 day';
 $$ LANGUAGE SQL STABLE;
 
--- Rolling 30-day window (not calendar month) — resets 30 days from each report
 CREATE OR REPLACE FUNCTION count_user_downloads_month(p_user_id TEXT)
 RETURNS INT AS $$
     SELECT COUNT(*)::INT
     FROM saved_reports
     WHERE user_id = p_user_id
-      AND generated_at >= now() - INTERVAL '30 days';
+      AND generated_at >= date_trunc('month', CURRENT_DATE)
+      AND generated_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month';
 $$ LANGUAGE SQL STABLE;
 
 COMMIT;

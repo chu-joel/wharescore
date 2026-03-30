@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: 'How much does WhareScore cost?',
-    a: 'Every address gets a free on-screen report with risk scores, hazard flags, and neighbourhood overview. Sign in to get a free Quick Report — a shareable hosted link with key findings and hazard summary. Full Reports ($9.99) add AI-written summary, rent/price advice, terrain analysis, and 25+ sections of detailed analysis. Professionals can get 30 Full Reports per month for $140.',
+    a: 'Every address gets a free on-screen report with risk scores, hazard flags, and neighbourhood overview. Sign in to get a free Quick Report — a shareable hosted link with key findings and hazard summary. Full Reports ($9.99, or $4.99 for Pro subscribers) add AI-written summary, rent/price advice, terrain analysis, and 25+ sections of detailed analysis. Professionals can get 30 Full Reports per month for $140, plus extras at $4.99 each.',
   },
   {
     q: 'Can I use this data for legal or financial decisions?',

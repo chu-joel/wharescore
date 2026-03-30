@@ -206,10 +206,10 @@ function getHeadline(
   // Credit/limit states take priority
   if (credits?.plan === 'pro') {
     if (credits.dailyLimit && credits.downloadsToday >= credits.dailyLimit) {
-      return `You've downloaded ${credits.dailyLimit} reports today. Resets at midnight.`;
+      return `You've downloaded ${credits.dailyLimit} reports today. Get extras for $4.99 each.`;
     }
     if (credits.monthlyLimit && credits.downloadsThisMonth >= credits.monthlyLimit) {
-      return `You've used all ${credits.monthlyLimit} reports this month.`;
+      return `You've used all ${credits.monthlyLimit} reports. Get extras for $4.99 each.`;
     }
   }
   if (credits?.creditsRemaining !== null && credits?.creditsRemaining !== undefined && credits.creditsRemaining <= 0 && credits.plan !== 'free' && credits.plan !== 'pro') {
@@ -268,6 +268,9 @@ export function UpgradeModal() {
   const coverage = useDownloadGateStore((s) => s.coverage);
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
+  const isPro = credits?.plan === 'pro';
+  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPlan = isPro ? 'pro_extra' : 'full_single';
   const { getToken } = useAuthToken();
   const [loading, setLoading] = useState<string | null>(null);
   const [canClose, setCanClose] = useState(false);
@@ -294,7 +297,7 @@ export function UpgradeModal() {
     }
   }, [showUpgradeModal, hasAnyCredits]);
 
-  const handlePurchase = async (plan: 'quick_single' | 'full_single' | 'pro') => {
+  const handlePurchase = async (plan: 'quick_single' | 'full_single' | 'pro' | 'pro_extra') => {
     // If not signed in, redirect to Google sign-in
     if (!isSignedIn) {
       setShowUpgradeModal(false);
@@ -458,7 +461,7 @@ export function UpgradeModal() {
             </button>
           ) : (
             <button
-              onClick={() => handlePurchase('full_single')}
+              onClick={() => handlePurchase(fullPlan)}
               disabled={!!loading}
               className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
             >
@@ -472,7 +475,7 @@ export function UpgradeModal() {
               {loading === 'full_single' ? (
                 <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
               ) : (
-                <span className="text-base sm:text-lg font-bold text-piq-primary">$9.99</span>
+                <span className="text-base sm:text-lg font-bold text-piq-primary">{fullPrice}</span>
               )}
             </button>
           )}
@@ -543,7 +546,7 @@ export function UpgradeModal() {
                   Redirecting...
                 </span>
               ) : (
-                'Continue without account — $9.99'
+                `Continue without account — ${fullPrice}`
               )}
             </button>
           </div>

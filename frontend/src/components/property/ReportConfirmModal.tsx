@@ -511,7 +511,9 @@ export function ReportConfirmModal() {
   const [generating, setGenerating] = useState(false);
   const queryClient = useQueryClient();
   const credits = useDownloadGateStore((s) => s.credits);
-  const hasFullCredits = (credits?.fullCredits ?? 0) > 0 || credits?.plan === 'pro';
+  const isPro = credits?.plan === 'pro';
+  const hasFullCredits = (credits?.fullCredits ?? 0) > 0 || isPro;
+  const fullPrice = isPro ? '$4.99' : '$9.99';
 
   // Get address from cached report data
   const cachedReport = addressId
@@ -621,7 +623,7 @@ export function ReportConfirmModal() {
               {hasFullCredits ? (
                 <span className="text-piq-success">Use credit</span>
               ) : (
-                <span className="text-piq-primary">$9.99</span>
+                <span className="text-piq-primary">{fullPrice}</span>
               )}
             </p>
           </button>
@@ -650,7 +652,7 @@ export function ReportConfirmModal() {
             ) : hasFullCredits ? (
               'Generate Full Report'
             ) : (
-              'Get Full Report — $9.99'
+              `Get Full Report — ${fullPrice}`
             )}
           </button>
         </DialogFooter>

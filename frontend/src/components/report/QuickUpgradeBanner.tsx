@@ -5,6 +5,7 @@ import { Sparkles, Shield, BarChart3, MapPin, Home, Loader2, Check } from 'lucid
 import { apiFetch } from '@/lib/api';
 import { useAuthToken } from '@/hooks/useAuthToken';
 import { safeRedirect } from '@/lib/utils';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 
 interface Props {
   token: string;
@@ -21,6 +22,8 @@ export function QuickUpgradeBanner({ token }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { getToken } = useAuthToken();
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
+  const fullPrice = isPro ? '$4.99' : '$9.99';
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -81,7 +84,7 @@ export function QuickUpgradeBanner({ token }: Props) {
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          Upgrade to Full Report — $9.99
+          Upgrade to Full Report — {fullPrice}
         </button>
         {error && <p className="text-xs text-destructive">{error}</p>}
         <p className="text-[11px] text-muted-foreground">

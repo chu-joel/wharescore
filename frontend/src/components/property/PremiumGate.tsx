@@ -28,6 +28,7 @@ export function PremiumGate({
 }: PremiumGateProps) {
   const hosted = useHostedReport();
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
+  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
 
   // In hosted report mode, user has paid — show content ungated
   if (hosted) {
@@ -53,7 +54,7 @@ export function PremiumGate({
         </div>
         <p className="text-xs font-bold text-foreground">{label}</p>
         <p className="text-[10px] text-piq-primary font-semibold mt-1 group-hover:underline">
-          Unlock — $9.99
+          Unlock — {isPro ? '$4.99' : '$9.99'}
         </p>
       </button>
     </div>

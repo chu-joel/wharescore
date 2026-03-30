@@ -136,8 +136,9 @@ Admin page load → AdminAuthGate checks session
 | quick (free) | $0 | Free with sign-in | Quick (~8 sections) | Unlimited | No payment |
 | full_single | $9.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
 | pro | $140/mo | Unlimited | Full | 10/day, 30 per rolling 30 days | Subscription |
+| pro_extra | $4.99 | 1 report | Full | No expiry | One-time (Pro users over limit) |
 | promo | Free | 1 per redemption | Full | Per-code max | Via redeem-promo |
-| upgrade | $9.99 | — | Quick→Full | Per-snapshot | One-time payment |
+| upgrade | $9.99 ($4.99 Pro) | — | Quick→Full | Per-snapshot | One-time payment |
 
 ### Report tiers
 - **Quick Report** (free, sign-in required): Score, AI bottom line, RAG grid, 3 key findings, rent/price band, hazard summary, schools, neighbourhood highlights, top actions. Single-column, no sidebar. Shareable hosted link + printable PDF.
