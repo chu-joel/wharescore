@@ -1891,8 +1891,8 @@ async def _generate_pdf_background(
         await set_job_completed(job_id, html, share_token=share_token)
         logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'}, hosted={'yes' if share_token else 'no'})")
 
-        # --- Send report-ready email ---
-        if share_token and user_id:
+        # --- Send report-ready email (paid reports only, not free quick) ---
+        if share_token and user_id and report_tier == "full":
             try:
                 from ..services.email import send_report_ready_email
                 async with db.pool.connection() as conn_email:

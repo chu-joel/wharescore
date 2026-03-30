@@ -172,7 +172,9 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
       // Show generating toast
       toast.info('Generating your report...', {
-        description: 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready, or find it in My Reports.',
+        description: tier === 'full'
+          ? 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready, or find it in My Reports.'
+          : 'This typically takes 15-30 seconds. Find it in My Reports when ready.',
         duration: 8000,
       });
 
@@ -198,8 +200,11 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
           // Show completion toast with link to the report
+          const isFull = tier === 'full';
           toast.success('Your report is ready!', {
-            description: 'Also emailed to you. Available anytime in My Reports.',
+            description: isFull
+              ? 'Also emailed to you. Available anytime in My Reports.'
+              : 'Available anytime in My Reports.',
             duration: 10000,
             action: status.share_url ? {
               label: 'Go to report',

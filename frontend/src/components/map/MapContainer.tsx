@@ -222,6 +222,9 @@ export function MapContainer() {
   const router = useRouter();
   const pathname = usePathname();
   const isOnPropertyPage = /^\/property\/\d+/.test(pathname);
+  const currentPageAddressId = isOnPropertyPage
+    ? parseInt(pathname.split('/')[2], 10) || null
+    : null;
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const persona = usePersonaStore((s) => s.persona);
   const bp = useBreakpoint();
@@ -347,9 +350,12 @@ export function MapContainer() {
   const handleViewReport = useCallback(
     (addressId: number) => {
       setShowPopup(false);
-      if (isOnPropertyPage) {
-        // Already viewing a report — use same flow as Get Report button
+      if (isOnPropertyPage && currentPageAddressId === addressId) {
+        // Same property — open report generation (Get Report flow)
         usePdfExportStore.getState().startExport(addressId);
+      } else if (isOnPropertyPage) {
+        // Different property — navigate to it
+        router.push(`/property/${addressId}`);
       } else if (window.innerWidth < 640) {
         // On mobile, report is already in the drawer — snap it to full
         window.dispatchEvent(new Event('drawer:snap-full'));
@@ -357,7 +363,7 @@ export function MapContainer() {
         router.push(`/property/${addressId}`);
       }
     },
-    [router, isOnPropertyPage, setShowUpgradeModal, persona],
+    [router, isOnPropertyPage, currentPageAddressId, setShowUpgradeModal, persona],
   );
 
   const handlePopupClose = useCallback(() => {
@@ -921,7 +927,13 @@ export function MapContainer() {
                 onViewReport={handleViewReport}
                 onClose={handlePopupClose}
                 overlayLines={popupOverlayLines}
-                ctaLabel={isOnPropertyPage ? 'Get Report' : undefined}
+                ctaLabel={
+                  isOnPropertyPage && currentPageAddressId === selectedAddress.addressId
+                    ? 'Get Report'
+                    : isOnPropertyPage
+                      ? 'View Property'
+                      : undefined
+                }
               />
             </div>
           </Popup>

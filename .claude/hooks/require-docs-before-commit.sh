@@ -17,7 +17,7 @@ fi
 
 cd "D:/Projects/Experiments/propertyiq-poc"
 
-# Get already-staged files
+# Get already-staged files (only those with actual changes)
 STAGED=$(git diff --cached --name-only 2>/dev/null)
 
 # Also parse files from any `git add <files>` in the same command chain
@@ -27,8 +27,17 @@ if [[ "$COMMAND" =~ git\ add\ ([^&\|;]+) ]]; then
   ADD_FILES="${BASH_REMATCH[1]}"
 fi
 
-# Combine both sources
-ALL_FILES=$(printf '%s\n%s' "$STAGED" "$ADD_FILES" | sort -u)
+# Combine both sources, then filter to only files with real diffs.
+# This prevents staging an unchanged doc from satisfying the check.
+ALL_RAW=$(printf '%s\n%s' "$STAGED" "$ADD_FILES" | sort -u)
+ALL_FILES=""
+for f in $ALL_RAW; do
+  # Check if file has staged changes or unstaged changes (about to be staged by git add)
+  if git diff --cached --quiet -- "$f" 2>/dev/null && git diff --quiet -- "$f" 2>/dev/null; then
+    continue  # No changes — skip
+  fi
+  ALL_FILES=$(printf '%s\n%s' "$ALL_FILES" "$f")
+done
 
 if [ -z "$(echo "$ALL_FILES" | tr -d '[:space:]')" ]; then
   exit 0

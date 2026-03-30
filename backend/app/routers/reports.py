@@ -138,8 +138,8 @@ async def upgrade_report_tier(
             cancel_url=f"{settings.FRONTEND_URL}/report/{share_token}",
             currency="nzd",
         )
-    except stripe.StripeError as e:
-        logger.error(f"Upgrade checkout creation failed: {e}")
+    except Exception as e:
+        logger.error(f"Upgrade checkout creation failed: {type(e).__name__}: {e}")
         raise HTTPException(500, "Failed to create checkout session")
 
     track_event("upgrade_started", user_id=user_id,

@@ -215,15 +215,16 @@ User clicks Generate Report → usePdfExport.startExport()
   → Not signed in? → UpgradeModal (sign-in prompt + $9.99 Full purchase)
   → ReportConfirmModal: user fills dwelling type, bedrooms, etc.
   → User clicks Generate → _doExport(addr, token, tier) fires
-  → Toast: "Generating your report... We'll email you a link"
+  → Toast: Quick="Find it in My Reports when ready" / Full="We'll email you a link"
   → POST /property/{id}/export/pdf/start?report_tier={tier} with Bearer token
   → Backend: require_paid_user — Quick tier skips credit check (free with auth),
     Full tier requires credits as before
   → Poll status every 2s (up to 90 attempts)
   → On completed: toast "Your report is ready!" with "Go to report" link
     (no auto-navigation — user stays on current page)
-  → Backend (Phase 1 complete): send_report_ready_email() fires if user has email
-     → Brevo email with "View Report" + "or access from My Reports" links
+  → Backend (Phase 1 complete, Full only): send_report_ready_email() if user has email
+     → Quick reports: NO email (free tier, reduces Brevo usage)
+     → Full reports: Brevo email with "View Report" + "or access from My Reports"
   → My Reports shows "Generating..." placeholder until share_token populated
 
 Quick reports: expires_at = now() + 30 days. Warning shown in last 7 days.
