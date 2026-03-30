@@ -506,55 +506,56 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot weather history failed: {e}")
 
-    # 24. Walking isochrone + terrain data
+    # 24. Walking isochrone + terrain data (skipped for Quick reports — backfilled later)
     terrain_data = {}
     isochrone_data = {}
-    try:
-        from .walking_isochrone import (
-            count_stops_in_isochrone,
-            get_terrain_at_property,
-            classify_landslide_risk_from_slope,
-        )
-
-        # Terrain: elevation, slope, aspect
-        terrain_data = await get_terrain_at_property(conn, address_id)
-        if terrain_data.get("slope_degrees") is not None:
-            terrain_data["landslide_risk"] = classify_landslide_risk_from_slope(
-                terrain_data["slope_degrees"]
+    if not skip_terrain:
+        try:
+            from .walking_isochrone import (
+                count_stops_in_isochrone,
+                get_terrain_at_property,
+                classify_landslide_risk_from_slope,
             )
 
-        # Walking isochrone: 10-min walk transit stops (replaces 400m radius)
-        isochrone_data = await count_stops_in_isochrone(conn, address_id, minutes=10)
+            # Terrain: elevation, slope, aspect
+            terrain_data = await get_terrain_at_property(conn, address_id)
+            if terrain_data.get("slope_degrees") is not None:
+                terrain_data["landslide_risk"] = classify_landslide_risk_from_slope(
+                    terrain_data["slope_degrees"]
+                )
 
-        # Waterway proximity
-        try:
-            cur = await conn.execute("""
-                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                SELECT w.name, w.feat_type,
-                       round(ST_Distance(w.geom::geography, addr.geom::geography)::numeric) AS distance_m
-                FROM nz_waterways w, addr
-                WHERE ST_DWithin(w.geom::geography, addr.geom::geography, 500)
-                ORDER BY ST_Distance(w.geom::geography, addr.geom::geography)
-                LIMIT 3
-            """, [address_id])
-            ww = cur.fetchall()
-            if ww:
-                terrain_data["nearest_waterway_m"] = int(ww[0]["distance_m"])
-                terrain_data["nearest_waterway_name"] = ww[0]["name"]
-                terrain_data["nearest_waterway_type"] = ww[0]["feat_type"]
-                terrain_data["waterways_within_500m"] = len(ww)
-            else:
+            # Walking isochrone: 10-min walk transit stops (replaces 400m radius)
+            isochrone_data = await count_stops_in_isochrone(conn, address_id, minutes=10)
+
+            # Waterway proximity
+            try:
+                cur = await conn.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT w.name, w.feat_type,
+                           round(ST_Distance(w.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM nz_waterways w, addr
+                    WHERE ST_DWithin(w.geom::geography, addr.geom::geography, 500)
+                    ORDER BY ST_Distance(w.geom::geography, addr.geom::geography)
+                    LIMIT 3
+                """, [address_id])
+                ww = cur.fetchall()
+                if ww:
+                    terrain_data["nearest_waterway_m"] = int(ww[0]["distance_m"])
+                    terrain_data["nearest_waterway_name"] = ww[0]["name"]
+                    terrain_data["nearest_waterway_type"] = ww[0]["feat_type"]
+                    terrain_data["waterways_within_500m"] = len(ww)
+                else:
+                    terrain_data["nearest_waterway_m"] = None
+                    terrain_data["nearest_waterway_name"] = None
+                    terrain_data["nearest_waterway_type"] = None
+                    terrain_data["waterways_within_500m"] = 0
+            except Exception:
                 terrain_data["nearest_waterway_m"] = None
                 terrain_data["nearest_waterway_name"] = None
                 terrain_data["nearest_waterway_type"] = None
                 terrain_data["waterways_within_500m"] = 0
-        except Exception:
-            terrain_data["nearest_waterway_m"] = None
-            terrain_data["nearest_waterway_name"] = None
-            terrain_data["nearest_waterway_type"] = None
-            terrain_data["waterways_within_500m"] = 0
-    except Exception as e:
-        logger.warning(f"Snapshot terrain/isochrone failed: {e}")
+        except Exception as e:
+            logger.warning(f"Snapshot terrain/isochrone failed: {e}")
 
     return {
         "report": report,
@@ -1407,8 +1408,10 @@ async def generate_snapshot(
     dwelling_type: str = "House",
     inputs_at_purchase: dict | None = None,
     skip_ai: bool = False,
+    skip_terrain: bool = False,
 ) -> dict | None:
-    """Generate a complete report snapshot with all pre-computed variants."""
+    """Generate a complete report snapshot with all pre-computed variants.
+    skip_terrain=True skips Valhalla calls (Quick reports); terrain backfilled later."""
 
     # Phase A: Prefetch everything
     cache = await prefetch_property_data(conn, address_id)
@@ -1522,7 +1525,8 @@ async def create_report_snapshot(
     Snapshot data is identical regardless of tier.
     """
 
-    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase, skip_ai=skip_ai)
+    skip_terrain = (report_tier == "quick")
+    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase, skip_ai=skip_ai, skip_terrain=skip_terrain)
     if not snapshot:
         return None
 
@@ -1553,4 +1557,77 @@ async def create_report_snapshot(
     # Explicit commit — our AsyncPoolWrapper doesn't auto-commit
     await conn.execute("COMMIT")
 
+    # For Quick reports: backfill terrain data in the background
+    # so it's ready if the user upgrades to Full later
+    if skip_terrain:
+        import asyncio
+        asyncio.create_task(_backfill_terrain(token_hash, address_id))
+
     return token
+
+
+async def _backfill_terrain(token_hash: str, address_id: int):
+    """Background task: generate terrain/isochrone data and merge into snapshot."""
+    try:
+        from .. import db
+        from .walking_isochrone import (
+            get_terrain_at_property,
+            count_stops_in_isochrone,
+            classify_landslide_risk_from_slope,
+        )
+
+        async with db.pool.connection() as conn:
+            terrain_data = await get_terrain_at_property(conn, address_id)
+            if terrain_data.get("slope_degrees") is not None:
+                terrain_data["landslide_risk"] = classify_landslide_risk_from_slope(
+                    terrain_data["slope_degrees"]
+                )
+
+            isochrone_data = await count_stops_in_isochrone(conn, address_id, minutes=10)
+
+            # Waterway proximity
+            try:
+                cur = await conn.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT w.name, w.feat_type,
+                           round(ST_Distance(w.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM nz_waterways w, addr
+                    WHERE ST_DWithin(w.geom::geography, addr.geom::geography, 500)
+                    ORDER BY ST_Distance(w.geom::geography, addr.geom::geography)
+                    LIMIT 3
+                """, [address_id])
+                ww = cur.fetchall()
+                if ww:
+                    terrain_data["nearest_waterway_m"] = int(ww[0]["distance_m"])
+                    terrain_data["nearest_waterway_name"] = ww[0]["name"]
+                    terrain_data["nearest_waterway_type"] = ww[0]["feat_type"]
+                    terrain_data["waterways_within_500m"] = len(ww)
+            except Exception:
+                pass
+
+            # Merge terrain + isochrone into the existing snapshot JSONB
+            import orjson
+            terrain_json = orjson.dumps(terrain_data, default=str).decode()
+            isochrone_json = orjson.dumps(isochrone_data, default=str).decode()
+            await conn.execute(
+                """
+                UPDATE report_snapshots
+                SET snapshot_json = jsonb_set(
+                    jsonb_set(snapshot_json, '{terrain}', %s::jsonb),
+                    '{isochrone}', %s::jsonb
+                )
+                WHERE share_token_hash = %s
+                """,
+                [terrain_json, isochrone_json, token_hash],
+            )
+
+            # Invalidate Redis cache so next fetch returns updated data
+            try:
+                from ..redis import cache_del
+                await cache_del(f"snapshot:{token_hash[:16]}")
+            except Exception:
+                pass
+
+            logger.info(f"Terrain backfill complete for snapshot {token_hash[:8]}... (address {address_id})")
+    except Exception as e:
+        logger.warning(f"Terrain backfill failed for {address_id}: {e}")

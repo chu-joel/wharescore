@@ -5,6 +5,6 @@
 -- full table scan on 2.8M+ addresses — taking ~6 seconds.
 -- With the index: <10ms.
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_addresses_coords
+CREATE INDEX IF NOT EXISTS idx_addresses_coords
     ON addresses (gd2000_xcoord, gd2000_ycoord)
     WHERE address_lifecycle = 'Current';
