@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Phase A: Prefetch all property-specific data (run ONCE per property)
 # ---------------------------------------------------------------------------
 
-async def prefetch_property_data(conn, address_id: int) -> dict | None:
+async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = False) -> dict | None:
     """Fetch all property-specific data in ~10 queries. Reused across all variants."""
 
     # 1. Full report from PL/pgSQL function
@@ -1414,7 +1414,7 @@ async def generate_snapshot(
     skip_terrain=True skips Valhalla calls (Quick reports); terrain backfilled later."""
 
     # Phase A: Prefetch everything
-    cache = await prefetch_property_data(conn, address_id)
+    cache = await prefetch_property_data(conn, address_id, skip_terrain=skip_terrain)
     if not cache:
         return None
 
