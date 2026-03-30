@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { FileText, Check, Shield, Zap, Loader2, Gift } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, Check, Shield, Zap, Loader2 } from 'lucide-react';
 import { useSession, signIn } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
 import { trackEvent } from '@/lib/analytics';
@@ -564,9 +564,6 @@ export function UpgradeModal() {
           </p>
         )}
 
-        {/* Promo code section */}
-        <PromoCodeInput />
-
         <DialogFooter className="sm:flex-col">
           <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -582,75 +579,5 @@ export function UpgradeModal() {
   );
 }
 
-function PromoCodeInput() {
-  const [expanded, setExpanded] = useState(false);
-  const [code, setCode] = useState('');
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-  const redeemPromo = useDownloadGateStore((s) => s.redeemPromo);
-  const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (expanded) inputRef.current?.focus();
-  }, [expanded]);
-
-  const handleRedeem = async () => {
-    if (!code.trim()) return;
-    const res = await redeemPromo(code);
-    setResult(res);
-    if (res.success) {
-      // Close modal after short delay to show success
-      setTimeout(() => setShowUpgradeModal(false), 1500);
-    }
-  };
-
-  if (!expanded) {
-    return (
-      <button
-        onClick={() => setExpanded(true)}
-        className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
-      >
-        <Gift className="h-3 w-3" />
-        Have a promo code?
-      </button>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          value={code}
-          onChange={(e) => { setCode(e.target.value); setResult(null); }}
-          onKeyDown={(e) => e.key === 'Enter' && handleRedeem()}
-          placeholder="Enter promo code"
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-piq-primary/50 uppercase"
-          maxLength={20}
-        />
-        <button
-          onClick={handleRedeem}
-          disabled={!code.trim()}
-          className="rounded-lg bg-piq-primary px-4 py-2 text-sm font-medium text-white hover:bg-piq-primary/90 disabled:opacity-50 transition-colors"
-        >
-          Apply
-        </button>
-      </div>
-      {result && (
-        result.message === 'sign_in_required' ? (
-          <button
-            onClick={() => signIn('google')}
-            className="w-full text-xs text-center font-medium text-piq-primary hover:underline"
-          >
-            Sign in with Google to use a promo code
-          </button>
-        ) : (
-          <p className={`text-xs text-center font-medium ${result.success ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-            {result.message}
-          </p>
-        )
-      )}
-    </div>
   );
 }
