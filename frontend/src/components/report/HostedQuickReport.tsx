@@ -12,6 +12,7 @@ import { QuickHazardSummary } from './QuickHazardSummary';
 import { QuickActions } from './QuickActions';
 import { QuickVerdict } from './QuickVerdict';
 import { QuickUpgradeBanner } from './QuickUpgradeBanner';
+import { HostedDemographics } from './HostedDemographics';
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
 import { KeyFindings } from '@/components/property/KeyFindings';
@@ -191,7 +192,12 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           <HostedNearbyHighlights snapshot={snapshot} />
         </div>
 
-        {/* ═══ 7. TOP ACTIONS ═══ */}
+        {/* ═══ 7. DEMOGRAPHICS (basic — population, age, commute) ═══ */}
+        <div className="pb-6">
+          <HostedDemographics snapshot={snapshot} isFull={false} />
+        </div>
+
+        {/* ═══ 8. TOP ACTIONS ═══ */}
         <div className="pb-6">
           <QuickActions snapshot={snapshot} persona={persona} />
         </div>

@@ -27,6 +27,8 @@ import { HostedRoadNoise } from './HostedRoadNoise';
 import { HostedAreaFeed } from './HostedAreaFeed';
 import { HostedHazardAdvice } from './HostedHazardAdvice';
 import { HostedTerrain } from './HostedTerrain';
+import { HostedDemographics } from './HostedDemographics';
+import { HostedClimate } from './HostedClimate';
 
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
@@ -268,6 +270,15 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
 
         <div className="pb-6">
           <HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} />
+        </div>
+
+        {/* ═══ DEMOGRAPHICS & CLIMATE ═══ */}
+        <div className="pb-6">
+          <HostedDemographics snapshot={snapshot} isFull={true} />
+        </div>
+
+        <div className="pb-6">
+          <HostedClimate snapshot={snapshot} />
         </div>
 
         <div className="pb-6">

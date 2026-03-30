@@ -69,6 +69,8 @@
 | `report.planning` (notable trees, parks, heritage, overlays, geotech, transmission_line_distance_m) | HostedNeighbourhoodStats | Yes. Transmission line warning if ≤500m (red/amber/info). |
 | `report.comparisons` (suburb + city benchmarks) | HostedNeighbourhoodStats | Yes |
 | `rates_data` (total_rates, rates_breakdown) | HostedNeighbourhoodStats | Yes (Full only). Annual rates card with breakdown. |
+| `census_demographics, census_households, census_commute` | HostedDemographics (isFull=true) | Yes. Population, age, commute (free), income, tenure, ethnicity, internet (Full). |
+| `climate_normals` | HostedClimate | Yes. Monthly temp range chart, seasonal table, highlight cards. |
 | `nearby_doc` | HostedOutdoorRec | Yes |
 | `report.planning` | HostedInfrastructure | Yes |
 | `report.hazards` (flood_zone, liquefaction, coastal_erosion_exposure, wind_zone) | HostedHealthyHomes | Yes (renter only). Accesses raw snapshot via cast — uses SQL field names (flood, liquefaction, coastal_exposure), not transformed type names. |
