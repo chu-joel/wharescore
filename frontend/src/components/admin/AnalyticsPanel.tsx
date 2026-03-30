@@ -69,6 +69,7 @@ function Sparkline({ data, height = 32, width = 120 }: { data: number[]; height?
 export function AnalyticsPanel() {
   const [days, setDays] = useState(7);
   const { data, isLoading } = useAdminAnalytics(days);
+  const { getToken } = useAuthToken();
 
   if (isLoading) {
     return (
@@ -86,7 +87,6 @@ export function AnalyticsPanel() {
 
   const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h } = data;
 
-  const { getToken } = useAuthToken();
   const handleResolve = async (errorId: number) => {
     const token = await getToken();
     await apiFetch(`/api/v1/admin/analytics/errors/${errorId}/resolve`, { method: 'POST', token: token ?? undefined });
