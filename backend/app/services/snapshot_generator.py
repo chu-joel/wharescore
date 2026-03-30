@@ -450,7 +450,8 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
                    s.eqi_index AS eqi, s.total_roll AS roll,
                    s.suburb, s.city,
                    round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS distance_m
-            FROM school_zones sz, addr
+            FROM school_zones sz
+            CROSS JOIN addr
             LEFT JOIN schools s ON s.school_id = sz.school_id
             WHERE ST_Contains(sz.geom, addr.geom)
             ORDER BY sz.institution_type, COALESCE(ST_Distance(s.geom::geography, addr.geom::geography), 999999)
