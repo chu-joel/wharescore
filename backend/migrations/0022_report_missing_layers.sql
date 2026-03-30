@@ -679,10 +679,13 @@ BEGIN
       -- Nearest essentials (supermarket, GP, pharmacy) — includes lat/lng for map rendering
       LEFT JOIN LATERAL (
         SELECT
-          (SELECT jsonb_build_object('name', name, 'distance_m', round(ST_Distance(geom::geography, addr.geom::geography)::numeric), 'latitude', ST_Y(geom), 'longitude', ST_X(geom))
-           FROM osm_amenities WHERE subcategory = 'supermarket'
-             AND geom && ST_Expand(addr.geom, 0.02)
-           ORDER BY geom <-> addr.geom LIMIT 1) AS supermarket,
+          (SELECT jsonb_build_object('name', COALESCE(brand, name), 'distance_m', round(ST_Distance(geom::geography, addr.geom::geography)::numeric), 'latitude', ST_Y(geom), 'longitude', ST_X(geom))
+           FROM osm_amenities WHERE (subcategory = 'supermarket'
+             OR brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown'))
+             AND geom && ST_Expand(addr.geom, 0.05)
+           ORDER BY
+             CASE WHEN brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown') THEN 0 ELSE 1 END,
+             geom <-> addr.geom LIMIT 1) AS supermarket,
           (SELECT jsonb_build_object('name', name, 'distance_m', round(ST_Distance(geom::geography, addr.geom::geography)::numeric), 'latitude', ST_Y(geom), 'longitude', ST_X(geom))
            FROM osm_amenities WHERE subcategory IN ('doctors', 'clinic')
              AND geom && ST_Expand(addr.geom, 0.02)

@@ -267,7 +267,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
         </div>
 
         <div className="pb-6">
-          <HostedNeighbourhoodStats rawReport={snapshot.report} />
+          <HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} />
         </div>
 
         <div className="pb-6">

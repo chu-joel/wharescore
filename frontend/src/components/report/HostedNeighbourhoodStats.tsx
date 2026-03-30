@@ -1,12 +1,22 @@
 'use client';
 
-import { MapPin, AlertTriangle, Wind, Droplets } from 'lucide-react';
+import { MapPin, AlertTriangle, Wind, Droplets, ShoppingCart } from 'lucide-react';
+import type { ReportSnapshot } from '@/lib/types';
+
+interface NearestSupermarket {
+  name: string;
+  brand?: string | null;
+  distance_m: number;
+  latitude: number;
+  longitude: number;
+}
 
 interface Props {
   rawReport: Record<string, unknown>;
+  snapshot?: ReportSnapshot;
 }
 
-export function HostedNeighbourhoodStats({ rawReport }: Props) {
+export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const live = (rawReport.liveability ?? {}) as unknown as Record<string, unknown>;
   const env = (rawReport.environment ?? {}) as unknown as Record<string, unknown>;
   const hazards = (rawReport.hazards ?? {}) as unknown as Record<string, unknown>;
@@ -148,6 +158,32 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
             </div>
           </div>
         )}
+
+        {/* Nearest supermarkets (5 closest, brand-priority) */}
+        {(() => {
+          const supermarkets = ((snapshot as Record<string, unknown>)?.nearest_supermarkets ?? []) as NearestSupermarket[];
+          if (supermarkets.length === 0) return null;
+          return (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-semibold">Nearest Supermarkets</h4>
+              </div>
+              <div className="divide-y divide-border/50">
+                {supermarkets.map((s, i) => (
+                  <div key={i} className="flex justify-between py-1.5 text-xs">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-muted-foreground">
+                      {s.distance_m >= 1000
+                        ? `${(s.distance_m / 1000).toFixed(1)} km`
+                        : `${Math.round(s.distance_m)} m`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Transit mode breakdown */}
         {transitModes.length > 0 && (

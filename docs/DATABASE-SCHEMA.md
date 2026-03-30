@@ -1233,7 +1233,8 @@ Single PL/pgSQL function returning a full property report as JSONB. Defined in `
     "crashes_300m_serious", "crashes_300m_fatal", "crashes_300m_total",
     "heritage_count_500m",
     "amenities_500m": {"cafe": N, "restaurant": N, ...},
-    "nearest_supermarket", "nearest_gp", "nearest_pharmacy",
+    "nearest_supermarket" (brand-priority: Woolworths/New World/PAK'nSAVE/FreshChoice/SuperValue/Four Square, 5km radius),
+    "nearest_gp", "nearest_pharmacy",
     "conservation_nearest", "conservation_nearest_type", "conservation_nearest_distance_m"
   },
   "planning": {

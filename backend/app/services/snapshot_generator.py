@@ -419,7 +419,29 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot DOC nearby failed: {e}")
 
-    # 21. School zones this property falls within (enriched with distance, EQI, roll)
+    # 21a. Nearest 5 supermarkets (brand-priority for NZ chains)
+    nearest_supermarkets = []
+    try:
+        cur = await conn.execute("""
+            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+            SELECT COALESCE(oa.brand, oa.name) AS name, oa.brand, oa.subcategory,
+                   round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
+                   ST_Y(oa.geom) AS latitude, ST_X(oa.geom) AS longitude
+            FROM osm_amenities oa, addr
+            WHERE (oa.subcategory = 'supermarket'
+              OR oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown'))
+              AND oa.geom && ST_Expand(addr.geom, 0.05)
+              AND ST_DWithin(oa.geom::geography, addr.geom::geography, 5000)
+            ORDER BY
+              CASE WHEN oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown') THEN 0 ELSE 1 END,
+              oa.geom <-> addr.geom
+            LIMIT 5
+        """, [address_id])
+        nearest_supermarkets = [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        logger.warning(f"Snapshot nearest supermarkets failed: {e}")
+
+    # 21b. School zones this property falls within (enriched with distance, EQI, roll)
     school_zones = []
     try:
         cur = await conn.execute("""
@@ -556,6 +578,7 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
         "crime_trend": crime_trend,
         "nearby_highlights": nearby_highlights,
         "nearby_supermarkets": nearby_supermarkets,
+        "nearest_supermarkets": nearest_supermarkets,
         "rates_data": rates_data,
         "nearby_doc": nearby_doc,
         "school_zones": school_zones,

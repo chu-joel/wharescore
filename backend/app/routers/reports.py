@@ -116,6 +116,13 @@ def _strip_full_only_fields(data: dict) -> None:
     if isinstance(recs, list) and len(recs) > 3:
         data["recommendations"] = recs[:3]
 
+    # Strip PM transit times from liveability (full report only)
+    report = data.get("report")
+    if isinstance(report, dict):
+        live = report.get("liveability")
+        if isinstance(live, dict):
+            live.pop("transit_travel_times_pm", None)
+
 
 @router.post("/report/{share_token}/upgrade")
 @limiter.limit("10/minute")
