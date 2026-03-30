@@ -122,6 +122,9 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
     playgrounds_2km?: number;
     community_centres_2km?: number;
     cycling_facilities_2km?: number;
+    fibre_available?: boolean;
+    fibre_provider?: string;
+    cycleway_km_2km?: number;
   } | null;
 
   // Heritage
@@ -226,6 +229,20 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <div className="flex justify-between py-2 text-sm">
                   <span className="font-medium">Cycling (parking/rental/repair)</span>
                   <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} within 2km</span>
+                </div>
+              )}
+              {cf.cycleway_km_2km != null && cf.cycleway_km_2km > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Cycle paths</span>
+                  <span className="text-muted-foreground text-xs">{cf.cycleway_km_2km}km within 2km</span>
+                </div>
+              )}
+              {cf.fibre_available != null && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Fibre broadband</span>
+                  <span className={`text-xs font-medium ${cf.fibre_available ? 'text-green-600' : 'text-amber-600'}`}>
+                    {cf.fibre_available ? `Available (${cf.fibre_provider || 'provider'})` : 'Not in fibre area'}
+                  </span>
                 </div>
               )}
             </div>

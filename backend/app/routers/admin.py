@@ -53,7 +53,7 @@ ALLOWED_TABLES = frozenset([
     "heritage_extent",
     "at_stops", "at_travel_times", "at_stop_frequency",
     "census_demographics", "census_households", "census_commute", "climate_normals",
-    "business_demography",
+    "business_demography", "fibre_coverage", "cycleways",
 ])
 
 # All recommendation rule IDs with default severity, title, category, and action templates.

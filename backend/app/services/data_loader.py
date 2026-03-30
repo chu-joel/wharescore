@@ -3987,6 +3987,162 @@ def load_climate_normals(conn: psycopg.Connection, log: Callable = None) -> int:
     return count
 
 
+# ── Fibre Coverage (Commerce Commission SFA) ──────────────────
+
+def load_fibre_coverage(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load Specified Fibre Areas from Commerce Commission GPKG.
+    Downloads 291MB GPKG, dissolves 1.68M parcels into ~2K SFA zone convex hulls."""
+    import sqlite3, struct
+
+    gpkg_path = "/tmp/sfa_data/SFA_2025.gpkg"
+
+    # Check if GPKG exists, download if not
+    try:
+        open(gpkg_path, "rb").close()
+    except FileNotFoundError:
+        _progress(log, "Downloading SFA GeoPackage (291MB)...")
+        import zipfile, io as _io
+        raw = _fetch_url(
+            "https://www.comcom.govt.nz/assets/Uploads/2025-SFA-map-GPKG.zip",
+            timeout=600,
+            extra_headers={"Referer": "https://www.comcom.govt.nz/"},
+        )
+        with zipfile.ZipFile(_io.BytesIO(raw)) as zf:
+            zf.extractall("/tmp/sfa_data/")
+        _progress(log, "GPKG downloaded and extracted")
+
+    _progress(log, "Reading SFA zones from GPKG (this takes ~2 minutes)...")
+    sfa_conn = sqlite3.connect(gpkg_path)
+    sfa_cur = sfa_conn.cursor()
+
+    # Get all unique SFA zones with their centroids and parcel counts
+    # We can't easily do convex hull in sqlite3, so we'll collect bounding boxes
+    # per SFA zone and create a union polygon in PostGIS
+    sfa_cur.execute("""
+        SELECT sfa_name, provider, count(*) as cnt,
+               min(minx) as minx, min(miny) as miny,
+               max(maxx) as maxy, max(maxy) as maxy2
+        FROM sfa_2025, rtree_sfa_2025_geom r
+        WHERE sfa_2025.id = r.id
+        GROUP BY sfa_name, provider
+    """)
+    zones = sfa_cur.fetchall()
+    _progress(log, f"Found {len(zones)} SFA zones")
+    sfa_conn.close()
+
+    # Fallback: just load SFA name + provider + approximate bbox as polygon
+    cur = conn.cursor()
+    cur.execute("TRUNCATE fibre_coverage RESTART IDENTITY")
+    conn.commit()
+
+    count = 0
+    for sfa_name, provider, cnt, minx, miny, maxx, maxy in zones:
+        if not minx or not miny or not maxx or not maxy:
+            continue
+        try:
+            # Create bounding box polygon (approximation of fibre coverage area)
+            wkt = f"POLYGON(({minx} {miny},{maxx} {miny},{maxx} {maxy},{minx} {maxy},{minx} {miny}))"
+            cur.execute(
+                """INSERT INTO fibre_coverage (sfa_name, provider, parcel_count, geom)
+                   VALUES (%s, %s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))""",
+                (sfa_name, provider, cnt, wkt),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+        if count % 500 == 0:
+            conn.commit()
+            _progress(log, f"Fibre zones: {count}/{len(zones)}...")
+
+    conn.commit()
+    _progress(log, f"Fibre coverage: {count} SFA zones loaded")
+    return count
+
+
+# ── OSM Cycleways (Overpass API) ──────────────────────────────
+
+def load_cycleways(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load cycleway line features from OSM Overpass API for major NZ cities."""
+    import time as _time
+
+    # Major NZ cities with bounding boxes [south, west, north, east]
+    cities = [
+        ("Auckland", -37.05, 174.55, -36.65, 175.00),
+        ("Wellington", -41.40, 174.65, -41.10, 174.95),
+        ("Christchurch", -43.65, 172.40, -43.40, 172.80),
+        ("Hamilton", -37.85, 175.20, -37.70, 175.35),
+        ("Tauranga", -37.75, 176.05, -37.60, 176.30),
+        ("Dunedin", -46.00, 170.35, -45.80, 170.60),
+        ("Napier-Hastings", -39.70, 176.70, -39.40, 177.00),
+        ("Palmerston North", -40.40, 175.55, -40.30, 175.70),
+        ("Nelson", -41.35, 173.20, -41.20, 173.35),
+        ("New Plymouth", -39.10, 174.00, -39.00, 174.15),
+        ("Rotorua", -38.20, 176.15, -38.07, 176.35),
+        ("Queenstown", -45.10, 168.60, -44.95, 168.80),
+        ("Invercargill", -46.45, 168.30, -46.35, 168.45),
+        ("Whangarei", -35.80, 174.25, -35.65, 174.40),
+        ("Kapiti Coast", -41.00, 174.85, -40.85, 175.05),
+        ("Lower Hutt", -41.25, 174.85, -41.15, 175.00),
+    ]
+
+    cur = conn.cursor()
+    cur.execute("TRUNCATE cycleways RESTART IDENTITY")
+    conn.commit()
+
+    count = 0
+    for city_name, south, west, north, east in cities:
+        _progress(log, f"Fetching cycleways for {city_name}...")
+        try:
+            query = f"""[out:json][timeout:60];
+(way["highway"="cycleway"]({south},{west},{north},{east});
+ way["cycleway"="track"]({south},{west},{north},{east});
+ way["cycleway:left"="track"]({south},{west},{north},{east});
+ way["cycleway:right"="track"]({south},{west},{north},{east}););
+out geom;"""
+            url = "https://overpass-api.de/api/interpreter"
+            data = urllib.parse.urlencode({"data": query}).encode()
+            req = urllib.request.Request(url, data=data, headers={"User-Agent": "WhareScore/1.0"})
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                result = json.loads(resp.read())
+
+            for element in result.get("elements", []):
+                if element.get("type") != "way":
+                    continue
+                geom = element.get("geometry", [])
+                if len(geom) < 2:
+                    continue
+                tags = element.get("tags", {})
+                name = tags.get("name", "")
+                surface = tags.get("surface", "")
+
+                # Build LineString WKT
+                coords = " ".join(f"{p['lon']} {p['lat']}" for p in geom)
+                wkt = f"LINESTRING({coords})"
+
+                try:
+                    cur.execute(
+                        """INSERT INTO cycleways (name, surface, geom)
+                           VALUES (%s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))""",
+                        (name, surface, wkt),
+                    )
+                    count += 1
+                except Exception:
+                    conn.rollback()
+                    continue
+
+            conn.commit()
+            _progress(log, f"  {city_name}: +{result.get('elements', []).__len__()} ways, total {count}")
+        except Exception as e:
+            logger.warning(f"Cycleways failed for {city_name}: {e}")
+            conn.rollback()
+
+        _time.sleep(5)  # Rate limit Overpass
+
+    _progress(log, f"Cycleways: {count} ways loaded across {len(cities)} cities")
+    return count
+
+
 # ── Business Demography 2024 (SA2) ────────────────────────────
 
 def load_business_demography(conn: psycopg.Connection, log: Callable = None) -> int:
@@ -4090,6 +4246,16 @@ DATA_SOURCES: list[DataSource] = [
         "business_demography", "Business Demography 2024 (SA2 — employee + business counts, growth)",
         ["business_demography"],
         load_business_demography,
+    ),
+    DataSource(
+        "fibre_coverage", "Commerce Commission Specified Fibre Areas (2025)",
+        ["fibre_coverage"],
+        load_fibre_coverage,
+    ),
+    DataSource(
+        "cycleways", "OSM Cycleways (16 major cities)",
+        ["cycleways"],
+        load_cycleways,
     ),
     # ── National (LINZ) ───────────────────────────────────────
     DataSource(

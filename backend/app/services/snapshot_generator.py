@@ -608,6 +608,42 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
                     result["community_centres_2km"] = row["community_centres"] or 0
                     result["cycling_facilities_2km"] = row["cycling_facilities"] or 0
 
+                # Fibre coverage check
+                try:
+                    cur = await c.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT fc.sfa_name, fc.provider
+                        FROM fibre_coverage fc, addr
+                        WHERE fc.geom && addr.geom AND ST_Contains(fc.geom, addr.geom)
+                        LIMIT 1
+                    """, [address_id])
+                    row = cur.fetchone()
+                    if row:
+                        result["fibre_available"] = True
+                        result["fibre_provider"] = row["provider"]
+                        result["fibre_sfa_name"] = row["sfa_name"]
+                    else:
+                        result["fibre_available"] = False
+                except Exception:
+                    pass
+
+                # Cycleway km within 2km
+                try:
+                    cur = await c.execute("""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT round(sum(ST_Length(
+                            ST_Intersection(cw.geom::geography,
+                                ST_Buffer(addr.geom::geography, 2000))
+                        )::numeric) / 1000, 1) AS km
+                        FROM cycleways cw, addr
+                        WHERE cw.geom && ST_Expand(addr.geom, 0.02)
+                          AND ST_DWithin(cw.geom::geography, addr.geom::geography, 2000)
+                    """, [address_id])
+                    row = cur.fetchone()
+                    result["cycleway_km_2km"] = float(row["km"]) if row and row["km"] else 0
+                except Exception:
+                    result["cycleway_km_2km"] = 0
+
                 return result
         except Exception:
             return {}
