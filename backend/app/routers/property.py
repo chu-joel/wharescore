@@ -428,18 +428,24 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     sa2_code = (report.get("address") or {}).get("sa2_code")
 
     async def _get_detection():
+        _td = _time.monotonic()
         async with db.pool.connection() as conn_det:
-            return await detect_property_type(conn_det, address_id)
+            result = await detect_property_type(conn_det, address_id)
+        print(f"[PERF]   detect_property_type: {_time.monotonic() - _td:.2f}s")
+        return result
 
     async def _get_area_profile():
+        _ta = _time.monotonic()
         if not sa2_code:
+            print(f"[PERF]   area_profile: skipped (no sa2)")
             return None
         async with db.pool.connection() as conn2:
             cur2 = await conn2.execute(
                 "SELECT profile FROM area_profiles WHERE sa2_code = %s", [sa2_code]
             )
             pr = cur2.fetchone()
-            return pr["profile"] if pr else None
+        print(f"[PERF]   area_profile: {_time.monotonic() - _ta:.2f}s")
+        return pr["profile"] if pr else None
 
     _t2 = _time.monotonic()
     detection, area_profile = await asyncio.gather(_get_detection(), _get_area_profile())
