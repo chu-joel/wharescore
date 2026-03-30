@@ -97,7 +97,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const transmissionDist = planning.transmission_line_distance_m as number;
 
   // Council rates
-  const ratesData = (snapshot as Record<string, unknown>)?.rates_data as { total_rates?: number; rates_breakdown?: Array<{ name: string; amount: number }> } | null;
+  const ratesData = (snapshot as unknown as Record<string, unknown>)?.rates_data as { total_rates?: number; rates_breakdown?: Array<{ name: string; amount: number }> } | null;
 
   // Transit travel times (AM + PM peak)
   type TravelTime = { destination: string; minutes: number; routes?: string[]; travel_time_min?: number; route?: string };
@@ -171,7 +171,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
 
         {/* Nearest supermarkets (5 closest, brand-priority) */}
         {(() => {
-          const supermarkets = ((snapshot as Record<string, unknown>)?.nearest_supermarkets ?? []) as NearestSupermarket[];
+          const supermarkets = ((snapshot as unknown as Record<string, unknown>)?.nearest_supermarkets ?? []) as NearestSupermarket[];
           if (supermarkets.length === 0) return null;
           return (
             <div>
