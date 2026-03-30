@@ -545,6 +545,70 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         except Exception:
             return None
 
+    async def _q_community_facilities():
+        """Nearest hospital, EV charger, library, sports centre from existing OSM data."""
+        try:
+            async with db.pool.connection() as c:
+                result = {}
+                # Nearest hospital (within 50km)
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT name, subcategory,
+                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
+                           ST_Y(oa.geom) AS latitude, ST_X(oa.geom) AS longitude
+                    FROM osm_amenities oa, addr
+                    WHERE oa.subcategory IN ('hospital')
+                      AND oa.geom && ST_Expand(addr.geom, 0.5)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 50000)
+                    ORDER BY oa.geom <-> addr.geom LIMIT 1
+                """, [address_id])
+                row = cur.fetchone()
+                result["nearest_hospital"] = dict(row) if row else None
+
+                # Nearest EV charger + count within 5km
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT
+                      (SELECT jsonb_build_object('name', name, 'distance_m', round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric))
+                       FROM osm_amenities oa, addr
+                       WHERE oa.subcategory = 'charging_station'
+                         AND oa.geom && ST_Expand(addr.geom, 0.1)
+                         AND ST_DWithin(oa.geom::geography, addr.geom::geography, 10000)
+                       ORDER BY oa.geom <-> addr.geom LIMIT 1) AS nearest_ev,
+                      (SELECT count(*)::int FROM osm_amenities oa, addr
+                       WHERE oa.subcategory = 'charging_station'
+                         AND oa.geom && ST_Expand(addr.geom, 0.05)
+                         AND ST_DWithin(oa.geom::geography, addr.geom::geography, 5000)) AS ev_count_5km
+                """, [address_id])
+                row = cur.fetchone()
+                if row:
+                    result["nearest_ev_charger"] = dict(row["nearest_ev"]) if row["nearest_ev"] else None
+                    result["ev_chargers_5km"] = row["ev_count_5km"] or 0
+
+                # Community facility counts within 2km
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT
+                      count(*) FILTER (WHERE subcategory = 'library')::int AS libraries,
+                      count(*) FILTER (WHERE subcategory IN ('sports_centre', 'swimming_pool'))::int AS sports_facilities,
+                      count(*) FILTER (WHERE subcategory = 'playground')::int AS playgrounds,
+                      count(*) FILTER (WHERE subcategory = 'community_centre')::int AS community_centres
+                    FROM osm_amenities oa, addr
+                    WHERE oa.subcategory IN ('library', 'sports_centre', 'swimming_pool', 'playground', 'community_centre')
+                      AND oa.geom && ST_Expand(addr.geom, 0.02)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 2000)
+                """, [address_id])
+                row = cur.fetchone()
+                if row:
+                    result["libraries_2km"] = row["libraries"] or 0
+                    result["sports_facilities_2km"] = row["sports_facilities"] or 0
+                    result["playgrounds_2km"] = row["playgrounds"] or 0
+                    result["community_centres_2km"] = row["community_centres"] or 0
+
+                return result
+        except Exception:
+            return {}
+
     async def _q_business_demography():
         try:
             async with db.pool.connection() as c:
@@ -588,13 +652,14 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         nearby_highlights, nearby_supermarkets, rates_data,
         nearby_doc, nearest_supermarkets, school_zones, road_noise, weather_history,
         census_demo, census_hh, census_commute, climate_normals, biz_demo,
+        community_facilities,
     ) = await asyncio.gather(
         _q_hazards(), _q_location(), _q_sa2_comp(), _q_area_context(), _q_sa2_medians(),
         _q_rent_history(), _q_hpi(), _q_crime_trend(),
         _q_highlights(), _q_supermarkets(), _q_rates(),
         _q_doc(), _q_nearest_supermarkets(), _q_school_zones(), _q_road_noise(), _q_weather(),
         _q_census_demographics(), _q_census_households(), _q_census_commute(), _q_climate_normals(),
-        _q_business_demography(),
+        _q_business_demography(), _q_community_facilities(),
     )
 
     # Apply CV from rates data (generic handler for all councils)
@@ -729,6 +794,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "census_commute": census_commute,
         "climate_normals": climate_normals,
         "business_demography": biz_demo,
+        "community_facilities": community_facilities,
     }
 
 
@@ -1645,6 +1711,7 @@ async def generate_snapshot(
         "census_commute": cache.get("census_commute"),
         "climate_normals": cache.get("climate_normals"),
         "business_demography": cache.get("business_demography"),
+        "community_facilities": cache.get("community_facilities", {}),
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",

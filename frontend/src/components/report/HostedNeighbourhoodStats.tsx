@@ -112,6 +112,17 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   // Corrosion zone
   const inCorrosionZone = env.in_corrosion_zone as boolean;
 
+  // Community facilities (from snapshot)
+  const cf = (snapshot as unknown as Record<string, unknown>)?.community_facilities as {
+    nearest_hospital?: { name: string; distance_m: number } | null;
+    nearest_ev_charger?: { name: string; distance_m: number } | null;
+    ev_chargers_5km?: number;
+    libraries_2km?: number;
+    sports_facilities_2km?: number;
+    playgrounds_2km?: number;
+    community_centres_2km?: number;
+  } | null;
+
   // Heritage
   const heritageCount = live.heritage_count_500m as number;
   const heritageListed = planning.heritage_listed as boolean;
@@ -165,6 +176,51 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   <span className="text-muted-foreground text-xs">{e.value}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Community facilities */}
+        {cf && (cf.nearest_hospital || cf.libraries_2km || cf.ev_chargers_5km) && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Community Facilities</h4>
+            <div className="divide-y divide-border/50">
+              {cf.nearest_hospital && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Hospital</span>
+                  <span className="text-muted-foreground text-xs">{cf.nearest_hospital.name} — {Math.round(cf.nearest_hospital.distance_m / 1000)}km</span>
+                </div>
+              )}
+              {cf.nearest_ev_charger && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">EV Charger</span>
+                  <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} within 5km)` : ''}</span>
+                </div>
+              )}
+              {(cf.libraries_2km ?? 0) > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Libraries</span>
+                  <span className="text-muted-foreground text-xs">{cf.libraries_2km} within 2km</span>
+                </div>
+              )}
+              {(cf.sports_facilities_2km ?? 0) > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Sports / Pools</span>
+                  <span className="text-muted-foreground text-xs">{cf.sports_facilities_2km} within 2km</span>
+                </div>
+              )}
+              {(cf.playgrounds_2km ?? 0) > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Playgrounds</span>
+                  <span className="text-muted-foreground text-xs">{cf.playgrounds_2km} within 2km</span>
+                </div>
+              )}
+              {(cf.community_centres_2km ?? 0) > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Community Centres</span>
+                  <span className="text-muted-foreground text-xs">{cf.community_centres_2km} within 2km</span>
+                </div>
+              )}
             </div>
           </div>
         )}
