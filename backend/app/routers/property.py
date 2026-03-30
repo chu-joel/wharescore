@@ -1418,6 +1418,8 @@ async def _generate_pdf_background(
 ):
     """Background task to generate PDF report. Saves report + deducts credit on success."""
     try:
+        import time as _time
+        _bg_start = _time.monotonic()
         await set_job_generating(job_id)
 
         # 1. Get full report (cache or DB)
@@ -1834,6 +1836,7 @@ async def _generate_pdf_background(
             except Exception as e:
                 logger.error(f"Failed to save report/deduct credit for {user_id}: {e}")
 
+        print(f"[PERF-BG] Pre-snapshot work: {_time.monotonic() - _bg_start:.2f}s for {address_id} (tier={report_tier})")
         # --- Phase 1: Create snapshot fast (no AI) + mark complete ---
         share_token = None
         try:
@@ -1907,6 +1910,7 @@ async def _generate_pdf_background(
                 logger.warning(f"Fallback share_token lookup failed: {e}")
 
         await set_job_completed(job_id, html, share_token=share_token)
+        print(f"[PERF-BG] Phase 1 TOTAL: {_time.monotonic() - _bg_start:.2f}s for {address_id} (tier={report_tier})")
         logger.info(f"Phase 1 complete for job {job_id} (AI={'yes' if ai_insights else 'pending'}, hosted={'yes' if share_token else 'no'})")
 
         # --- Send report-ready email (paid reports only, not free quick) ---
