@@ -136,7 +136,7 @@ async def require_paid_user(
             if downloads_this_month >= monthly_limit:
                 raise HTTPException(
                     403,
-                    f"Monthly limit reached ({monthly_limit} reports). Resets next month.",
+                    f"Monthly limit reached ({monthly_limit} reports in 30 days). Your oldest report ages out daily.",
                 )
 
         return CreditInfo(

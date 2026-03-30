@@ -141,7 +141,7 @@ export default function AccountPage() {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">This month</span>
+                <span className="text-muted-foreground">Last 30 days</span>
                 <span className="font-medium">{credits.downloadsThisMonth} / {credits.monthlyLimit ?? 30}</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">

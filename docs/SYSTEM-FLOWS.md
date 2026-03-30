@@ -135,7 +135,7 @@ Admin page load → AdminAuthGate checks session
 | free | $0 | 0 | — | — | — |
 | quick (free) | $0 | Free with sign-in | Quick (~8 sections) | Unlimited | No payment |
 | full_single | $9.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
-| pro | $140/mo | Unlimited | Full | 10/day, 30/month | Subscription |
+| pro | $140/mo | Unlimited | Full | 10/day, 30 per rolling 30 days | Subscription |
 | promo | Free | 1 per redemption | Full | Per-code max | Via redeem-promo |
 | upgrade | $9.99 | — | Quick→Full | Per-snapshot | One-time payment |
 
@@ -184,7 +184,7 @@ POST /property/{id}/export/pdf/start?report_tier=quick|full
   → Finds credit matching requested tier (prefers exact tier match)
   → Priority: pro > matching-tier credit > any credit (most recent first)
   → Active = not cancelled, not expired, credits_remaining > 0
-  → Pro: check daily (10) + monthly (30) limits, always full tier
+  → Pro: check daily (10) + rolling 30-day (30) limits, always full tier
   → Single/pack3/promo: decrement credits_remaining by 1 on the matched credit row
   → If no credits: return 403 → frontend shows UpgradeModal
 ```

@@ -102,7 +102,7 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
       if (credits.monthlyLimit && credits.downloadsThisMonth >= credits.monthlyLimit) {
         return {
           allowed: false,
-          reason: `Monthly limit reached (${credits.monthlyLimit} reports). Resets next month.`,
+          reason: `Monthly limit reached (${credits.monthlyLimit} reports in 30 days). Your oldest report ages out daily.`,
         };
       }
       if (credits.dailyLimit && credits.downloadsToday >= credits.dailyLimit) {
