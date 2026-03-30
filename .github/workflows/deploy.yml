@@ -98,17 +98,11 @@ jobs:
               "BREVO_API_KEY=${BREVO_API_KEY}" \
               > .env.prod
 
-            echo "==> Stopping all running services"
-            $COMPOSE down --remove-orphans --timeout 15 2>/dev/null || true
-            docker rm -f app-postgres-1 app-api-1 app-web-1 app-martin-1 app-valhalla-1 app-redis-1 2>/dev/null || true
-
-            echo "==> Pruning old images to free disk space"
-            docker image prune -f
-
-            echo "==> Building fresh images"
+            echo "==> Building new images (old containers stay running)"
             $COMPOSE build --no-cache api web
 
-            echo "==> Starting infrastructure (postgres, redis, martin, valhalla)"
+            echo "==> Build succeeded — now swapping containers"
+            echo "==> Ensuring infrastructure is up (postgres, redis, martin, valhalla)"
             $COMPOSE up -d postgres redis martin valhalla
 
             echo "==> Waiting for postgres to be healthy"
@@ -120,8 +114,8 @@ jobs:
               sleep 3
             done
 
-            echo "==> Starting api and web"
-            $COMPOSE up -d api web
+            echo "==> Recreating api and web with new images"
+            $COMPOSE up -d --no-deps --force-recreate api web
 
             echo "==> Waiting for API to be healthy"
             for i in $(seq 1 20); do
@@ -139,6 +133,8 @@ jobs:
             for i in $(seq 1 18); do
               if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
                 echo "==> Deploy successful! Health check passed (attempt $i)"
+                echo "==> Pruning old images"
+                docker image prune -f
                 exit 0
               fi
               echo "    attempt $i/18 — waiting 5s..."
