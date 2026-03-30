@@ -80,7 +80,7 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   if (cableCarStops) transitModes.push({ mode: 'Cable Car', count: cableCarStops });
 
   // Transit travel times
-  const travelTimes = (live.transit_travel_times ?? []) as { destination: string; travel_time_min: number; route: string }[];
+  const travelTimes = (live.transit_travel_times ?? []) as { destination: string; minutes: number; routes?: string[]; travel_time_min?: number; route?: string }[];
 
   // Comparison benchmarks
   const comparisons = (rawReport.comparisons ?? {}) as Record<string, unknown>;
@@ -179,7 +179,7 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
                 <div key={t.destination} className="flex justify-between py-1.5 text-xs">
                   <span className="font-medium">{t.destination}</span>
                   <span className="text-muted-foreground">
-                    {t.travel_time_min} min{t.route ? ` · ${t.route}` : ''}
+                    {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
                   </span>
                 </div>
               ))}

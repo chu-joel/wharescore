@@ -419,15 +419,19 @@ async def prefetch_property_data(conn, address_id: int) -> dict | None:
     except Exception as e:
         logger.warning(f"Snapshot DOC nearby failed: {e}")
 
-    # 21. School zones this property falls within
+    # 21. School zones this property falls within (enriched with distance, EQI, roll)
     school_zones = []
     try:
         cur = await conn.execute("""
             WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT sz.school_name, sz.school_id, sz.institution_type
+            SELECT sz.school_name, sz.school_id, sz.institution_type,
+                   s.eqi_index AS eqi, s.total_roll AS roll,
+                   s.suburb, s.city,
+                   round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS distance_m
             FROM school_zones sz, addr
+            LEFT JOIN schools s ON s.school_id = sz.school_id
             WHERE ST_Contains(sz.geom, addr.geom)
-            ORDER BY sz.school_name
+            ORDER BY sz.institution_type, COALESCE(ST_Distance(s.geom::geography, addr.geom::geography), 999999)
         """, [address_id])
         school_zones = [dict(r) for r in cur.fetchall()]
     except Exception as e:

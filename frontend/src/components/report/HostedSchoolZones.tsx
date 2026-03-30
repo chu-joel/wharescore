@@ -7,6 +7,11 @@ interface SchoolZone {
   school_name: string;
   school_id: number;
   institution_type: string;
+  distance_m?: number | null;
+  eqi?: number | null;
+  roll?: number | null;
+  suburb?: string | null;
+  city?: string | null;
 }
 
 interface Props {
@@ -38,9 +43,24 @@ export function HostedSchoolZones({ snapshot }: Props) {
       </div>
       <div className="divide-y divide-green-200/50 dark:divide-green-800/50">
         {zones.map((z) => (
-          <div key={z.school_id} className="flex justify-between items-center py-2">
-            <span className="text-sm font-medium">{z.school_name}</span>
-            <span className="text-xs text-muted-foreground">{typeLabel(z.institution_type)}</span>
+          <div key={z.school_id} className="py-2">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0">
+                <span className="text-sm font-medium">{z.school_name}</span>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                  <span>{typeLabel(z.institution_type)}</span>
+                  {z.roll && <span>· Roll: {z.roll.toLocaleString()}</span>}
+                  {z.eqi && <span>· EQI: {z.eqi}</span>}
+                </div>
+              </div>
+              {z.distance_m != null && (
+                <span className="text-xs text-muted-foreground shrink-0 mt-0.5">
+                  {z.distance_m >= 1000
+                    ? `${(z.distance_m / 1000).toFixed(1)} km`
+                    : `${z.distance_m} m`}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
