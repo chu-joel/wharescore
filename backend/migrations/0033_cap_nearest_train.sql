@@ -1,8 +1,6 @@
--- 0022_report_missing_layers.sql
--- Add missing data layer queries to get_property_report().
--- Tables populated by DataSource entries but not previously queried:
---   active_faults, fault_avoidance_zones, historic_heritage_overlay,
---   notable_trees, significant_ecological_areas, aircraft_noise_overlay
+-- 0033_cap_nearest_train.sql
+-- Cap nearest train station query at 50km so small cities don't show
+-- "Wellington Station 450km" as their nearest train.
 
 CREATE OR REPLACE FUNCTION get_property_report(p_address_id BIGINT)
 RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
@@ -640,11 +638,13 @@ BEGIN
           AND ST_DWithin(geom::geography, addr.geom::geography, 400)
         LIMIT 10
       ) ts_list ON true
-      -- Nearest train station (location_type=1)
+      -- Nearest train station (location_type=1, max 50km)
       LEFT JOIN LATERAL (
         SELECT stop_name, ST_Distance(geom::geography, addr.geom::geography) AS train_dist
         FROM transit_stops
         WHERE location_type = 1
+          AND geom && ST_Expand(addr.geom, 0.5)
+          AND ST_DWithin(geom::geography, addr.geom::geography, 50000)
         ORDER BY geom <-> addr.geom LIMIT 1
       ) tr ON true
       -- Crashes 300m (serious/fatal)
