@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Database, Download, CheckCircle2, XCircle, Loader2, Clock,
 } from 'lucide-react';
+import { useAuthToken } from '@/hooks/useAuthToken';
+import { apiFetch } from '@/lib/api';
 
 interface DataSourceInfo {
   key: string;
@@ -25,25 +27,19 @@ interface ActiveJob {
   error?: string;
 }
 
-async function adminFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/v1/admin${path}`, {
-    credentials: 'include',
-    ...opts,
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
-
 export function DataLoaderPanel() {
   const [sources, setSources] = useState<DataSourceInfo[]>([]);
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState<string | null>(null);
+  const { getToken } = useAuthToken();
 
   const fetchSources = useCallback(async () => {
     try {
-      const data = await adminFetch<{ sources: DataSourceInfo[]; active_job: ActiveJob | null }>(
-        '/data-sources',
+      const token = await getToken();
+      const data = await apiFetch<{ sources: DataSourceInfo[]; active_job: ActiveJob | null }>(
+        '/api/v1/admin/data-sources',
+        { token: token ?? undefined },
       );
       setSources(data.sources);
       setActiveJob(data.active_job);
@@ -52,7 +48,7 @@ export function DataLoaderPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getToken]);
 
   // Initial load
   useEffect(() => {
@@ -64,10 +60,13 @@ export function DataLoaderPanel() {
     if (!activeJob || activeJob.status !== 'running') return;
     const interval = setInterval(async () => {
       try {
-        const data = await adminFetch<{ active_job: ActiveJob | null }>('/data-sources/job');
+        const token = await getToken();
+        const data = await apiFetch<{ active_job: ActiveJob | null }>(
+          '/api/v1/admin/data-sources/job',
+          { token: token ?? undefined },
+        );
         setActiveJob(data.active_job);
         if (data.active_job?.status !== 'running') {
-          // Job finished — refresh sources
           fetchSources();
         }
       } catch {
@@ -75,14 +74,15 @@ export function DataLoaderPanel() {
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [activeJob, fetchSources]);
+  }, [activeJob, fetchSources, getToken]);
 
   const handleLoad = async (sourceKey: string) => {
     setTriggering(sourceKey);
     try {
-      const data = await adminFetch<{ job_id: string; status: string }>(
-        `/data-sources/${sourceKey}/load`,
-        { method: 'POST' },
+      const token = await getToken();
+      const data = await apiFetch<{ job_id: string; status: string }>(
+        `/api/v1/admin/data-sources/${sourceKey}/load`,
+        { method: 'POST', token: token ?? undefined },
       );
       setActiveJob({ id: data.job_id, source: sourceKey, status: 'running' });
     } catch (e) {
@@ -94,7 +94,8 @@ export function DataLoaderPanel() {
 
   const handleClearJob = async () => {
     try {
-      await adminFetch('/data-sources/job', { method: 'DELETE' });
+      const token = await getToken();
+      await apiFetch('/api/v1/admin/data-sources/job', { method: 'DELETE', token: token ?? undefined });
       setActiveJob(null);
       fetchSources();
     } catch {

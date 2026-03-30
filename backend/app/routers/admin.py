@@ -52,6 +52,7 @@ ALLOWED_TABLES = frozenset([
     "geotechnical_reports", "auckland_schools", "park_extents",
     "heritage_extent",
     "at_stops", "at_travel_times", "at_stop_frequency",
+    "census_demographics", "census_households",
 ])
 
 # All recommendation rule IDs with default severity, title, category, and action templates.
