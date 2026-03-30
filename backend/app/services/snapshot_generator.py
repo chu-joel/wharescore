@@ -509,17 +509,43 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
             logger.warning(f"Snapshot weather history failed: {e}")
             return []
 
+    async def _q_census_demographics():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    "SELECT * FROM census_demographics WHERE sa2_code = %s",
+                    [sa2["sa2_code"]],
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+        except Exception:
+            return None
+
+    async def _q_census_households():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    "SELECT * FROM census_households WHERE sa2_code = %s",
+                    [sa2["sa2_code"]],
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+        except Exception:
+            return None
+
     # Run all independent queries in parallel
     (
         hazards, location, sa2_comp, area_context, sa2_med_row,
         rent_history, hpi_data, crime_trend,
         nearby_highlights, nearby_supermarkets, rates_data,
         nearby_doc, nearest_supermarkets, school_zones, road_noise, weather_history,
+        census_demo, census_hh,
     ) = await asyncio.gather(
         _q_hazards(), _q_location(), _q_sa2_comp(), _q_area_context(), _q_sa2_medians(),
         _q_rent_history(), _q_hpi(), _q_crime_trend(),
         _q_highlights(), _q_supermarkets(), _q_rates(),
         _q_doc(), _q_nearest_supermarkets(), _q_school_zones(), _q_road_noise(), _q_weather(),
+        _q_census_demographics(), _q_census_households(),
     )
 
     # Apply CV from rates data (generic handler for all councils)
@@ -649,6 +675,8 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "weather_history": weather_history,
         "terrain": terrain_data,
         "isochrone": isochrone_data,
+        "census_demographics": census_demo,
+        "census_households": census_hh,
     }
 
 
@@ -1560,6 +1588,8 @@ async def generate_snapshot(
         "terrain": cache.get("terrain", {}),
         "isochrone": cache.get("isochrone", {}),
         "terrain_insights": terrain_insights,
+        "census_demographics": cache.get("census_demographics"),
+        "census_households": cache.get("census_households"),
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",

@@ -3495,11 +3495,250 @@ def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
     return count
 
 
+# ── Census 2023 Demographics (SA2) ────────────────────────────
+
+def load_census_demographics(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load Census 2023 individual demographics by SA2 from Stats NZ ArcGIS."""
+    base = "https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/2023_Census_totals_by_topic_for_individuals_by_SA2/FeatureServer/0"
+    _progress(log, "Fetching Census 2023 demographics (individuals by SA2)...")
+
+    # Field mapping: VAR code → our column
+    # VAR_1_2 = pop 2018, VAR_1_3 = pop 2023
+    # VAR_1_80-83 = age life cycle 2023, VAR_1_69 = median age 2023
+    # VAR_1_158-168 = ethnicity 2023
+    # VAR_1_95-96 = birthplace 2023
+    # VAR_1_270-271 = gender 2023
+    # VAR_1_205-206,212 = languages 2023
+    out_fields = (
+        "SA22023_V1_00,SA22023_V1_00_NAME_ASCII,"
+        "VAR_1_2,VAR_1_3,"
+        "VAR_1_80,VAR_1_81,VAR_1_82,VAR_1_83,VAR_1_69,"
+        "VAR_1_158,VAR_1_159,VAR_1_160,VAR_1_161,VAR_1_162,VAR_1_163,VAR_1_167,"
+        "VAR_1_95,VAR_1_96,"
+        "VAR_1_270,VAR_1_271,"
+        "VAR_1_205,VAR_1_206,VAR_1_212"
+    )
+
+    cur = conn.cursor()
+    cur.execute("TRUNCATE census_demographics")
+    conn.commit()
+
+    # Paginate through all SA2 records
+    offset = 0
+    count = 0
+    while True:
+        url = (
+            f"{base}/query?where=1%3D1&outFields={out_fields}"
+            f"&returnGeometry=false&resultRecordCount=2000&resultOffset={offset}&f=json"
+        )
+        data = json.loads(_fetch_url(url, timeout=60))
+        features = data.get("features", [])
+        if not features:
+            break
+
+        for f in features:
+            a = f.get("attributes", {})
+            sa2_code = a.get("SA22023_V1_00")
+            if not sa2_code:
+                continue
+
+            def _v(key, default=None):
+                val = a.get(key)
+                if val is None or val == -999:
+                    return default
+                return val
+
+            try:
+                cur.execute(
+                    """INSERT INTO census_demographics (
+                        sa2_code, sa2_name,
+                        population_2018, population_2023,
+                        age_under_15, age_15_to_29, age_30_to_64, age_65_plus, median_age,
+                        ethnicity_european, ethnicity_maori, ethnicity_pacific, ethnicity_asian,
+                        ethnicity_melaa, ethnicity_other, ethnicity_total,
+                        born_nz, born_overseas,
+                        gender_male, gender_female,
+                        lang_english, lang_maori, lang_total
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (sa2_code) DO UPDATE SET
+                        sa2_name=EXCLUDED.sa2_name, population_2018=EXCLUDED.population_2018,
+                        population_2023=EXCLUDED.population_2023, age_under_15=EXCLUDED.age_under_15,
+                        age_15_to_29=EXCLUDED.age_15_to_29, age_30_to_64=EXCLUDED.age_30_to_64,
+                        age_65_plus=EXCLUDED.age_65_plus, median_age=EXCLUDED.median_age,
+                        ethnicity_european=EXCLUDED.ethnicity_european, ethnicity_maori=EXCLUDED.ethnicity_maori,
+                        ethnicity_pacific=EXCLUDED.ethnicity_pacific, ethnicity_asian=EXCLUDED.ethnicity_asian,
+                        ethnicity_melaa=EXCLUDED.ethnicity_melaa, ethnicity_other=EXCLUDED.ethnicity_other,
+                        ethnicity_total=EXCLUDED.ethnicity_total,
+                        born_nz=EXCLUDED.born_nz, born_overseas=EXCLUDED.born_overseas,
+                        gender_male=EXCLUDED.gender_male, gender_female=EXCLUDED.gender_female,
+                        lang_english=EXCLUDED.lang_english, lang_maori=EXCLUDED.lang_maori,
+                        lang_total=EXCLUDED.lang_total
+                    """,
+                    (
+                        sa2_code, a.get("SA22023_V1_00_NAME_ASCII"),
+                        _v("VAR_1_2"), _v("VAR_1_3"),
+                        _v("VAR_1_80"), _v("VAR_1_81"), _v("VAR_1_82"), _v("VAR_1_83"), _v("VAR_1_69"),
+                        _v("VAR_1_158"), _v("VAR_1_159"), _v("VAR_1_160"), _v("VAR_1_161"),
+                        _v("VAR_1_162"), _v("VAR_1_163"), _v("VAR_1_167"),
+                        _v("VAR_1_95"), _v("VAR_1_96"),
+                        _v("VAR_1_270"), _v("VAR_1_271"),
+                        _v("VAR_1_205"), _v("VAR_1_206"), _v("VAR_1_212"),
+                    ),
+                )
+                count += 1
+            except Exception:
+                conn.rollback()
+                continue
+
+        conn.commit()
+        offset += len(features)
+        _progress(log, f"Census demographics: {count} SA2 areas loaded...")
+        if len(features) < 2000:
+            break
+
+    _progress(log, f"Census 2023 demographics: {count} SA2 areas")
+    return count
+
+
+# ── Census 2023 Households (SA2) ─────────────────────────────
+
+def load_census_households(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load Census 2023 household data by SA2 from Stats NZ ArcGIS."""
+    base = "https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/2023_Census_totals_by_topic_for_households_by_SA2/FeatureServer/0"
+    _progress(log, "Fetching Census 2023 households by SA2...")
+
+    # Field mapping: VAR_4_* → our columns
+    out_fields = (
+        "SA22023_V1_00,SA22023_V1_00_NAME_ASCII,"
+        "VAR_4_2,VAR_4_3,"  # households 2018, 2023
+        "VAR_4_74,VAR_4_75,VAR_4_76,VAR_4_77,VAR_4_78,VAR_4_80,"  # composition
+        "VAR_4_48,VAR_4_51,"  # crowding
+        "VAR_4_184,VAR_4_185,VAR_4_186,VAR_4_189,"  # tenure
+        "VAR_4_214,VAR_4_215,VAR_4_216,VAR_4_217,VAR_4_218,VAR_4_219,VAR_4_220,VAR_4_221,VAR_4_225,"  # income
+        "VAR_4_136,VAR_4_137,VAR_4_138,VAR_4_139,VAR_4_144,"  # vehicles (none,1,2,3+,total)
+        "VAR_4_24,VAR_4_20,VAR_4_27,"  # internet
+        "VAR_4_261,VAR_4_260,"  # rent median, rent total
+        "VAR_4_163,VAR_4_165,VAR_4_164,VAR_4_167,VAR_4_171"  # landlord
+    )
+
+    cur = conn.cursor()
+    cur.execute("TRUNCATE census_households")
+    conn.commit()
+
+    offset = 0
+    count = 0
+    while True:
+        url = (
+            f"{base}/query?where=1%3D1&outFields={out_fields}"
+            f"&returnGeometry=false&resultRecordCount=2000&resultOffset={offset}&f=json"
+        )
+        data = json.loads(_fetch_url(url, timeout=60))
+        features = data.get("features", [])
+        if not features:
+            break
+
+        for f in features:
+            a = f.get("attributes", {})
+            sa2_code = a.get("SA22023_V1_00")
+            if not sa2_code:
+                continue
+
+            def _v(key, default=None):
+                val = a.get(key)
+                if val is None or val == -999:
+                    return default
+                return val
+
+            # vehicles_three_plus = 3 + 4 + 5+
+            v3 = _v("VAR_4_139", 0) or 0
+            v4 = _v("VAR_4_140", 0) or 0 if "VAR_4_140" in a else 0
+            # multi-family = two-family + three+
+            multi_fam = (_v("VAR_4_75", 0) or 0) + (_v("VAR_4_76", 0) or 0)
+
+            try:
+                cur.execute(
+                    """INSERT INTO census_households (
+                        sa2_code, sa2_name,
+                        households_2018, households_2023,
+                        hh_one_family, hh_multi_family, hh_other_multi_person, hh_one_person, hh_total,
+                        hh_crowded, hh_not_crowded,
+                        tenure_owned, tenure_not_owned, tenure_family_trust, tenure_total,
+                        income_under_20k, income_20k_30k, income_30k_50k, income_50k_70k,
+                        income_70k_100k, income_100k_150k, income_150k_200k, income_200k_plus, income_median,
+                        vehicles_none, vehicles_one, vehicles_two, vehicles_three_plus, vehicles_total,
+                        internet_access, internet_no_access, internet_total,
+                        rent_median, rent_total_hh,
+                        landlord_private, landlord_kainga_ora, landlord_council, landlord_other, landlord_total
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (sa2_code) DO UPDATE SET
+                        sa2_name=EXCLUDED.sa2_name, households_2018=EXCLUDED.households_2018,
+                        households_2023=EXCLUDED.households_2023, hh_one_family=EXCLUDED.hh_one_family,
+                        hh_multi_family=EXCLUDED.hh_multi_family, hh_other_multi_person=EXCLUDED.hh_other_multi_person,
+                        hh_one_person=EXCLUDED.hh_one_person, hh_total=EXCLUDED.hh_total,
+                        hh_crowded=EXCLUDED.hh_crowded, hh_not_crowded=EXCLUDED.hh_not_crowded,
+                        tenure_owned=EXCLUDED.tenure_owned, tenure_not_owned=EXCLUDED.tenure_not_owned,
+                        tenure_family_trust=EXCLUDED.tenure_family_trust, tenure_total=EXCLUDED.tenure_total,
+                        income_under_20k=EXCLUDED.income_under_20k, income_20k_30k=EXCLUDED.income_20k_30k,
+                        income_30k_50k=EXCLUDED.income_30k_50k, income_50k_70k=EXCLUDED.income_50k_70k,
+                        income_70k_100k=EXCLUDED.income_70k_100k, income_100k_150k=EXCLUDED.income_100k_150k,
+                        income_150k_200k=EXCLUDED.income_150k_200k, income_200k_plus=EXCLUDED.income_200k_plus,
+                        income_median=EXCLUDED.income_median,
+                        vehicles_none=EXCLUDED.vehicles_none, vehicles_one=EXCLUDED.vehicles_one,
+                        vehicles_two=EXCLUDED.vehicles_two, vehicles_three_plus=EXCLUDED.vehicles_three_plus,
+                        vehicles_total=EXCLUDED.vehicles_total,
+                        internet_access=EXCLUDED.internet_access, internet_no_access=EXCLUDED.internet_no_access,
+                        internet_total=EXCLUDED.internet_total,
+                        rent_median=EXCLUDED.rent_median, rent_total_hh=EXCLUDED.rent_total_hh,
+                        landlord_private=EXCLUDED.landlord_private, landlord_kainga_ora=EXCLUDED.landlord_kainga_ora,
+                        landlord_council=EXCLUDED.landlord_council, landlord_other=EXCLUDED.landlord_other,
+                        landlord_total=EXCLUDED.landlord_total
+                    """,
+                    (
+                        sa2_code, a.get("SA22023_V1_00_NAME_ASCII"),
+                        _v("VAR_4_2"), _v("VAR_4_3"),
+                        _v("VAR_4_74"), multi_fam, _v("VAR_4_77"), _v("VAR_4_78"), _v("VAR_4_80"),
+                        _v("VAR_4_48"), _v("VAR_4_51"),
+                        _v("VAR_4_184"), _v("VAR_4_185"), _v("VAR_4_186"), _v("VAR_4_189"),
+                        _v("VAR_4_214"), _v("VAR_4_215"), _v("VAR_4_216"), _v("VAR_4_217"),
+                        _v("VAR_4_218"), _v("VAR_4_219"), _v("VAR_4_220"), _v("VAR_4_221"), _v("VAR_4_225"),
+                        _v("VAR_4_136"), _v("VAR_4_137"), _v("VAR_4_138"), v3,
+                        _v("VAR_4_144"),
+                        _v("VAR_4_24"), _v("VAR_4_20"), _v("VAR_4_27"),
+                        _v("VAR_4_261"), _v("VAR_4_260"),
+                        _v("VAR_4_163"), _v("VAR_4_165"), _v("VAR_4_164"), _v("VAR_4_167"), _v("VAR_4_171"),
+                    ),
+                )
+                count += 1
+            except Exception:
+                conn.rollback()
+                continue
+
+        conn.commit()
+        offset += len(features)
+        _progress(log, f"Census households: {count} SA2 areas loaded...")
+        if len(features) < 2000:
+            break
+
+    _progress(log, f"Census 2023 households: {count} SA2 areas")
+    return count
+
+
 # ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
 
 DATA_SOURCES: list[DataSource] = [
+    # ── National (Stats NZ Census 2023) ──────────────────────
+    DataSource(
+        "census_demographics", "Census 2023 Demographics (SA2 — population, age, ethnicity)",
+        ["census_demographics"],
+        load_census_demographics,
+    ),
+    DataSource(
+        "census_households", "Census 2023 Households (SA2 — income, tenure, vehicles, internet)",
+        ["census_households"],
+        load_census_households,
+    ),
     # ── National (LINZ) ───────────────────────────────────────
     DataSource(
         "linz_waterways", "LINZ NZ Waterways (Topo50 rivers, streams, drains)",
