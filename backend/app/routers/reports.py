@@ -137,6 +137,7 @@ async def upgrade_report_tier(
             success_url=f"{settings.FRONTEND_URL}/report/{share_token}?upgraded=1",
             cancel_url=f"{settings.FRONTEND_URL}/report/{share_token}",
             currency="nzd",
+            allow_promotion_codes=True,
         )
     except Exception as e:
         logger.error(f"Upgrade checkout creation failed: {type(e).__name__}: {e}")

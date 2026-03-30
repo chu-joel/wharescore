@@ -80,6 +80,7 @@ async def create_checkout_session(
             success_url=f"{settings.FRONTEND_URL}/account/payment-success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.FRONTEND_URL}/account/payment-cancelled",
             currency="nzd",
+            allow_promotion_codes=True,
         )
     except stripe.StripeError as e:
         logger.error(f"Stripe checkout creation failed: {e}")
@@ -168,6 +169,7 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
             success_url=f"{settings.FRONTEND_URL}/guest/download?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.FRONTEND_URL}",
             currency="nzd",
+            allow_promotion_codes=True,
         )
     except stripe.StripeError as e:
         logger.error(f"Guest checkout creation failed: {e}")

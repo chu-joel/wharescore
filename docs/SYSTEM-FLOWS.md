@@ -232,7 +232,9 @@ Quick reports: expires_at = now() + 30 days. Warning shown in last 7 days.
 Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expiry.
 ```
 
-**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + toasts), `UpgradeModal.tsx` (purchase UI — Full $9.99 + Pro only, no Quick card), `services/email.py` (send_report_ready_email)
+**Stripe promotion codes:** All checkout sessions have `allow_promotion_codes=True`. Coupons created in Stripe dashboard (e.g. WHARE20 = 20% off) are automatically available at checkout. Separate from in-app promo codes (`account.py redeem-promo`) which give free credits without Stripe.
+
+**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + toasts), `UpgradeModal.tsx` (purchase UI — Full $9.99/$4.99 Pro + Pro plan, no Quick card), `services/email.py` (send_report_ready_email)
 
 ---
 
