@@ -3734,7 +3734,8 @@ def load_census_commute(conn: psycopg.Connection, log: Callable = None) -> int:
     raw = _fetch_url(url, timeout=120)
 
     # Parse CSV and aggregate by residence SA2
-    reader = csv.DictReader(io.StringIO(raw))
+    text = raw.decode("utf-8-sig") if isinstance(raw, bytes) else raw
+    reader = csv.DictReader(io.StringIO(text))
     agg: dict[str, dict] = {}
 
     for row in reader:

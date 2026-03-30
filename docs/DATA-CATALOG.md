@@ -69,7 +69,7 @@
 ## Major Database Tables
 <!-- UPDATE: When creating a new table, add it here with columns and source. -->
 
-**123 tables total.** Only tables with >100 rows or referenced by report function listed. Full schema: `docs/table_schemas.txt`.
+**126 tables total.** Only tables with >100 rows or referenced by report function listed. Full schema: `docs/table_schemas.txt`. Note: `_fetch_url()` returns bytes — decode with `utf-8-sig` for CSV sources (BOM handling).
 
 | Table | ~Rows | Key columns | Populated by | Queried by |
 |-------|-------|------------|-------------|-----------|
