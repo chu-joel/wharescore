@@ -64,7 +64,7 @@
 | `report.liveability.schools` | HostedSchools | Yes |
 | `road_noise` | HostedRoadNoise | Yes |
 | `terrain`, `isochrone`, `terrain_insights` | HostedTerrain | Yes |
-| `report.liveability` (crime, deprivation, transit modes, travel times, crashes, amenities) | HostedNeighbourhoodStats | Yes. Accesses raw snapshot — uses SQL field names. Essentials (nearest_gp, nearest_pharmacy, nearest_supermarket) are JSON objects with `.name` + `.distance_m`, not separate `_name`/`_m` fields. |
+| `report.liveability` (crime, deprivation, transit modes, AM+PM travel times, crashes, amenities_500m) | HostedNeighbourhoodStats | Yes. Shows AM peak (7-9am) and PM peak (4:30-6:30pm) transit times. Essentials (nearest_gp, nearest_pharmacy, nearest_supermarket) are JSON objects with `.name` + `.distance_m`. |
 | `report.environment` (air, water, climate, contamination, corrosion) | HostedNeighbourhoodStats | Yes |
 | `report.planning` (notable trees via `notable_trees_50m`, parks via `nearest_park_name`, heritage, overlays via `in_special_character`, geotech) | HostedNeighbourhoodStats | Yes |
 | `report.comparisons` (suburb + city benchmarks) | HostedNeighbourhoodStats | Yes |

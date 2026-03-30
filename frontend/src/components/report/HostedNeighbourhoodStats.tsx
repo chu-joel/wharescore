@@ -79,8 +79,10 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
   if (ferryStops) transitModes.push({ mode: 'Ferry', count: ferryStops });
   if (cableCarStops) transitModes.push({ mode: 'Cable Car', count: cableCarStops });
 
-  // Transit travel times
-  const travelTimes = (live.transit_travel_times ?? []) as { destination: string; minutes: number; routes?: string[]; travel_time_min?: number; route?: string }[];
+  // Transit travel times (AM + PM peak)
+  type TravelTime = { destination: string; minutes: number; routes?: string[]; travel_time_min?: number; route?: string };
+  const travelTimes = (live.transit_travel_times ?? []) as TravelTime[];
+  const travelTimesPm = (live.transit_travel_times_pm ?? []) as TravelTime[];
 
   // Comparison benchmarks
   const comparisons = (rawReport.comparisons ?? {}) as Record<string, unknown>;
@@ -170,12 +172,31 @@ export function HostedNeighbourhoodStats({ rawReport }: Props) {
           </div>
         )}
 
-        {/* Transit travel times */}
+        {/* Transit travel times — AM peak */}
         {travelTimes.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2">Transit Travel Times</h4>
+            <h4 className="text-sm font-semibold mb-2">
+              Morning Peak {travelTimesPm.length > 0 ? '(7–9 AM)' : 'Travel Times'}
+            </h4>
             <div className="divide-y divide-border/50">
               {travelTimes.slice(0, 8).map((t) => (
+                <div key={t.destination} className="flex justify-between py-1.5 text-xs">
+                  <span className="font-medium">{t.destination}</span>
+                  <span className="text-muted-foreground">
+                    {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transit travel times — PM peak */}
+        {travelTimesPm.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Evening Peak (4:30–6:30 PM)</h4>
+            <div className="divide-y divide-border/50">
+              {travelTimesPm.slice(0, 8).map((t) => (
                 <div key={t.destination} className="flex justify-between py-1.5 text-xs">
                   <span className="font-medium">{t.destination}</span>
                   <span className="text-muted-foreground">
