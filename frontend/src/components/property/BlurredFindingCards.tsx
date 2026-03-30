@@ -18,7 +18,10 @@ export function BlurredFindingCards({
   addressId: number;
 }) {
   const hosted = useHostedReport();
-  if (hosted) return null; // User has paid — no blurred cards
+  // Hide blurred cards on Full hosted reports (user has paid for all findings)
+  // Show them on Quick hosted reports (teaser for upgrade)
+  if (hosted && hosted.snapshot.report_tier !== 'quick') return null;
+  const isHostedQuick = !!hosted && hosted.snapshot.report_tier === 'quick';
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
 
@@ -43,7 +46,13 @@ export function BlurredFindingCards({
 
       {/* Overlay — the conversion point */}
       <button
-        onClick={() => setShowUpgradeModal(true, 'risk', { riskCount: criticalCount + warningCount })}
+        onClick={() => {
+          if (isHostedQuick) {
+            document.getElementById('upgrade-banner')?.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            setShowUpgradeModal(true, 'risk', { riskCount: criticalCount + warningCount });
+          }
+        }}
         className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
       >
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background shadow-lg border border-border mb-2 group-hover:scale-110 transition-transform">
@@ -67,7 +76,7 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          Unlock full report — {isPro ? '$4.99' : '$9.99'}
+          {isHostedQuick ? 'Upgrade to Full Report' : `Unlock full report — ${isPro ? '$4.99' : '$9.99'}`}
         </p>
       </button>
     </div>

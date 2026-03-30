@@ -927,13 +927,7 @@ export function MapContainer() {
                 onViewReport={handleViewReport}
                 onClose={handlePopupClose}
                 overlayLines={popupOverlayLines}
-                ctaLabel={
-                  isOnPropertyPage && currentPageAddressId === selectedAddress.addressId
-                    ? 'Get Report'
-                    : isOnPropertyPage
-                      ? 'View Property'
-                      : undefined
-                }
+                ctaLabel={isOnPropertyPage ? 'Get Report' : undefined}
               />
             </div>
           </Popup>
