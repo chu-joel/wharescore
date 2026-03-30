@@ -104,11 +104,24 @@ export default function AccountPage() {
       const authToken = await getToken();
       const headers: Record<string, string> = {};
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-      const res = await apiFetch<{ checkout_url: string }>(
+      const res = await apiFetch<{ checkout_url?: string; upgraded?: boolean }>(
         `/api/v1/report/${shareToken}/upgrade`,
         { method: 'POST', headers },
       );
-      if (res.checkout_url) {
+      if (res.upgraded) {
+        toast.success('Report upgraded to Full! Credit used.');
+        // Refresh the reports list to show updated tier
+        const token = await getToken();
+        if (token) {
+          const refreshRes = await fetch('/api/v1/account/saved-reports', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            setReports(data.reports);
+          }
+        }
+      } else if (res.checkout_url) {
         safeRedirect(res.checkout_url);
       }
     } catch {
@@ -374,7 +387,9 @@ export default function AccountPage() {
                             ) : (
                               <Sparkles className="h-3 w-3" />
                             )}
-                            Upgrade {credits?.plan === 'pro' ? '$4.99' : '$9.99'}
+                            {(credits?.fullCredits ?? 0) > 0 || credits?.plan === 'pro'
+                              ? 'Upgrade (use credit)'
+                              : `Upgrade ${credits?.plan === 'pro' ? '$4.99' : '$9.99'}`}
                           </button>
                         </div>
                       );

@@ -33,11 +33,14 @@ export function QuickUpgradeBanner({ token }: Props) {
       const headers: Record<string, string> = {};
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-      const res = await apiFetch<{ checkout_url: string }>(
+      const res = await apiFetch<{ checkout_url?: string; upgraded?: boolean; method?: string }>(
         `/api/v1/report/${token}/upgrade`,
         { method: 'POST', headers },
       );
-      if (res.checkout_url) {
+      if (res.upgraded) {
+        // Credit was used — reload to show Full Report
+        window.location.reload();
+      } else if (res.checkout_url) {
         safeRedirect(res.checkout_url);
       }
     } catch {

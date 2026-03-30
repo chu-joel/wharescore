@@ -77,10 +77,44 @@ async def get_report_snapshot(request: Request, share_token: str):
     if row.get("expires_at"):
         response_data["expires_at"] = row["expires_at"].isoformat()
 
+    # Strip full-only fields from Quick Reports — the data stays in the DB
+    # but never leaves the server until the tier is 'full'. Prevents
+    # Postman/devtools access to paid data.
+    if report_tier == "quick":
+        _strip_full_only_fields(response_data)
+
     # Cache in Redis for 1 hour (snapshots are immutable)
     await cache_set(cache_key, orjson.dumps(response_data, default=str).decode(), ex=3600)
 
     return response_data
+
+
+# Fields that Quick Report sections actually need (allowlist)
+_QUICK_ALLOWED_KEYS = {
+    "report", "meta", "report_tier", "expires_at",
+    "ai_insights", "rent_baselines", "price_advisor",
+    "school_zones", "nearby_highlights", "recommendations", "deltas",
+}
+
+# Fields inside ai_insights to keep for Quick (strip full narrative)
+_QUICK_AI_KEYS = {"bottom_line", "key_takeaways"}
+
+
+def _strip_full_only_fields(data: dict) -> None:
+    """Remove full-report-only fields from the response dict in place."""
+    keys_to_remove = [k for k in data if k not in _QUICK_ALLOWED_KEYS]
+    for k in keys_to_remove:
+        del data[k]
+
+    # Strip AI insights to just bottom_line + key_takeaways
+    ai = data.get("ai_insights")
+    if isinstance(ai, dict):
+        data["ai_insights"] = {k: v for k, v in ai.items() if k in _QUICK_AI_KEYS}
+
+    # Trim recommendations to top 3
+    recs = data.get("recommendations")
+    if isinstance(recs, list) and len(recs) > 3:
+        data["recommendations"] = recs[:3]
 
 
 @router.post("/report/{share_token}/upgrade")
@@ -90,18 +124,11 @@ async def upgrade_report_tier(
     share_token: str,
     user_id: str = Depends(optional_user),
 ):
-    """Upgrade a Quick report to Full ($9.99). Quick reports are free with sign-in.
-    Returns checkout_url for redirect. On payment completion, the webhook updates the tier."""
+    """Upgrade a Quick report to Full. Uses credit if available, otherwise Stripe checkout.
+    Returns {upgraded: true} if credit was used, or {checkout_url} for Stripe redirect."""
 
     if not share_token or len(share_token) < 8:
         raise HTTPException(400, "Invalid token")
-
-    if not settings.STRIPE_SECRET_KEY:
-        raise HTTPException(500, "Stripe not configured")
-
-    price_id = settings.STRIPE_PRICE_UPGRADE or settings.STRIPE_PRICE_FULL_SINGLE
-    if not price_id:
-        raise HTTPException(500, "Upgrade price not configured")
 
     token_hash = hashlib.sha256(share_token.encode()).hexdigest()
 
@@ -119,11 +146,65 @@ async def upgrade_report_tier(
     if row["report_tier"] == "full":
         raise HTTPException(400, "Report is already a Full Report")
 
+    snapshot_id = row["id"]
+
+    # Try to use a credit first (if user is signed in and has full credits)
+    if user_id:
+        async with db.pool.connection() as conn:
+            cur_credit = await conn.execute(
+                """
+                SELECT id, credits_remaining FROM report_credits
+                WHERE user_id = %s
+                  AND report_tier = 'full'
+                  AND credits_remaining > 0
+                  AND cancelled_at IS NULL
+                  AND (expires_at IS NULL OR expires_at > now())
+                ORDER BY
+                  CASE credit_type WHEN 'pro' THEN 0 ELSE 1 END,
+                  purchased_at DESC
+                LIMIT 1
+                """,
+                [user_id],
+            )
+            credit = cur_credit.fetchone()
+
+            if credit:
+                # Deduct credit and upgrade immediately
+                if credit["credits_remaining"] is not None:
+                    await conn.execute(
+                        "UPDATE report_credits SET credits_remaining = credits_remaining - 1 WHERE id = %s AND credits_remaining > 0",
+                        [credit["id"]],
+                    )
+                await conn.execute(
+                    "UPDATE report_snapshots SET report_tier = 'full', expires_at = NULL WHERE id = %s AND report_tier = 'quick'",
+                    [snapshot_id],
+                )
+
+                # Invalidate Redis cache
+                try:
+                    from ..redis import cache_del
+                    await cache_del(f"snapshot:{token_hash[:16]}")
+                except Exception:
+                    pass
+
+                track_event("upgrade_with_credit", user_id=user_id,
+                            properties={"snapshot_id": snapshot_id, "credit_id": credit["id"]})
+                logger.info(f"Upgraded snapshot {snapshot_id} using credit {credit['id']} for user {user_id}")
+                return {"upgraded": True, "method": "credit"}
+
+    # No credits — create Stripe checkout
+    if not settings.STRIPE_SECRET_KEY:
+        raise HTTPException(500, "Stripe not configured")
+
+    price_id = settings.STRIPE_PRICE_UPGRADE or settings.STRIPE_PRICE_FULL_SINGLE
+    if not price_id:
+        raise HTTPException(500, "Upgrade price not configured")
+
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     metadata = {
         "plan": "upgrade_quick_to_full",
-        "snapshot_id": str(row["id"]),
+        "snapshot_id": str(snapshot_id),
         "share_token_hash": token_hash,
     }
     if user_id:
@@ -144,6 +225,6 @@ async def upgrade_report_tier(
         raise HTTPException(500, "Failed to create checkout session")
 
     track_event("upgrade_started", user_id=user_id,
-                properties={"snapshot_id": row["id"]})
+                properties={"snapshot_id": snapshot_id})
 
     return {"checkout_url": session.url}
