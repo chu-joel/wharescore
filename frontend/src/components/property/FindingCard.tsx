@@ -149,12 +149,21 @@ export function generateFindings(report: {
 
   if (h.slope_failure) {
     const severity = h.slope_failure.toLowerCase();
-    if (severity.includes('high') || severity.includes('very')) {
+    if (severity.includes('high')) {
       findings.push({
         headline: `Slope failure risk: ${h.slope_failure}`,
         interpretation:
           'This area is susceptible to landslides during earthquakes. Consider a geotechnical assessment before purchasing, and check retaining wall conditions.',
-        severity: severity.includes('very') ? 'critical' : 'warning',
+        severity: severity.includes('very high') ? 'critical' : 'warning',
+        category: 'Hazards',
+        source: 'Regional Council Slope Failure Maps',
+      });
+    } else if (severity.includes('moderate') || severity.includes('medium')) {
+      findings.push({
+        headline: `Slope failure risk: ${h.slope_failure}`,
+        interpretation:
+          'Moderate slope failure susceptibility in this area. Check retaining walls and drainage, especially on hillside properties.',
+        severity: 'info',
         category: 'Hazards',
         source: 'Regional Council Slope Failure Maps',
       });
