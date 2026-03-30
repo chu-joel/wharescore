@@ -43,66 +43,79 @@ logger = logging.getLogger(__name__)
 # Phase A: Prefetch all property-specific data (run ONCE per property)
 # ---------------------------------------------------------------------------
 
-async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = False) -> dict | None:
-    """Fetch all property-specific data in ~10 queries. Reused across all variants."""
+async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = False, preloaded: dict | None = None) -> dict | None:
+    """Fetch all property-specific data. Reused across all variants.
+
+    preloaded: optional dict with keys already fetched by the caller (e.g.
+    'report', 'rent_history', 'hpi_data', 'rates_data', 'nearby_supermarkets',
+    'nearby_highlights'). Skips re-fetching those, saving ~3-5s.
+    """
+    import asyncio
+    from .. import db
+
+    pre = preloaded or {}
+
+    # ── Phase 1: Report + SA2 + property data (sequential — everything depends on these) ──
 
     # 1. Full report from PL/pgSQL function
-    cur = await conn.execute(
-        "SELECT get_property_report(%s) AS report", [address_id]
-    )
-    row = cur.fetchone()
-    if not row or not row["report"]:
-        return None
+    if "report" in pre:
+        report = pre["report"]
+    else:
+        cur = await conn.execute(
+            "SELECT get_property_report(%s) AS report", [address_id]
+        )
+        row = cur.fetchone()
+        if not row or not row["report"]:
+            return None
+        report = enrich_with_scores(row["report"])
 
-    report = enrich_with_scores(row["report"])
-
-    # 2. Property detection
-    from .property_detection import detect_property_type
-    detection = await detect_property_type(conn, address_id)
-    if detection:
-        report["property_detection"] = detection
+    # 2. Property detection (skip if report already has it)
+    if not report.get("property_detection"):
+        from .property_detection import detect_property_type
+        detection = await detect_property_type(conn, address_id)
+        if detection:
+            report["property_detection"] = detection
 
     # 3. Area profile
     sa2_code = (report.get("address") or {}).get("sa2_code")
-    if sa2_code:
+    if sa2_code and not report.get("area_profile"):
         cur = await conn.execute(
             "SELECT profile FROM area_profiles WHERE sa2_code = %s", [sa2_code]
         )
         pr = cur.fetchone()
         report["area_profile"] = pr["profile"] if pr else None
 
-    # 4. Fix unit CV from rates cache
-    prop = report.get("property") or {}
-    addr = report.get("address") or {}
-    cur = await conn.execute(
-        "SELECT unit_value, address_number, road_name, road_type_name FROM addresses WHERE address_id = %s",
-        [address_id],
-    )
-    addr_row = cur.fetchone()
-    if addr_row and addr_row.get("unit_value"):
-        uv = addr_row["unit_value"]
-        street = f"{addr_row.get('address_number', '')} {addr_row.get('road_name', '')}"
-        if addr_row.get("road_type_name"):
-            street += f" {addr_row['road_type_name']}"
-        street = street.strip()
-        if street:
-            cur = await conn.execute(
-                """
-                SELECT capital_value, land_value, improvements_value
-                FROM wcc_rates_cache
-                WHERE capital_value > 0
-                  AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
-                LIMIT 1
-                """,
-                [f"Unit {uv} {street}%", f"Apt {uv} {street}%", f"Flat {uv} {street}%"],
-            )
-            rates = cur.fetchone()
-            if rates and report.get("property"):
-                report["property"]["capital_value"] = rates["capital_value"]
-                report["property"]["land_value"] = rates["land_value"] or 0
-                report["property"]["improvements_value"] = rates["improvements_value"] or 0
-                report["property"]["cv_is_per_unit"] = True
-    report["_cv_from_rates"] = True
+    # 4. Fix unit CV from rates cache (skip if already fixed)
+    if not report.get("_cv_from_rates"):
+        cur = await conn.execute(
+            "SELECT unit_value, address_number, road_name, road_type_name FROM addresses WHERE address_id = %s",
+            [address_id],
+        )
+        addr_row = cur.fetchone()
+        if addr_row and addr_row.get("unit_value"):
+            uv = addr_row["unit_value"]
+            street = f"{addr_row.get('address_number', '')} {addr_row.get('road_name', '')}"
+            if addr_row.get("road_type_name"):
+                street += f" {addr_row['road_type_name']}"
+            street = street.strip()
+            if street:
+                cur = await conn.execute(
+                    """
+                    SELECT capital_value, land_value, improvements_value
+                    FROM wcc_rates_cache
+                    WHERE capital_value > 0
+                      AND (address ILIKE %s OR address ILIKE %s OR address ILIKE %s)
+                    LIMIT 1
+                    """,
+                    [f"Unit {uv} {street}%", f"Apt {uv} {street}%", f"Flat {uv} {street}%"],
+                )
+                rates = cur.fetchone()
+                if rates and report.get("property"):
+                    report["property"]["capital_value"] = rates["capital_value"]
+                    report["property"]["land_value"] = rates["land_value"] or 0
+                    report["property"]["improvements_value"] = rates["improvements_value"] or 0
+                    report["property"]["cv_is_per_unit"] = True
+        report["_cv_from_rates"] = True
 
     # 5. SA2 lookup
     cur = await conn.execute(
@@ -150,10 +163,383 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
     capital_value = report["property"].get("capital_value") or (prop_row["capital_value"] if prop_row else None)
     land_value = report["property"].get("land_value") or (prop_row["land_value"] if prop_row else 0)
 
-    # 7. Hazard detection
-    hazards = await _detect_hazards(conn, address_id)
+    is_multi_unit = ((prop_row["unit_count"] or 1) > 1 or bool(prop_row.get("unit_value"))) if prop_row else False
 
-    # 8. Hazard prevalence
+    # ── Phase 2: Parallel independent queries ──
+    # These all need address_id or sa2 but don't depend on each other.
+    # Each gets its own connection from the pool since psycopg can't multiplex.
+
+    async def _q_hazards():
+        async with db.pool.connection() as c:
+            return await _detect_hazards(c, address_id)
+
+    async def _q_location():
+        async with db.pool.connection() as c:
+            return await _get_location_metrics(c, address_id, sa2["ta_name"])
+
+    async def _q_sa2_comp():
+        async with db.pool.connection() as c:
+            cur = await c.execute(
+                "SELECT * FROM mv_sa2_comparisons WHERE sa2_code = %s", [sa2["sa2_code"]]
+            )
+            return cur.fetchone()
+
+    async def _q_area_context():
+        async with db.pool.connection() as c:
+            return await _get_area_context(c, sa2["sa2_code"], sa2["ta_name"])
+
+    async def _q_sa2_medians():
+        async with db.pool.connection() as c:
+            cur = await c.execute(
+                """
+                SELECT
+                    percentile_cont(0.5) WITHIN GROUP (ORDER BY (cv.capital_value - cv.land_value)) AS median_house_imp,
+                    percentile_cont(0.5) WITHIN GROUP (ORDER BY cv.capital_value)
+                        FILTER (WHERE cv.land_value = 0 OR cv.land_value IS NULL) AS median_unit_cv
+                FROM council_valuations cv, sa2_boundaries s
+                WHERE ST_Contains(s.geom, cv.geom) AND s.sa2_code = %s
+                  AND cv.capital_value > 0
+                """,
+                [sa2["sa2_code"]],
+            )
+            return cur.fetchone()
+
+    async def _q_rent_history():
+        if "rent_history" in pre:
+            return pre["rent_history"]
+        async with db.pool.connection() as c:
+            cur = await c.execute(
+                """
+                SELECT time_frame, median_rent, lower_quartile_rent, upper_quartile_rent, active_bonds
+                FROM bonds_detailed
+                WHERE location_id = %s
+                  AND time_frame >= (CURRENT_DATE - interval '10 years')
+                ORDER BY time_frame ASC
+                """,
+                [sa2["sa2_code"]],
+            )
+            return [dict(r) for r in cur.fetchall()]
+
+    async def _q_hpi():
+        if "hpi_data" in pre:
+            return pre["hpi_data"]
+        async with db.pool.connection() as c:
+            cur = await c.execute(
+                """
+                SELECT quarter_end, house_price_index, house_sales
+                FROM rbnz_housing
+                WHERE quarter_end >= (CURRENT_DATE - interval '10 years')
+                ORDER BY quarter_end ASC
+                """
+            )
+            return [dict(r) for r in cur.fetchall()]
+
+    async def _q_crime_trend():
+        sa2_name = sa2["sa2_name"]
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    """
+                    SELECT date_trunc('month', year_month)::date AS month,
+                           SUM(victimisations)::int AS count
+                    FROM crime
+                    WHERE (area_unit ILIKE %s OR area_unit ILIKE %s)
+                      AND year_month >= (CURRENT_DATE - interval '3 years')
+                    GROUP BY 1
+                    ORDER BY 1
+                    """,
+                    [f"%{sa2_name}%", f"%{(report.get('address') or {}).get('suburb', '')}%"],
+                )
+                return [dict(r) for r in cur.fetchall()]
+        except Exception:
+            return []
+
+    async def _q_highlights():
+        if "nearby_highlights" in pre:
+            return pre["nearby_highlights"]
+        try:
+            from ..routers.nearby import AMENITY_CLASSES
+            target_subcats = tuple(AMENITY_CLASSES.keys())
+            placeholders = ",".join(["%s"] * len(target_subcats))
+            async with db.pool.connection() as c:
+                cur = await c.execute(f"""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT DISTINCT ON (oa.subcategory)
+                           oa.name, oa.subcategory,
+                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM osm_amenities oa, addr
+                    WHERE oa.geom && ST_Expand(addr.geom, 1500 * 0.00001)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1500)
+                      AND oa.subcategory IN ({placeholders})
+                    ORDER BY oa.subcategory, ST_Distance(oa.geom, addr.geom)
+                """, [address_id, *target_subcats])
+                result = {"good": [], "caution": [], "info": []}
+                for r in cur.fetchall():
+                    subcat = r["subcategory"]
+                    if subcat not in AMENITY_CLASSES:
+                        continue
+                    sentiment, label = AMENITY_CLASSES[subcat]
+                    item = {"name": r["name"] or label, "label": label, "distance_m": float(r["distance_m"])}
+                    result[sentiment].append(item)
+                for group in result.values():
+                    group.sort(key=lambda x: x["distance_m"])
+                return result
+        except Exception as e:
+            logger.warning(f"Snapshot nearby highlights failed: {e}")
+            return {"good": [], "caution": [], "info": []}
+
+    async def _q_supermarkets():
+        if "nearby_supermarkets" in pre:
+            return pre["nearby_supermarkets"]
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT oa.name, oa.subcategory, oa.brand,
+                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM osm_amenities oa, addr
+                    WHERE oa.geom && ST_Expand(addr.geom, 10000 * 0.00001)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 10000)
+                      AND oa.subcategory IN ('supermarket', 'greengrocer', 'convenience')
+                    ORDER BY distance_m LIMIT 5
+                """, [address_id])
+                return [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"Snapshot supermarkets failed: {e}")
+            return []
+
+    async def _q_rates():
+        if "rates_data" in pre:
+            return pre["rates_data"]
+        try:
+            city = (report.get("address") or {}).get("city", "")
+            full_address = (report.get("address") or {}).get("full_address", "")
+            async with db.pool.connection() as c:
+                if "wellington" in city.lower():
+                    from .rates import fetch_wcc_rates
+                    return await fetch_wcc_rates(full_address, c)
+                elif "auckland" in city.lower():
+                    from .auckland_rates import fetch_auckland_rates
+                    return await fetch_auckland_rates(full_address, c)
+                elif city.lower() == "lower hutt":
+                    from .hcc_rates import fetch_hcc_rates
+                    return await fetch_hcc_rates(full_address)
+                elif city.lower() == "porirua":
+                    from .pcc_rates import fetch_pcc_rates
+                    return await fetch_pcc_rates(full_address)
+                elif "kapiti" in city.lower() or city.lower() in ("paraparaumu", "waikanae", "otaki", "paekakariki", "raumati"):
+                    from .kcdc_rates import fetch_kcdc_rates
+                    return await fetch_kcdc_rates(full_address)
+                elif "horowhenua" in city.lower() or city.lower() in ("levin", "foxton", "shannon"):
+                    from .hdc_rates import fetch_hdc_rates
+                    return await fetch_hdc_rates(full_address)
+                elif "hamilton" in city.lower():
+                    from .hamilton_rates import fetch_hamilton_rates
+                    return await fetch_hamilton_rates(full_address)
+                elif "dunedin" in city.lower():
+                    from .dcc_rates import fetch_dcc_rates
+                    return await fetch_dcc_rates(full_address)
+                elif "christchurch" in city.lower():
+                    from .ccc_rates import fetch_ccc_rates
+                    return await fetch_ccc_rates(full_address, c)
+                elif city.lower() == "new plymouth":
+                    from .taranaki_rates import fetch_taranaki_rates
+                    return await fetch_taranaki_rates(full_address)
+                elif city.lower() in ("richmond", "motueka", "takaka", "mapua", "brightwater", "wakefield"):
+                    from .tasman_rates import fetch_tasman_rates
+                    return await fetch_tasman_rates(full_address)
+                elif "tauranga" in city.lower() or city.lower() == "mount maunganui":
+                    from .tcc_rates import fetch_tcc_rates
+                    return await fetch_tcc_rates(full_address)
+                elif city.lower() in ("papamoa", "te puke", "katikati", "omokoroa", "waihi beach", "maketu"):
+                    from .wbop_rates import fetch_wbop_rates
+                    return await fetch_wbop_rates(full_address)
+                elif "palmerston" in city.lower():
+                    from .pncc_rates import fetch_pncc_rates
+                    return await fetch_pncc_rates(full_address)
+                elif "whangarei" in city.lower() or "whangārei" in city.lower():
+                    from .wdc_rates import fetch_wdc_rates
+                    return await fetch_wdc_rates(full_address)
+                elif "queenstown" in city.lower() or city.lower() in ("wanaka", "arrowtown", "frankton", "cromwell", "alexandra"):
+                    from .qldc_rates import fetch_qldc_rates
+                    return await fetch_qldc_rates(full_address)
+                elif "invercargill" in city.lower():
+                    from .icc_rates import fetch_icc_rates
+                    return await fetch_icc_rates(full_address)
+                elif "hastings" in city.lower() or city.lower() in ("havelock north", "flaxmere", "clive"):
+                    from .hastings_rates import fetch_hastings_rates
+                    return await fetch_hastings_rates(full_address)
+                elif "upper hutt" in city.lower():
+                    from .uhcc_rates import fetch_uhcc_rates
+                    return await fetch_uhcc_rates(full_address)
+                elif "gisborne" in city.lower():
+                    from .gdc_rates import fetch_gdc_rates
+                    return await fetch_gdc_rates(full_address)
+                elif "nelson" in city.lower() and city.lower() != "nelson south":
+                    from .ncc_rates import fetch_ncc_rates
+                    return await fetch_ncc_rates(full_address)
+                elif "rotorua" in city.lower():
+                    from .rlc_rates import fetch_rlc_rates
+                    return await fetch_rlc_rates(full_address)
+                elif "timaru" in city.lower() or city.lower() in ("temuka", "geraldine", "pleasant point"):
+                    from .timaru_rates import fetch_timaru_rates
+                    return await fetch_timaru_rates(full_address)
+                elif "blenheim" in city.lower() or "marlborough" in city.lower() or city.lower() in ("picton", "renwick", "havelock", "seddon"):
+                    from .mdc_rates import fetch_mdc_rates
+                    return await fetch_mdc_rates(full_address)
+                elif "whanganui" in city.lower() or "wanganui" in city.lower():
+                    from .wdc_whanganui_rates import fetch_whanganui_rates
+                    return await fetch_whanganui_rates(full_address)
+            return None
+        except Exception as e:
+            logger.warning(f"Snapshot rates failed: {e}")
+            return None
+
+    async def _q_doc():
+        try:
+            result = {"huts": [], "tracks": [], "campsites": []}
+            async with db.pool.connection() as c:
+                for layer, table in [("huts", "doc_huts"), ("tracks", "doc_tracks"), ("campsites", "doc_campsites")]:
+                    cur = await c.execute(f"""
+                        WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                        SELECT d.name, d.status, d.category,
+                               round(ST_Distance(d.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                        FROM {table} d, addr
+                        WHERE d.geom && ST_Expand(addr.geom, 5000 * 0.00001)
+                          AND ST_DWithin(d.geom::geography, addr.geom::geography, 5000)
+                        ORDER BY distance_m LIMIT 10
+                    """, [address_id])
+                    result[layer] = [dict(r) for r in cur.fetchall()]
+            return result
+        except Exception as e:
+            logger.warning(f"Snapshot DOC nearby failed: {e}")
+            return {"huts": [], "tracks": [], "campsites": []}
+
+    async def _q_nearest_supermarkets():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT COALESCE(oa.brand, oa.name) AS name, oa.brand, oa.subcategory,
+                           round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
+                           ST_Y(oa.geom) AS latitude, ST_X(oa.geom) AS longitude
+                    FROM osm_amenities oa, addr
+                    WHERE (oa.subcategory = 'supermarket'
+                      OR oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown'))
+                      AND oa.geom && ST_Expand(addr.geom, 0.05)
+                      AND ST_DWithin(oa.geom::geography, addr.geom::geography, 5000)
+                    ORDER BY
+                      CASE WHEN oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown') THEN 0 ELSE 1 END,
+                      oa.geom <-> addr.geom
+                    LIMIT 5
+                """, [address_id])
+                return [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"Snapshot nearest supermarkets failed: {e}")
+            return []
+
+    async def _q_school_zones():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT sz.school_name, sz.school_id, sz.institution_type,
+                           s.eqi_index AS eqi, s.total_roll AS roll,
+                           s.suburb, s.city,
+                           round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                    FROM school_zones sz
+                    CROSS JOIN addr
+                    LEFT JOIN schools s ON s.school_id = sz.school_id
+                    WHERE ST_Contains(sz.geom, addr.geom)
+                    ORDER BY sz.institution_type, COALESCE(ST_Distance(s.geom::geography, addr.geom::geography), 999999)
+                """, [address_id])
+                return [dict(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"Snapshot school zones failed: {e}")
+            return []
+
+    async def _q_road_noise():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT nc.laeq24h
+                    FROM noise_contours nc, addr
+                    WHERE nc.source_council = 'nzta_national'
+                      AND ST_Contains(nc.geom, addr.geom)
+                    ORDER BY nc.laeq24h DESC LIMIT 1
+                """, [address_id])
+                row = cur.fetchone()
+                if row:
+                    return {"laeq24h": int(row["laeq24h"]) if row["laeq24h"] else None}
+            return None
+        except Exception as e:
+            logger.warning(f"Snapshot road noise failed: {e}")
+            return None
+
+    async def _q_weather():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute("""
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT we.event_date, we.event_type, we.severity, we.title, we.description,
+                           we.precipitation_mm, we.wind_gust_kmh,
+                           round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
+                    FROM weather_events we, addr
+                    WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
+                      AND we.event_date >= (CURRENT_DATE - interval '5 years')
+                      AND we.severity IN ('critical', 'warning')
+                    ORDER BY we.severity, we.event_date DESC
+                    LIMIT 15
+                """, [address_id])
+                result = []
+                for r in cur.fetchall():
+                    result.append({
+                        "date": r["event_date"].isoformat() if hasattr(r["event_date"], "isoformat") else str(r["event_date"]),
+                        "type": r["event_type"],
+                        "severity": r["severity"],
+                        "title": r["title"],
+                        "description": r["description"],
+                        "precipitation_mm": float(r["precipitation_mm"]) if r["precipitation_mm"] else None,
+                        "wind_gust_kmh": float(r["wind_gust_kmh"]) if r["wind_gust_kmh"] else None,
+                        "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
+                    })
+                return result
+        except Exception as e:
+            logger.warning(f"Snapshot weather history failed: {e}")
+            return []
+
+    # Run all independent queries in parallel
+    (
+        hazards, location, sa2_comp, area_context, sa2_med_row,
+        rent_history, hpi_data, crime_trend,
+        nearby_highlights, nearby_supermarkets, rates_data,
+        nearby_doc, nearest_supermarkets, school_zones, road_noise, weather_history,
+    ) = await asyncio.gather(
+        _q_hazards(), _q_location(), _q_sa2_comp(), _q_area_context(), _q_sa2_medians(),
+        _q_rent_history(), _q_hpi(), _q_crime_trend(),
+        _q_highlights(), _q_supermarkets(), _q_rates(),
+        _q_doc(), _q_nearest_supermarkets(), _q_school_zones(), _q_road_noise(), _q_weather(),
+    )
+
+    # Apply CV from rates data (generic handler for all councils)
+    if rates_data and rates_data.get("current_valuation"):
+        cv_data = rates_data["current_valuation"]
+        live_cv = cv_data.get("capital_value")
+        if live_cv and report.get("property"):
+            old_cv = report["property"].get("capital_value", 0)
+            report["property"]["capital_value"] = live_cv
+            report["property"]["land_value"] = cv_data.get("land_value") or 0
+            report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
+            report["property"]["cv_is_per_unit"] = True
+            if live_cv != old_cv:
+                city = (report.get("address") or {}).get("city", "")
+                logger.info(f"CV fixed via rates API for {city}: ${live_cv:,} (was ${old_cv or 0:,})")
+            # Update capital/land values after rates fix
+            capital_value = live_cv
+            land_value = cv_data.get("land_value") or 0
+
+    # 8. Hazard prevalence (depends on hazards result)
     detected_keys = set()
     if hazards.get("flood_zone"):
         detected_keys.add("flood")
@@ -180,331 +566,6 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         detected_keys.add("coastal_erosion")
 
     prevalence = await _compute_prevalence(conn, sa2["sa2_code"], detected_keys) if detected_keys else {}
-
-    # 9. Location metrics
-    location = await _get_location_metrics(conn, address_id, sa2["ta_name"])
-
-    # 10. SA2 comparisons
-    cur = await conn.execute(
-        "SELECT * FROM mv_sa2_comparisons WHERE sa2_code = %s", [sa2["sa2_code"]]
-    )
-    sa2_comp = cur.fetchone()
-
-    # 11. Area context
-    area_context = await _get_area_context(conn, sa2["sa2_code"], sa2["ta_name"])
-
-    # 12. SA2 median improvements (for quality adjustment — cached once)
-    cur = await conn.execute(
-        """
-        SELECT
-            percentile_cont(0.5) WITHIN GROUP (ORDER BY (cv.capital_value - cv.land_value)) AS median_house_imp,
-            percentile_cont(0.5) WITHIN GROUP (ORDER BY cv.capital_value)
-                FILTER (WHERE cv.land_value = 0 OR cv.land_value IS NULL) AS median_unit_cv
-        FROM council_valuations cv, sa2_boundaries s
-        WHERE ST_Contains(s.geom, cv.geom) AND s.sa2_code = %s
-          AND cv.capital_value > 0
-        """,
-        [sa2["sa2_code"]],
-    )
-    sa2_med_row = cur.fetchone()
-
-    # 13. Rent history (10 years)
-    rent_history = []
-    cur = await conn.execute(
-        """
-        SELECT time_frame, median_rent, lower_quartile_rent, upper_quartile_rent, active_bonds
-        FROM bonds_detailed
-        WHERE location_id = %s
-          AND time_frame >= (CURRENT_DATE - interval '10 years')
-        ORDER BY time_frame ASC
-        """,
-        [sa2["sa2_code"]],
-    )
-    rent_history = [dict(r) for r in cur.fetchall()]
-
-    # 14. HPI data
-    hpi_data = []
-    cur = await conn.execute(
-        """
-        SELECT quarter_end, house_price_index, house_sales
-        FROM rbnz_housing
-        WHERE quarter_end >= (CURRENT_DATE - interval '10 years')
-        ORDER BY quarter_end ASC
-        """
-    )
-    hpi_data = [dict(r) for r in cur.fetchall()]
-
-    # 15. Crime trend data (3 years monthly)
-    crime_trend = []
-    sa2_name = sa2["sa2_name"]
-    try:
-        cur = await conn.execute(
-            """
-            SELECT date_trunc('month', year_month)::date AS month,
-                   SUM(victimisations)::int AS count
-            FROM crime
-            WHERE (area_unit ILIKE %s OR area_unit ILIKE %s)
-              AND year_month >= (CURRENT_DATE - interval '3 years')
-            GROUP BY 1
-            ORDER BY 1
-            """,
-            [f"%{sa2_name}%", f"%{(report.get('address') or {}).get('suburb', '')}%"],
-        )
-        crime_trend = [dict(r) for r in cur.fetchall()]
-    except Exception:
-        pass  # Crime data may not exist for all areas
-
-    # 16. Market data (rental overview from report)
-    market_data = report.get("market") or {}
-
-    is_multi_unit = ((prop_row["unit_count"] or 1) > 1 or bool(prop_row.get("unit_value"))) if prop_row else False
-
-    # 17. Nearby highlights (good/caution/info categorised amenities)
-    nearby_highlights = {"good": [], "caution": [], "info": []}
-    try:
-        from ..routers.nearby import AMENITY_CLASSES
-        target_subcats = tuple(AMENITY_CLASSES.keys())
-        placeholders = ",".join(["%s"] * len(target_subcats))
-        cur = await conn.execute(f"""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT DISTINCT ON (oa.subcategory)
-                   oa.name, oa.subcategory,
-                   round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
-            FROM osm_amenities oa, addr
-            WHERE oa.geom && ST_Expand(addr.geom, 1500 * 0.00001)
-              AND ST_DWithin(oa.geom::geography, addr.geom::geography, 1500)
-              AND oa.subcategory IN ({placeholders})
-            ORDER BY oa.subcategory, ST_Distance(oa.geom, addr.geom)
-        """, [address_id, *target_subcats])
-        for r in cur.fetchall():
-            subcat = r["subcategory"]
-            if subcat not in AMENITY_CLASSES:
-                continue
-            sentiment, label = AMENITY_CLASSES[subcat]
-            item = {"name": r["name"] or label, "label": label, "distance_m": float(r["distance_m"])}
-            nearby_highlights[sentiment].append(item)
-        for group in nearby_highlights.values():
-            group.sort(key=lambda x: x["distance_m"])
-    except Exception as e:
-        logger.warning(f"Snapshot nearby highlights failed: {e}")
-
-    # 18. Nearby supermarkets
-    nearby_supermarkets = []
-    try:
-        cur = await conn.execute("""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT oa.name, oa.subcategory, oa.brand,
-                   round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m
-            FROM osm_amenities oa, addr
-            WHERE oa.geom && ST_Expand(addr.geom, 10000 * 0.00001)
-              AND ST_DWithin(oa.geom::geography, addr.geom::geography, 10000)
-              AND oa.subcategory IN ('supermarket', 'greengrocer', 'convenience')
-            ORDER BY distance_m LIMIT 5
-        """, [address_id])
-        nearby_supermarkets = [dict(r) for r in cur.fetchall()]
-    except Exception as e:
-        logger.warning(f"Snapshot supermarkets failed: {e}")
-
-    # 19. Council rates (region-specific)
-    rates_data = None
-    try:
-        city = (report.get("address") or {}).get("city", "")
-        full_address = (report.get("address") or {}).get("full_address", "")
-        if "wellington" in city.lower():
-            from .rates import fetch_wcc_rates
-            rates_data = await fetch_wcc_rates(full_address, conn)
-        elif "auckland" in city.lower():
-            from .auckland_rates import fetch_auckland_rates
-            rates_data = await fetch_auckland_rates(full_address, conn)
-        elif city.lower() == "lower hutt":
-            from .hcc_rates import fetch_hcc_rates
-            rates_data = await fetch_hcc_rates(full_address)
-        elif city.lower() == "porirua":
-            from .pcc_rates import fetch_pcc_rates
-            rates_data = await fetch_pcc_rates(full_address)
-        elif "kapiti" in city.lower() or city.lower() in ("paraparaumu", "waikanae", "otaki", "paekakariki", "raumati"):
-            from .kcdc_rates import fetch_kcdc_rates
-            rates_data = await fetch_kcdc_rates(full_address)
-        elif "horowhenua" in city.lower() or city.lower() in ("levin", "foxton", "shannon"):
-            from .hdc_rates import fetch_hdc_rates
-            rates_data = await fetch_hdc_rates(full_address)
-        elif "hamilton" in city.lower():
-            from .hamilton_rates import fetch_hamilton_rates
-            rates_data = await fetch_hamilton_rates(full_address)
-        elif "dunedin" in city.lower():
-            from .dcc_rates import fetch_dcc_rates
-            rates_data = await fetch_dcc_rates(full_address)
-        elif "christchurch" in city.lower():
-            from .ccc_rates import fetch_ccc_rates
-            rates_data = await fetch_ccc_rates(full_address, conn)
-        elif city.lower() == "new plymouth":
-            from .taranaki_rates import fetch_taranaki_rates
-            rates_data = await fetch_taranaki_rates(full_address)
-        elif city.lower() in ("richmond", "motueka", "takaka", "mapua", "brightwater", "wakefield"):
-            from .tasman_rates import fetch_tasman_rates
-            rates_data = await fetch_tasman_rates(full_address)
-        elif "tauranga" in city.lower() or city.lower() == "mount maunganui":
-            from .tcc_rates import fetch_tcc_rates
-            rates_data = await fetch_tcc_rates(full_address)
-        elif city.lower() in ("papamoa", "te puke", "katikati", "omokoroa", "waihi beach", "maketu"):
-            from .wbop_rates import fetch_wbop_rates
-            rates_data = await fetch_wbop_rates(full_address)
-        elif "palmerston" in city.lower():
-            from .pncc_rates import fetch_pncc_rates
-            rates_data = await fetch_pncc_rates(full_address)
-        elif "whangarei" in city.lower() or "whangārei" in city.lower():
-            from .wdc_rates import fetch_wdc_rates
-            rates_data = await fetch_wdc_rates(full_address)
-        elif "queenstown" in city.lower() or city.lower() in ("wanaka", "arrowtown", "frankton", "cromwell", "alexandra"):
-            from .qldc_rates import fetch_qldc_rates
-            rates_data = await fetch_qldc_rates(full_address)
-        elif "invercargill" in city.lower():
-            from .icc_rates import fetch_icc_rates
-            rates_data = await fetch_icc_rates(full_address)
-        elif "hastings" in city.lower() or city.lower() in ("havelock north", "flaxmere", "clive"):
-            from .hastings_rates import fetch_hastings_rates
-            rates_data = await fetch_hastings_rates(full_address)
-        elif "upper hutt" in city.lower():
-            from .uhcc_rates import fetch_uhcc_rates
-            rates_data = await fetch_uhcc_rates(full_address)
-        elif "gisborne" in city.lower():
-            from .gdc_rates import fetch_gdc_rates
-            rates_data = await fetch_gdc_rates(full_address)
-        elif "nelson" in city.lower() and city.lower() != "nelson south":
-            from .ncc_rates import fetch_ncc_rates
-            rates_data = await fetch_ncc_rates(full_address)
-        elif "rotorua" in city.lower():
-            from .rlc_rates import fetch_rlc_rates
-            rates_data = await fetch_rlc_rates(full_address)
-        elif "timaru" in city.lower() or city.lower() in ("temuka", "geraldine", "pleasant point"):
-            from .timaru_rates import fetch_timaru_rates
-            rates_data = await fetch_timaru_rates(full_address)
-        elif "blenheim" in city.lower() or "marlborough" in city.lower() or city.lower() in ("picton", "renwick", "havelock", "seddon"):
-            from .mdc_rates import fetch_mdc_rates
-            rates_data = await fetch_mdc_rates(full_address)
-        elif "whanganui" in city.lower() or "wanganui" in city.lower():
-            from .wdc_whanganui_rates import fetch_whanganui_rates
-            rates_data = await fetch_whanganui_rates(full_address)
-
-        # Apply CV from rates data (generic handler for all councils)
-        if rates_data and rates_data.get("current_valuation"):
-            cv_data = rates_data["current_valuation"]
-            live_cv = cv_data.get("capital_value")
-            if live_cv and report.get("property"):
-                old_cv = report["property"].get("capital_value", 0)
-                report["property"]["capital_value"] = live_cv
-                report["property"]["land_value"] = cv_data.get("land_value") or 0
-                report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
-                report["property"]["cv_is_per_unit"] = True
-                if live_cv != old_cv:
-                    logger.info(f"CV fixed via rates API for {city}: ${live_cv:,} (was ${old_cv or 0:,})")
-    except Exception as e:
-        logger.warning(f"Snapshot rates failed: {e}")
-
-    # 20. DOC huts, tracks, campsites (within 5km)
-    nearby_doc = {"huts": [], "tracks": [], "campsites": []}
-    try:
-        for layer, table in [("huts", "doc_huts"), ("tracks", "doc_tracks"), ("campsites", "doc_campsites")]:
-            geom_col = "geom" if layer != "tracks" else "geom"
-            cur = await conn.execute(f"""
-                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-                SELECT d.name, d.status, d.category,
-                       round(ST_Distance(d.geom::geography, addr.geom::geography)::numeric) AS distance_m
-                FROM {table} d, addr
-                WHERE d.geom && ST_Expand(addr.geom, 5000 * 0.00001)
-                  AND ST_DWithin(d.geom::geography, addr.geom::geography, 5000)
-                ORDER BY distance_m LIMIT 10
-            """, [address_id])
-            nearby_doc[layer] = [dict(r) for r in cur.fetchall()]
-    except Exception as e:
-        logger.warning(f"Snapshot DOC nearby failed: {e}")
-
-    # 21a. Nearest 5 supermarkets (brand-priority for NZ chains)
-    nearest_supermarkets = []
-    try:
-        cur = await conn.execute("""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT COALESCE(oa.brand, oa.name) AS name, oa.brand, oa.subcategory,
-                   round(ST_Distance(oa.geom::geography, addr.geom::geography)::numeric) AS distance_m,
-                   ST_Y(oa.geom) AS latitude, ST_X(oa.geom) AS longitude
-            FROM osm_amenities oa, addr
-            WHERE (oa.subcategory = 'supermarket'
-              OR oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown'))
-              AND oa.geom && ST_Expand(addr.geom, 0.05)
-              AND ST_DWithin(oa.geom::geography, addr.geom::geography, 5000)
-            ORDER BY
-              CASE WHEN oa.brand IN ('Woolworths','New World','PAK''nSAVE','FreshChoice','SuperValue','Four Square','Countdown') THEN 0 ELSE 1 END,
-              oa.geom <-> addr.geom
-            LIMIT 5
-        """, [address_id])
-        nearest_supermarkets = [dict(r) for r in cur.fetchall()]
-    except Exception as e:
-        logger.warning(f"Snapshot nearest supermarkets failed: {e}")
-
-    # 21b. School zones this property falls within (enriched with distance, EQI, roll)
-    school_zones = []
-    try:
-        cur = await conn.execute("""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT sz.school_name, sz.school_id, sz.institution_type,
-                   s.eqi_index AS eqi, s.total_roll AS roll,
-                   s.suburb, s.city,
-                   round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS distance_m
-            FROM school_zones sz
-            CROSS JOIN addr
-            LEFT JOIN schools s ON s.school_id = sz.school_id
-            WHERE ST_Contains(sz.geom, addr.geom)
-            ORDER BY sz.institution_type, COALESCE(ST_Distance(s.geom::geography, addr.geom::geography), 999999)
-        """, [address_id])
-        school_zones = [dict(r) for r in cur.fetchall()]
-    except Exception as e:
-        logger.warning(f"Snapshot school zones failed: {e}")
-
-    # 22. Road noise level at property (NZTA national contours)
-    road_noise = None
-    try:
-        cur = await conn.execute("""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT nc.laeq24h
-            FROM noise_contours nc, addr
-            WHERE nc.source_council = 'nzta_national'
-              AND ST_Contains(nc.geom, addr.geom)
-            ORDER BY nc.laeq24h DESC LIMIT 1
-        """, [address_id])
-        row = cur.fetchone()
-        if row:
-            road_noise = {"laeq24h": int(row["laeq24h"]) if row["laeq24h"] else None}
-    except Exception as e:
-        logger.warning(f"Snapshot road noise failed: {e}")
-
-    # 23. Weather events history (extreme weather near property)
-    weather_history = []
-    try:
-        cur = await conn.execute("""
-            WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT we.event_date, we.event_type, we.severity, we.title, we.description,
-                   we.precipitation_mm, we.wind_gust_kmh,
-                   round(ST_Distance(we.geom::geography, addr.geom::geography)::numeric / 1000, 1) AS dist_km
-            FROM weather_events we, addr
-            WHERE ST_DWithin(we.geom::geography, addr.geom::geography, 50000)
-              AND we.event_date >= (CURRENT_DATE - interval '5 years')
-              AND we.severity IN ('critical', 'warning')
-            ORDER BY we.severity, we.event_date DESC
-            LIMIT 15
-        """, [address_id])
-        for r in cur.fetchall():
-            weather_history.append({
-                "date": r["event_date"].isoformat() if hasattr(r["event_date"], "isoformat") else str(r["event_date"]),
-                "type": r["event_type"],
-                "severity": r["severity"],
-                "title": r["title"],
-                "description": r["description"],
-                "precipitation_mm": float(r["precipitation_mm"]) if r["precipitation_mm"] else None,
-                "wind_gust_kmh": float(r["wind_gust_kmh"]) if r["wind_gust_kmh"] else None,
-                "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
-            })
-    except Exception as e:
-        logger.warning(f"Snapshot weather history failed: {e}")
 
     # 24. Walking isochrone + terrain data (skipped for Quick reports — backfilled later)
     terrain_data = {}
@@ -739,13 +800,20 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
             "is_area_wide_hazard": True,
         })
 
-    for beds in bedroom_options:
-        # Query SA2 rental baseline (this varies per bedrooms)
-        baseline = await get_sa2_rental_baseline(
-            conn, cache["sa2"]["sa2_code"], cache["sa2"]["ta_name"],
-            dwelling_type, beds
-        )
+    # Fetch all 5 bedroom baselines in parallel
+    import asyncio as _aio
+    from .. import db as _db
 
+    async def _fetch_baseline(beds_val):
+        async with _db.pool.connection() as c:
+            return beds_val, await get_sa2_rental_baseline(
+                c, cache["sa2"]["sa2_code"], cache["sa2"]["ta_name"],
+                dwelling_type, beds_val
+            )
+
+    baseline_results = await _aio.gather(*[_fetch_baseline(b) for b in bedroom_options])
+
+    for beds, baseline in baseline_results:
         if not baseline:
             continue
 
@@ -1409,12 +1477,14 @@ async def generate_snapshot(
     inputs_at_purchase: dict | None = None,
     skip_ai: bool = False,
     skip_terrain: bool = False,
+    preloaded: dict | None = None,
 ) -> dict | None:
     """Generate a complete report snapshot with all pre-computed variants.
-    skip_terrain=True skips Valhalla calls (Quick reports); terrain backfilled later."""
+    skip_terrain=True skips Valhalla calls (Quick reports); terrain backfilled later.
+    preloaded: dict of already-fetched data to skip re-querying (from background task)."""
 
     # Phase A: Prefetch everything
-    cache = await prefetch_property_data(conn, address_id, skip_terrain=skip_terrain)
+    cache = await prefetch_property_data(conn, address_id, skip_terrain=skip_terrain, preloaded=preloaded)
     if not cache:
         return None
 
@@ -1518,15 +1588,17 @@ async def create_report_snapshot(
     inputs_at_purchase: dict | None = None,
     skip_ai: bool = False,
     report_tier: str = "full",
+    preloaded: dict | None = None,
 ) -> str | None:
     """Generate snapshot, store in DB, return plaintext share_token.
 
     report_tier: 'quick' or 'full' — controls frontend rendering only.
     Snapshot data is identical regardless of tier.
+    preloaded: dict of already-fetched data to skip re-querying.
     """
 
     skip_terrain = (report_tier == "quick")
-    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase, skip_ai=skip_ai, skip_terrain=skip_terrain)
+    snapshot = await generate_snapshot(conn, address_id, persona, dwelling_type, inputs_at_purchase, skip_ai=skip_ai, skip_terrain=skip_terrain, preloaded=preloaded)
     if not snapshot:
         return None
 

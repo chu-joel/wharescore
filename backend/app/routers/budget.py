@@ -48,7 +48,7 @@ def _ip_hash(request: Request) -> str:
 
 
 @router.post("/budget-inputs")
-@limiter.limit("3/hour")
+@limiter.limit("30/hour")
 async def save_budget_input(request: Request, body: BudgetInput):
     """Save anonymous budget calculator data. Deduped: 1 per address/persona/IP/24h."""
     ip_h = _ip_hash(request)

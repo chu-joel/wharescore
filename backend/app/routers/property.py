@@ -1839,6 +1839,16 @@ async def _generate_pdf_background(
 
         print(f"[PERF-BG] Pre-snapshot work: {_time.monotonic() - _bg_start:.2f}s for {address_id} (tier={report_tier})")
         # --- Phase 1: Create snapshot fast (no AI) + mark complete ---
+        # Pass already-fetched data to snapshot generator to avoid duplicate queries
+        # Only pass data that's fetched identically by both paths.
+        # rent_history/hpi_data differ (background filters by dwelling_type/beds,
+        # snapshot fetches ALL; HPI columns differ too) — let snapshot re-fetch.
+        _preloaded = {
+            "report": report,
+            "rates_data": rates_data,
+            "nearby_supermarkets": nearby_supermarkets if nearby_supermarkets else [],
+            "nearby_highlights": nearby_highlights if nearby_highlights else {"good": [], "caution": [], "info": []},
+        }
         share_token = None
         try:
             from ..services.snapshot_generator import create_report_snapshot
@@ -1853,6 +1863,7 @@ async def _generate_pdf_background(
                     inputs_at_purchase={**(rent_inputs or {}), **(buyer_inputs or {})},
                     skip_ai=True,  # PDF task handles AI separately
                     report_tier=report_tier,
+                    preloaded=_preloaded,
                 )
             if share_token:
                 logger.info(f"Snapshot created for {address_id}: /report/{share_token}")
