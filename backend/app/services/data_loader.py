@@ -3723,6 +3723,265 @@ def load_census_households(conn: psycopg.Connection, log: Callable = None) -> in
     return count
 
 
+# ── Census 2023 Commute Mode (SA2) ────────────────────────────
+
+def load_census_commute(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load Census 2023 commute mode by SA2 from Stats NZ ArcGIS CSV.
+    Source is an origin-destination matrix — we aggregate by residence SA2."""
+    import csv, io
+    url = "https://statsnz.maps.arcgis.com/sharing/rest/content/items/fedc12523d4f4da08f094cf13bb21807/data"
+    _progress(log, "Downloading Census 2023 commute mode CSV (~11MB)...")
+    raw = _fetch_url(url, timeout=120)
+
+    # Parse CSV and aggregate by residence SA2
+    reader = csv.DictReader(io.StringIO(raw))
+    agg: dict[str, dict] = {}
+
+    for row in reader:
+        sa2 = row.get("SA22023_V1_00_usual_residence_address", "").strip()
+        name = row.get("SA22023_V1_00_NAME_ASCII_usual_residence_address", "").strip()
+        if not sa2 or sa2 == "Total":
+            continue
+
+        if sa2 not in agg:
+            agg[sa2] = {
+                "sa2_name": name,
+                "work_at_home": 0, "drive_private": 0, "drive_company": 0,
+                "passenger": 0, "public_bus": 0, "train": 0,
+                "bicycle": 0, "walk_or_jog": 0, "ferry": 0, "other": 0,
+                "total_stated": 0,
+                "total_stated_2018": 0, "work_at_home_2018": 0,
+            }
+
+        def _safe(key):
+            v = row.get(key, "")
+            if not v or v == "-999" or v.strip() == "":
+                return 0
+            try:
+                return int(v)
+            except ValueError:
+                return 0
+
+        a = agg[sa2]
+        a["work_at_home"] += _safe("2023_Work_at_home")
+        a["drive_private"] += _safe("2023_Drive_a_private_car_truck_or_van")
+        a["drive_company"] += _safe("2023_Drive_a_company_car_truck_or_van")
+        a["passenger"] += _safe("2023_Passenger_in_a_car_truck_van_or_company_bus")
+        a["public_bus"] += _safe("2023_Public_bus")
+        a["train"] += _safe("2023_Train")
+        a["bicycle"] += _safe("2023_Bicycle")
+        a["walk_or_jog"] += _safe("2023_Walk_or_jog")
+        a["ferry"] += _safe("2023_Ferry")
+        a["other"] += _safe("2023_Other")
+        a["total_stated"] += _safe("2023_Total_stated")
+        a["total_stated_2018"] += _safe("2018_Total_stated")
+        a["work_at_home_2018"] += _safe("2018_Work_at_home")
+
+    _progress(log, f"Parsed {len(agg)} SA2 areas from commute CSV, inserting...")
+    cur = conn.cursor()
+    cur.execute("TRUNCATE census_commute")
+    conn.commit()
+
+    count = 0
+    for sa2, a in agg.items():
+        try:
+            cur.execute(
+                """INSERT INTO census_commute (
+                    sa2_code, sa2_name,
+                    work_at_home, drive_private, drive_company, passenger,
+                    public_bus, train, bicycle, walk_or_jog, ferry, other, total_stated,
+                    total_stated_2018, work_at_home_2018
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (sa2_code) DO UPDATE SET
+                    sa2_name=EXCLUDED.sa2_name, work_at_home=EXCLUDED.work_at_home,
+                    drive_private=EXCLUDED.drive_private, drive_company=EXCLUDED.drive_company,
+                    passenger=EXCLUDED.passenger, public_bus=EXCLUDED.public_bus,
+                    train=EXCLUDED.train, bicycle=EXCLUDED.bicycle,
+                    walk_or_jog=EXCLUDED.walk_or_jog, ferry=EXCLUDED.ferry,
+                    other=EXCLUDED.other, total_stated=EXCLUDED.total_stated,
+                    total_stated_2018=EXCLUDED.total_stated_2018,
+                    work_at_home_2018=EXCLUDED.work_at_home_2018
+                """,
+                (
+                    sa2, a["sa2_name"],
+                    a["work_at_home"], a["drive_private"], a["drive_company"], a["passenger"],
+                    a["public_bus"], a["train"], a["bicycle"], a["walk_or_jog"],
+                    a["ferry"], a["other"], a["total_stated"],
+                    a["total_stated_2018"], a["work_at_home_2018"],
+                ),
+            )
+            count += 1
+        except Exception:
+            conn.rollback()
+            continue
+
+    conn.commit()
+    _progress(log, f"Census 2023 commute: {count} SA2 areas")
+    return count
+
+
+# ── Climate Normals (Open-Meteo) ──────────────────────────────
+
+def load_climate_normals(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load 30-year climate normals for ~60 NZ cities from Open-Meteo Climate API."""
+    import time as _time
+
+    # Major NZ cities/towns with coordinates and TA names
+    locations = [
+        ("Auckland CBD", "Auckland", -36.848, 174.763),
+        ("North Shore", "Auckland", -36.780, 174.757),
+        ("Manukau", "Auckland", -36.993, 174.880),
+        ("Waitakere", "Auckland", -36.850, 174.545),
+        ("Hamilton", "Hamilton City", -37.787, 175.283),
+        ("Tauranga", "Tauranga City", -37.688, 176.167),
+        ("Wellington", "Wellington City", -41.293, 174.781),
+        ("Lower Hutt", "Hutt City", -41.209, 174.908),
+        ("Upper Hutt", "Upper Hutt City", -41.124, 175.070),
+        ("Porirua", "Porirua City", -41.134, 174.840),
+        ("Christchurch", "Christchurch City", -43.532, 172.636),
+        ("Dunedin", "Dunedin City", -45.874, 170.504),
+        ("Napier", "Napier City", -39.489, 176.912),
+        ("Hastings", "Hastings District", -39.639, 176.839),
+        ("Palmerston North", "Palmerston North City", -40.356, 175.611),
+        ("Nelson", "Nelson City", -41.271, 173.284),
+        ("Rotorua", "Rotorua District", -38.137, 176.251),
+        ("New Plymouth", "New Plymouth District", -39.056, 174.075),
+        ("Whangarei", "Whangarei District", -35.725, 174.324),
+        ("Invercargill", "Invercargill City", -46.413, 168.353),
+        ("Kapiti Coast", "Kapiti Coast District", -40.914, 174.983),
+        ("Queenstown", "Queenstown-Lakes District", -45.031, 168.662),
+        ("Wanaka", "Queenstown-Lakes District", -44.700, 169.132),
+        ("Blenheim", "Marlborough District", -41.514, 173.953),
+        ("Timaru", "Timaru District", -44.396, 171.254),
+        ("Whanganui", "Whanganui District", -39.930, 175.050),
+        ("Gisborne", "Gisborne District", -38.662, 178.018),
+        ("Masterton", "Masterton District", -40.952, 175.658),
+        ("Levin", "Horowhenua District", -40.622, 175.275),
+        ("Taupo", "Taupo District", -38.684, 176.070),
+        ("Thames", "Thames-Coromandel District", -36.861, 175.540),
+        ("Whitianga", "Thames-Coromandel District", -36.834, 175.699),
+        ("Whakatane", "Whakatane District", -37.953, 176.993),
+        ("Cambridge", "Waipa District", -37.882, 175.469),
+        ("Te Awamutu", "Waipa District", -38.007, 175.323),
+        ("Ashburton", "Ashburton District", -43.901, 171.730),
+        ("Rangiora", "Waimakariri District", -43.305, 172.596),
+        ("Rolleston", "Selwyn District", -43.590, 172.379),
+        ("Oamaru", "Waitaki District", -45.097, 170.972),
+        ("Greymouth", "Grey District", -42.450, 171.211),
+        ("Hokitika", "Westland District", -42.717, 170.968),
+        ("Gore", "Gore District", -46.100, 168.944),
+        ("Kaikoura", "Kaikoura District", -42.400, 173.681),
+        ("Kerikeri", "Far North District", -35.227, 174.000),
+        ("Kaitaia", "Far North District", -35.111, 173.263),
+        ("Pukekohe", "Auckland", -37.200, 174.900),
+        ("Papamoa", "Western Bay of Plenty District", -37.720, 176.297),
+        ("Mount Maunganui", "Tauranga City", -37.632, 176.182),
+        ("Richmond", "Tasman District", -41.340, 173.178),
+        ("Motueka", "Tasman District", -41.111, 172.988),
+        ("Alexandra", "Central Otago District", -45.249, 169.379),
+        ("Cromwell", "Central Otago District", -45.039, 169.196),
+        ("Waihi", "Hauraki District", -37.386, 175.834),
+        ("Tokoroa", "South Waikato District", -38.228, 175.869),
+        ("Matamata", "Matamata-Piako District", -37.810, 175.762),
+        ("Stratford", "Stratford District", -39.346, 174.284),
+        ("Dannevirke", "Tararua District", -40.204, 176.101),
+        ("Carterton", "Carterton District", -41.023, 175.527),
+        ("Waipukurau", "Central Hawke's Bay District", -41.049, 176.554),
+        ("Te Kuiti", "Waitomo District", -38.335, 175.163),
+    ]
+
+    _progress(log, f"Fetching climate normals for {len(locations)} locations from Open-Meteo...")
+    cur = conn.cursor()
+    cur.execute("TRUNCATE climate_normals")
+    conn.commit()
+
+    count = 0
+    batch_size = 5
+    for i in range(0, len(locations), batch_size):
+        batch = locations[i:i + batch_size]
+        for name, ta, lat, lng in batch:
+            try:
+                url = (
+                    f"https://climate-api.open-meteo.com/v1/climate?"
+                    f"latitude={lat}&longitude={lng}"
+                    f"&start_date=1991-01-01&end_date=2020-12-31"
+                    f"&models=EC_Earth3P_HR"
+                    f"&monthly=temperature_2m_mean,temperature_2m_max,temperature_2m_min,"
+                    f"precipitation_sum,rain_days,sunshine_duration,wind_speed_10m_mean"
+                )
+                data = json.loads(_fetch_url(url, timeout=30))
+                monthly = data.get("monthly", {})
+                times = monthly.get("time", [])
+                t_mean = monthly.get("temperature_2m_mean", [])
+                t_max = monthly.get("temperature_2m_max", [])
+                t_min = monthly.get("temperature_2m_min", [])
+                precip = monthly.get("precipitation_sum", [])
+                rain_d = monthly.get("rain_days", [])
+                sun = monthly.get("sunshine_duration", [])
+                wind = monthly.get("wind_speed_10m_mean", [])
+
+                # Compute 30-year monthly averages
+                monthly_agg: dict[int, dict] = {}
+                for idx, t in enumerate(times):
+                    month = int(t.split("-")[1])
+                    if month not in monthly_agg:
+                        monthly_agg[month] = {
+                            "t_mean": [], "t_max": [], "t_min": [],
+                            "precip": [], "rain_d": [], "sun": [], "wind": [],
+                        }
+                    ma = monthly_agg[month]
+                    if idx < len(t_mean) and t_mean[idx] is not None:
+                        ma["t_mean"].append(t_mean[idx])
+                    if idx < len(t_max) and t_max[idx] is not None:
+                        ma["t_max"].append(t_max[idx])
+                    if idx < len(t_min) and t_min[idx] is not None:
+                        ma["t_min"].append(t_min[idx])
+                    if idx < len(precip) and precip[idx] is not None:
+                        ma["precip"].append(precip[idx])
+                    if idx < len(rain_d) and rain_d[idx] is not None:
+                        ma["rain_d"].append(rain_d[idx])
+                    if idx < len(sun) and sun[idx] is not None:
+                        # API returns seconds, convert to hours
+                        ma["sun"].append(sun[idx] / 3600)
+                    if idx < len(wind) and wind[idx] is not None:
+                        ma["wind"].append(wind[idx])
+
+                for month, ma in sorted(monthly_agg.items()):
+                    def _avg(lst):
+                        return round(sum(lst) / len(lst), 1) if lst else None
+                    cur.execute(
+                        """INSERT INTO climate_normals (
+                            location_name, ta_name, latitude, longitude, month,
+                            temp_mean, temp_max, temp_min, precipitation_mm,
+                            rain_days, sunshine_hours, wind_speed_mean
+                        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        ON CONFLICT (location_name, month) DO UPDATE SET
+                            ta_name=EXCLUDED.ta_name, temp_mean=EXCLUDED.temp_mean,
+                            temp_max=EXCLUDED.temp_max, temp_min=EXCLUDED.temp_min,
+                            precipitation_mm=EXCLUDED.precipitation_mm, rain_days=EXCLUDED.rain_days,
+                            sunshine_hours=EXCLUDED.sunshine_hours, wind_speed_mean=EXCLUDED.wind_speed_mean
+                        """,
+                        (
+                            name, ta, lat, lng, month,
+                            _avg(ma["t_mean"]), _avg(ma["t_max"]), _avg(ma["t_min"]),
+                            _avg(ma["precip"]), _avg(ma["rain_d"]),
+                            _avg(ma["sun"]), _avg(ma["wind"]),
+                        ),
+                    )
+                    count += 1
+            except Exception as e:
+                logger.warning(f"Climate normals failed for {name}: {e}")
+                conn.rollback()
+                continue
+
+        conn.commit()
+        _progress(log, f"Climate normals: {count} records ({i + len(batch)}/{len(locations)} locations)...")
+        _time.sleep(0.5)  # Rate limit courtesy
+
+    _progress(log, f"Climate normals: {count} records for {len(locations)} locations")
+    return count
+
+
 # ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
@@ -3738,6 +3997,16 @@ DATA_SOURCES: list[DataSource] = [
         "census_households", "Census 2023 Households (SA2 — income, tenure, vehicles, internet)",
         ["census_households"],
         load_census_households,
+    ),
+    DataSource(
+        "census_commute", "Census 2023 Commute Mode (SA2 — drive, bus, train, bike, WFH)",
+        ["census_commute"],
+        load_census_commute,
+    ),
+    DataSource(
+        "climate_normals", "Climate Normals 1991-2020 (60 cities — temp, rain, sun, wind)",
+        ["climate_normals"],
+        load_climate_normals,
     ),
     # ── National (LINZ) ───────────────────────────────────────
     DataSource(

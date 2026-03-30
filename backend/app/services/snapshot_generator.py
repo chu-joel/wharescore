@@ -533,19 +533,55 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         except Exception:
             return None
 
+    async def _q_census_commute():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    "SELECT * FROM census_commute WHERE sa2_code = %s",
+                    [sa2["sa2_code"]],
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+        except Exception:
+            return None
+
+    async def _q_climate_normals():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    """SELECT cn.* FROM climate_normals cn
+                       WHERE cn.ta_name = %s
+                       ORDER BY cn.month""",
+                    [sa2["ta_name"]],
+                )
+                rows = cur.fetchall()
+                if rows:
+                    return [dict(r) for r in rows]
+                # Fallback: find nearest location
+                cur = await c.execute(
+                    """SELECT DISTINCT ON (month) cn.*
+                       FROM climate_normals cn, (SELECT geom FROM addresses WHERE address_id = %s) addr
+                       ORDER BY month, cn.longitude - ST_X(addr.geom), cn.latitude - ST_Y(addr.geom)""",
+                    [address_id],
+                )
+                rows = cur.fetchall()
+                return [dict(r) for r in rows] if rows else None
+        except Exception:
+            return None
+
     # Run all independent queries in parallel
     (
         hazards, location, sa2_comp, area_context, sa2_med_row,
         rent_history, hpi_data, crime_trend,
         nearby_highlights, nearby_supermarkets, rates_data,
         nearby_doc, nearest_supermarkets, school_zones, road_noise, weather_history,
-        census_demo, census_hh,
+        census_demo, census_hh, census_commute, climate_normals,
     ) = await asyncio.gather(
         _q_hazards(), _q_location(), _q_sa2_comp(), _q_area_context(), _q_sa2_medians(),
         _q_rent_history(), _q_hpi(), _q_crime_trend(),
         _q_highlights(), _q_supermarkets(), _q_rates(),
         _q_doc(), _q_nearest_supermarkets(), _q_school_zones(), _q_road_noise(), _q_weather(),
-        _q_census_demographics(), _q_census_households(),
+        _q_census_demographics(), _q_census_households(), _q_census_commute(), _q_climate_normals(),
     )
 
     # Apply CV from rates data (generic handler for all councils)
@@ -677,6 +713,8 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "isochrone": isochrone_data,
         "census_demographics": census_demo,
         "census_households": census_hh,
+        "census_commute": census_commute,
+        "climate_normals": climate_normals,
     }
 
 
@@ -1590,6 +1628,8 @@ async def generate_snapshot(
         "terrain_insights": terrain_insights,
         "census_demographics": cache.get("census_demographics"),
         "census_households": cache.get("census_households"),
+        "census_commute": cache.get("census_commute"),
+        "climate_normals": cache.get("climate_normals"),
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",
