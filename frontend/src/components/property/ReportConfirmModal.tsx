@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, Sparkles, Zap } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
 import { create } from 'zustand';
+import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import type { PropertyReport } from '@/lib/types';
 
 /* ── Store ──────────────────────────────────────────────── */
@@ -32,7 +33,7 @@ interface ReportConfirmState {
 export const useReportConfirmStore = create<ReportConfirmState>((set) => ({
   open: false,
   addressId: null,
-  selectedTier: 'full',
+  selectedTier: 'quick',
   onConfirm: null,
   show: (addressId, onConfirm) => set({ open: true, addressId, onConfirm }),
   close: () => set({ open: false, onConfirm: null }),
@@ -505,10 +506,12 @@ function BuyerFields({ addressId }: { addressId: number }) {
 
 /* ── Main Component ─────────────────────────────────────── */
 export function ReportConfirmModal() {
-  const { open, addressId, selectedTier, onConfirm, close } = useReportConfirmStore();
+  const { open, addressId, selectedTier, onConfirm, close, setSelectedTier } = useReportConfirmStore();
   const persona = usePersonaStore((s) => s.persona);
   const [generating, setGenerating] = useState(false);
   const queryClient = useQueryClient();
+  const credits = useDownloadGateStore((s) => s.credits);
+  const hasFullCredits = (credits?.fullCredits ?? 0) > 0 || credits?.plan === 'pro';
 
   // Get address from cached report data
   const cachedReport = addressId
@@ -582,6 +585,48 @@ export function ReportConfirmModal() {
           </div>
         )}
 
+        {/* Tier selector */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedTier('quick')}
+            className={`rounded-lg border-2 p-3 text-left transition-all ${
+              selectedTier === 'quick'
+                ? 'border-piq-primary bg-piq-primary/5'
+                : 'border-border hover:border-muted-foreground/40'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap className="h-3.5 w-3.5 text-piq-primary" />
+              <span className="text-xs font-semibold">Quick Report</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">8 key sections, 30-day link</p>
+            <p className="text-xs font-bold text-piq-success mt-1">Free</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTier('full')}
+            className={`rounded-lg border-2 p-3 text-left transition-all ${
+              selectedTier === 'full'
+                ? 'border-piq-primary bg-piq-primary/5'
+                : 'border-border hover:border-muted-foreground/40'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <Sparkles className="h-3.5 w-3.5 text-piq-primary" />
+              <span className="text-xs font-semibold">Full Report</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">25+ sections, permanent link</p>
+            <p className="text-xs font-bold mt-1">
+              {hasFullCredits ? (
+                <span className="text-piq-success">Use credit</span>
+              ) : (
+                <span className="text-piq-primary">$9.99</span>
+              )}
+            </p>
+          </button>
+        </div>
+
         <DialogFooter className="flex gap-2 sm:flex-row">
           <button
             onClick={close}
@@ -600,8 +645,12 @@ export function ReportConfirmModal() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Generating...
               </>
+            ) : selectedTier === 'quick' ? (
+              'Generate Free Quick Report'
+            ) : hasFullCredits ? (
+              'Generate Full Report'
             ) : (
-              `Generate ${selectedTier === 'quick' ? 'Quick' : 'Full'} Report`
+              'Get Full Report — $9.99'
             )}
           </button>
         </DialogFooter>

@@ -29,6 +29,7 @@ import { MapPin } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
+import { usePdfExportStore } from '@/stores/pdfExportStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface HoverInfo {
@@ -347,8 +348,8 @@ export function MapContainer() {
     (addressId: number) => {
       setShowPopup(false);
       if (isOnPropertyPage) {
-        // Already viewing a report — open the report selector for this property
-        setShowUpgradeModal(true, 'default', {}, addressId, persona);
+        // Already viewing a report — use same flow as Get Report button
+        usePdfExportStore.getState().startExport(addressId);
       } else if (window.innerWidth < 640) {
         // On mobile, report is already in the drawer — snap it to full
         window.dispatchEvent(new Event('drawer:snap-full'));

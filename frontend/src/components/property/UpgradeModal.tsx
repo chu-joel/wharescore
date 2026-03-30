@@ -427,6 +427,17 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
+        {/* Free Quick Report — sign in prompt for logged-out users */}
+        {!isSignedIn && (
+          <button
+            onClick={() => signIn()}
+            className="w-full rounded-lg border-2 border-dashed border-piq-primary/30 bg-piq-primary/5 p-3 text-center transition-all hover:border-piq-primary/60 hover:bg-piq-primary/10"
+          >
+            <p className="text-sm font-semibold text-piq-primary">Sign in for a free Quick Report</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">8 key sections, shareable link, 30-day access</p>
+          </button>
+        )}
+
         {/* Pricing options */}
         <div className="grid gap-1.5 sm:gap-2">
           {/* Full Report */}
