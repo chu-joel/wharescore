@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft } from 'lucide-react';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
+import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent, useTabs } from '@/components/ui/tabs';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
 import { ReportSidebar } from './ReportSidebar';
@@ -64,6 +65,9 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
 
   // Live area feed — fetch seismic/weather/emergency events even for hosted report
   const { data: areaFeed } = useAreaFeed(snapshot.meta.address_id);
+
+  // Tab from URL hash
+  const initialTab = typeof window !== 'undefined' && window.location.hash === '#area' ? 'area' : 'property';
 
   const hasScores = Number.isFinite(report.scores?.overall);
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
@@ -170,144 +174,163 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           </div>
         )}
 
-        {/* ═══ AT A GLANCE — RAG status grid ═══ */}
-        <div className="pb-6">
-          <HostedAtAGlance report={report} />
-        </div>
-
-        {/* ═══ EXECUTIVE SUMMARY — key stats, walkability, insurance, area profile ═══ */}
-        <div className="pb-6">
-          <HostedExecutiveSummary report={report} snapshot={snapshot} persona={persona} rentBand={rentBand} storeBedrooms={store.bedrooms} />
-        </div>
-
-        {/* ═══ AI ANALYSIS — narrative summary from Claude ═══ */}
-        <div className="pb-6">
-          <HostedAISummary snapshot={snapshot} />
-        </div>
-
-        {/* ═══ CATEGORY RADAR ═══ */}
-        {hasScores && report.scores.categories && (
-          <div className="pb-6">
-            <CategoryRadar categories={report.scores.categories} />
+        {/* ═══ TABS ═══ */}
+        <Tabs defaultValue={initialTab} onTabChange={(tab) => {
+          // Update URL hash
+          window.history.replaceState(null, '', `#${tab}`);
+        }}>
+          <div className="sticky top-[49px] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-4 px-4 print:hidden">
+            <TabsList className="max-w-2xl mx-auto">
+              <TabsTrigger value="property" className="flex-1 text-center">Your Property</TabsTrigger>
+              <TabsTrigger value="area" className="flex-1 text-center">The Area</TabsTrigger>
+            </TabsList>
           </div>
-        )}
 
-        {/* ═══ KEY FINDINGS (all shown — user has paid) ═══ */}
-        <div className="pb-6">
-          <KeyFindings report={report} maxFree={999} persona={persona} />
-        </div>
+          {/* ═══ TAB 1: YOUR PROPERTY ═══ */}
+          <TabsContent value="property">
+            <div className="pt-6">
+              <div className="pb-6">
+                <HostedAtAGlance report={report} />
+              </div>
 
-        {/* ═══ HAZARD INTELLIGENCE — watch items, top events, advice, timeline ═══ */}
-        <div className="pb-6">
-          <HostedAreaFeed feed={areaFeed} snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedExecutiveSummary report={report} snapshot={snapshot} persona={persona} rentBand={rentBand} storeBedrooms={store.bedrooms} />
+              </div>
 
-        {/* ═══ MOBILE SIDEBAR ═══ */}
-        <div className="lg:hidden print:hidden pb-6">
-          <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
-            <ReportSidebar snapshot={snapshot} rentBand={rentBand} />
-          </div>
-        </div>
+              <div className="pb-6">
+                <HostedAISummary snapshot={snapshot} />
+              </div>
 
-        {/* ═══ RENT/PRICE ADVISOR — the core persona-specific analysis ═══ */}
-        <div className="pb-6">
-          <HostedRentAdvisor snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} />
-        </div>
-
-        {snapshot.rent_history?.length > 0 && (
-          <div className="pb-6">
-            <HostedRentHistory snapshot={snapshot} />
-          </div>
-        )}
-
-        <div className="pb-6">
-          <HostedPriceAdvisor snapshot={snapshot} persona={persona} />
-        </div>
-
-        {snapshot.hpi_data?.length > 0 && (
-          <div className="pb-6">
-            <HostedHPIChart snapshot={snapshot} />
-          </div>
-        )}
-
-        {/* ═══ ALL QUESTION SECTIONS — deep-dive into each area ═══ */}
-        <HostedReportProvider snapshot={snapshot}>
-          {questions.map((q) => (
-            <div key={q.id} id={`sec-${q.id}`} className="pb-6 scroll-mt-16">
-              <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
-                <div className="px-5 pt-5 pb-3">
-                  <h3 className="text-lg font-bold">{q.question}</h3>
+              {hasScores && report.scores.categories && (
+                <div className="pb-6">
+                  <CategoryRadar categories={report.scores.categories} />
                 </div>
-                <div className="px-5 pb-5">
-                  <QuestionContent questionId={q.id} report={report} persona={persona} />
+              )}
+
+              <div className="pb-6">
+                <KeyFindings report={report} maxFree={999} persona={persona} />
+              </div>
+
+              <div className="pb-6">
+                <HostedAreaFeed feed={areaFeed} snapshot={snapshot} />
+              </div>
+
+              {/* Mobile sidebar */}
+              <div className="lg:hidden print:hidden pb-6">
+                <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
+                  <ReportSidebar snapshot={snapshot} rentBand={rentBand} />
                 </div>
               </div>
+
+              <div className="pb-6">
+                <HostedRentAdvisor snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} />
+              </div>
+
+              {snapshot.rent_history?.length > 0 && (
+                <div className="pb-6">
+                  <HostedRentHistory snapshot={snapshot} />
+                </div>
+              )}
+
+              <div className="pb-6">
+                <HostedPriceAdvisor snapshot={snapshot} persona={persona} />
+              </div>
+
+              {snapshot.hpi_data?.length > 0 && (
+                <div className="pb-6">
+                  <HostedHPIChart snapshot={snapshot} />
+                </div>
+              )}
+
+              <HostedReportProvider snapshot={snapshot}>
+                {questions.map((q) => (
+                  <div key={q.id} id={`sec-${q.id}`} className="pb-6 scroll-mt-16">
+                    <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
+                      <div className="px-5 pt-5 pb-3">
+                        <h3 className="text-lg font-bold">{q.question}</h3>
+                      </div>
+                      <div className="px-5 pb-5">
+                        <QuestionContent questionId={q.id} report={report} persona={persona} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </HostedReportProvider>
+
+              {persona === 'renter' && (
+                <div className="pb-6">
+                  <HostedHealthyHomes report={report} />
+                </div>
+              )}
+
+              <div className="pb-6">
+                <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />
+              </div>
+
+              <div className="pb-6">
+                <HostedRecommendations snapshot={snapshot} persona={persona} />
+              </div>
+
+              <div className="pb-6">
+                <HostedNextSteps persona={persona} report={report} />
+              </div>
+
+              {/* Tab navigation footer */}
+              <TabNavFooter direction="next" targetTab="area" label="The Area" />
             </div>
-          ))}
-        </HostedReportProvider>
+          </TabsContent>
 
-        {/* ═══ WHAT'S NEARBY ═══ */}
-        <div className="pb-6">
-          <HostedNearbyHighlights snapshot={snapshot} />
-        </div>
+          {/* ═══ TAB 2: THE AREA ═══ */}
+          <TabsContent value="area">
+            <div className="pt-6">
+              <div className="pb-6">
+                <HostedDemographics snapshot={snapshot} isFull={true} />
+              </div>
 
-        <div className="pb-6">
-          <HostedSchoolZones snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedClimate snapshot={snapshot} />
+              </div>
 
-        <div className="pb-6">
-          <HostedSchools rawReport={snapshot.report} />
-        </div>
+              <div className="pb-6">
+                <HostedNearbyHighlights snapshot={snapshot} />
+              </div>
 
-        <div className="pb-6">
-          <HostedRoadNoise snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedSchoolZones snapshot={snapshot} />
+              </div>
 
-        {/* ═══ TERRAIN & WALKING REACH — elevation, slope, aspect, transit isochrone ═══ */}
-        <div className="pb-6">
-          <HostedTerrain snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedSchools rawReport={snapshot.report} />
+              </div>
 
-        <div className="pb-6">
-          <HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedRoadNoise snapshot={snapshot} />
+              </div>
 
-        {/* ═══ DEMOGRAPHICS & CLIMATE ═══ */}
-        <div className="pb-6">
-          <HostedDemographics snapshot={snapshot} isFull={true} />
-        </div>
+              <div className="pb-6">
+                <HostedTerrain snapshot={snapshot} />
+              </div>
 
-        <div className="pb-6">
-          <HostedClimate snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} />
+              </div>
 
-        <div className="pb-6">
-          <HostedOutdoorRec snapshot={snapshot} />
-        </div>
+              <div className="pb-6">
+                <HostedOutdoorRec snapshot={snapshot} />
+              </div>
 
-        <div className="pb-6">
-          <HostedInfrastructure rawReport={snapshot.report} />
-        </div>
+              <div className="pb-6">
+                <HostedInfrastructure rawReport={snapshot.report} />
+              </div>
 
-        {persona === 'renter' && (
-          <div className="pb-6">
-            <HostedHealthyHomes report={report} />
-          </div>
-        )}
+              {/* Tab navigation footer */}
+              <TabNavFooter direction="prev" targetTab="property" label="Your Property" />
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        <div className="pb-6">
-          <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />
-        </div>
-
-        <div className="pb-6">
-          <HostedRecommendations snapshot={snapshot} persona={persona} />
-        </div>
-
-        <div className="pb-6">
-          <HostedNextSteps persona={persona} report={report} />
-        </div>
-
-        <div className="pb-6">
+        {/* ═══ SHARED: Below tabs ═══ */}
+        <div className="pb-6 pt-2">
           <HostedMethodology />
         </div>
 
@@ -333,6 +356,42 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
       </div>
 
       </div> {/* end lg:pr-80 wrapper */}
+    </div>
+  );
+}
+
+function TabNavFooter({ direction, targetTab, label }: { direction: 'next' | 'prev'; targetTab: string; label: string }) {
+  const { setActiveTab } = useTabs();
+  const handleClick = () => {
+    setActiveTab(targetTab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.history.replaceState(null, '', `#${targetTab}`);
+  };
+
+  return (
+    <div className="print:hidden pb-6">
+      <button
+        onClick={handleClick}
+        className="w-full flex items-center justify-between px-6 py-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors group"
+      >
+        {direction === 'next' ? (
+          <>
+            <div className="text-left">
+              <p className="text-xs text-muted-foreground">Continue reading</p>
+              <p className="text-sm font-semibold text-foreground group-hover:text-piq-primary transition-colors">{label}</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-piq-primary transition-colors" />
+          </>
+        ) : (
+          <>
+            <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-piq-primary transition-colors" />
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Go back to</p>
+              <p className="text-sm font-semibold text-foreground group-hover:text-piq-primary transition-colors">{label}</p>
+            </div>
+          </>
+        )}
+      </button>
     </div>
   );
 }

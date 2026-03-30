@@ -46,6 +46,8 @@
 
 ### Hosted report (`/report/{token}`, component: `HostedReport.tsx`)
 
+**Layout:** Two tabs — "Your Property" (default) and "The Area". Cover + score strip above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both. Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs. Quick report (HostedQuickReport.tsx) has no tabs.
+
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
 | `report.scores.categories` | HostedAtAGlance | Yes |
