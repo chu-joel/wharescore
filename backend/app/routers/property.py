@@ -196,6 +196,7 @@ async def _overlay_transit_data(report: dict, address_id: int) -> None:
             # Merge into liveability section
             for key in ("bus_stops_800m", "rail_stops_800m", "ferry_stops_800m",
                         "cable_car_stops_800m", "transit_travel_times",
+                        "transit_travel_times_pm",
                         "peak_trips_per_hour", "nearest_stop_name"):
                 val = transit.get(key)
                 if val is not None and val != 0:
