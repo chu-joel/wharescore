@@ -592,9 +592,11 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
                       count(*) FILTER (WHERE subcategory = 'library')::int AS libraries,
                       count(*) FILTER (WHERE subcategory IN ('sports_centre', 'swimming_pool'))::int AS sports_facilities,
                       count(*) FILTER (WHERE subcategory = 'playground')::int AS playgrounds,
-                      count(*) FILTER (WHERE subcategory = 'community_centre')::int AS community_centres
+                      count(*) FILTER (WHERE subcategory = 'community_centre')::int AS community_centres,
+                      count(*) FILTER (WHERE subcategory IN ('bicycle_parking', 'bicycle_rental', 'bicycle_repair_station', 'bicycle'))::int AS cycling_facilities
                     FROM osm_amenities oa, addr
-                    WHERE oa.subcategory IN ('library', 'sports_centre', 'swimming_pool', 'playground', 'community_centre')
+                    WHERE oa.subcategory IN ('library', 'sports_centre', 'swimming_pool', 'playground', 'community_centre',
+                                             'bicycle_parking', 'bicycle_rental', 'bicycle_repair_station', 'bicycle')
                       AND oa.geom && ST_Expand(addr.geom, 0.02)
                       AND ST_DWithin(oa.geom::geography, addr.geom::geography, 2000)
                 """, [address_id])
@@ -604,6 +606,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
                     result["sports_facilities_2km"] = row["sports_facilities"] or 0
                     result["playgrounds_2km"] = row["playgrounds"] or 0
                     result["community_centres_2km"] = row["community_centres"] or 0
+                    result["cycling_facilities_2km"] = row["cycling_facilities"] or 0
 
                 return result
         except Exception:

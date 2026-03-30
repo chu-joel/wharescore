@@ -18,7 +18,7 @@ All datasets to add to WhareScore, organized by priority phase. Update status as
 
 | Dataset | Source | Granularity | Format | Status | Notes |
 |---|---|---|---|---|---|
-| Broadband/fibre coverage | [Commerce Commission SFA map](https://www.comcom.govt.nz/regulated-industries/telecommunications/regulated-services/consumer-protections-for-copper-withdrawal/map-of-specified-fibre-areas/) | Polygon | Shapefile | Not started | ST_Contains query, shows fibre availability |
+| Broadband/fibre coverage | [Commerce Commission SFA map](https://www.comcom.govt.nz/regulated-industries/telecommunications/regulated-services/consumer-protections-for-copper-withdrawal/map-of-specified-fibre-areas/) | Polygon | Shapefile | **Deferred** | Census internet access % used as proxy. SFA shapefile deferred (large download, complex polygons). |
 | Hospital locations | Already in osm_amenities (40 hospitals) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
 | GP/medical density | Already in osm_amenities (483 doctors, 269 clinics) | Point | osm_amenities | **Done** | Already shown in Nearest Essentials |
 | EV charging stations | Already in osm_amenities (509 chargers) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
@@ -29,7 +29,7 @@ All datasets to add to WhareScore, organized by priority phase. Update status as
 |---|---|---|---|---|---|
 | Libraries | Already in osm_amenities (189) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
 | Sports centres/pools | Already in osm_amenities (164 + 54) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
-| Cycling infrastructure | OSM cycleway | Line | OSM extract | Not started | Km of cycle lanes within 2km |
+| Cycling infrastructure | OSM bike parking/rental/repair (3,700+ POIs already in osm_amenities) | Point | osm_amenities | **Done** | Cycling facilities count within 2km as proxy. Full cycleway line data deferred. |
 | Playgrounds | Already in osm_amenities (92) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
 | Community centres | Already in osm_amenities (761) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
 

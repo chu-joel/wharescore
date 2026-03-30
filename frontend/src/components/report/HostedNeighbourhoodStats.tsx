@@ -121,6 +121,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
     sports_facilities_2km?: number;
     playgrounds_2km?: number;
     community_centres_2km?: number;
+    cycling_facilities_2km?: number;
   } | null;
 
   // Heritage
@@ -219,6 +220,12 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <div className="flex justify-between py-2 text-sm">
                   <span className="font-medium">Community Centres</span>
                   <span className="text-muted-foreground text-xs">{cf.community_centres_2km} within 2km</span>
+                </div>
+              )}
+              {(cf.cycling_facilities_2km ?? 0) > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="font-medium">Cycling (parking/rental/repair)</span>
+                  <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} within 2km</span>
                 </div>
               )}
             </div>
