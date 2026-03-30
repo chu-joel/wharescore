@@ -216,6 +216,7 @@ async def _overlay_transit_data(report: dict, address_id: int) -> None:
                             UNION ALL
                             SELECT stop_name, geom FROM metlink_stops WHERE route_type = 2
                         ) s, addr
+                        WHERE ST_DWithin(s.geom::geography, addr.geom::geography, 50000)
                         ORDER BY s.geom <-> addr.geom LIMIT 1
                     """, [address_id])
                     rail_row = cur_rail.fetchone()

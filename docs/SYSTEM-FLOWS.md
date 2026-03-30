@@ -144,7 +144,7 @@ Admin page load → AdminAuthGate checks session
 - **Quick Report** (free, sign-in required): Score, AI bottom line, RAG grid, 3 key findings, rent/price band, hazard summary, schools, neighbourhood highlights, top actions. Single-column, no sidebar. Shareable hosted link + printable PDF.
 - **Full Report** ($9.99): All 25+ sections with full detail, interactive sidebar, rent/price methodology, hazard intelligence timeline, terrain analysis, neighbourhood deep-dive.
 - Same snapshot data — tier controls frontend rendering only. Stored as `report_tier` column on `report_snapshots`.
-- Upgrade: `POST /report/{token}/upgrade` creates Stripe checkout for $9.99. Webhook updates `report_tier` to `'full'` on same snapshot row.
+- Upgrade: `POST /report/{token}/upgrade` — first tries to use an existing credit, then falls back to Stripe checkout for $9.99. On success (either path), `report_tier` updated to `'full'`, `expires_at` cleared, and report-ready email sent to user via `send_report_ready_email()`.
 
 ### Authenticated purchase flow
 ```

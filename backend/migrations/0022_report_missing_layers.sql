@@ -640,11 +640,13 @@ BEGIN
           AND ST_DWithin(geom::geography, addr.geom::geography, 400)
         LIMIT 10
       ) ts_list ON true
-      -- Nearest train station (location_type=1)
+      -- Nearest train station (location_type=1, max 50km — don't show "Wellington 450km" for Timaru)
       LEFT JOIN LATERAL (
         SELECT stop_name, ST_Distance(geom::geography, addr.geom::geography) AS train_dist
         FROM transit_stops
         WHERE location_type = 1
+          AND geom && ST_Expand(addr.geom, 0.5)
+          AND ST_DWithin(geom::geography, addr.geom::geography, 50000)
         ORDER BY geom <-> addr.geom LIMIT 1
       ) tr ON true
       -- Crashes 300m (serious/fatal)

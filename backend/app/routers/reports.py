@@ -142,7 +142,7 @@ async def upgrade_report_tier(
     # Verify snapshot exists and is currently 'quick'
     async with db.pool.connection() as conn:
         cur = await conn.execute(
-            "SELECT id, report_tier FROM report_snapshots WHERE share_token_hash = %s",
+            "SELECT id, report_tier, full_address, persona FROM report_snapshots WHERE share_token_hash = %s",
             [token_hash],
         )
         row = cur.fetchone()
@@ -197,6 +197,27 @@ async def upgrade_report_tier(
                 track_event("upgrade_with_credit", user_id=user_id,
                             properties={"snapshot_id": snapshot_id, "credit_id": credit["id"]})
                 logger.info(f"Upgraded snapshot {snapshot_id} using credit {credit['id']} for user {user_id}")
+
+                # Send report-ready email for the upgraded Full Report
+                try:
+                    import asyncio
+                    cur_email = await conn.execute(
+                        "SELECT email FROM users WHERE user_id = %s", [user_id]
+                    )
+                    email_row = cur_email.fetchone()
+                    if email_row and email_row["email"]:
+                        from ..services.email import send_report_ready_email
+                        await asyncio.to_thread(
+                            send_report_ready_email,
+                            email_row["email"],
+                            row["full_address"],
+                            share_token,
+                            row.get("persona", "buyer"),
+                            settings.FRONTEND_URL,
+                        )
+                except Exception as email_err:
+                    logger.warning(f"Failed to send upgrade email: {email_err}")
+
                 return {"upgraded": True, "method": "credit"}
 
     # No credits — create Stripe checkout

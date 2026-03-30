@@ -247,10 +247,13 @@ async def _handle_upgrade(session: dict, metadata: dict):
         return
 
     async with db.pool.connection() as conn:
-        await conn.execute(
-            "UPDATE report_snapshots SET report_tier = 'full', expires_at = NULL WHERE id = %s AND report_tier = 'quick'",
+        cur = await conn.execute(
+            """UPDATE report_snapshots SET report_tier = 'full', expires_at = NULL
+               WHERE id = %s AND report_tier = 'quick'
+               RETURNING full_address, persona, share_token_hash""",
             [int(snapshot_id)],
         )
+        upgraded_row = cur.fetchone()
 
     # Invalidate Redis cache so next fetch returns updated tier
     if share_token_hash and app_redis.redis_client:
@@ -258,6 +261,37 @@ async def _handle_upgrade(session: dict, metadata: dict):
             await app_redis.redis_client.delete(f"snapshot:{share_token_hash[:16]}")
         except Exception:
             pass
+
+    # Send report-ready email for the upgraded Full Report
+    if user_id and upgraded_row:
+        try:
+            import asyncio, hashlib
+            from ..config import settings
+            from ..services.email import send_report_ready_email
+            async with _db.pool.connection() as conn_email:
+                cur_email = await conn_email.execute(
+                    "SELECT email FROM users WHERE user_id = %s", [user_id]
+                )
+                email_row = cur_email.fetchone()
+            if email_row and email_row["email"]:
+                # Recover plaintext share_token from saved_reports
+                async with _db.pool.connection() as conn_tok:
+                    cur_tok = await conn_tok.execute(
+                        "SELECT share_token FROM saved_reports WHERE address_id = (SELECT address_id FROM report_snapshots WHERE id = %s) AND share_token IS NOT NULL ORDER BY generated_at DESC LIMIT 1",
+                        [int(snapshot_id)],
+                    )
+                    tok_row = cur_tok.fetchone()
+                if tok_row and tok_row["share_token"]:
+                    await asyncio.to_thread(
+                        send_report_ready_email,
+                        email_row["email"],
+                        upgraded_row["full_address"],
+                        tok_row["share_token"],
+                        upgraded_row.get("persona", "buyer"),
+                        settings.FRONTEND_URL,
+                    )
+        except Exception as email_err:
+            logger.warning(f"Failed to send upgrade email: {email_err}")
 
     track_event("upgrade_completed", user_id=user_id,
                 properties={"snapshot_id": snapshot_id})
