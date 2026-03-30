@@ -9,6 +9,7 @@ import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
 import { toast } from 'sonner';
 import { safeRedirect } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 
 const PLAN_LABELS: Record<string, string> = {
   free: 'Free',
@@ -93,6 +94,27 @@ export default function AccountPage() {
   const handleViewReport = (shareToken?: string | null) => {
     if (shareToken) {
       window.open(`/report/${shareToken}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const handleUpgrade = async (shareToken: string) => {
+    setUpgrading(shareToken);
+    try {
+      const authToken = await getToken();
+      const headers: Record<string, string> = {};
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+      const res = await apiFetch<{ checkout_url: string }>(
+        `/api/v1/report/${shareToken}/upgrade`,
+        { method: 'POST', headers },
+      );
+      if (res.checkout_url) {
+        safeRedirect(res.checkout_url);
+      }
+    } catch {
+      toast.error('Failed to start upgrade. Please try again.');
+    } finally {
+      setUpgrading(null);
     }
   };
 
@@ -342,13 +364,18 @@ export default function AccountPage() {
                               ? `Expires in ${daysLeft! <= 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} — upgrade to keep permanently with 25+ sections.`
                               : 'Upgrade to Full for hazard analysis, rent/price advisor, terrain data, and 25+ sections.'}
                           </p>
-                          <a
-                            href={`/report/${report.share_token}`}
-                            className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors"
+                          <button
+                            onClick={() => handleUpgrade(report.share_token!)}
+                            disabled={upgrading === report.share_token}
+                            className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-md bg-piq-primary text-white text-xs font-semibold hover:bg-piq-primary/90 transition-colors disabled:opacity-50"
                           >
-                            <Sparkles className="h-3 w-3" />
+                            {upgrading === report.share_token ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
                             Upgrade {credits?.plan === 'pro' ? '$4.99' : '$9.99'}
-                          </a>
+                          </button>
                         </div>
                       );
                     })()}
