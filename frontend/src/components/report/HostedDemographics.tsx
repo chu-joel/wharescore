@@ -54,7 +54,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
   const demo = snapshot.census_demographics;
   const hh = snapshot.census_households;
   const commute = snapshot.census_commute;
-  const biz = (snapshot as Record<string, unknown>).business_demography as {
+  const biz = (snapshot as unknown as Record<string, unknown>).business_demography as {
     employee_count_2024: number | null;
     employee_count_2019: number | null;
     employee_growth_pct: number | null;
