@@ -407,17 +407,23 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
         return report
 
     # 2. Call PL/pgSQL function — single DB round-trip
+    import time as _time
+    _t0 = _time.monotonic()
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             "SELECT get_property_report(%s) AS report", [address_id]
         )
         row = cur.fetchone()
+    _t_sql = _time.monotonic() - _t0
+    logger.info(f"[PERF] SQL get_property_report: {_t_sql:.2f}s for {address_id}")
 
     if not row or not row["report"]:
         raise HTTPException(404, "Address not found")
 
     # 3. Compute risk scores + run detection + fetch area profile concurrently
+    _t1 = _time.monotonic()
     report = enrich_with_scores(row["report"])
+    logger.info(f"[PERF] enrich_with_scores: {_time.monotonic() - _t1:.2f}s")
 
     sa2_code = (report.get("address") or {}).get("sa2_code")
 
@@ -435,7 +441,9 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
             pr = cur2.fetchone()
             return pr["profile"] if pr else None
 
+    _t2 = _time.monotonic()
     detection, area_profile = await asyncio.gather(_get_detection(), _get_area_profile())
+    logger.info(f"[PERF] detection + area_profile: {_time.monotonic() - _t2:.2f}s")
 
     if detection:
         report["property_detection"] = detection
@@ -453,7 +461,10 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     if not fast:
         overlays.append(_overlay_terrain_data(report, address_id))
 
+    _t3 = _time.monotonic()
     await asyncio.gather(*overlays)
+    logger.info(f"[PERF] overlays (fast={fast}): {_time.monotonic() - _t3:.2f}s")
+    logger.info(f"[PERF] TOTAL: {_time.monotonic() - _t0:.2f}s for {address_id} (fast={fast})")
 
     # Re-enrich scores now that terrain + event_history are available
     # (terrain-inferred flood/wind boosts and event-history boosts need these fields)
