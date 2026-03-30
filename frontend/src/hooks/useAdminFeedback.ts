@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { useAuthToken } from '@/hooks/useAuthToken';
 
 export interface FeedbackItem {
   id: number;
@@ -27,6 +28,7 @@ export function useAdminFeedback(
   type?: string,
   status?: string,
 ) {
+  const { getToken } = useAuthToken();
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('limit', '20');
@@ -35,20 +37,26 @@ export function useAdminFeedback(
 
   return useQuery({
     queryKey: ['admin', 'feedback', { page, type, status }],
-    queryFn: () =>
-      apiFetch<FeedbackListResponse>(`/api/v1/admin/feedback?${params}`),
+    queryFn: async () => {
+      const token = await getToken();
+      return apiFetch<FeedbackListResponse>(`/api/v1/admin/feedback?${params}`, { token: token ?? undefined });
+    },
   });
 }
 
 export function useUpdateFeedbackStatus() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuthToken();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      apiFetch(`/api/v1/admin/feedback/${id}`, {
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const token = await getToken();
+      return apiFetch(`/api/v1/admin/feedback/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
-      }),
+        token: token ?? undefined,
+      });
+    },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['admin', 'feedback'] }),
   });

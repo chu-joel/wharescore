@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { useAuthToken } from '@/hooks/useAuthToken';
 
 export interface EmailSignup {
   id: number;
@@ -16,18 +17,36 @@ interface EmailListResponse {
 }
 
 export function useAdminEmails(page: number) {
+  const { getToken } = useAuthToken();
   return useQuery({
     queryKey: ['admin', 'emails', page],
-    queryFn: () =>
-      apiFetch<EmailListResponse>(
+    queryFn: async () => {
+      const token = await getToken();
+      return apiFetch<EmailListResponse>(
         `/api/v1/admin/emails?page=${page}&limit=50`,
-      ),
+        { token: token ?? undefined },
+      );
+    },
   });
 }
 
 export async function exportEmailsCsv() {
+  // Fetch token for auth — uses the same token endpoint
+  let token: string | null = null;
+  try {
+    const tokenRes = await fetch('/api/auth/token');
+    if (tokenRes.ok) {
+      const data = await tokenRes.json();
+      token = data.token;
+    }
+  } catch { /* proceed without */ }
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch('/api/v1/admin/emails?format=csv', {
     credentials: 'include',
+    headers,
   });
   if (!res.ok) throw new Error('Export failed');
   const blob = await res.blob();

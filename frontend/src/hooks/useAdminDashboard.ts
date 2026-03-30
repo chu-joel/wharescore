@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { useAuthToken } from '@/hooks/useAuthToken';
 
 export interface DashboardStats {
   rent_reports_24h: number;
@@ -11,9 +12,14 @@ export interface DashboardStats {
 }
 
 export function useAdminDashboard() {
+  const { getToken } = useAuthToken();
+
   return useQuery({
     queryKey: ['admin', 'dashboard'],
-    queryFn: () => apiFetch<DashboardStats>('/api/v1/admin/dashboard'),
+    queryFn: async () => {
+      const token = await getToken();
+      return apiFetch<DashboardStats>('/api/v1/admin/dashboard', { token: token ?? undefined });
+    },
     refetchInterval: 30_000,
   });
 }

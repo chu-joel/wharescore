@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { useAuthToken } from '@/hooks/useAuthToken';
 
 export interface AnalyticsOverview {
   today: {
@@ -41,9 +42,13 @@ export interface AnalyticsOverview {
 }
 
 export function useAdminAnalytics(days = 7) {
+  const { getToken } = useAuthToken();
   return useQuery({
     queryKey: ['admin', 'analytics', days],
-    queryFn: () => apiFetch<AnalyticsOverview>(`/api/v1/admin/analytics/overview?days=${days}`),
+    queryFn: async () => {
+      const token = await getToken();
+      return apiFetch<AnalyticsOverview>(`/api/v1/admin/analytics/overview?days=${days}`, { token: token ?? undefined });
+    },
     refetchInterval: 30_000,
   });
 }

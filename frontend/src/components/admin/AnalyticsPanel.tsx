@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
+import { useAuthToken } from '@/hooks/useAuthToken';
 import {
   Search, Eye, FileText, CreditCard, Users, Activity,
   AlertTriangle, Clock, CheckCircle, XCircle,
@@ -85,8 +86,10 @@ export function AnalyticsPanel() {
 
   const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h } = data;
 
+  const { getToken } = useAuthToken();
   const handleResolve = async (errorId: number) => {
-    await apiFetch(`/api/v1/admin/analytics/errors/${errorId}/resolve`, { method: 'POST' });
+    const token = await getToken();
+    await apiFetch(`/api/v1/admin/analytics/errors/${errorId}/resolve`, { method: 'POST', token: token ?? undefined });
   };
 
   return (
