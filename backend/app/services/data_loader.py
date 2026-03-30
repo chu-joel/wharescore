@@ -3897,87 +3897,91 @@ def load_climate_normals(conn: psycopg.Connection, log: Callable = None) -> int:
     conn.commit()
 
     count = 0
-    batch_size = 5
-    for i in range(0, len(locations), batch_size):
-        batch = locations[i:i + batch_size]
-        for name, ta, lat, lng in batch:
-            try:
-                url = (
-                    f"https://climate-api.open-meteo.com/v1/climate?"
-                    f"latitude={lat}&longitude={lng}"
-                    f"&start_date=1991-01-01&end_date=2020-12-31"
-                    f"&models=EC_Earth3P_HR"
-                    f"&monthly=temperature_2m_mean,temperature_2m_max,temperature_2m_min,"
-                    f"precipitation_sum,rain_days,sunshine_duration,wind_speed_10m_mean"
+    for i, (name, ta, lat, lng) in enumerate(locations):
+        try:
+            # Use daily data for 10 years, aggregate to monthly averages
+            url = (
+                f"https://climate-api.open-meteo.com/v1/climate?"
+                f"latitude={lat}&longitude={lng}"
+                f"&start_date=2010-01-01&end_date=2019-12-31"
+                f"&models=EC_Earth3P_HR"
+                f"&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,"
+                f"precipitation_sum,wind_speed_10m_mean"
+            )
+            raw = _fetch_url(url, timeout=60)
+            data = json.loads(raw if isinstance(raw, str) else raw.decode("utf-8"))
+            daily = data.get("daily", {})
+            times = daily.get("time", [])
+            t_mean = daily.get("temperature_2m_mean", [])
+            t_max = daily.get("temperature_2m_max", [])
+            t_min = daily.get("temperature_2m_min", [])
+            precip = daily.get("precipitation_sum", [])
+            wind = daily.get("wind_speed_10m_mean", [])
+
+            # Aggregate by month
+            monthly_agg: dict[int, dict] = {}
+            for idx, t in enumerate(times):
+                month = int(t.split("-")[1])
+                if month not in monthly_agg:
+                    monthly_agg[month] = {
+                        "t_mean": [], "t_max": [], "t_min": [],
+                        "precip_days": [], "precip_sum": [], "wind": [],
+                    }
+                ma = monthly_agg[month]
+                if idx < len(t_mean) and t_mean[idx] is not None:
+                    ma["t_mean"].append(t_mean[idx])
+                if idx < len(t_max) and t_max[idx] is not None:
+                    ma["t_max"].append(t_max[idx])
+                if idx < len(t_min) and t_min[idx] is not None:
+                    ma["t_min"].append(t_min[idx])
+                if idx < len(precip) and precip[idx] is not None:
+                    ma["precip_sum"].append(precip[idx])
+                    if precip[idx] >= 1.0:
+                        ma["precip_days"].append(1)
+                    else:
+                        ma["precip_days"].append(0)
+                if idx < len(wind) and wind[idx] is not None:
+                    ma["wind"].append(wind[idx])
+
+            for month, ma in sorted(monthly_agg.items()):
+                def _avg(lst):
+                    return round(sum(lst) / len(lst), 1) if lst else None
+                # Monthly precipitation = average daily sum * ~30 days
+                avg_daily_precip = sum(ma["precip_sum"]) / max(len(ma["precip_sum"]), 1)
+                days_in_month_approx = len(ma["precip_sum"]) / 10  # 10 years of data
+                monthly_precip = round(avg_daily_precip * days_in_month_approx, 1) if ma["precip_sum"] else None
+                rain_days = round(sum(ma["precip_days"]) / 10, 1)  # avg rain days per year
+
+                cur.execute(
+                    """INSERT INTO climate_normals (
+                        location_name, ta_name, latitude, longitude, month,
+                        temp_mean, temp_max, temp_min, precipitation_mm,
+                        rain_days, sunshine_hours, wind_speed_mean
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (location_name, month) DO UPDATE SET
+                        ta_name=EXCLUDED.ta_name, temp_mean=EXCLUDED.temp_mean,
+                        temp_max=EXCLUDED.temp_max, temp_min=EXCLUDED.temp_min,
+                        precipitation_mm=EXCLUDED.precipitation_mm, rain_days=EXCLUDED.rain_days,
+                        sunshine_hours=EXCLUDED.sunshine_hours, wind_speed_mean=EXCLUDED.wind_speed_mean
+                    """,
+                    (
+                        name, ta, lat, lng, month,
+                        _avg(ma["t_mean"]), _avg(ma["t_max"]), _avg(ma["t_min"]),
+                        monthly_precip, rain_days,
+                        None,  # sunshine hours not available from climate API
+                        _avg(ma["wind"]),
+                    ),
                 )
-                data = json.loads(_fetch_url(url, timeout=30))
-                monthly = data.get("monthly", {})
-                times = monthly.get("time", [])
-                t_mean = monthly.get("temperature_2m_mean", [])
-                t_max = monthly.get("temperature_2m_max", [])
-                t_min = monthly.get("temperature_2m_min", [])
-                precip = monthly.get("precipitation_sum", [])
-                rain_d = monthly.get("rain_days", [])
-                sun = monthly.get("sunshine_duration", [])
-                wind = monthly.get("wind_speed_10m_mean", [])
-
-                # Compute 30-year monthly averages
-                monthly_agg: dict[int, dict] = {}
-                for idx, t in enumerate(times):
-                    month = int(t.split("-")[1])
-                    if month not in monthly_agg:
-                        monthly_agg[month] = {
-                            "t_mean": [], "t_max": [], "t_min": [],
-                            "precip": [], "rain_d": [], "sun": [], "wind": [],
-                        }
-                    ma = monthly_agg[month]
-                    if idx < len(t_mean) and t_mean[idx] is not None:
-                        ma["t_mean"].append(t_mean[idx])
-                    if idx < len(t_max) and t_max[idx] is not None:
-                        ma["t_max"].append(t_max[idx])
-                    if idx < len(t_min) and t_min[idx] is not None:
-                        ma["t_min"].append(t_min[idx])
-                    if idx < len(precip) and precip[idx] is not None:
-                        ma["precip"].append(precip[idx])
-                    if idx < len(rain_d) and rain_d[idx] is not None:
-                        ma["rain_d"].append(rain_d[idx])
-                    if idx < len(sun) and sun[idx] is not None:
-                        # API returns seconds, convert to hours
-                        ma["sun"].append(sun[idx] / 3600)
-                    if idx < len(wind) and wind[idx] is not None:
-                        ma["wind"].append(wind[idx])
-
-                for month, ma in sorted(monthly_agg.items()):
-                    def _avg(lst):
-                        return round(sum(lst) / len(lst), 1) if lst else None
-                    cur.execute(
-                        """INSERT INTO climate_normals (
-                            location_name, ta_name, latitude, longitude, month,
-                            temp_mean, temp_max, temp_min, precipitation_mm,
-                            rain_days, sunshine_hours, wind_speed_mean
-                        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                        ON CONFLICT (location_name, month) DO UPDATE SET
-                            ta_name=EXCLUDED.ta_name, temp_mean=EXCLUDED.temp_mean,
-                            temp_max=EXCLUDED.temp_max, temp_min=EXCLUDED.temp_min,
-                            precipitation_mm=EXCLUDED.precipitation_mm, rain_days=EXCLUDED.rain_days,
-                            sunshine_hours=EXCLUDED.sunshine_hours, wind_speed_mean=EXCLUDED.wind_speed_mean
-                        """,
-                        (
-                            name, ta, lat, lng, month,
-                            _avg(ma["t_mean"]), _avg(ma["t_max"]), _avg(ma["t_min"]),
-                            _avg(ma["precip"]), _avg(ma["rain_d"]),
-                            _avg(ma["sun"]), _avg(ma["wind"]),
-                        ),
-                    )
-                    count += 1
-            except Exception as e:
-                logger.warning(f"Climate normals failed for {name}: {e}")
-                conn.rollback()
-                continue
+                count += 1
+        except Exception as e:
+            logger.warning(f"Climate normals failed for {name}: {e}")
+            conn.rollback()
+            continue
 
         conn.commit()
-        _progress(log, f"Climate normals: {count} records ({i + len(batch)}/{len(locations)} locations)...")
-        _time.sleep(0.5)  # Rate limit courtesy
+        if (i + 1) % 10 == 0:
+            _progress(log, f"Climate normals: {i + 1}/{len(locations)} locations...")
+        _time.sleep(0.3)  # Rate limit courtesy
 
     _progress(log, f"Climate normals: {count} records for {len(locations)} locations")
     return count
