@@ -89,6 +89,16 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   if (ferryStops) transitModes.push({ mode: 'Ferry', count: ferryStops });
   if (cableCarStops) transitModes.push({ mode: 'Cable Car', count: cableCarStops });
 
+  // Transit peak frequency
+  const peakTrips = live.peak_trips_per_hour as number;
+  const nearestStopName = live.nearest_stop_name as string;
+
+  // Transmission line
+  const transmissionDist = planning.transmission_line_distance_m as number;
+
+  // Council rates
+  const ratesData = (snapshot as Record<string, unknown>)?.rates_data as { total_rates?: number; rates_breakdown?: Array<{ name: string; amount: number }> } | null;
+
   // Transit travel times (AM + PM peak)
   type TravelTime = { destination: string; minutes: number; routes?: string[]; travel_time_min?: number; route?: string };
   const travelTimes = (live.transit_travel_times ?? []) as TravelTime[];
@@ -134,7 +144,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
     .slice(0, 8);
   const maxAmenity = amenityItems[0]?.count ?? 1;
 
-  const hasContent = essentials.length > 0 || contamCount || climateTemp || solarMean || crashTotal || airSite || waterSite || amenityItems.length > 0 || transitModes.length > 0 || travelTimes.length > 0 || suburbAvg || cityAvg;
+  const hasContent = essentials.length > 0 || contamCount || climateTemp || solarMean || crashTotal || airSite || waterSite || amenityItems.length > 0 || transitModes.length > 0 || travelTimes.length > 0 || suburbAvg || cityAvg || peakTrips || ratesData?.total_rates || transmissionDist;
   if (!hasContent) return null;
 
   return (
@@ -204,6 +214,31 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {t.mode}: {t.count}
                 </span>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transit peak frequency */}
+        {peakTrips != null && peakTrips > 0 && (
+          <div className="rounded-lg bg-piq-primary/5 border border-piq-primary/20 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">~{Math.round(peakTrips)} services/hr at peak</p>
+                {nearestStopName && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Nearest stop: {nearestStopName}
+                  </p>
+                )}
+              </div>
+              <div className="text-right">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  peakTrips >= 20 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : peakTrips >= 8 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {peakTrips >= 20 ? 'Excellent' : peakTrips >= 8 ? 'Good' : 'Limited'}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -392,6 +427,59 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <p className="text-[10px] text-muted-foreground">avg radiation</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Annual council rates */}
+        {ratesData?.total_rates != null && ratesData.total_rates > 0 && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h4 className="text-sm font-semibold mb-2">Annual Council Rates</h4>
+            <p className="text-2xl font-bold text-piq-primary">
+              ${ratesData.total_rates.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-xs font-normal text-muted-foreground ml-1">/year</span>
+            </p>
+            {ratesData.rates_breakdown && ratesData.rates_breakdown.length > 0 && (
+              <div className="mt-2 divide-y divide-border/50">
+                {ratesData.rates_breakdown.slice(0, 6).map((item, i) => (
+                  <div key={i} className="flex justify-between py-1 text-xs">
+                    <span className="text-muted-foreground">{item.name}</span>
+                    <span className="font-medium">${item.amount.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Source: Council rates API. Amounts may differ from your actual rates notice.
+            </p>
+          </div>
+        )}
+
+        {/* Transmission line proximity */}
+        {transmissionDist != null && transmissionDist > 0 && transmissionDist <= 500 && (
+          <div className={`rounded-lg border p-3 ${
+            transmissionDist <= 100
+              ? 'border-red-200 bg-red-50/50 dark:bg-red-950/10'
+              : transmissionDist <= 200
+                ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/10'
+                : 'border-border'
+          }`}>
+            <div className="flex items-start gap-2">
+              <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${
+                transmissionDist <= 100 ? 'text-red-600' : transmissionDist <= 200 ? 'text-amber-600' : 'text-muted-foreground'
+              }`} />
+              <div>
+                <p className="text-sm font-semibold">
+                  High-voltage transmission line — {Math.round(transmissionDist)} m away
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {transmissionDist <= 100
+                    ? 'Very close proximity. May affect property value, building restrictions, and insurance. Check Transpower corridor requirements.'
+                    : transmissionDist <= 200
+                      ? 'Nearby transmission infrastructure. Consider potential EMF exposure and building height restrictions.'
+                      : 'Transmission line within 500m. Generally low impact at this distance.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
