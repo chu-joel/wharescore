@@ -545,6 +545,18 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         except Exception:
             return None
 
+    async def _q_business_demography():
+        try:
+            async with db.pool.connection() as c:
+                cur = await c.execute(
+                    "SELECT * FROM business_demography WHERE sa2_code = %s",
+                    [sa2["sa2_code"]],
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+        except Exception:
+            return None
+
     async def _q_climate_normals():
         try:
             async with db.pool.connection() as c:
@@ -575,13 +587,14 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         rent_history, hpi_data, crime_trend,
         nearby_highlights, nearby_supermarkets, rates_data,
         nearby_doc, nearest_supermarkets, school_zones, road_noise, weather_history,
-        census_demo, census_hh, census_commute, climate_normals,
+        census_demo, census_hh, census_commute, climate_normals, biz_demo,
     ) = await asyncio.gather(
         _q_hazards(), _q_location(), _q_sa2_comp(), _q_area_context(), _q_sa2_medians(),
         _q_rent_history(), _q_hpi(), _q_crime_trend(),
         _q_highlights(), _q_supermarkets(), _q_rates(),
         _q_doc(), _q_nearest_supermarkets(), _q_school_zones(), _q_road_noise(), _q_weather(),
         _q_census_demographics(), _q_census_households(), _q_census_commute(), _q_climate_normals(),
+        _q_business_demography(),
     )
 
     # Apply CV from rates data (generic handler for all councils)
@@ -715,6 +728,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "census_households": census_hh,
         "census_commute": census_commute,
         "climate_normals": climate_normals,
+        "business_demography": biz_demo,
     }
 
 
@@ -1630,6 +1644,7 @@ async def generate_snapshot(
         "census_households": cache.get("census_households"),
         "census_commute": cache.get("census_commute"),
         "climate_normals": cache.get("climate_normals"),
+        "business_demography": cache.get("business_demography"),
         "meta": {
             "schema_version": 1,
             "generated_at": datetime.utcnow().isoformat() + "Z",

@@ -3987,6 +3987,79 @@ def load_climate_normals(conn: psycopg.Connection, log: Callable = None) -> int:
     return count
 
 
+# ── Business Demography 2024 (SA2) ────────────────────────────
+
+def load_business_demography(conn: psycopg.Connection, log: Callable = None) -> int:
+    """Load 2024 Business Demography employee + business counts by SA2."""
+    base = "https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/2024_Business_Demography_employee_count_by_SA2/FeatureServer/0"
+    _progress(log, "Fetching 2024 Business Demography (employee + business counts by SA2)...")
+
+    out_fields = "SA22023_V1_00,SA22023_V1_00_NAME_ASCII,ec2019,ec2024,ec_avperinc,gc2019,gc2024,gc_avperinc"
+    cur = conn.cursor()
+    cur.execute("TRUNCATE business_demography")
+    conn.commit()
+
+    offset = 0
+    count = 0
+    while True:
+        url = (
+            f"{base}/query?where=1%3D1&outFields={out_fields}"
+            f"&returnGeometry=false&resultRecordCount=2000&resultOffset={offset}&f=json"
+        )
+        data = json.loads(_fetch_url(url, timeout=60))
+        features = data.get("features", [])
+        if not features:
+            break
+
+        for f in features:
+            a = f.get("attributes", {})
+            sa2_code = a.get("SA22023_V1_00")
+            if not sa2_code:
+                continue
+
+            def _v(key):
+                val = a.get(key)
+                if val is None or val == -999:
+                    return None
+                return val
+
+            try:
+                cur.execute(
+                    """INSERT INTO business_demography (
+                        sa2_code, sa2_name,
+                        employee_count_2019, employee_count_2024, employee_growth_pct,
+                        business_count_2019, business_count_2024, business_growth_pct
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (sa2_code) DO UPDATE SET
+                        sa2_name=EXCLUDED.sa2_name,
+                        employee_count_2019=EXCLUDED.employee_count_2019,
+                        employee_count_2024=EXCLUDED.employee_count_2024,
+                        employee_growth_pct=EXCLUDED.employee_growth_pct,
+                        business_count_2019=EXCLUDED.business_count_2019,
+                        business_count_2024=EXCLUDED.business_count_2024,
+                        business_growth_pct=EXCLUDED.business_growth_pct
+                    """,
+                    (
+                        sa2_code, a.get("SA22023_V1_00_NAME_ASCII"),
+                        _v("ec2019"), _v("ec2024"), _v("ec_avperinc"),
+                        _v("gc2019"), _v("gc2024"), _v("gc_avperinc"),
+                    ),
+                )
+                count += 1
+            except Exception:
+                conn.rollback()
+                continue
+
+        conn.commit()
+        offset += len(features)
+        _progress(log, f"Business demography: {count} SA2 areas loaded...")
+        if len(features) < 2000:
+            break
+
+    _progress(log, f"Business Demography 2024: {count} SA2 areas")
+    return count
+
+
 # ═══════════════════════════════════════════════════════════════
 # REGISTRY
 # ═══════════════════════════════════════════════════════════════
@@ -4012,6 +4085,11 @@ DATA_SOURCES: list[DataSource] = [
         "climate_normals", "Climate Normals 1991-2020 (60 cities — temp, rain, sun, wind)",
         ["climate_normals"],
         load_climate_normals,
+    ),
+    DataSource(
+        "business_demography", "Business Demography 2024 (SA2 — employee + business counts, growth)",
+        ["business_demography"],
+        load_business_demography,
     ),
     # ── National (LINZ) ───────────────────────────────────────
     DataSource(

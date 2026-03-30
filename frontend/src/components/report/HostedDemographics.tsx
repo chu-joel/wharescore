@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Home, Car, Wifi, DollarSign, Briefcase } from 'lucide-react';
+import { Users, Home, Car, Wifi, DollarSign, Briefcase, TrendingUp } from 'lucide-react';
 import type { ReportSnapshot } from '@/lib/types';
 
 interface Props {
@@ -54,6 +54,13 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
   const demo = snapshot.census_demographics;
   const hh = snapshot.census_households;
   const commute = snapshot.census_commute;
+  const biz = (snapshot as Record<string, unknown>).business_demography as {
+    employee_count_2024: number | null;
+    employee_count_2019: number | null;
+    employee_growth_pct: number | null;
+    business_count_2024: number | null;
+    business_growth_pct: number | null;
+  } | null;
 
   if (!demo && !hh) return null;
 
@@ -137,6 +144,32 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               How People Commute
             </h3>
             <BarChart items={commuteModes} />
+          </div>
+        )}
+
+        {/* Local Economy — always shown */}
+        {biz && biz.employee_count_2024 != null && (
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              Local Economy
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-blue-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-bold text-blue-700">{fmt(biz.employee_count_2024)}</div>
+                <div className="text-[10px] text-blue-500">Jobs in area</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-2.5 text-center">
+                <div className="text-lg font-bold text-purple-700">{fmt(biz.business_count_2024)}</div>
+                <div className="text-[10px] text-purple-500">Businesses</div>
+              </div>
+              <div className={`rounded-lg p-2.5 text-center ${(biz.employee_growth_pct ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                <div className={`text-lg font-bold ${(biz.employee_growth_pct ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {(biz.employee_growth_pct ?? 0) >= 0 ? '+' : ''}{biz.employee_growth_pct?.toFixed(1) ?? '-'}%
+                </div>
+                <div className="text-[10px] text-gray-500">Job growth/yr</div>
+              </div>
+            </div>
           </div>
         )}
 

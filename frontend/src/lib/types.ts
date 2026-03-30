@@ -764,6 +764,15 @@ export interface ReportSnapshot {
     ferry: number | null;
     total_stated: number | null;
   } | null;
+  business_demography?: {
+    sa2_code: string;
+    employee_count_2019: number | null;
+    employee_count_2024: number | null;
+    employee_growth_pct: number | null;
+    business_count_2019: number | null;
+    business_count_2024: number | null;
+    business_growth_pct: number | null;
+  } | null;
   climate_normals?: Array<{
     location_name: string;
     month: number;

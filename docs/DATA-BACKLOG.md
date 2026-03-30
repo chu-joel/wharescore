@@ -12,7 +12,7 @@ All datasets to add to WhareScore, organized by priority phase. Update status as
 | Census 2023 households | [Stats NZ ArcGIS](https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/2023_Census_totals_by_topic_for_households_by_SA2/FeatureServer/0) | SA2 | ArcGIS API | **Loaded** | 2,311 SA2 areas. Income, tenure, crowding, vehicles, internet, rent, landlord |
 | Census 2023 commute mode | [Stats NZ ArcGIS CSV](https://statsnz.maps.arcgis.com/sharing/rest/content/items/fedc12523d4f4da08f094cf13bb21807/data) | SA2 | CSV | **Loader ready** | Origin-destination matrix aggregated by residence SA2 |
 | Climate normals (seasonal) | [Open-Meteo Climate API](https://climate-api.open-meteo.com/v1/climate) | 60 cities | API | **Loader ready** | 1991-2020 monthly normals, joined by TA name |
-| Employment by industry | [Stats NZ Business Demography](https://www.stats.govt.nz/information-releases/new-zealand-business-demography-statistics-at-february-2025/) | SA2 | CSV | Not started | Job counts by ANZSIC sector per SA2 |
+| Employment (business demography) | [Stats NZ ArcGIS](https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/2024_Business_Demography_employee_count_by_SA2/FeatureServer/0) | SA2 | ArcGIS API | **Loader ready** | Employee + business counts, 2019→2024 growth. No industry breakdown at SA2. |
 
 ## Phase 2 — High impact, moderate effort (spatial data, APIs)
 

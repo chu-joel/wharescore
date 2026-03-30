@@ -100,6 +100,7 @@
 | census_households | ~2,400 | sa2_code, income_median, tenure_*, vehicles_*, internet_*, rent_median | Stats NZ Census 2023 ArcGIS | `prefetch_property_data()` → snapshot.census_households |
 | census_commute | ~2,300 | sa2_code, work_at_home, drive_private, public_bus, train, bicycle, walk_or_jog | Stats NZ Census 2023 CSV | `prefetch_property_data()` → snapshot.census_commute |
 | climate_normals | ~720 | location_name, ta_name, month, temp_mean/max/min, precipitation_mm, rain_days, wind_speed_mean | Open-Meteo Climate API (2010-2019 daily → monthly avg). sunshine_hours not available. | `prefetch_property_data()` → snapshot.climate_normals |
+| business_demography | ~2,300 | sa2_code, employee_count_2024, business_count_2024, employee_growth_pct | Stats NZ Business Demography 2024 ArcGIS | `prefetch_property_data()` → snapshot.business_demography |
 | at_stops | 7,023 | stop_id, route_types[], geom | AT GTFS | `get_transit_data()` (Auckland fallback) |
 | report_snapshots | per-report | snapshot_json (JSONB), share_token_hash, inputs_at_purchase, report_tier ('quick'/'full') | `create_report_snapshot()` | `/report/{token}` endpoint, `POST /report/{token}/upgrade` |
 | hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section, price advisor |
