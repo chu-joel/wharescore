@@ -98,6 +98,22 @@ echo "$ALL_FILES" | grep -q 'webhooks.py' && \
   ! echo "$ALL_FILES" | grep -q 'docs/SYSTEM-FLOWS.md' && \
   MISSING="${MISSING}\n- webhooks.py changed: update docs/SYSTEM-FLOWS.md Payment-credit-system if flow changed"
 
+echo "$ALL_FILES" | grep -qE 'components/admin/|hooks/useAdmin' && \
+  ! echo "$ALL_FILES" | grep -q 'docs/FRONTEND-WIRING.md' && \
+  MISSING="${MISSING}\n- admin component/hook changed: update docs/FRONTEND-WIRING.md if admin endpoints or UI changed"
+
+echo "$ALL_FILES" | grep -q 'routers/admin.py' && \
+  ! echo "$ALL_FILES" | grep -q 'docs/FRONTEND-WIRING.md' && \
+  MISSING="${MISSING}\n- admin router changed: update docs/FRONTEND-WIRING.md API-endpoints if admin endpoints changed"
+
+echo "$ALL_FILES" | grep -q 'admin_auth.py' && \
+  ! echo "$ALL_FILES" | grep -q 'docs/SYSTEM-FLOWS.md' && \
+  MISSING="${MISSING}\n- admin_auth.py changed: update docs/SYSTEM-FLOWS.md Admin-auth if auth flow changed"
+
+echo "$ALL_FILES" | grep -q 'AdminAuthGate.tsx' && \
+  ! echo "$ALL_FILES" | grep -q 'docs/SYSTEM-FLOWS.md' && \
+  MISSING="${MISSING}\n- AdminAuthGate changed: update docs/SYSTEM-FLOWS.md Admin-auth if gate logic changed"
+
 echo "$ALL_FILES" | grep -qE 'migrations/00' && \
   ! echo "$ALL_FILES" | grep -qE 'docs/' && \
   MISSING="${MISSING}\n- migration changed: update relevant docs (DATA-CATALOG.md tables, WIRING-TRACES.md traces)"
