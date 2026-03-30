@@ -133,8 +133,10 @@ jobs:
             for i in $(seq 1 18); do
               if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
                 echo "==> Deploy successful! Health check passed (attempt $i)"
-                echo "==> Pruning old images"
+                echo "==> Pruning old images and build cache"
                 docker image prune -f
+                docker builder prune -f --keep-storage=2GB
+                docker volume prune -f
                 exit 0
               fi
               echo "    attempt $i/18 — waiting 5s..."
