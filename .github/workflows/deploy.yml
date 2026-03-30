@@ -208,4 +208,14 @@ jobs:
 
             echo "==> Data sync started detached in container $API_CONTAINER"
             echo "==> Monitor with: docker exec $API_CONTAINER cat /tmp/data-sync.log"
+
+            # Pre-warm cache for top 100 addresses (background)
+            docker exec -d "$API_CONTAINER" python -c "
+            import asyncio, logging
+            logging.basicConfig(filename='/tmp/cache-warm.log', level=logging.INFO, format='%(asctime)s %(message)s')
+            from app.services.cache_warmer import warm_cache
+            asyncio.run(warm_cache(limit=100))
+            "
+            echo "==> Cache warm started in background"
+            echo "==> Monitor with: docker exec $API_CONTAINER cat /tmp/cache-warm.log"
             echo "==> Deploy complete"
