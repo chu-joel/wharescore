@@ -350,11 +350,8 @@ export function MapContainer() {
   const handleViewReport = useCallback(
     (addressId: number) => {
       setShowPopup(false);
-      if (isOnPropertyPage && currentPageAddressId === addressId) {
-        // Same property — open report generation (Get Report flow)
-        usePdfExportStore.getState().startExport(addressId);
-      } else if (isOnPropertyPage) {
-        // Different property — navigate to it
+      if (isOnPropertyPage) {
+        // Different property on property page — navigate to it
         router.push(`/property/${addressId}`);
       } else if (window.innerWidth < 640) {
         // On mobile, report is already in the drawer — snap it to full
@@ -911,8 +908,9 @@ export function MapContainer() {
           </Marker>
         )}
 
-        {/* Property popup — hidden on mobile where the bottom drawer shows the report */}
-        {showPopup && selectedAddress && bp !== 'mobile' && (
+        {/* Property popup — hidden on mobile, hidden when viewing the same address's report */}
+        {showPopup && selectedAddress && bp !== 'mobile'
+          && !(isOnPropertyPage && currentPageAddressId === selectedAddress.addressId) && (
           <Popup
             longitude={selectedAddress.lng}
             latitude={selectedAddress.lat}
