@@ -10,21 +10,26 @@ import {
 } from 'react';
 
 /**
- * Custom mobile bottom-sheet drawer.
+ * Mobile bottom-sheet drawer with 3 snap points:
+ *   mini = ~80px  (just the handle bar + address hint)
+ *   peek = 220px  (search bar + chips visible)
+ *   full = 100%   (full report, scrollable)
  *
- * Two snap points:
- *   peek = 220 px from bottom  (search bar + chips visible)
- *   full = 100 % of viewport minus header (full report)
+ * Swipe down: full → peek → mini
+ * Swipe up:   mini → peek → full
+ * Click property: → full
+ * Back button:    → peek
  */
 
-// ─── snap helpers ──────────────────────────────────────────────
-type SnapId = 'peek' | 'full';
+type SnapId = 'mini' | 'peek' | 'full';
 
-const HEADER_HEIGHT = 56; // px — AppHeader height
+const HEADER_HEIGHT = 56;
 
 function snapToPx(id: SnapId, vh: number): number {
   const maxHeight = vh - HEADER_HEIGHT;
   switch (id) {
+    case 'mini':
+      return 80;
     case 'peek':
       return Math.min(220, maxHeight);
     case 'full':
@@ -32,7 +37,8 @@ function snapToPx(id: SnapId, vh: number): number {
   }
 }
 
-// ─── component ─────────────────────────────────────────────────
+const SNAP_ORDER: SnapId[] = ['mini', 'peek', 'full'];
+
 interface MobileDrawerProps {
   children: ReactNode;
   hasSelection?: boolean;
@@ -44,16 +50,15 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     typeof window !== 'undefined' ? window.innerHeight : 800,
   );
 
-  // Track viewport height for snap calculations
   useEffect(() => {
     const onResize = () => setVh(window.innerHeight);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // When a property is selected, auto-snap to full
+  // When a property is selected, always snap to full
   useEffect(() => {
-    setSnapId(hasSelection ? 'full' : 'peek');
+    if (hasSelection) setSnapId('full');
   }, [hasSelection]);
 
   // Listen for "snap to full" events
@@ -63,27 +68,38 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     return () => window.removeEventListener('drawer:snap-full', handler);
   }, []);
 
-  // Back button support
+  // Collapse to mini when user pans/zooms the map
+  useEffect(() => {
+    const handler = () => {
+      setSnapId((prev) => prev === 'full' ? 'peek' : 'mini');
+    };
+    window.addEventListener('drawer:collapse', handler);
+    return () => window.removeEventListener('drawer:collapse', handler);
+  }, []);
+
+  // Back button → go down one snap
   useEffect(() => {
     const handlePopState = () => {
-      setSnapId('peek');
+      setSnapId((prev) => {
+        const idx = SNAP_ORDER.indexOf(prev);
+        return idx > 0 ? SNAP_ORDER[idx - 1] : prev;
+      });
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // ── drag handling ──
+  // Drag handling
   const dragging = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
   const currentHeight = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const hasMoved = useRef(false);
 
   const visibleHeight = snapToPx(snapId, vh);
   const maxHeight = vh - HEADER_HEIGHT;
-
-  const hasMoved = useRef(false);
 
   const onPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -109,14 +125,12 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!dragging.current || !sheetRef.current) return;
 
-      const dy = startY.current - e.clientY; // positive = dragging up
+      const dy = startY.current - e.clientY;
       if (Math.abs(dy) > 5) hasMoved.current = true;
 
       let newHeight = startHeight.current + dy;
-
-      // Clamp: never go below peek or above full
-      const peekPx = snapToPx('peek', vh);
-      newHeight = Math.max(peekPx, Math.min(maxHeight, newHeight));
+      const miniPx = snapToPx('mini', vh);
+      newHeight = Math.max(miniPx, Math.min(maxHeight, newHeight));
 
       currentHeight.current = newHeight;
       sheetRef.current.style.height = `${newHeight}px`;
@@ -128,40 +142,53 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     if (!dragging.current || !sheetRef.current) return;
     dragging.current = false;
 
-    // Re-enable transition
     sheetRef.current.style.transition = '';
     sheetRef.current.style.height = '';
 
-    // Tap without drag — toggle between peek and full
+    // Tap without drag — cycle: mini→peek→full, full→peek→mini
     if (!hasMoved.current) {
-      setSnapId((prev) => (prev === 'peek' ? 'full' : 'peek'));
+      setSnapId((prev) => {
+        const idx = SNAP_ORDER.indexOf(prev);
+        return idx < SNAP_ORDER.length - 1 ? SNAP_ORDER[idx + 1] : 'peek';
+      });
       return;
     }
 
+    // Drag ended — find nearest snap point, biased by drag direction
     const h = currentHeight.current;
-    const peekPx = snapToPx('peek', vh);
-    const fullPx = snapToPx('full', vh);
-    const midpoint = (peekPx + fullPx) / 2;
-
-    // Also factor in drag direction for responsiveness
-    const dragDelta = h - startHeight.current;
+    const dragDelta = h - startHeight.current; // positive = dragged up
 
     let target: SnapId;
     if (Math.abs(dragDelta) > 60) {
-      // Intentional drag — follow direction
-      target = dragDelta > 0 ? 'full' : 'peek';
+      // Intentional drag — move one snap in the drag direction
+      const currentIdx = SNAP_ORDER.indexOf(snapId);
+      if (dragDelta > 0 && currentIdx < SNAP_ORDER.length - 1) {
+        target = SNAP_ORDER[currentIdx + 1];
+      } else if (dragDelta < 0 && currentIdx > 0) {
+        target = SNAP_ORDER[currentIdx - 1];
+      } else {
+        target = snapId;
+      }
     } else {
       // Small drag — snap to nearest
-      target = h > midpoint ? 'full' : 'peek';
+      const miniPx = snapToPx('mini', vh);
+      const peekPx = snapToPx('peek', vh);
+      const fullPx = snapToPx('full', vh);
+      const dists: [SnapId, number][] = [
+        ['mini', Math.abs(h - miniPx)],
+        ['peek', Math.abs(h - peekPx)],
+        ['full', Math.abs(h - fullPx)],
+      ];
+      target = dists.sort((a, b) => a[1] - b[1])[0][0];
     }
 
     setSnapId(target);
 
-    // Reset scroll to top when snapping to peek, so reopening doesn't land at bottom
-    if (target === 'peek' && contentRef.current) {
+    // Reset scroll when going below full
+    if (target !== 'full' && contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
-  }, [vh]);
+  }, [vh, snapId]);
 
   // Push history state when going to full
   useEffect(() => {
@@ -170,7 +197,6 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     }
   }, [snapId]);
 
-  // Stop touch events from passing through the drawer to the map
   const stopPropagation = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
   }, []);
@@ -190,7 +216,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       onTouchMove={stopPropagation}
       onTouchEnd={stopPropagation}
     >
-      {/* Drag handle — touch-action:none so dragging doesn't scroll */}
+      {/* Drag handle */}
       <div
         data-drawer-handle
         className="flex flex-col items-center pt-3 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
@@ -203,11 +229,11 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
       </div>
 
-      {/* Scrollable content */}
+      {/* Scrollable content — hidden overflow when mini to prevent stuck scroll */}
       <div
         ref={contentRef}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
-        style={{ touchAction: 'pan-y' }}
+        className={`flex-1 px-4 pb-4 ${snapId === 'mini' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
+        style={{ touchAction: snapId === 'mini' ? 'none' : 'pan-y' }}
       >
         <h2 className="sr-only">Property Details</h2>
         {children}

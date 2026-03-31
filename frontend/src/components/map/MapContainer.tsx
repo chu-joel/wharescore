@@ -611,6 +611,7 @@ export function MapContainer() {
         ref={mapRef}
         initialViewState={viewport}
         onMoveEnd={onMoveEnd}
+        onDragStart={() => window.dispatchEvent(new Event('drawer:collapse'))}
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         onMouseMove={handleMouseMove}
