@@ -970,8 +970,7 @@ export function MapContainer() {
         )}
 
         {/* Property popup — hidden on mobile, hidden when viewing the same address's report */}
-        {showPopup && selectedAddress && bp !== 'mobile'
-          && !(isOnPropertyPage && currentPageAddressId === selectedAddress.addressId) && (
+        {showPopup && selectedAddress && bp !== 'mobile' && (
           <Popup
             longitude={selectedAddress.lng}
             latitude={selectedAddress.lat}
