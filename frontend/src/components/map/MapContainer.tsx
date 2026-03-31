@@ -344,8 +344,15 @@ export function MapContainer() {
           }
         } catch { /* raster styles have no symbol layers */ }
       });
-      // Rebuild hover layer cache after tiles arrive
-      map.once('idle', () => { layerCacheDirtyRef.current = true; });
+      // Rebuild hover layer cache after tiles arrive + move labels to top
+      map.once('idle', () => {
+        layerCacheDirtyRef.current = true;
+        // Ensure our label layers render above everything (building outlines, hazard fills, etc)
+        try {
+          if (map.getLayer('layer-notable-places')) map.moveLayer('layer-notable-places');
+          if (map.getLayer('layer-address-labels')) map.moveLayer('layer-address-labels');
+        } catch { /* layers may not exist yet */ }
+      });
     }
   }, []);
 
@@ -370,7 +377,17 @@ export function MapContainer() {
   // Cache which layer IDs exist on the map
   const validLayerIdsRef = useRef<string[]>([]);
   const layerCacheDirtyRef = useRef(true);
-  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId, mapLoaded]);
+  useEffect(() => {
+    layerCacheDirtyRef.current = true;
+    // Re-raise label layers above any newly added tile layers
+    const map = mapRef.current?.getMap();
+    if (map) {
+      try {
+        if (map.getLayer('layer-notable-places')) map.moveLayer('layer-notable-places');
+        if (map.getLayer('layer-address-labels')) map.moveLayer('layer-address-labels');
+      } catch { /* ignore */ }
+    }
+  }, [activeLayers, baseStyleId, mapLoaded]);
 
   /** Collect overlay labels at a point using cached layer list */
   const getOverlayLinesAtPoint = useCallback((map: maplibregl.Map, point: maplibregl.PointLike): string[] => {
