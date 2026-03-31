@@ -1736,6 +1736,7 @@ async def generate_snapshot(
         "crime_trend": cache.get("crime_trend", []),
         "nearby_highlights": cache.get("nearby_highlights", {"good": [], "caution": [], "info": []}),
         "nearby_supermarkets": cache.get("nearby_supermarkets", []),
+        "nearest_supermarkets": cache.get("nearest_supermarkets", []),
         "rates_data": cache.get("rates_data"),
         "nearby_doc": cache.get("nearby_doc", {"huts": [], "tracks": [], "campsites": []}),
         "school_zones": cache.get("school_zones", []),
