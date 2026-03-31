@@ -156,6 +156,11 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     }
 
     setSnapId(target);
+
+    // Reset scroll to top when snapping to peek, so reopening doesn't land at bottom
+    if (target === 'peek' && contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
   }, [vh]);
 
   // Push history state when going to full
@@ -180,20 +185,20 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         height: `${visibleHeight}px`,
         transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        touchAction: 'none',
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
       onTouchStart={stopPropagation}
       onTouchMove={stopPropagation}
       onTouchEnd={stopPropagation}
     >
-      {/* Drag handle — wider bar and taller touch area for reliable grabbing */}
+      {/* Drag handle — touch-action:none so dragging doesn't scroll */}
       <div
         data-drawer-handle
         className="flex flex-col items-center pt-3 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        style={{ touchAction: 'none' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
       </div>
