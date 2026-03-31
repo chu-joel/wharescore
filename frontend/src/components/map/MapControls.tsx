@@ -106,7 +106,7 @@ export function MapControls({ mapRef }: MapControlsProps) {
             setLocating(false);
             setTimeout(() => setLocateError(false), 3000);
           },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
         );
         return;
       }
@@ -115,11 +115,35 @@ export function MapControls({ mapRef }: MapControlsProps) {
       setTimeout(() => setLocateError(false), 3000);
     };
 
-    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
-    });
+    // iOS: check permission state first to avoid silent failures
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          setLocateError(true);
+          setLocating(false);
+          setTimeout(() => setLocateError(false), 3000);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        });
+      }).catch(() => {
+        // permissions API not supported (older iOS) — try anyway
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        });
+      });
+    } else {
+      navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 30000,
+      });
+    }
   }, [mapRef, setViewport, reducedMotion]);
 
   const handleReset = useCallback(() => {

@@ -738,6 +738,38 @@ export function MapContainer() {
                 ],
               }}
             />
+            {/* Address numbers — visible at high zoom */}
+            <Layer
+              id="layer-addresses-labels"
+              source="source-addresses-click"
+              source-layer="addresses"
+              type="symbol"
+              minzoom={17}
+              layout={{
+                'text-field': ['get', 'address_number'],
+                'text-size': [
+                  'interpolate', ['linear'], ['zoom'],
+                  17, 10,
+                  18, 12,
+                  19, 14,
+                ],
+                'text-anchor': 'center',
+                'text-allow-overlap': false,
+                'text-ignore-placement': false,
+                'text-optional': true,
+                'text-padding': 2,
+              }}
+              paint={{
+                'text-color': '#1e293b',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1.5,
+                'text-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  17, 0.7,
+                  18, 0.9,
+                ],
+              }}
+            />
           </Source>
         )}
 
