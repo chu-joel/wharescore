@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { apiFetch } from '@/lib/api';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { SplitView } from '@/components/layout/SplitView';
 import { MobileDrawer } from '@/components/layout/MobileDrawer';
@@ -39,6 +40,64 @@ export default function Home() {
   const map = <MapContainer />;
 
   const hasSelection = !!selectedAddress || !!selectedSuburb;
+
+  // Sync URL with selected property
+  useEffect(() => {
+    if (selectedAddress) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('address', String(selectedAddress.addressId));
+      window.history.replaceState(null, '', url.toString());
+    } else {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('address')) {
+        url.searchParams.delete('address');
+        window.history.replaceState(null, '', url.toString());
+      }
+    }
+  }, [selectedAddress]);
+
+  // Restore selection from URL on first load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const addressId = params.get('address');
+    if (addressId && !selectedAddress) {
+      const id = Number(addressId);
+      if (id > 0) {
+        // Fetch summary to get address details
+        apiFetch<{ address_id: number; full_address: string; suburb?: string; city?: string }>(
+          `/api/v1/property/${id}/summary`
+        ).then((summary) => {
+          // We don't have coordinates from summary, so fetch from report
+          apiFetch<{ address: { lng: number; lat: number } }>(
+            `/api/v1/property/${id}/report?fast=true`
+          ).then((report) => {
+            const addr = report.address || {} as Record<string, number>;
+            selectAddress({
+              addressId: summary.address_id,
+              fullAddress: summary.full_address,
+              lng: addr.lng || 174.78,
+              lat: addr.lat || -41.29,
+            });
+            selectProperty(summary.address_id, addr.lng || 174.78, addr.lat || -41.29);
+          }).catch(() => {
+            // Report failed — just use summary
+            selectAddress({
+              addressId: summary.address_id,
+              fullAddress: summary.full_address,
+              lng: 174.78,
+              lat: -41.29,
+            });
+          });
+        }).catch(() => {
+          // Invalid address ID — clean URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('address');
+          window.history.replaceState(null, '', url.toString());
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
