@@ -28,7 +28,7 @@ export function EmailSummaryCapture({ addressId, fullAddress, findingCount, risk
 
   const handleClick = async () => {
     if (!isSignedIn) {
-      signIn('google');
+      window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
 

@@ -298,10 +298,10 @@ export function UpgradeModal() {
   }, [showUpgradeModal, hasAnyCredits]);
 
   const handlePurchase = async (plan: 'quick_single' | 'full_single' | 'pro' | 'pro_extra') => {
-    // If not signed in, redirect to Google sign-in
+    // If not signed in, redirect to sign-in page
     if (!isSignedIn) {
       setShowUpgradeModal(false);
-      signIn('google');
+      window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
 

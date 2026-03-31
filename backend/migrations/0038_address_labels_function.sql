@@ -17,9 +17,8 @@ BEGIN
 
   SELECT ST_AsMVT(q, 'address_labels', 4096, 'geom') INTO result
   FROM (
-    SELECT
-      a.address_number,
-      a.unit_value,
+    SELECT DISTINCT ON (a.address_number, COALESCE(ST_Centroid(b.geom), a.geom))
+      a.address_number::text AS address_number,
       ST_AsMVTGeom(
         COALESCE(ST_Centroid(b.geom), a.geom),
         bounds, 4096, 64, true
@@ -33,6 +32,7 @@ BEGIN
     WHERE a.geom && bounds
       AND a.address_number IS NOT NULL
       AND a.address_lifecycle = 'Current'
+    ORDER BY a.address_number, COALESCE(ST_Centroid(b.geom), a.geom)
   ) q
   WHERE q.geom IS NOT NULL;
 

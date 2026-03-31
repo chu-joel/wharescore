@@ -188,7 +188,7 @@ function GuestDownloadContent() {
                 Create a free account to access your report anytime and save future properties.
               </p>
               <button
-                onClick={() => signIn('google')}
+                onClick={() => window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`}
                 className="mt-3 flex items-center justify-center gap-2 mx-auto rounded-lg border border-border px-4 py-2 text-sm font-medium transition-all hover:bg-accent"
               >
                 <UserPlus className="h-4 w-4" />

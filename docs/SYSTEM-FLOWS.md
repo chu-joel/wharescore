@@ -149,7 +149,7 @@ Admin page load → AdminAuthGate checks session
 ### Authenticated purchase flow
 ```
 UpgradeModal → handlePurchase(plan)
-  → If not signed in: signIn('google'), return
+  → If not signed in: redirect to /signin?callbackUrl=current_path, return
   → POST /checkout/session {plan, address_id?}
   → Backend: get/create Stripe customer → create Checkout Session
   → Redirect to Stripe checkout URL

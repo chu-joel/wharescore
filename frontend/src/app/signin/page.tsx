@@ -2,10 +2,13 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 
 export default function SignInPage() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
   const [mode, setMode] = useState<'choose' | 'email' | 'code'>('choose');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -48,7 +51,7 @@ export default function SignInPage() {
       const result = await signIn('email-otp', {
         email,
         code,
-        callbackUrl: '/',
+        callbackUrl,
         redirect: false,
       });
 
@@ -77,7 +80,7 @@ export default function SignInPage() {
         {mode === 'choose' && (
           <div className="space-y-3">
             <Button
-              onClick={() => signIn('google', { callbackUrl: '/' })}
+              onClick={() => signIn('google', { callbackUrl })}
               className="w-full"
               size="lg"
               variant="outline"

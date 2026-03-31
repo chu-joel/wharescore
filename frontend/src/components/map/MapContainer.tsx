@@ -737,12 +737,7 @@ export function MapContainer() {
               type="symbol"
               minzoom={17}
               layout={{
-                'text-field': [
-                  'case',
-                  ['has', 'unit_value'],
-                  ['concat', ['get', 'unit_value'], '/', ['get', 'address_number']],
-                  ['get', 'address_number'],
-                ],
+                'text-field': ['get', 'address_number'],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
                   17, 10,
@@ -965,8 +960,8 @@ export function MapContainer() {
       {/* Legend */}
       <MapLegend />
 
-      {/* Hover tooltip — hidden when property popup is active */}
-      {hoverInfo && !selectedAddress && (
+      {/* Hover tooltip — always shown, even when report is open */}
+      {hoverInfo && (
         <div
           className="pointer-events-none absolute z-20 max-w-xs rounded-lg bg-background/95 backdrop-blur border border-border shadow-md px-3 py-2 text-sm"
           style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 12, transform: 'translateY(-100%)' }}

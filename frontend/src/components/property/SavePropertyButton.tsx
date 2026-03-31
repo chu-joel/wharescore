@@ -33,7 +33,7 @@ export function SavePropertyButton({ addressId, fullAddress }: SavePropertyButto
 
   const handleSave = async () => {
     if (!isSignedIn) {
-      signIn('google');
+      window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
 
