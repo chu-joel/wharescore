@@ -344,6 +344,8 @@ export function MapContainer() {
           }
         } catch { /* raster styles have no symbol layers */ }
       });
+      // Rebuild hover layer cache after tiles arrive
+      map.once('idle', () => { layerCacheDirtyRef.current = true; });
     }
   }, []);
 
@@ -368,7 +370,7 @@ export function MapContainer() {
   // Cache which layer IDs exist on the map
   const validLayerIdsRef = useRef<string[]>([]);
   const layerCacheDirtyRef = useRef(true);
-  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId]);
+  useEffect(() => { layerCacheDirtyRef.current = true; }, [activeLayers, baseStyleId, mapLoaded]);
 
   /** Collect overlay labels at a point using cached layer list */
   const getOverlayLinesAtPoint = useCallback((map: maplibregl.Map, point: maplibregl.PointLike): string[] => {
@@ -643,9 +645,9 @@ export function MapContainer() {
               type="line"
               paint={{
                 'line-color': '#0D7377',
-                'line-width': 1.5,
-                'line-dasharray': [4, 3],
-                'line-opacity': 0.55,
+                'line-width': 2.5,
+                'line-dasharray': [4, 2],
+                'line-opacity': 0.75,
               }}
             />
             <Layer
