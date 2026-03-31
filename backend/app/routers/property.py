@@ -1312,35 +1312,37 @@ async def get_summary(request: Request, address_id: int):
         report = orjson.loads(cached)
         return _extract_summary(report, address_id)
 
-    # 2. Fall back to full report (generates cache for future requests)
+    # 2. Fast path — lightweight query for popup (no full report needed)
     try:
-        async with db.pool.connection() as conn:
-            cur = await conn.execute(
-                "SELECT get_property_report(%s) AS report", [address_id]
-            )
-            row = cur.fetchone()
-        if row and row["report"]:
-            report = enrich_with_scores(row["report"])
-            await cache_set(cache_key, orjson.dumps(report), ex=86400)
-            return _extract_summary(report, address_id)
-        raise HTTPException(404, "Address not found")
-    except HTTPException:
-        raise
-    except Exception as e:
-        # If full report fails, return minimal data
-        logger.warning(f"Summary fallback for {address_id}: {type(e).__name__}: {e}")
         async with db.pool.connection() as conn:
             cur = await conn.execute(
                 """
                 SELECT a.address_id, a.full_address,
                        a.suburb_locality AS suburb, a.town_city AS city,
                        a.unit_type,
-                       sa2.sa2_name
+                       sa2.sa2_name,
+                       cv.capital_value,
+                       (SELECT COUNT(*)::int FROM addresses a2
+                        WHERE a2.geom && ST_Expand(a.geom, 0.0001)
+                          AND ST_DWithin(a2.geom::geography, a.geom::geography, 5)) AS unit_count,
+                       mr.median_rent
                 FROM addresses a
                 LEFT JOIN LATERAL (
-                    SELECT sa2_name FROM sa2_boundaries
+                    SELECT sa2_name, sa2_code FROM sa2_boundaries
                     WHERE ST_Within(a.geom, geom) LIMIT 1
                 ) sa2 ON true
+                LEFT JOIN LATERAL (
+                    SELECT capital_value FROM council_valuations
+                    WHERE geom && ST_Expand(a.geom, 0.0005)
+                      AND ST_DWithin(geom::geography, a.geom::geography, 30)
+                    ORDER BY geom <-> a.geom LIMIT 1
+                ) cv ON true
+                LEFT JOIN LATERAL (
+                    SELECT median_rent FROM mv_rental_market
+                    WHERE sa2_code = sa2.sa2_code
+                      AND dwelling_type = 'ALL' AND number_of_beds = 'ALL'
+                    LIMIT 1
+                ) mr ON true
                 WHERE a.address_id = %s
                 """,
                 [address_id],
@@ -1350,16 +1352,42 @@ async def get_summary(request: Request, address_id: int):
         if not row:
             raise HTTPException(404, "Address not found")
 
-        return {
+        result = {
             "address_id": row["address_id"],
             "full_address": row["full_address"],
             "suburb": row["suburb"],
             "city": row["city"],
             "sa2_name": row["sa2_name"],
             "unit_type": row["unit_type"],
+            "capital_value": row["capital_value"],
+            "unit_count": row["unit_count"],
+            "median_rent": row["median_rent"],
             "scores": None,
             "notable_findings": [],
         }
+
+        # Pre-warm full report cache in background (ready when they click "View Report")
+        import asyncio
+        async def _prewarm():
+            try:
+                async with db.pool.connection() as conn2:
+                    cur2 = await conn2.execute(
+                        "SELECT get_property_report(%s) AS report", [address_id]
+                    )
+                    r2 = cur2.fetchone()
+                if r2 and r2["report"]:
+                    enriched = enrich_with_scores(r2["report"])
+                    await cache_set(cache_key, orjson.dumps(enriched), ex=86400)
+            except Exception:
+                pass
+        asyncio.create_task(_prewarm())
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Summary fast path failed for {address_id}: {e}")
+        raise HTTPException(404, "Address not found")
 
 
 def _get_headline_rent(rental_overview) -> int | None:
