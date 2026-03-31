@@ -45,7 +45,7 @@ export function CategoryRadar({ categories }: CategoryRadarProps) {
     <div className="rounded-xl border border-border bg-card p-4 card-elevated">
       <p className="text-sm font-bold">Property Profile</p>
       <p className="text-xs text-muted-foreground mb-2">
-        Category scores across 5 assessment areas
+        Lower is better — higher scores indicate more risk
       </p>
       <ResponsiveContainer width="100%" height={240}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
@@ -58,9 +58,11 @@ export function CategoryRadar({ categories }: CategoryRadarProps) {
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const d = payload[0].payload as { name: string; score: number };
+              const riskLevel = d.score <= 20 ? 'Very Low Risk' : d.score <= 40 ? 'Low Risk' : d.score <= 60 ? 'Moderate Risk' : d.score <= 80 ? 'High Risk' : 'Very High Risk';
               return (
                 <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md text-sm">
                   {d.name}: <span className="font-semibold">{d.score}/100</span>
+                  <span className="text-xs text-muted-foreground ml-1">({riskLevel})</span>
                 </div>
               );
             }}

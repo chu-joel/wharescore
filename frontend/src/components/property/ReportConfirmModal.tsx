@@ -178,8 +178,8 @@ function RenterFields({ addressId }: { addressId: number }) {
         placeholder="e.g. 550"
       />
 
-      {/* Finish & Bathrooms side by side */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Finish & Bathrooms — stacked on mobile, side by side on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
           <div className="flex flex-wrap gap-1">
@@ -233,7 +233,7 @@ function RenterFields({ addressId }: { addressId: number }) {
       </div>
 
       {/* Property feature toggles */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {(dwellingType === 'Flat' || dwellingType === 'Apartment') && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Parking?</span>
@@ -379,7 +379,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Bathrooms</label>
           <div className="flex flex-wrap gap-1">
@@ -543,7 +543,7 @@ export function ReportConfirmModal() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !generating) close(); }}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto overflow-x-hidden scrollbar-none">
         <DialogHeader>
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-piq-primary/10">
             <FileText className="h-6 w-6 text-piq-primary" />

@@ -68,11 +68,10 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     return 'Moderate noise — typical for urban areas.';
   }
   if (n.includes('transit') || n.includes('transport')) {
-    // Transit is inverted: low score = bad (no stops), high score = good (many stops)
-    if (score <= 10) return 'Limited public transport — likely car-dependent.';
-    if (score >= 70) return 'Excellent public transport access nearby.';
-    if (score >= 40) return 'Some public transport options available.';
-    return 'Limited public transport options in this area.';
+    // Higher score = worse transport access (consistent with all other categories)
+    if (isGood) return 'Excellent public transport access nearby.';
+    if (isBad) return 'Limited public transport — likely car-dependent.';
+    return 'Some public transport options available.';
   }
   if (n.includes('crash')) {
     if (isGood) return 'Few road crashes recorded nearby — safer streets.';

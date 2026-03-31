@@ -237,13 +237,13 @@ WEIGHTS_LIVEABILITY = {      # Sum = 1.0, WAM (transit/crashes moved to transpor
     "heritage": 0.20,
 }
 
-WEIGHTS_TRANSPORT = {        # Sum = 1.0, WAM — higher = better access
-    "transit_access": 0.25,       # stops within 400m
-    "cbd_proximity": 0.20,       # distance to CBD
-    "commute_frequency": 0.15,   # peak services/hour
-    "rail_proximity": 0.15,      # nearest train station
-    "bus_density": 0.10,         # bus stops within 800m
-    "road_safety": 0.15,         # crash rate (inverted: fewer = better)
+WEIGHTS_TRANSPORT = {        # Sum = 1.0, WAM — higher = worse access (consistent with other categories)
+    "transit_access": 0.25,       # stops within 400m (0=many, 100=none)
+    "cbd_proximity": 0.20,       # distance to CBD (0=close, 100=far)
+    "commute_frequency": 0.15,   # peak services/hour (0=frequent, 100=none)
+    "rail_proximity": 0.15,      # nearest train station (0=close, 100=far)
+    "bus_density": 0.10,         # bus stops within 800m (0=many, 100=none)
+    "road_safety": 0.15,         # crash rate (0=safe, 100=dangerous)
 }
 
 WEIGHTS_MARKET = {           # Sum = 1.0, WAM
@@ -611,30 +611,30 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["schools"] = school_quality_score(liv.get("schools_1500m") or [])
     indicators["heritage"] = log_normalize(liv.get("heritage_count_500m"), 100)
 
-    # Transport — ALL scores: higher = better access
-    # Transit access: 0 stops = 0 (bad), 25+ stops = 100 (great)
+    # Transport — ALL scores: higher = worse access (consistent with other categories)
+    # Transit access: 0 stops = 100 (bad — no transit), 25+ stops = 0 (good)
     indicators["transit_access"] = normalize_min_max(
-        liv.get("transit_stops_400m"), 0, 25
+        liv.get("transit_stops_400m"), 0, 25, inverse=True
     )
-    # CBD proximity: 0m = 100 (great), 10km+ = 0 (far)
+    # CBD proximity: 0m = 0 (good — close), 10km+ = 100 (bad — far)
     cbd_m = liv.get("cbd_distance_m")
     if cbd_m is not None:
-        indicators["cbd_proximity"] = max(0, 100 - (float(cbd_m) / 10000) * 100)
-    # Commute frequency: 0 services/hr = 0, 30+ = 100
+        indicators["cbd_proximity"] = min(100, (float(cbd_m) / 10000) * 100)
+    # Commute frequency: 30+ services/hr = 0 (good), 0 = 100 (bad)
     peak = liv.get("peak_trips_per_hour")
     if peak is not None:
-        indicators["commute_frequency"] = normalize_min_max(float(peak), 0, 30)
-    # Rail proximity: 0m = 100, 5km+ = 0
+        indicators["commute_frequency"] = normalize_min_max(float(peak), 0, 30, inverse=True)
+    # Rail proximity: 0m = 0 (good — close), 5km+ = 100 (bad — far)
     rail_m = liv.get("nearest_train_distance_m")
     if rail_m is not None:
-        indicators["rail_proximity"] = max(0, 100 - (float(rail_m) / 5000) * 100)
-    # Bus density: bus stops within 800m (0 = 0, 30+ = 100)
+        indicators["rail_proximity"] = min(100, (float(rail_m) / 5000) * 100)
+    # Bus density: 30+ stops within 800m = 0 (good), 0 = 100 (bad)
     bus_800 = liv.get("bus_stops_800m")
     if bus_800 is not None:
-        indicators["bus_density"] = normalize_min_max(bus_800, 0, 30)
-    # Road safety: fewer serious+fatal crashes = higher score
+        indicators["bus_density"] = normalize_min_max(bus_800, 0, 30, inverse=True)
+    # Road safety: more serious+fatal crashes = higher score (worse)
     serious = (liv.get("crashes_300m_serious") or 0) + (liv.get("crashes_300m_fatal") or 0)
-    indicators["road_safety"] = max(0, 100 - normalize_min_max(serious, 0, 20))
+    indicators["road_safety"] = normalize_min_max(serious, 0, 20)
 
     # Planning (mostly neutral for MVP — no user preference context yet)
     indicators["zone_permissiveness"] = 50

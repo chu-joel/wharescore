@@ -42,7 +42,7 @@ export function HostedAtAGlance({ report }: Props) {
     { label: 'Insurance', status: getStatus(findIndicator(riskCat, 'flood', 'tsunami', 'liquefaction')) },
     { label: 'Crime', status: getStatus(findIndicator(riskCat, 'crime')) },
     { label: 'Noise', status: getStatus(findIndicator(riskCat, 'noise')) },
-    { label: 'Walkability', status: getStatus(liveCat ? 100 - liveCat.score : null) }, // invert — high liveability = good
+    { label: 'Neighbourhood', status: getStatus(liveCat?.score ?? null) },
     { label: 'Schools', status: getStatus(findIndicator(liveCat, 'school')) },
     { label: 'Transport', status: getStatus(transCat?.score ?? null) },
     { label: 'Rent', status: report.market?.market_heat === 'hot' ? 'concern' : report.market?.market_heat === 'cold' ? 'good' : 'moderate' },

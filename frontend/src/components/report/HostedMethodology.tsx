@@ -4,19 +4,20 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 const SCORE_BINS = [
-  { label: 'Very Low', range: '0–20', color: '#C42D2D' },
-  { label: 'Low', range: '21–40', color: '#D55E00' },
-  { label: 'Moderate', range: '41–60', color: '#E69F00' },
-  { label: 'High', range: '61–80', color: '#56B4E9' },
-  { label: 'Very High', range: '81–100', color: '#0D7377' },
+  { label: 'Very Low', range: '0–20', color: '#22C55E' },
+  { label: 'Low', range: '21–40', color: '#84CC16' },
+  { label: 'Moderate', range: '41–60', color: '#EAB308' },
+  { label: 'High', range: '61–80', color: '#F97316' },
+  { label: 'Very High', range: '81–100', color: '#EF4444' },
 ];
 
 const CATEGORIES = [
-  { name: 'Hazards', weight: 30, color: '#DC2626' },
-  { name: 'Liveability', weight: 25, color: '#F59E0B' },
-  { name: 'Environment', weight: 15, color: '#10B981' },
+  { name: 'Hazards', weight: 25, color: '#DC2626' },
+  { name: 'Liveability', weight: 20, color: '#F59E0B' },
+  { name: 'Transport', weight: 15, color: '#0EA5E9' },
   { name: 'Market', weight: 15, color: '#3B82F6' },
   { name: 'Planning', weight: 15, color: '#8B5CF6' },
+  { name: 'Environment', weight: 10, color: '#10B981' },
 ];
 
 export function HostedMethodology() {
@@ -36,12 +37,13 @@ export function HostedMethodology() {
           <div>
             <h4 className="text-sm font-semibold mb-2">How Scores Are Computed</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              WhareScore computes a composite risk score (0–100) using a weighted average of five
-              category scores: Hazards (30%), Liveability (25%), Environment (15%), Market (15%),
-              and Planning (15%). Higher scores indicate lower risk. Each category is derived from
-              normalised sub-indicators — for example, Hazards aggregates flood zone presence,
-              liquefaction class, seismic activity, wind zone, tsunami zone, wildfire danger days,
-              coastal erosion risk, earthquake-prone building proximity, and slope failure susceptibility.
+              WhareScore computes a composite risk score (0–100) using a weighted average of six
+              category scores: Hazards (25%), Liveability (20%), Transport (15%), Market (15%),
+              Planning (15%), and Environment (10%). Lower scores are better — a score of 0 means
+              minimal risk, while 100 means maximum risk. Each category is derived from normalised
+              sub-indicators — for example, Hazards aggregates flood zone presence, liquefaction class,
+              seismic activity, wind zone, tsunami zone, wildfire danger days, coastal erosion risk,
+              earthquake-prone building proximity, and slope failure susceptibility.
             </p>
           </div>
 

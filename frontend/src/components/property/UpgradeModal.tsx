@@ -506,13 +506,13 @@ export function UpgradeModal() {
           <DataLayersAccordion coverage={coverage} compact />
         )}
 
-        {/* Feature comparison */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        {/* Feature comparison — hidden on mobile to reduce modal height */}
+        <div className="hidden sm:grid grid-cols-2 gap-2 pt-1">
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Quick</p>
             <ul className="space-y-0.5">
               {QUICK_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                <li key={f} className="flex items-start gap-1 text-xs text-muted-foreground">
                   <Check className="mt-0.5 h-3 w-3 shrink-0 text-piq-success" />
                   <span>{f}</span>
                 </li>
@@ -523,7 +523,7 @@ export function UpgradeModal() {
             <p className="text-[10px] font-semibold text-piq-primary uppercase tracking-wide mb-1">Full</p>
             <ul className="space-y-0.5">
               {FULL_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-1 text-[10px] sm:text-xs">
+                <li key={f} className="flex items-start gap-1 text-xs">
                   <Check className="mt-0.5 h-3 w-3 shrink-0 text-piq-success" />
                   <span>{f}</span>
                 </li>

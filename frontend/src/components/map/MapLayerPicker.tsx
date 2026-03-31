@@ -156,7 +156,7 @@ export function MapLayerPicker() {
           </span>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden scrollbar-none">
         <DialogHeader>
           <DialogTitle>Map Layers</DialogTitle>
         </DialogHeader>
