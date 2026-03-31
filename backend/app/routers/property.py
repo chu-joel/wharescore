@@ -485,6 +485,32 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
 
     track_event("report_view", properties={"address_id": address_id})
+
+    # Strip premium detail for unauthenticated users.
+    # Free on-screen report shows: scores, 2 findings, basic sections.
+    # Premium detail (terrain insights, detailed hazard breakdown, event history,
+    # area profile, property detection) is stripped — it's the data that lets
+    # someone reconstruct paid findings from the raw JSON.
+    user_id = await optional_user(request)
+    if not user_id:
+        report.pop("terrain", None)
+        report.pop("walking_reach", None)
+        report.pop("event_history", None)
+        report.pop("area_profile", None)
+        report.pop("property_detection", None)
+        # Keep scores.indicators (needed for finding generation) but strip detail
+        # that goes beyond what 2 free findings reveal
+        hazards = report.get("hazards") or {}
+        for key in list(hazards.keys()):
+            # Keep top-level flags (flood, tsunami_zone_class, etc) needed for findings
+            # Strip detailed council-specific and nearest-object data
+            if key.startswith("council_") or key.endswith("_nearest") or key.startswith("gwrc_"):
+                hazards.pop(key, None)
+        env = report.get("environment") or {}
+        for key in list(env.keys()):
+            if key.startswith("contam_nearest") or key.startswith("water_"):
+                env.pop(key, None)
+
     return report
 
 

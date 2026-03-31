@@ -94,6 +94,8 @@ _QUICK_ALLOWED_KEYS = {
     "report", "meta", "report_tier", "expires_at",
     "ai_insights", "rent_baselines", "price_advisor",
     "school_zones", "nearby_highlights", "recommendations", "deltas",
+    # Basic demographics for Quick (rendered with isFull=false)
+    "census_demographics", "census_commute", "business_demography",
 }
 
 # Fields inside ai_insights to keep for Quick (strip full narrative)
@@ -116,12 +118,24 @@ def _strip_full_only_fields(data: dict) -> None:
     if isinstance(recs, list) and len(recs) > 3:
         data["recommendations"] = recs[:3]
 
-    # Strip PM transit times from liveability (full report only)
+    # Strip detail from the inner report object for Quick tier
     report = data.get("report")
     if isinstance(report, dict):
         live = report.get("liveability")
         if isinstance(live, dict):
             live.pop("transit_travel_times_pm", None)
+        # Strip detailed hazard data that's Full-only
+        hazards = report.get("hazards")
+        if isinstance(hazards, dict):
+            for key in list(hazards.keys()):
+                if key.startswith("council_") or key.endswith("_nearest") or key.startswith("gwrc_"):
+                    hazards.pop(key, None)
+        # Strip terrain, event history, area profile
+        report.pop("terrain", None)
+        report.pop("walking_reach", None)
+        report.pop("event_history", None)
+        report.pop("area_profile", None)
+        report.pop("property_detection", None)
 
 
 @router.post("/report/{share_token}/upgrade")
