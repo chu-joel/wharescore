@@ -738,35 +738,53 @@ export function MapContainer() {
                 ],
               }}
             />
-            {/* Address numbers — visible at high zoom */}
+          </Source>
+        )}
+
+        {/* Address number labels — centred on building outlines via Martin function */}
+        {mapLoaded && (
+          <Source
+            id="source-address-labels"
+            type="vector"
+            tiles={[getTileUrl('address_labels')]}
+            minzoom={17}
+            maxzoom={18}
+          >
             <Layer
-              id="layer-addresses-labels"
-              source="source-addresses-click"
-              source-layer="addresses"
+              id="layer-address-labels"
+              source="source-address-labels"
+              source-layer="address_labels"
               type="symbol"
               minzoom={17}
               layout={{
-                'text-field': ['get', 'address_number'],
+                'text-field': [
+                  'case',
+                  ['has', 'unit_value'],
+                  ['concat', ['get', 'unit_value'], '/', ['get', 'address_number']],
+                  ['get', 'address_number'],
+                ],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
                   17, 10,
                   18, 12,
                   19, 14,
                 ],
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
                 'text-anchor': 'center',
                 'text-allow-overlap': false,
                 'text-ignore-placement': false,
                 'text-optional': true,
-                'text-padding': 2,
+                'text-padding': 3,
               }}
               paint={{
-                'text-color': '#1e293b',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 1.5,
+                'text-color': '#334155',
+                'text-halo-color': 'rgba(255,255,255,0.9)',
+                'text-halo-width': 2,
+                'text-halo-blur': 0.5,
                 'text-opacity': [
                   'interpolate', ['linear'], ['zoom'],
                   17, 0.7,
-                  18, 0.9,
+                  18, 0.95,
                 ],
               }}
             />
