@@ -493,6 +493,8 @@ export function MapContainer() {
 
   const handleMouseMove = useCallback(
     (e: MapLayerMouseEvent) => {
+      // Skip on touch devices — no hover concept
+      if ('ontouchstart' in window) return;
       const map = mapRef.current?.getMap();
       if (!map) return;
 
@@ -1062,8 +1064,8 @@ export function MapContainer() {
       {/* Legend */}
       <MapLegend />
 
-      {/* Hover tooltip — always shown, even when report is open */}
-      {hoverInfo && (
+      {/* Hover tooltip — desktop only (no hover on touch devices) */}
+      {hoverInfo && bp !== 'mobile' && (
         <div
           className="pointer-events-none absolute z-20 max-w-xs rounded-lg bg-background/95 backdrop-blur border border-border shadow-md px-3 py-2 text-sm"
           style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 12, transform: 'translateY(-100%)' }}

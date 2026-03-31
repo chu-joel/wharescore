@@ -210,7 +210,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       ref={sheetRef}
       role="dialog"
       aria-label="Property information panel"
-      className="fixed bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.3)]"
+      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl bg-background border-t border-border shadow-[0_-4px_30px_rgba(0,0,0,0.3)]"
       style={{
         height: `${visibleHeight}px`,
         transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
