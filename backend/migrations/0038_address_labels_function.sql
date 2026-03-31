@@ -20,7 +20,7 @@ BEGIN
     SELECT DISTINCT ON (a.address_number, COALESCE(ST_Centroid(b.geom), a.geom))
       a.address_number::text AS address_number,
       ST_AsMVTGeom(
-        COALESCE(ST_Centroid(b.geom), a.geom),
+        ST_Transform(COALESCE(ST_Centroid(b.geom), a.geom), 3857),
         bounds, 4096, 64, true
       ) AS geom
     FROM addresses a
@@ -29,7 +29,7 @@ BEGIN
       WHERE bo.geom && a.geom AND ST_Contains(bo.geom, a.geom)
       LIMIT 1
     ) b ON true
-    WHERE a.geom && bounds
+    WHERE a.geom && ST_Transform(bounds, 4326)
       AND a.address_number IS NOT NULL
       AND a.address_lifecycle = 'Current'
     ORDER BY a.address_number, COALESCE(ST_Centroid(b.geom), a.geom)

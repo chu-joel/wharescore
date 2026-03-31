@@ -21,20 +21,15 @@ BEGIN
       COALESCE(oa.brand, oa.name, initcap(oa.subcategory)) AS label,
       oa.subcategory AS kind,
       CASE oa.subcategory
-        -- Priority 1: essentials (always shown first)
         WHEN 'supermarket' THEN 1
-        -- Priority 2: schools & health
         WHEN 'school' THEN 2
         WHEN 'hospital' THEN 2
         WHEN 'doctors' THEN 3
         WHEN 'pharmacy' THEN 3
-        -- Priority 3: green space & family
         WHEN 'park' THEN 4
         WHEN 'playground' THEN 4
-        -- Priority 4: food & drink
         WHEN 'cafe' THEN 5
         WHEN 'restaurant' THEN 6
-        -- Priority 5: community & transport
         WHEN 'library' THEN 5
         WHEN 'community_centre' THEN 6
         WHEN 'charging_station' THEN 6
@@ -42,9 +37,12 @@ BEGIN
         WHEN 'swimming_pool' THEN 7
         ELSE 8
       END AS priority,
-      ST_AsMVTGeom(oa.geom, bounds, 4096, 64, true) AS geom
+      ST_AsMVTGeom(
+        ST_Transform(oa.geom, 3857),
+        bounds, 4096, 64, true
+      ) AS geom
     FROM osm_amenities oa
-    WHERE oa.geom && bounds
+    WHERE oa.geom && ST_Transform(bounds, 4326)
       AND oa.subcategory IN (
         'supermarket', 'school', 'hospital', 'doctors', 'pharmacy',
         'park', 'playground',

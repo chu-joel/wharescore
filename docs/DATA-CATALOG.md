@@ -69,7 +69,7 @@
 ## Major Database Tables
 <!-- UPDATE: When creating a new table, add it here with columns and source. -->
 
-**126 tables total.** Only tables with >100 rows or referenced by report function listed. Full schema: `docs/table_schemas.txt`. Note: `_fetch_url()` returns bytes — decode with `utf-8-sig` for CSV sources (BOM handling).
+**126 tables total.** Only tables with >100 rows or referenced by report function listed. Full schema: `docs/table_schemas.txt`. Note: `_fetch_url()` returns bytes — decode with `utf-8-sig` for CSV sources (BOM handling). Martin tile functions use `ST_TileEnvelope` (EPSG:3857) — filter with `ST_Transform(bounds, 4326)` and output with `ST_Transform(geom, 3857)` since our tables store 4326.
 
 | Table | ~Rows | Key columns | Populated by | Queried by |
 |-------|-------|------------|-------------|-----------|
