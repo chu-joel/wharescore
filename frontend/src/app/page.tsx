@@ -13,6 +13,7 @@ import { SearchBar } from '@/components/search/SearchBar';
 import { RecentSearches } from '@/components/search/RecentSearches';
 import { SavedProperties } from '@/components/search/SavedProperties';
 import { PropertyReport } from '@/components/property/PropertyReport';
+import { SearchOverlay } from '@/components/search/SearchOverlay';
 import { SuburbSummaryPage } from '@/components/suburb/SuburbSummaryPage';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
@@ -32,6 +33,8 @@ import {
 export default function Home() {
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
   const selectedSuburb = useSearchStore((s) => s.selectedSuburb);
+  const selectAddress = useSearchStore((s) => s.selectAddress);
+  const selectProperty = useMapStore((s) => s.selectProperty);
   const bp = useBreakpoint();
   const map = <MapContainer />;
 
@@ -74,6 +77,15 @@ export default function Home() {
       {bp === 'mobile' && (
         <div className="pt-14 h-[calc(100vh-56px)] relative">
           {map}
+          <SearchOverlay onSelect={(result) => {
+            selectAddress({
+              addressId: result.address_id,
+              fullAddress: result.full_address,
+              lng: result.lng,
+              lat: result.lat,
+            });
+            selectProperty(result.address_id, result.lng, result.lat);
+          }} />
           <MobileDrawer hasSelection={hasSelection}>
             {selectedAddress ? (
               <PropertyReport addressId={selectedAddress.addressId} />
@@ -225,8 +237,7 @@ function MobileLandingContent() {
 
   return (
     <div className="py-2 space-y-3">
-      {/* Mobile search inside bottom sheet */}
-      <SearchBar />
+      {/* Search bar removed — header compact search opens fullscreen overlay */}
 
       <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
         <MousePointerClick className="h-3 w-3" />

@@ -31,12 +31,15 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   // the header search bar always handles the dropdown results.
   const suppressDropdown = !compact && bp === 'mobile';
 
+  const openOverlay = useSearchStore((s) => s.openOverlay);
+
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { results: addressResults, isLoading: addressLoading } = useSearch(query);
-  const { results: suburbResults, isLoading: suburbLoading } = useSuburbSearch(query);
+  const isMobile = bp === 'mobile';
+  const { results: addressResults, isLoading: addressLoading } = useSearch(isMobile ? '' : query);
+  const { results: suburbResults, isLoading: suburbLoading } = useSuburbSearch(isMobile ? '' : query);
 
   const isLoading = addressLoading || suburbLoading;
   const totalResults = suburbResults.length + addressResults.length;
@@ -148,7 +151,15 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 2 && totalResults > 0 && setIsOpen(true)}
+          onFocus={() => {
+            if (isMobile) {
+              // On mobile, open fullscreen overlay instead of dropdown
+              inputRef.current?.blur();
+              openOverlay();
+              return;
+            }
+            if (query.length >= 2 && totalResults > 0) setIsOpen(true);
+          }}
           className={`pl-10 pr-10 rounded-lg bg-background shadow-sm border border-input ${
             compact ? 'h-9 text-sm' : 'h-12'
           }`}

@@ -34,6 +34,8 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
   if (!isOverlayOpen) return null;
 
   const handleSelect = (result: SearchResult) => {
+    // Blur keyboard before closing
+    inputRef.current?.blur();
     onSelect(result);
     closeOverlay();
   };
@@ -81,9 +83,14 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
           <div className="p-8 text-center text-sm text-muted-foreground">
             No addresses found
           </div>
+        ) : query.length === 0 ? (
+          <div className="px-4 pt-4">
+            <p className="text-xs text-muted-foreground mb-3">Search any New Zealand address</p>
+            <p className="text-xs text-muted-foreground/60">Start typing a street name, suburb, or full address</p>
+          </div>
         ) : (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            Type at least 3 characters to search
+            Keep typing...
           </div>
         )}
       </div>
