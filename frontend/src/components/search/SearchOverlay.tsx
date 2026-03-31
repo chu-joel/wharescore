@@ -17,8 +17,16 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
   const { results } = useSearch(query);
 
   useEffect(() => {
-    if (isOverlayOpen && inputRef.current) {
-      inputRef.current.focus();
+    if (isOverlayOpen) {
+      // Lock body scroll so page doesn't move behind overlay
+      document.body.style.overflow = 'hidden';
+      // Focus input after a tick (iOS needs this delay)
+      setTimeout(() => inputRef.current?.focus(), 50);
+      // Scroll to top in case page was scrolled
+      window.scrollTo(0, 0);
+      return () => {
+        document.body.style.overflow = '';
+      };
     }
   }, [isOverlayOpen]);
 
@@ -41,7 +49,7 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-200">
+    <div className="fixed inset-0 z-[60] bg-background flex flex-col animate-in slide-in-from-bottom duration-200">
       {/* Header */}
       <div className="flex items-center gap-2 h-14 px-3 border-b border-border">
         <Input
