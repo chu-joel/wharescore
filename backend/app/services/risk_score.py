@@ -324,21 +324,28 @@ def coverage_summary(
     available_per_category: dict[str, int],
     indicators: dict[str, float | None],
 ) -> dict:
-    """Returns {available, total, label, per_category} for DataLayersAccordion."""
-    total = sum(CATEGORY_INDICATOR_COUNTS.values())
-    available = sum(available_per_category.values())
+    """Returns {available, total, label, per_category} for DataLayersAccordion.
+    'total' only counts indicators that are relevant for this location —
+    indicators omitted due to NULL data (no data for location) don't count."""
     per_category = {}
+    available = 0
+    total = 0
     for cat, weights in _CATEGORY_WEIGHTS.items():
         avail_keys = [k for k in weights if indicators.get(k) is not None]
+        # Count of indicators that are relevant = those present in indicators dict
+        # plus those with national data that scored 0 (genuinely checked)
+        cat_total = len(avail_keys)  # only count what we actually have data for
         per_category[cat] = {
             "available": len(avail_keys),
-            "total": CATEGORY_INDICATOR_COUNTS[cat],
+            "total": cat_total,
             "indicators": avail_keys,
         }
+        available += len(avail_keys)
+        total += cat_total
     return {
         "available": available,
         "total": total,
-        "label": f"{available} of {total} layers",
+        "label": f"{available} data layers",
         "per_category": per_category,
     }
 
