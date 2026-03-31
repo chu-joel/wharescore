@@ -162,7 +162,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         {query && (
           <button
             onClick={() => { setQuery(''); setIsOpen(false); setActiveIndex(-1); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-muted transition-colors"
             aria-label="Clear search"
           >
             <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
@@ -193,7 +193,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
                   role="option"
                   aria-selected={i === activeIndex}
                   onClick={() => handleSelectSuburb(r)}
-                  className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
+                  className={`w-full text-left px-4 py-3 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
                     i === activeIndex ? 'bg-muted' : 'hover:bg-muted'
                   }`}
                 >
@@ -224,7 +224,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
                     role="option"
                     aria-selected={idx === activeIndex}
                     onClick={() => handleSelectAddress(r)}
-                    className={`w-full text-left px-4 py-2.5 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
+                    className={`w-full text-left px-4 py-3 cursor-pointer transition-colors text-sm border-b border-border last:border-0 flex items-center gap-3 ${
                       idx === activeIndex ? 'bg-muted' : 'hover:bg-muted'
                     }`}
                   >

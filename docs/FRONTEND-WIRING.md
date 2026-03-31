@@ -46,7 +46,7 @@
 
 ### Hosted report (`/report/{token}`, component: `HostedReport.tsx`)
 
-**Layout:** Two tabs — "Your Property" (default) and "The Area". Cover + score strip above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both. Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs. Quick report (HostedQuickReport.tsx) has no tabs.
+**Layout:** Two tabs — "Your Property" (default, Building2 icon) and "The Area" (MapPin icon). Pill-style tab bar (rounded, bg-muted/60). Cover + score strip + orientation text above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both (inputs use `text-base` to prevent iOS zoom). Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs with section headers ("Part 1: Your Property" / "Part 2: The Area") and page breaks. Header: Share button shows "Copied!" feedback + label on desktop; Print button (was "Save PDF"). Quick report (HostedQuickReport.tsx) has no tabs, same share/print buttons.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|

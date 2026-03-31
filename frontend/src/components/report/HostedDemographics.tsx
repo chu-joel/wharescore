@@ -20,11 +20,11 @@ function fmt(n: number | null | undefined): string {
 
 function StatRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="flex justify-between items-baseline py-1.5 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className="text-sm font-medium text-gray-900">
+    <div className="flex justify-between items-baseline py-1.5 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">
         {value}
-        {sub && <span className="text-xs text-gray-400 ml-1">{sub}</span>}
+        {sub && <span className="text-xs text-muted-foreground/70 ml-1">{sub}</span>}
       </span>
     </div>
   );
@@ -36,14 +36,14 @@ function BarChart({ items }: { items: { label: string; value: number; color: str
     <div className="space-y-1.5">
       {items.map(({ label, value, color }) => (
         <div key={label} className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 w-20 text-right shrink-0">{label}</span>
-          <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+          <span className="text-xs text-muted-foreground w-20 text-right shrink-0">{label}</span>
+          <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
             <div
               className={`h-full rounded-full ${color}`}
               style={{ width: `${Math.max((value / max) * 100, 2)}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-gray-700 w-10 shrink-0">{value}%</span>
+          <span className="text-xs font-medium text-foreground w-10 shrink-0">{value}%</span>
         </div>
       ))}
     </div>
@@ -104,19 +104,19 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
   ] : [];
 
   return (
-    <section id="demographics" className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+    <section id="demographics" className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="px-5 py-4 border-b border-border bg-muted/50">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Users className="w-5 h-5 text-indigo-500" />
           Area Demographics
         </h2>
-        <p className="text-xs text-gray-500 mt-0.5">Census 2023 data for {areaName}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Census 2023 data for {areaName}</p>
       </div>
 
       <div className="p-5 space-y-6">
         {/* Population & Age — always shown */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-indigo-50 rounded-lg p-3 text-center">
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-indigo-700">{fmt(demo?.population_2023)}</div>
             <div className="text-xs text-indigo-600">Population</div>
             {popChange !== null && (
@@ -125,11 +125,11 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               </div>
             )}
           </div>
-          <div className="bg-amber-50 rounded-lg p-3 text-center">
+          <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-amber-700">{demo?.median_age ?? '-'}</div>
             <div className="text-xs text-amber-600">Median Age</div>
             {demo?.population_2023 && demo.age_65_plus != null && (
-              <div className="text-xs text-gray-500 mt-0.5">
+              <div className="text-xs text-muted-foreground mt-0.5">
                 {pct(demo.age_65_plus, demo.population_2023)} aged 65+
               </div>
             )}
@@ -139,8 +139,8 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {/* Commute — always shown (good hook) */}
         {commuteModes.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-              <Briefcase className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+              <Briefcase className="w-4 h-4 text-muted-foreground/70" />
               How People Commute
             </h3>
             <BarChart items={commuteModes} />
@@ -150,24 +150,24 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {/* Local Economy — always shown */}
         {biz && biz.employee_count_2024 != null && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-muted-foreground/70" />
               Local Economy
             </h3>
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-blue-50 rounded-lg p-2.5 text-center">
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-2.5 text-center">
                 <div className="text-lg font-bold text-blue-700">{fmt(biz.employee_count_2024)}</div>
                 <div className="text-[10px] text-blue-500">Jobs in area</div>
               </div>
-              <div className="bg-purple-50 rounded-lg p-2.5 text-center">
+              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-2.5 text-center">
                 <div className="text-lg font-bold text-purple-700">{fmt(biz.business_count_2024)}</div>
                 <div className="text-[10px] text-purple-500">Businesses</div>
               </div>
-              <div className={`rounded-lg p-2.5 text-center ${(biz.employee_growth_pct ?? 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className={`rounded-lg p-2.5 text-center ${(biz.employee_growth_pct ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/30 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'}`}>
                 <div className={`text-lg font-bold ${(biz.employee_growth_pct ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   {(biz.employee_growth_pct ?? 0) >= 0 ? '+' : ''}{biz.employee_growth_pct?.toFixed(1) ?? '-'}%
                 </div>
-                <div className="text-[10px] text-gray-500">Job growth/yr</div>
+                <div className="text-[10px] text-muted-foreground">Job growth/yr</div>
               </div>
             </div>
           </div>
@@ -176,11 +176,11 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {/* Household income — Full only */}
         {isFull && hh?.income_median && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-muted-foreground/70" />
               Household Income
             </h3>
-            <div className="bg-green-50 rounded-lg p-3 text-center mb-3">
+            <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center mb-3">
               <div className="text-2xl font-bold text-green-700">${fmt(hh.income_median)}</div>
               <div className="text-xs text-green-600">Median Household Income</div>
             </div>
@@ -191,8 +191,8 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {/* Tenure & Housing — Full only */}
         {isFull && hh && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-              <Home className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+              <Home className="w-4 h-4 text-muted-foreground/70" />
               Housing & Tenure
             </h3>
             <div className="space-y-0">
@@ -215,7 +215,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {isFull && hh && (
           <div className="flex gap-4">
             {hh.internet_access != null && hh.internet_total && (
-              <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2 flex-1">
+              <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2 flex-1">
                 <Wifi className="w-4 h-4 text-blue-500" />
                 <div>
                   <div className="text-sm font-medium text-blue-700">{pct(hh.internet_access, hh.internet_total)}</div>
@@ -224,11 +224,11 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               </div>
             )}
             {hh.vehicles_none != null && hh.vehicles_total && (
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 flex-1">
-                <Car className="w-4 h-4 text-gray-500" />
+              <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 flex-1">
+                <Car className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <div className="text-sm font-medium text-gray-700">{pct(hh.vehicles_none, hh.vehicles_total)}</div>
-                  <div className="text-xs text-gray-500">No vehicle</div>
+                  <div className="text-sm font-medium text-foreground">{pct(hh.vehicles_none, hh.vehicles_total)}</div>
+                  <div className="text-xs text-muted-foreground">No vehicle</div>
                 </div>
               </div>
             )}
@@ -238,11 +238,11 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         {/* Ethnicity — Full only */}
         {isFull && ethnicityBars.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Ethnic Composition</h3>
-            <p className="text-xs text-gray-400 mb-2">People may identify with multiple ethnicities</p>
+            <h3 className="text-sm font-medium text-foreground mb-2">Ethnic Composition</h3>
+            <p className="text-xs text-muted-foreground/70 mb-2">People may identify with multiple ethnicities</p>
             <BarChart items={ethnicityBars} />
             {demo?.born_overseas != null && demo?.born_nz != null && (
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="text-xs text-muted-foreground mt-2">
                 {pct(demo.born_overseas, demo.born_nz + demo.born_overseas)} born overseas
               </div>
             )}
@@ -250,8 +250,8 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         )}
       </div>
 
-      <div className="px-5 py-2 bg-gray-50 border-t border-gray-100">
-        <p className="text-[10px] text-gray-400">Source: Stats NZ Census 2023. CC BY 4.0.</p>
+      <div className="px-5 py-2 bg-muted/50 border-t border-border">
+        <p className="text-[10px] text-muted-foreground/70">Source: Stats NZ Census 2023. CC BY 4.0.</p>
       </div>
     </section>
   );

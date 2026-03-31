@@ -190,12 +190,12 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       onTouchMove={stopPropagation}
       onTouchEnd={stopPropagation}
     >
-      {/* Drag handle */}
+      {/* Drag handle — wider bar and taller touch area for reliable grabbing */}
       <div
         data-drawer-handle
-        className="flex flex-col items-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex flex-col items-center pt-3 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
       >
-        <div className="h-1.5 w-10 rounded-full bg-muted-foreground/50" />
+        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
       </div>
 
       {/* Scrollable content */}

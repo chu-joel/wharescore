@@ -55,8 +55,8 @@ export function BlurredFindingCards({
         }}
         className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
       >
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background shadow-lg border border-border mb-2 group-hover:scale-110 transition-transform">
-          <Lock className="h-4.5 w-4.5 text-muted-foreground" />
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-background shadow-lg border border-border mb-2 group-hover:scale-110 transition-transform">
+          <Lock className="h-5 w-5 text-muted-foreground" />
         </div>
         <p className="text-sm font-bold">
           {findings.length} more finding{findings.length !== 1 ? 's' : ''}

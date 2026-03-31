@@ -22,7 +22,7 @@ export function PersonaToggle() {
           <button
             key={value}
             onClick={() => setPersona(value)}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-all ${
               active
                 ? 'bg-card text-foreground shadow-sm border border-border'
                 : 'text-muted-foreground hover:text-foreground'

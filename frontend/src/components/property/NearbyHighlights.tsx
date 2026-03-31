@@ -31,7 +31,7 @@ export function NearbyHighlights({ addressId, schoolCount, transitCount }: Nearb
   const closest = data?.features?.[0]?.properties;
 
   return (
-    <div className="grid grid-cols-3 gap-2.5">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
       {/* Closest Supermarket */}
       <div className="rounded-xl border border-border bg-card p-3 text-center space-y-1.5 card-elevated animate-fade-in-up stagger-1">
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 mx-auto">

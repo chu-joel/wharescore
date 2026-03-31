@@ -204,7 +204,7 @@ export function MapLayerPicker() {
                       key={id}
                       onClick={() => handleToggleLayer(id)}
                       disabled={disabled}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition-all ${
+                      className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-left transition-all ${
                         active
                           ? 'bg-piq-primary/8 ring-1 ring-piq-primary/20'
                           : disabled
@@ -223,7 +223,7 @@ export function MapLayerPicker() {
                         <p className={`text-sm font-medium ${active ? 'text-piq-primary' : ''}`}>
                           {tileConfig.label}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {meta.description}
                         </p>
                       </div>

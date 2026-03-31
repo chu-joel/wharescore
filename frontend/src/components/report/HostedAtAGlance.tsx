@@ -76,7 +76,7 @@ export function HostedAtAGlance({ report }: Props) {
           })}
         </div>
         {scores.percentile != null && (
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-[11px] text-muted-foreground mt-2">
             Covers {report.coverage?.available ?? '?'}/{report.coverage?.total ?? '?'} indicators.
             {scores.percentile > 0 && ` ${scores.percentile}th percentile.`}
           </p>

@@ -42,7 +42,7 @@ interface TabsListProps {
 
 export function TabsList({ children, className = '' }: TabsListProps) {
   return (
-    <div className={`flex border-b border-gray-200 ${className}`} role="tablist">
+    <div className={`flex gap-1 p-1 rounded-xl bg-muted/60 border border-border ${className}`} role="tablist">
       {children}
     </div>
   );
@@ -64,10 +64,10 @@ export function TabsTrigger({ value, children, className = '' }: TabsTriggerProp
       aria-selected={isActive}
       onClick={() => setActiveTab(value)}
       className={`
-        px-5 py-3 text-sm font-medium transition-all relative
+        flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200
         ${isActive
-          ? 'text-indigo-700 border-b-2 border-indigo-600 -mb-px bg-white'
-          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          ? 'bg-background text-piq-primary shadow-sm ring-1 ring-border'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
         }
         ${className}
       `}
@@ -87,10 +87,11 @@ export function TabsContent({ value, children, className = '' }: TabsContentProp
   const { activeTab } = useTabs();
   const isActive = activeTab === value;
 
+  // Use CSS-only hiding (not HTML hidden attribute) so print:block can override
   return (
     <div
       role="tabpanel"
-      hidden={!isActive}
+      aria-hidden={!isActive}
       className={`${isActive ? '' : 'hidden print:block'} ${className}`}
     >
       {children}

@@ -98,7 +98,7 @@ function NumberField({
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
           placeholder={placeholder}
-          className={`w-full rounded-lg border border-border bg-background py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-piq-primary/50 ${
+          className={`w-full rounded-lg border border-border bg-background py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-piq-primary/50 ${
             prefix ? 'pl-6 pr-2' : 'pl-2.5 pr-2'
           } ${suffix ? 'pr-10' : ''}`}
         />

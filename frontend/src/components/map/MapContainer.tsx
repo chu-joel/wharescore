@@ -705,25 +705,25 @@ export function MapContainer() {
               paint={{
                 'circle-radius': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 1.5,
-                  16, 2.5,
-                  17, 3.5,
-                  18, 4.5,
+                  15, 2.5,
+                  16, 4,
+                  17, 5.5,
+                  18, 7,
                 ],
                 'circle-color': '#14B8A6',
                 'circle-opacity': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 0.25,
-                  16, 0.4,
-                  18, 0.65,
+                  15, 0.35,
+                  16, 0.5,
+                  18, 0.7,
                 ],
                 'circle-stroke-width': 1.5,
                 'circle-stroke-color': '#ffffff',
                 'circle-stroke-opacity': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 0.2,
-                  16, 0.5,
-                  18, 0.75,
+                  15, 0.3,
+                  16, 0.6,
+                  18, 0.8,
                 ],
               }}
             />

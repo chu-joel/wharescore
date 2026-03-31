@@ -46,6 +46,8 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
     // Signed-in users → ReportConfirmModal (choose Quick free or Full)
     if (gate.isAuthenticated) {
+      // Close UpgradeModal if open to prevent overlap
+      if (gate.showUpgradeModal) gate.setShowUpgradeModal(false);
       set({ _pendingToken: token ?? null });
       const hasFullCredits = (gate.credits?.fullCredits ?? 0) > 0 || gate.credits?.plan === 'pro';
       useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
@@ -72,6 +74,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
     set({ addressId, persona, isGenerating: true, error: null, downloadUrl: null, _pendingToken: null });
 
+    let generatingToastId: string | number | undefined;
     try {
       // Always fetch a fresh token — the pre-modal token may have expired
       let token = _token;
@@ -170,12 +173,11 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
       const { job_id, download_url } = await res.json();
 
-      // Show generating toast
-      toast.info('Generating your report...', {
+      // Show persistent generating toast — dismissed when report completes or fails
+      generatingToastId = toast.loading('Generating your report...', {
         description: tier === 'full'
-          ? 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready, or find it in My Reports.'
-          : 'This typically takes 15-30 seconds. Find it in My Reports when ready.',
-        duration: 8000,
+          ? 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready.'
+          : 'This typically takes 15-30 seconds.',
       });
 
       // Poll for completion (every 2s, up to 90 attempts = 3 min max)
@@ -199,18 +201,20 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
             gateState.deductCredit(tier);
           }
           set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
+          // Dismiss the generating toast
+          toast.dismiss(generatingToastId);
           // Show completion toast with link to the report
           const isFull = tier === 'full';
           toast.success('Your report is ready!', {
             description: isFull
               ? 'Also emailed to you. Available anytime in My Reports.'
               : 'Available anytime in My Reports.',
-            duration: 10000,
+            duration: 15000,
             action: status.share_url ? {
-              label: 'Go to report',
-              onClick: () => { window.location.href = status.share_url; },
+              label: 'Open report →',
+              onClick: () => { window.open(status.share_url, '_blank', 'noopener,noreferrer'); },
             } : {
-              label: 'My Reports',
+              label: 'Go to My Reports →',
               onClick: () => { window.location.href = '/account'; },
             },
           });
@@ -222,11 +226,12 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
         }
       }
 
-      throw new Error('PDF generation timed out');
+      throw new Error('PDF generation timed out — check My Reports shortly');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       set({ error: msg, isGenerating: false });
       console.error('PDF export failed:', err);
+      toast.dismiss(generatingToastId);
       toast.error(msg, { duration: 8000 });
     }
   },

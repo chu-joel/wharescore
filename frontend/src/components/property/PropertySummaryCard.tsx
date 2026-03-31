@@ -1,6 +1,6 @@
 'use client';
 
-import { Bookmark, MapPin, Download, Loader2, Eye, ExternalLink, FileCheck } from 'lucide-react';
+import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -145,13 +145,10 @@ export function PropertySummaryCard({
                 {pdf.isGenerating ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
                 ) : (
-                  <><Download className="h-3.5 w-3.5" /> Get Report</>
+                  <><Download className="h-3.5 w-3.5" /> Get Your Report</>
                 )}
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Save property">
-              <Bookmark className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

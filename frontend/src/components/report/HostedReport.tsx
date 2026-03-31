@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useCallback, useRef } from 'react';
-import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, ChevronRight, ChevronLeft, MapPin, Building2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent, useTabs } from '@/components/ui/tabs';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
@@ -76,12 +76,15 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
+  const [copied, setCopied] = useState(false);
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
       await navigator.share({ title: `Property Report — ${snapshot.meta.full_address}`, url });
     } else {
       await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -106,12 +109,16 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snapshot.meta.full_address}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={handleShare} className="p-2 rounded-lg hover:bg-muted transition-colors" title="Share">
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors" title="Copy link to clipboard">
               <Share2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
+                {copied ? 'Copied!' : 'Share'}
+              </span>
+              {copied && <span className="text-xs text-piq-primary font-medium sm:hidden">Copied!</span>}
             </button>
-            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors">
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors" title="Print or save as PDF using your browser's print dialog">
               <Printer className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Save PDF</span>
+              <span className="hidden sm:inline">Print</span>
             </button>
           </div>
         </div>
@@ -161,9 +168,14 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             <Calendar className="h-3 w-3 inline mr-1" />
             Generated {generatedDate}
+          </p>
+
+          {/* First-visit orientation */}
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+            Your personalised property intelligence report. Scroll down to explore, or use the tabs to jump between property details and area insights.
           </p>
         </div>
 
@@ -179,16 +191,33 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           // Update URL hash
           window.history.replaceState(null, '', `#${tab}`);
         }}>
-          <div className="sticky top-[49px] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-4 px-4 print:hidden">
-            <TabsList className="max-w-2xl mx-auto">
-              <TabsTrigger value="property" className="flex-1 text-center">Your Property</TabsTrigger>
-              <TabsTrigger value="area" className="flex-1 text-center">The Area</TabsTrigger>
+          <div className="sticky top-[49px] z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-4 px-4 py-2 print:hidden">
+            <TabsList className="max-w-md mx-auto">
+              <TabsTrigger value="property">
+                <span className="flex items-center justify-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Your Property
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="area">
+                <span className="flex items-center justify-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  The Area
+                </span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
           {/* ═══ TAB 1: YOUR PROPERTY ═══ */}
           <TabsContent value="property">
-            <div className="pt-6">
+            {/* Print-only section header */}
+            <div className="hidden print:block pt-4 pb-2">
+              <div className="flex items-center gap-2 border-b-2 border-piq-primary pb-2">
+                <Building2 className="h-5 w-5 text-piq-primary" />
+                <h2 className="text-xl font-bold text-piq-primary">Part 1: Your Property</h2>
+              </div>
+            </div>
+            <div className="pt-6 print:pt-2">
               <div className="pb-6">
                 <HostedAtAGlance report={report} />
               </div>
@@ -282,7 +311,14 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
 
           {/* ═══ TAB 2: THE AREA ═══ */}
           <TabsContent value="area">
-            <div className="pt-6">
+            {/* Print-only section header + page break */}
+            <div className="hidden print:block pt-4 pb-2" style={{ breakBefore: 'page' }}>
+              <div className="flex items-center gap-2 border-b-2 border-piq-primary pb-2">
+                <MapPin className="h-5 w-5 text-piq-primary" />
+                <h2 className="text-xl font-bold text-piq-primary">Part 2: The Area</h2>
+              </div>
+            </div>
+            <div className="pt-6 print:pt-2">
               <div className="pb-6">
                 <HostedDemographics snapshot={snapshot} isFull={true} />
               </div>
@@ -340,11 +376,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           <p className="text-xs text-muted-foreground">
             Report generated {generatedDate} for {snapshot.meta.full_address}.
           </p>
-          <p className="text-[10px] text-muted-foreground leading-relaxed max-w-md mx-auto">
+          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md mx-auto">
             Based on publicly available government data. Not a registered valuation, appraisal, or legal document.
             Risk scores are indicative estimates. Obtain professional reports before making significant financial decisions.
           </p>
-          <p className="text-[10px] text-muted-foreground pt-1">
+          <p className="text-[11px] text-muted-foreground pt-1">
             <a href="https://wharescore.co.nz" className="text-piq-primary hover:underline">wharescore.co.nz</a>
           </p>
         </div>

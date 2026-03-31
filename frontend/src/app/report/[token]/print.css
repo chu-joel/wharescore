@@ -1,12 +1,24 @@
 @media print {
-  /* Hide interactive elements */
+  /* Hide interactive elements — but keep print-only content visible */
   aside,
   [class*="print:hidden"],
   header,
-  button,
   input,
   [data-slot="accordion-trigger"] {
     display: none !important;
+  }
+
+  /* Only hide buttons that aren't inside print:block sections */
+  button:not([role="tabpanel"] *) {
+    display: none !important;
+  }
+
+  /* Force print:block to work on tab panels */
+  [role="tabpanel"].hidden {
+    display: block !important;
+  }
+  [role="tabpanel"][aria-hidden="true"] {
+    display: block !important;
   }
 
   /* Force light mode */

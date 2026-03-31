@@ -44,7 +44,8 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     };
   }, []);
 
-  if (!mounted || !containerRef.current || showUpgradeModal || showConfirmModal) return null;
+  if (!mounted || !containerRef.current) return null;
+  const modalOpen = showUpgradeModal || showConfirmModal;
 
   const handleClick = () => {
     if (pdf.shareUrl) {
@@ -64,18 +65,18 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   };
 
   // Contextual CTA copy based on report data
-  let ctaText = 'Get Full Report';
+  let ctaText = 'Get Your Report';
   let ctaIcon = <Download className="h-5 w-5" />;
   const hasCredits = isAuthenticated && credits && credits.plan !== 'free';
 
   if (!pdf.isGenerating && !pdf.shareUrl && !pdf.downloadUrl) {
     if (hasCredits) {
-      ctaText = 'Get Report';
+      ctaText = 'Get Your Report';
     } else if (riskCount && riskCount >= 3) {
-      ctaText = `${riskCount} risks — get full report`;
+      ctaText = `${riskCount} risks found`;
       ctaIcon = <ShieldAlert className="h-5 w-5" />;
     } else if (riskCount && riskCount >= 1) {
-      ctaText = `${riskCount} risk${riskCount > 1 ? 's' : ''} — see details`;
+      ctaText = `${riskCount} risk${riskCount > 1 ? 's' : ''} found`;
       ctaIcon = <ShieldAlert className="h-5 w-5" />;
     }
   }
@@ -92,7 +93,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const reportReady = !!(pdf.shareUrl || pdf.downloadUrl);
 
   return createPortal(
-    <div className="fixed bottom-5 left-5 z-[9999] flex items-center gap-2">
+    <div className={`fixed bottom-5 left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-opacity duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''}`}>
       {/* Primary button */}
       <button
         onClick={handleClick}

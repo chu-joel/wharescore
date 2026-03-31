@@ -23,7 +23,7 @@ function Pill({ selected, onClick, children }: { selected: boolean; onClick: () 
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-medium border transition-all ${
+      className={`rounded-full px-3.5 py-1.5 text-xs font-medium border transition-all ${
         selected
           ? 'bg-piq-primary text-white border-piq-primary shadow-sm'
           : 'border-border text-foreground hover:border-piq-primary hover:text-piq-primary'
@@ -63,7 +63,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
     <div className="p-4 space-y-5">
       <div>
         <h3 className="text-sm font-bold mb-1">Adjust property details</h3>
-        <p className="text-[10px] text-muted-foreground">Change inputs to see how the analysis updates.</p>
+        <p className="text-[11px] text-muted-foreground">Change inputs to see how the analysis updates.</p>
       </div>
 
       {/* Bedrooms */}
@@ -101,7 +101,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
           ))}
         </div>
         {selectedFinish && (
-          <p className="text-[10px] text-muted-foreground mt-1 italic">{selectedFinish.desc}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 italic">{selectedFinish.desc}</p>
         )}
       </div>
 
@@ -134,7 +134,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
               value={store.weeklyRent ?? ''}
               onChange={(e) => store.setWeeklyRent(e.target.value ? parseInt(e.target.value) : null)}
               placeholder="e.g. 550"
-              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-sm tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
+              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
             />
           </div>
         </div>
@@ -148,7 +148,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
               value={store.askingPrice ?? ''}
               onChange={(e) => store.setAskingPrice(e.target.value ? parseInt(e.target.value) : null)}
               placeholder="e.g. 850000"
-              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-sm tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
+              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
             />
           </div>
         </div>
@@ -179,7 +179,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
             </div>
           )}
 
-          <p className="text-[10px] text-muted-foreground text-center">
+          <p className="text-[11px] text-muted-foreground text-center">
             {rentBand.baseline.bond_count} bonds · {snapshot.meta.sa2_name}
           </p>
         </div>
@@ -195,7 +195,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
                 <p className="text-lg font-bold tabular-nums text-piq-primary">
                   ${rentBand.bandLow}–${rentBand.bandHigh}/wk
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground">
                   {store.bedrooms}-bed {snapshot.meta.dwelling_type.toLowerCase()} · {rentBand.baseline.bond_count} bonds
                 </p>
               </div>
@@ -218,12 +218,12 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
                 <p className="text-lg font-bold tabular-nums text-piq-primary">
                   ${(snapshot.price_advisor.estimated_value / 1000).toFixed(0)}K
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground">
                   ${(snapshot.price_advisor.band_low / 1000).toFixed(0)}K – ${(snapshot.price_advisor.band_high / 1000).toFixed(0)}K
                 </p>
               </div>
               {snapshot.price_advisor.hazard_count > 0 && (
-                <p className="text-[10px] text-center text-risk-high font-medium">
+                <p className="text-[11px] text-center text-risk-high font-medium">
                   {snapshot.price_advisor.hazard_count} hazard flag{snapshot.price_advisor.hazard_count > 1 ? 's' : ''} detected
                 </p>
               )}

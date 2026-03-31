@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar, Share2, Printer, Home, TrendingUp, ArrowLeft, Clock, Sparkles } from 'lucide-react';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { transformReport } from '@/lib/transformReport';
@@ -50,12 +50,15 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
+  const [copied, setCopied] = useState(false);
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
       await navigator.share({ title: `Property Report — ${snapshot.meta.full_address}`, url });
     } else {
       await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -80,12 +83,16 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-2 py-0.5 rounded-full bg-piq-primary/10 text-piq-primary text-[10px] font-semibold">Quick</span>
-            <button onClick={handleShare} className="p-2 rounded-lg hover:bg-muted transition-colors" title="Share">
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors" title="Copy link to clipboard">
               <Share2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
+                {copied ? 'Copied!' : 'Share'}
+              </span>
+              {copied && <span className="text-xs text-piq-primary font-medium sm:hidden">Copied!</span>}
             </button>
-            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors">
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors" title="Print or save as PDF using your browser's print dialog">
               <Printer className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Save PDF</span>
+              <span className="hidden sm:inline">Print</span>
             </button>
           </div>
         </div>

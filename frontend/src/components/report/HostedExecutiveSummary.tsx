@@ -111,7 +111,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
             <div key={s.label} className="rounded-lg bg-muted/40 border border-border p-2.5 text-center">
               <div className="flex justify-center mb-1 text-muted-foreground">{s.icon}</div>
               <p className="text-sm font-bold tabular-nums">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
             </div>
           ))}
         </div>

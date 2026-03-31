@@ -411,7 +411,7 @@ export function UpgradeModal() {
 
   return (
     <Dialog open={showUpgradeModal} onOpenChange={(open) => setShowUpgradeModal(open)}>
-      <DialogContent className="sm:max-w-md animate-in zoom-in-95 fade-in duration-200 gap-2 sm:gap-4 p-3 sm:p-4" showCloseButton={canClose}>
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200 gap-2 sm:gap-4 p-3 sm:p-4" showCloseButton={canClose}>
         <DialogHeader>
           <div className="mx-auto mb-1 sm:mb-2 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-piq-primary/10">
             <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-piq-primary" />

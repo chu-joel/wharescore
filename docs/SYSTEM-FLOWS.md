@@ -216,13 +216,14 @@ User clicks Generate Report → usePdfExport.startExport()
   → Not signed in? → UpgradeModal (sign-in prompt + $9.99 Full purchase)
   → ReportConfirmModal: user fills dwelling type, bedrooms, etc.
   → User clicks Generate → _doExport(addr, token, tier) fires
-  → Toast: Quick="Find it in My Reports when ready" / Full="We'll email you a link"
+  → Persistent toast.loading("Generating your report...") — stays visible until complete/error
   → POST /property/{id}/export/pdf/start?report_tier={tier} with Bearer token
   → Backend: require_paid_user — Quick tier skips credit check (free with auth),
     Full tier requires credits as before
   → Poll status every 2s (up to 90 attempts)
-  → On completed: toast "Your report is ready!" with "Go to report" link
-    (no auto-navigation — user stays on current page)
+  → On completed: dismiss generating toast, show toast.success "Your report is ready!"
+    with "Open report →" link (opens new tab, no auto-navigation)
+  → On error: dismiss generating toast, show toast.error with message
   → Backend (Phase 1 complete, Full only): send_report_ready_email() if user has email
      → Quick reports: NO email (free tier, reduces Brevo usage)
      → Full reports: Brevo email with "View Report" + "or access from My Reports"
@@ -236,7 +237,7 @@ Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expir
 - **Stripe promotion codes** — all checkout sessions have `allow_promotion_codes=True`. Coupons (e.g. WHARE20 = 20% off) created in Stripe dashboard, users enter at checkout.
 - **Admin credits** — `POST /admin/users/{id}/credits` gives free report credits directly. No in-app promo code UI (removed) — admin handles this via the dashboard.
 
-**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + toasts), `UpgradeModal.tsx` (purchase UI — Full $9.99/$4.99 Pro + Pro plan, no Quick card, no in-app promo code), `services/email.py` (send_report_ready_email)
+**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + persistent generating toast + success toast opens new tab), `UpgradeModal.tsx` (purchase UI — Full $9.99/$4.99 Pro + Pro plan, max-h-[85vh] on mobile, no Quick card, no in-app promo code), `PremiumGate.tsx` (blur overlay — "Tap to unlock in full report"), `services/email.py` (send_report_ready_email). Toasts: `position="top-center"` (providers.tsx) to avoid floating button overlap.
 
 ---
 

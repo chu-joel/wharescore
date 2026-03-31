@@ -54,7 +54,7 @@ export function PremiumGate({
         </div>
         <p className="text-xs font-bold text-foreground">{label}</p>
         <p className="text-[10px] text-piq-primary font-semibold mt-1 group-hover:underline">
-          Unlock — {isPro ? '$4.99' : '$9.99'}
+          {isPro ? 'Tap to unlock with 1 credit' : 'Tap to unlock in full report'}
         </p>
       </button>
     </div>

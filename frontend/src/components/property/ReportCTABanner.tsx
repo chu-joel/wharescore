@@ -70,7 +70,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           {getSubheadline(persona, fullPrice, capitalValue, medianRent)}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
         {contents.map(({ icon: Icon, label }) => (
           <div key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
             <Icon className="h-3.5 w-3.5 shrink-0 text-piq-primary/70" />
@@ -85,7 +85,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — {fullPrice}</>
         )}
       </Button>
-      <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <Shield className="h-3 w-3" /> Secure payment
         </span>
