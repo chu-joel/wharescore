@@ -721,6 +721,107 @@ export function MapContainer() {
           </Source>
         )}
 
+        {/* Notable places — supermarkets, schools, parks etc at high zoom */}
+        {mapLoaded && (
+          <Source
+            id="source-notable-places"
+            type="vector"
+            tiles={[getTileUrl('notable_places')]}
+            minzoom={15}
+            maxzoom={16}
+          >
+            <Layer
+              id="layer-notable-places"
+              source="source-notable-places"
+              source-layer="notable_places"
+              type="symbol"
+              minzoom={15}
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-size': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 10,
+                  16, 11,
+                  17, 12,
+                ],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+                'text-anchor': 'left',
+                'text-offset': [1, 0],
+                'text-max-width': 8,
+                'text-allow-overlap': false,
+                'text-ignore-placement': false,
+                'text-optional': true,
+                'text-padding': 4,
+                'symbol-sort-key': ['get', 'priority'],
+                'icon-image': '',
+                'icon-allow-overlap': true,
+              }}
+              paint={{
+                'text-color': [
+                  'match', ['get', 'kind'],
+                  'supermarket', '#16a34a',
+                  'school', '#7c3aed',
+                  'hospital', '#dc2626',
+                  'doctors', '#dc2626',
+                  'pharmacy', '#dc2626',
+                  'park', '#15803d',
+                  'playground', '#15803d',
+                  'cafe', '#b45309',
+                  'restaurant', '#b45309',
+                  'library', '#2563eb',
+                  'charging_station', '#0891b2',
+                  '#64748b',
+                ],
+                'text-halo-color': 'rgba(255,255,255,0.95)',
+                'text-halo-width': 1.5,
+                'text-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0.7,
+                  16, 0.85,
+                  17, 0.95,
+                ],
+              }}
+            />
+            {/* Small dot marker for each place */}
+            <Layer
+              id="layer-notable-places-dot"
+              source="source-notable-places"
+              source-layer="notable_places"
+              type="circle"
+              minzoom={15}
+              paint={{
+                'circle-radius': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 3,
+                  17, 4,
+                ],
+                'circle-color': [
+                  'match', ['get', 'kind'],
+                  'supermarket', '#16a34a',
+                  'school', '#7c3aed',
+                  'hospital', '#dc2626',
+                  'doctors', '#dc2626',
+                  'pharmacy', '#dc2626',
+                  'park', '#15803d',
+                  'playground', '#15803d',
+                  'cafe', '#b45309',
+                  'restaurant', '#b45309',
+                  'library', '#2563eb',
+                  'charging_station', '#0891b2',
+                  '#94a3b8',
+                ],
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#ffffff',
+                'circle-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 0.6,
+                  17, 0.9,
+                ],
+              }}
+            />
+          </Source>
+        )}
+
         {/* Address number labels — centred on building outlines via Martin function */}
         {mapLoaded && (
           <Source
