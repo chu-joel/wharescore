@@ -343,6 +343,17 @@ export function MapContainer() {
       map.on('style.load', () => {
         addRiskPatterns(map);
         addLayerIcons(map);
+        // Enlarge street name labels on vector basemaps (Carto Positron, LINZ Topolite)
+        try {
+          for (const layer of map.getStyle()?.layers ?? []) {
+            if (layer.type === 'symbol' && layer.layout?.['text-size'] != null) {
+              const current = layer.layout['text-size'];
+              if (typeof current === 'number' && current < 16) {
+                map.setLayoutProperty(layer.id, 'text-size', Math.round(current * 1.3));
+              }
+            }
+          }
+        } catch { /* raster styles have no symbol layers */ }
       });
     }
   }, []);

@@ -51,14 +51,8 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
     label: 'Light',
     color: '#f5f3ef',
     previewUrl: `https://a.basemaps.cartocdn.com/light_all/${WLG.z}/${WLG.x}/${WLG.y}.png`,
-    style: rasterStyle(
-      [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      ],
-      CARTO_ATTRIBUTION,
-    ),
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    // Text size overrides applied in MapContainer after style loads
   },
   {
     id: 'dark',
