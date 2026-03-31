@@ -372,18 +372,21 @@ def enrich_with_scores(report: dict) -> dict:
     # --- 1. Normalize each indicator ---
     indicators = {}
 
-    # Hazards
+    # Hazards — only include indicators where we have actual data.
+    # NULL raw data = "no data for this location", not "confirmed safe".
     indicators["flood"] = severity_flood(haz.get("flood"))
-    indicators["tsunami"] = SEVERITY_TSUNAMI.get(haz.get("tsunami_zone_class"), 0)
-    indicators["liquefaction"] = SEVERITY_LIQUEFACTION.get(haz.get("liquefaction"), 0)
+    if haz.get("tsunami_zone_class") is not None:
+        indicators["tsunami"] = SEVERITY_TSUNAMI.get(haz["tsunami_zone_class"], 0)
+    if haz.get("liquefaction") is not None:
+        indicators["liquefaction"] = SEVERITY_LIQUEFACTION.get(haz["liquefaction"], 0)
     indicators["earthquake"] = normalize_min_max(haz.get("earthquake_count_30km"), 0, 50)
-    indicators["coastal_erosion"] = SEVERITY_COASTAL_EXPOSURE.get(
-        haz.get("coastal_exposure"), 0
-    )
+    if haz.get("coastal_exposure") is not None:
+        indicators["coastal_erosion"] = SEVERITY_COASTAL_EXPOSURE.get(haz["coastal_exposure"], 0)
     indicators["wind"] = severity_wind(haz.get("wind_zone"))
     indicators["wildfire"] = normalize_min_max(haz.get("wildfire_vhe_days"), 0, 30)
     indicators["epb"] = normalize_min_max(haz.get("epb_count_300m"), 0, 15)
-    indicators["slope_failure"] = SEVERITY_SLOPE_FAILURE.get(haz.get("slope_failure"), 0)
+    if haz.get("slope_failure") is not None:
+        indicators["slope_failure"] = SEVERITY_SLOPE_FAILURE.get(haz["slope_failure"], 0)
 
     # GNS landslide database (national) — refine slope_failure with historical events
     ls_count = haz.get("landslide_count_500m") or 0

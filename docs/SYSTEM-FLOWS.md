@@ -275,6 +275,9 @@ Weighted geometric mean. Requires 3+ categories with scores. Market dropped if n
 - Active fault within 200m → 80/100
 - Slope failure Very High → 90/100
 
+### NULL vs 0 handling
+Indicators where NULL raw data means "no data for this location" (not "confirmed safe") are **omitted entirely** when the source field is NULL. This prevents showing "0/100 Low risk" when we simply don't have data. Affected indicators: tsunami, coastal_erosion, liquefaction, slope_failure. Council-specific data (e.g. `council_tsunami_ranking`) still sets these indicators when available. Earthquake, flood, wind, wildfire always have national data so they're always set.
+
 ### Terrain-inferred risk boosts (soft signals)
 When council hazard data is absent, terrain shape, waterway proximity, and event history provide soft score boosts:
 - Flood terrain score ≥3 (flat depression at low elevation) + no flood zone → 25-35/100
