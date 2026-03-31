@@ -39,7 +39,7 @@ import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /** How many findings to show for free before gating */
 const FREE_FINDINGS = 2;
@@ -298,35 +298,104 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   );
 }
 
+const ANALYSIS_STEPS = [
+  { label: 'Checking flood zones & coastal hazards', icon: '🌊' },
+  { label: 'Scanning earthquake & liquefaction data', icon: '🔬' },
+  { label: 'Analyzing tsunami & slope failure risk', icon: '⚡' },
+  { label: 'Reviewing building & title records', icon: '🏠' },
+  { label: 'Checking noise, air & water quality', icon: '🌿' },
+  { label: 'Mapping nearby schools & transit', icon: '🚌' },
+  { label: 'Reviewing district plan & zoning', icon: '📋' },
+  { label: 'Fetching rental market data', icon: '📊' },
+  { label: 'Calculating your property score', icon: '✨' },
+];
+
 function ReportSkeleton() {
+  const [step, setStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStep((prev) => {
+        const next = prev + 1;
+        if (next < ANALYSIS_STEPS.length) {
+          setCompletedSteps((cs) => [...cs, prev]);
+          return next;
+        }
+        // Loop back but keep showing progress
+        return prev;
+      });
+    }, 800);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentStep = ANALYSIS_STEPS[step] ?? ANALYSIS_STEPS[ANALYSIS_STEPS.length - 1];
+  const progress = Math.min(((step + 1) / ANALYSIS_STEPS.length) * 100, 95);
+
   return (
-    <div className="p-4 space-y-4">
-      {/* Summary card skeleton */}
-      <Skeleton className="h-32 w-full rounded-xl" />
-      {/* Persona toggle skeleton */}
-      <Skeleton className="h-12 w-full rounded-xl" />
-      {/* Score gauge skeleton */}
-      <div className="flex justify-center">
-        <Skeleton className="h-36 w-36 rounded-full" />
-      </div>
-      {/* Score strip skeleton */}
-      <div className="flex justify-center gap-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-9 w-9 rounded-full" />
-        ))}
-      </div>
-      {/* AI summary skeleton */}
-      <div className="space-y-2 rounded-xl bg-muted/30 p-4">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
-      </div>
-      {/* Question section skeletons */}
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-lg" />
-        ))}
+    <div className="p-4 pt-8 flex flex-col items-center">
+      <div className="max-w-sm w-full space-y-8">
+        {/* Animated score circle placeholder */}
+        <div className="flex justify-center">
+          <div className="relative h-28 w-28">
+            <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/40" />
+              <circle
+                cx="50" cy="50" r="42" fill="none" strokeWidth="6"
+                className="text-piq-primary transition-all duration-700 ease-out"
+                strokeDasharray={`${progress * 2.64} 264`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl animate-pulse">{currentStep.icon}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Status text */}
+        <div className="text-center space-y-1">
+          <p className="text-sm font-semibold text-foreground">Analyzing property</p>
+          <p className="text-xs text-piq-primary font-medium h-5 transition-opacity duration-300">
+            {currentStep.label}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full bg-muted/60 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="h-full bg-piq-primary rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Completed checklist */}
+        <div className="space-y-1.5">
+          {ANALYSIS_STEPS.slice(0, Math.min(step + 1, ANALYSIS_STEPS.length)).map((s, i) => {
+            const done = completedSteps.includes(i);
+            return (
+              <div
+                key={i}
+                className={`flex items-center gap-2.5 text-xs transition-all duration-300 ${
+                  done ? 'text-muted-foreground' : 'text-foreground font-medium'
+                }`}
+              >
+                {done ? (
+                  <svg className="h-3.5 w-3.5 text-piq-primary shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <div className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-piq-primary animate-pulse" />
+                )}
+                {s.label}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-muted-foreground text-center">
+          Scanning 40+ data layers across government databases
+        </p>
       </div>
     </div>
   );
