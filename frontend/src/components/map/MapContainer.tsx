@@ -733,7 +733,7 @@ export function MapContainer() {
             type="vector"
             tiles={[getTileUrl('notable_places')]}
             minzoom={15}
-            maxzoom={16}
+            maxzoom={18}
           >
             <Layer
               id="layer-notable-places"
@@ -742,85 +742,67 @@ export function MapContainer() {
               type="symbol"
               minzoom={15}
               layout={{
-                'text-field': ['get', 'label'],
+                'text-field': [
+                  'format',
+                  ['match', ['get', 'kind'],
+                    'supermarket', '\u{1F6D2} ',
+                    'school', '\u{1F3EB} ',
+                    'hospital', '\u{1F3E5} ',
+                    'doctors', '\u{2695}\uFE0F ',
+                    'pharmacy', '\u{1F48A} ',
+                    'park', '\u{1F333} ',
+                    'playground', '\u{1F3A0} ',
+                    'cafe', '\u{2615} ',
+                    'restaurant', '\u{1F37D}\uFE0F ',
+                    'library', '\u{1F4DA} ',
+                    'community_centre', '\u{1F3E0} ',
+                    'charging_station', '\u{26A1} ',
+                    'sports_centre', '\u{1F3CB}\uFE0F ',
+                    'swimming_pool', '\u{1F3CA} ',
+                    '',
+                  ], {},
+                  ['get', 'label'], { 'font-scale': 0.85 },
+                ],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 10,
-                  16, 11,
-                  17, 12,
+                  15, 12,
+                  16, 13,
+                  17, 14,
                 ],
                 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
                 'text-anchor': 'left',
-                'text-offset': [1, 0],
-                'text-max-width': 8,
+                'text-justify': 'left',
+                'text-max-width': 10,
                 'text-allow-overlap': false,
                 'text-ignore-placement': false,
                 'text-optional': true,
-                'text-padding': 4,
+                'text-padding': 6,
                 'symbol-sort-key': ['get', 'priority'],
-                'icon-image': '',
-                'icon-allow-overlap': true,
+                'symbol-z-order': 'source',
               }}
               paint={{
                 'text-color': [
                   'match', ['get', 'kind'],
-                  'supermarket', '#16a34a',
-                  'school', '#7c3aed',
+                  'supermarket', '#15803d',
+                  'school', '#6d28d9',
                   'hospital', '#dc2626',
                   'doctors', '#dc2626',
-                  'pharmacy', '#dc2626',
+                  'pharmacy', '#be123c',
                   'park', '#15803d',
                   'playground', '#15803d',
-                  'cafe', '#b45309',
-                  'restaurant', '#b45309',
-                  'library', '#2563eb',
-                  'charging_station', '#0891b2',
-                  '#64748b',
+                  'cafe', '#92400e',
+                  'restaurant', '#92400e',
+                  'library', '#1d4ed8',
+                  'charging_station', '#0e7490',
+                  '#475569',
                 ],
                 'text-halo-color': 'rgba(255,255,255,0.95)',
-                'text-halo-width': 1.5,
+                'text-halo-width': 2,
                 'text-opacity': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 0.7,
-                  16, 0.85,
-                  17, 0.95,
-                ],
-              }}
-            />
-            {/* Small dot marker for each place */}
-            <Layer
-              id="layer-notable-places-dot"
-              source="source-notable-places"
-              source-layer="notable_places"
-              type="circle"
-              minzoom={15}
-              paint={{
-                'circle-radius': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 3,
-                  17, 4,
-                ],
-                'circle-color': [
-                  'match', ['get', 'kind'],
-                  'supermarket', '#16a34a',
-                  'school', '#7c3aed',
-                  'hospital', '#dc2626',
-                  'doctors', '#dc2626',
-                  'pharmacy', '#dc2626',
-                  'park', '#15803d',
-                  'playground', '#15803d',
-                  'cafe', '#b45309',
-                  'restaurant', '#b45309',
-                  'library', '#2563eb',
-                  'charging_station', '#0891b2',
-                  '#94a3b8',
-                ],
-                'circle-stroke-width': 1,
-                'circle-stroke-color': '#ffffff',
-                'circle-opacity': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 0.6,
-                  17, 0.9,
+                  15, 0.8,
+                  16, 0.9,
+                  17, 1.0,
                 ],
               }}
             />
