@@ -18,7 +18,7 @@ All datasets to add to WhareScore, organized by priority phase. Update status as
 
 | Dataset | Source | Granularity | Format | Status | Notes |
 |---|---|---|---|---|---|
-| Broadband/fibre coverage | [Commerce Commission SFA GPKG](https://www.comcom.govt.nz/assets/Uploads/2025-SFA-map-GPKG.zip) | Polygon (bbox per SFA zone) | GPKG→PostGIS | **Loader ready** | 1.68M parcels dissolved to ~2K SFA zone bounding boxes. 7 providers (Chorus, Enable, TFF, etc). |
+| Broadband/fibre coverage | [Commerce Commission SFA GPKG](https://www.comcom.govt.nz/assets/Uploads/2025-SFA-map-GPKG.zip) | Polygon (bbox per SFA zone) | GPKG→PostGIS | **Loaded** | 2,360 SFA zones. 7 providers (Chorus, Enable, TFF, etc). |
 | Hospital locations | Already in osm_amenities (40 hospitals) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |
 | GP/medical density | Already in osm_amenities (483 doctors, 269 clinics) | Point | osm_amenities | **Done** | Already shown in Nearest Essentials |
 | EV charging stations | Already in osm_amenities (509 chargers) | Point | osm_amenities | **Done** | Queried in community_facilities snapshot |

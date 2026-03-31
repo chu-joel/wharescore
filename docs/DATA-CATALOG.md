@@ -102,7 +102,7 @@
 | climate_normals | ~720 | location_name, ta_name, month, temp_mean/max/min, precipitation_mm, rain_days, wind_speed_mean | Open-Meteo Climate API (2010-2019 daily → monthly avg). sunshine_hours not available. | `prefetch_property_data()` → snapshot.climate_normals |
 | business_demography | ~2,300 | sa2_code, employee_count_2024, business_count_2024, employee_growth_pct | Stats NZ Business Demography 2024 ArcGIS | `prefetch_property_data()` → snapshot.business_demography |
 | fibre_coverage | ~2,000 | sfa_name, provider, geom (bbox polygon) | Commerce Commission SFA 2025 GPKG | `community_facilities` snapshot → fibre_available, fibre_provider |
-| cycleways | ~TBD | name, surface, geom (linestring) | OSM Overpass API (16 cities) | `community_facilities` snapshot → cycleway_km_2km |
+| cycleways | ~TBD | name, surface, geom (linestring) | OSM Overpass API (16 cities). WKT uses comma-separated coords. Uses SAVEPOINT per insert for error isolation. | `community_facilities` snapshot → cycleway_km_2km |
 | at_stops | 7,023 | stop_id, route_types[], geom | AT GTFS | `get_transit_data()` (Auckland fallback) |
 | report_snapshots | per-report | snapshot_json (JSONB), share_token_hash, inputs_at_purchase, report_tier ('quick'/'full') | `create_report_snapshot()` | `/report/{token}` endpoint, `POST /report/{token}/upgrade` |
 | hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section, price advisor |

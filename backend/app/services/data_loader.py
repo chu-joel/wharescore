@@ -4106,6 +4106,7 @@ out geom;"""
             with urllib.request.urlopen(req, timeout=90) as resp:
                 result = json.loads(resp.read())
 
+            city_count = 0
             for element in result.get("elements", []):
                 if element.get("type") != "way":
                     continue
@@ -4116,23 +4117,26 @@ out geom;"""
                 name = tags.get("name", "")
                 surface = tags.get("surface", "")
 
-                # Build LineString WKT
-                coords = " ".join(f"{p['lon']} {p['lat']}" for p in geom)
+                # Build LineString WKT — coords need comma separation
+                coords = ",".join(f"{p['lon']} {p['lat']}" for p in geom)
                 wkt = f"LINESTRING({coords})"
 
                 try:
+                    cur.execute("SAVEPOINT sp")
                     cur.execute(
                         """INSERT INTO cycleways (name, surface, geom)
                            VALUES (%s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))""",
                         (name, surface, wkt),
                     )
+                    cur.execute("RELEASE SAVEPOINT sp")
                     count += 1
+                    city_count += 1
                 except Exception:
-                    conn.rollback()
+                    cur.execute("ROLLBACK TO SAVEPOINT sp")
                     continue
 
             conn.commit()
-            _progress(log, f"  {city_name}: +{result.get('elements', []).__len__()} ways, total {count}")
+            _progress(log, f"  {city_name}: {city_count} cycleways, total {count}")
         except Exception as e:
             logger.warning(f"Cycleways failed for {city_name}: {e}")
             conn.rollback()
