@@ -233,8 +233,15 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               )}
               {cf.cycleway_km_2km != null && cf.cycleway_km_2km > 0 && (
                 <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Cycle paths</span>
-                  <span className="text-muted-foreground text-xs">{cf.cycleway_km_2km}km within 2km</span>
+                  <span className="font-medium">Cycle paths nearby</span>
+                  <span className="text-muted-foreground text-xs">
+                    {cf.cycleway_km_2km >= 10
+                      ? <><span className="text-green-600 font-medium">{cf.cycleway_km_2km}km</span> — excellent cycling network</>
+                      : cf.cycleway_km_2km >= 3
+                        ? <><span className="text-blue-600 font-medium">{cf.cycleway_km_2km}km</span> — good cycling options</>
+                        : <>{cf.cycleway_km_2km}km of cycle paths</>
+                    }
+                  </span>
                 </div>
               )}
               {cf.fibre_available != null && (
@@ -424,7 +431,16 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
             <h4 className="text-sm font-semibold mb-1">Heritage & Overlays</h4>
             <div className="text-xs text-muted-foreground space-y-0.5">
               {heritageListed && <p className="font-medium text-amber-700">This property is heritage-listed.</p>}
-              {heritageCount > 0 && <p>{heritageCount} heritage items within 500m.</p>}
+              {heritageCount > 0 && (
+                <p>
+                  {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} within 500m
+                  {heritageCount >= 50
+                    ? ' — dense heritage area. Development restrictions likely apply to surrounding buildings.'
+                    : heritageCount >= 10
+                      ? '. Heritage-rich neighbourhood — check for view protection or character area rules.'
+                      : '.'}
+                </p>
+              )}
               {overlays.length > 0 && <p>Planning overlays: {overlays.join(', ')}.</p>}
             </div>
           </div>
@@ -480,6 +496,12 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {amenityItems.length === 0 && Object.keys(amenities500m).length === 0 && essentials.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold mb-1">Amenities within 500m</h4>
+            <p className="text-xs text-muted-foreground">No commercial amenities mapped within 500m. Nearest essentials shown above.</p>
           </div>
         )}
 

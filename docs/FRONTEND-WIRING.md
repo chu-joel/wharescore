@@ -68,7 +68,7 @@
 | `terrain`, `isochrone`, `terrain_insights` | HostedTerrain | Yes |
 | `report.liveability` (crime, deprivation, transit modes, AM+PM travel times, peak_trips_per_hour, nearest_stop_name, crashes, amenities_500m) | HostedNeighbourhoodStats | Yes. Peak frequency shown with Excellent/Good/Limited badge. |
 | `report.environment` (air, water, climate, contamination, corrosion) | HostedNeighbourhoodStats | Yes |
-| `report.planning` (notable trees, parks, heritage, overlays, geotech, transmission_line_distance_m) | HostedNeighbourhoodStats | Yes. Transmission line warning if ≤500m (red/amber/info). |
+| `report.planning` (notable trees, parks, heritage, overlays, geotech, transmission_line_distance_m) | HostedNeighbourhoodStats | Yes. Transmission line warning if ≤500m. Heritage: context labels for 50+/10+ items. Cycle paths: quality labels (excellent ≥10km, good ≥3km). Amenities: shows fallback message when 0. |
 | `report.comparisons` (suburb + city benchmarks) | HostedNeighbourhoodStats | Yes |
 | `rates_data` (total_rates, rates_breakdown) | HostedNeighbourhoodStats | Yes (Full only). Annual rates card with breakdown. |
 | `census_demographics, census_households, census_commute` | HostedDemographics (isFull=true) | Yes. Population, age, commute (free), income, tenure, ethnicity, internet (Full). |
