@@ -970,6 +970,22 @@ export function MapContainer() {
         )}
 
         {/* Property popup — hidden on mobile, hidden when viewing the same address's report */}
+        {/* Persistent address label on pin (like Google Maps) — shown when popup is hidden */}
+        {!showPopup && selectedAddress && pinVisible && bp !== 'mobile' && (
+          <Marker
+            longitude={selectedAddress.lng}
+            latitude={selectedAddress.lat}
+            anchor="left"
+            offset={[12, 0]}
+          >
+            <div className="bg-background/95 backdrop-blur border border-border rounded-md px-2 py-1 shadow-sm pointer-events-none">
+              <p className="text-xs font-medium text-foreground whitespace-nowrap max-w-[200px] truncate">
+                {selectedAddress.fullAddress.split(',')[0]}
+              </p>
+            </div>
+          </Marker>
+        )}
+
         {showPopup && selectedAddress && bp !== 'mobile' && (
           <Popup
             longitude={selectedAddress.lng}
