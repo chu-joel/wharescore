@@ -23,7 +23,7 @@ import { TIMING } from '@/lib/animations';
 import { MapLayerChipBar } from './MapLayerChipBar';
 import { MapLegend } from './MapLegend';
 import { MapStylePicker } from './MapStylePicker';
-import { MapPopup } from './MapPopup';
+// MapPopup removed — click goes straight to report
 import { MapControls } from './MapControls';
 import { MapPin } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -231,16 +231,14 @@ export function MapContainer() {
 
   const currentBasemap = getBasemapStyle(baseStyleId);
 
-  const [showPopup, setShowPopup] = useState(false);
+  // showPopup removed — no popup, just pin + address label
   const [pinVisible, setPinVisible] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
   const [popupOverlayLines, setPopupOverlayLines] = useState<string[]>([]);
   const prevAddressRef = useRef<number | null>(null);
-  const showPopupRef = useRef(false);
+  // showPopupRef removed
 
-  // Keep ref in sync so callbacks don't need showPopup in deps
-  useEffect(() => { showPopupRef.current = showPopup; }, [showPopup]);
 
   // Keyboard shortcut: L to open layer picker
   useEffect(() => {
@@ -270,8 +268,7 @@ export function MapContainer() {
 
   const activeLayerIds = useMemo(() => activeLayerEntries.map((e) => e.id), [activeLayerEntries]);
 
-  // flyTo when a new address is selected (from search bar — goes straight to full popup)
-  // Offset center so popup (above pin) is visible — pad bottom for mobile drawer, top for popup height
+  // flyTo when a new address is selected (from search bar)
   useEffect(() => {
     if (!selectedAddress || !mapRef.current) return;
     if (prevAddressRef.current === selectedAddress.addressId) return;
@@ -279,12 +276,10 @@ export function MapContainer() {
 
     const map = mapRef.current.getMap();
     setPinVisible(false);
-    setShowPopup(false);
 
-    // Padding: top accounts for header+popup, bottom for mobile drawer peek
     const isMobile = window.innerWidth < 640;
     const padding = isMobile
-      ? { top: 60, bottom: 240, left: 20, right: 20 }   // header + drawer peek
+      ? { top: 60, bottom: 240, left: 20, right: 20 }
       : { top: 80, bottom: 40, left: 20, right: 20 };
 
     if (prefersReducedMotion()) {
@@ -294,7 +289,6 @@ export function MapContainer() {
         padding,
       });
       setPinVisible(true);
-      setShowPopup(true);
     } else {
       map.flyTo({
         center: [selectedAddress.lng, selectedAddress.lat],
@@ -305,12 +299,7 @@ export function MapContainer() {
       });
 
       const pinTimer = setTimeout(() => setPinVisible(true), TIMING.POST_SELECT_PIN_DELAY);
-      const popupTimer = setTimeout(() => setShowPopup(true), TIMING.POST_SELECT_SHEET_DELAY);
-
-      return () => {
-        clearTimeout(pinTimer);
-        clearTimeout(popupTimer);
-      };
+      return () => clearTimeout(pinTimer);
     }
   }, [selectedAddress]);
 
@@ -360,7 +349,7 @@ export function MapContainer() {
 
   const handleViewReport = useCallback(
     (addressId: number) => {
-      setShowPopup(false);
+      // popup removed
       if (isOnPropertyPage) {
         // Different property on property page — navigate to it
         router.push(`/property/${addressId}`);
@@ -374,9 +363,7 @@ export function MapContainer() {
     [router, isOnPropertyPage, currentPageAddressId, setShowUpgradeModal, persona],
   );
 
-  const handlePopupClose = useCallback(() => {
-    setShowPopup(false);
-  }, []);
+
 
   // Cache which layer IDs exist on the map
   const validLayerIdsRef = useRef<string[]>([]);
@@ -437,9 +424,7 @@ export function MapContainer() {
           selectAddress({ addressId, fullAddress, lng, lat });
           selectProperty(addressId, lng, lat);
           prevAddressRef.current = addressId;
-          setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
           setPinVisible(true);
-          setShowPopup(true);
           // Pan to center the popup in the visible area
           const isMobile = window.innerWidth < 640;
           map.easeTo({
@@ -484,9 +469,7 @@ export function MapContainer() {
             selectAddress({ addressId, fullAddress, lng, lat });
             selectProperty(addressId, lng, lat);
             prevAddressRef.current = addressId;
-            setPopupOverlayLines(getOverlayLinesAtPoint(map, e.point));
             setPinVisible(true);
-            setShowPopup(true);
             // Pan to center the popup in the visible area
             const isMobileB = window.innerWidth < 640;
             map.easeTo({
@@ -501,11 +484,8 @@ export function MapContainer() {
         }
       }
 
-      if (showPopupRef.current) {
-        setShowPopup(false);
-      }
     },
-    [selectAddress, selectProperty, getOverlayLinesAtPoint],
+    [selectAddress, selectProperty],
   );
 
   // Hover tooltip — throttled to avoid excessive state updates
@@ -935,76 +915,39 @@ export function MapContainer() {
           );
         })()}
 
-        {/* Selected property marker — full pin when popup visible, small dot when report is open */}
+        {/* Selected property pin + address label */}
         {selectedAddress && pinVisible && (
-          <Marker
-            longitude={selectedAddress.lng}
-            latitude={selectedAddress.lat}
-            anchor={showPopup ? 'bottom' : 'center'}
-            onClick={() => {
-              if (!selectedAddress) return;
-              selectProperty(selectedAddress.addressId, selectedAddress.lng, selectedAddress.lat);
-              setShowPopup(true);
-            }}
-          >
-            {showPopup ? (
-              <div className="relative cursor-pointer">
+          <>
+            <Marker
+              longitude={selectedAddress.lng}
+              latitude={selectedAddress.lat}
+              anchor="bottom"
+            >
+              <div className="relative animate-bounce-in">
                 <div className="absolute -inset-3 flex items-center justify-center">
                   <div className="w-6 h-6 rounded-full bg-piq-primary/30 animate-pulse-ring" />
                 </div>
-                <div className="animate-bounce-in">
-                  <MapPin
-                    className="h-9 w-9 text-piq-primary drop-shadow-lg"
-                    fill="currentColor"
-                    strokeWidth={1.5}
-                  />
-                </div>
+                <MapPin
+                  className="h-8 w-8 text-piq-primary drop-shadow-lg"
+                  fill="currentColor"
+                  strokeWidth={1.5}
+                />
               </div>
-            ) : (
-              /* Small indicator dot when report is open / popup dismissed */
-              <div className="cursor-pointer">
-                <div className="w-3.5 h-3.5 rounded-full bg-piq-primary border-2 border-white shadow-md" />
+            </Marker>
+            {/* Address label next to pin */}
+            <Marker
+              longitude={selectedAddress.lng}
+              latitude={selectedAddress.lat}
+              anchor="left"
+              offset={[16, -16]}
+            >
+              <div className="bg-background/95 backdrop-blur border border-border rounded-md px-2 py-1 shadow-sm pointer-events-none">
+                <p className="text-xs font-medium text-foreground whitespace-nowrap max-w-[220px] truncate">
+                  {selectedAddress.fullAddress.split(',')[0]}
+                </p>
               </div>
-            )}
-          </Marker>
-        )}
-
-        {/* Property popup — hidden on mobile, hidden when viewing the same address's report */}
-        {/* Persistent address label on pin (like Google Maps) — shown when popup is hidden */}
-        {!showPopup && selectedAddress && pinVisible && bp !== 'mobile' && (
-          <Marker
-            longitude={selectedAddress.lng}
-            latitude={selectedAddress.lat}
-            anchor="left"
-            offset={[12, 0]}
-          >
-            <div className="bg-background/95 backdrop-blur border border-border rounded-md px-2 py-1 shadow-sm pointer-events-none">
-              <p className="text-xs font-medium text-foreground whitespace-nowrap max-w-[200px] truncate">
-                {selectedAddress.fullAddress.split(',')[0]}
-              </p>
-            </div>
-          </Marker>
-        )}
-
-        {showPopup && selectedAddress && bp !== 'mobile' && (
-          <Popup
-            longitude={selectedAddress.lng}
-            latitude={selectedAddress.lat}
-            anchor="bottom"
-            offset={[0, 20] as [number, number]}
-            closeOnClick={true}
-            onClose={handlePopupClose}
-          >
-            <div className="animate-slide-up-fade">
-              <MapPopup
-                addressId={selectedAddress.addressId}
-                onViewReport={handleViewReport}
-                onClose={handlePopupClose}
-                overlayLines={popupOverlayLines}
-                ctaLabel={isOnPropertyPage ? 'Get Report' : undefined}
-              />
-            </div>
-          </Popup>
+            </Marker>
+          </>
         )}
       </Map>
 
