@@ -56,9 +56,12 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // When a property is selected, always snap to full
+  // When a property is selected, always snap to full + reset scroll
   useEffect(() => {
-    if (hasSelection) setSnapId('full');
+    if (hasSelection) {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      setSnapId('full');
+    }
   }, [hasSelection]);
 
   // Listen for "snap to full" events
@@ -147,6 +150,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
     // Tap without drag — cycle: mini→peek→full, full→peek→mini
     if (!hasMoved.current) {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
       setSnapId((prev) => {
         const idx = SNAP_ORDER.indexOf(prev);
         return idx < SNAP_ORDER.length - 1 ? SNAP_ORDER[idx + 1] : 'peek';
@@ -184,8 +188,8 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
     setSnapId(target);
 
-    // Reset scroll when going below full
-    if (target !== 'full' && contentRef.current) {
+    // Always reset scroll when changing snap — prevents stuck-at-bottom
+    if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
   }, [vh, snapId]);
