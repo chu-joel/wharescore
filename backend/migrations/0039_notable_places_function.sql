@@ -1,6 +1,6 @@
 -- 0039: Martin function for notable places on the map
--- Shows supermarkets, schools, parks, pharmacies, etc at high zoom
--- Cafes/restaurants limited to 20 per tile to prevent flooding
+-- Shows supermarkets, schools, parks, museums, pharmacies, etc at high zoom
+-- Schools from proper schools table (2,568). Cafes/food limited per tile.
 
 CREATE OR REPLACE FUNCTION notable_places(z integer, x integer, y integer)
 RETURNS bytea
@@ -16,37 +16,64 @@ BEGIN
   SELECT ST_AsMVT(q, 'notable_places', 4096, 'geom') INTO result
   FROM (
     SELECT * FROM (
-      -- Essentials (priority 1)
+      -- Priority 1: Essentials
       SELECT COALESCE(oa.brand, oa.name, initcap(oa.subcategory)) AS label,
         oa.subcategory AS kind, 1 AS priority,
         ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true) AS geom
       FROM osm_amenities oa
       WHERE oa.geom && ST_Transform(bounds, 4326)
-        AND oa.subcategory IN ('supermarket', 'hospital', 'school')
+        AND oa.subcategory IN ('supermarket', 'hospital')
       UNION ALL
-      -- Health (priority 2)
+      -- Priority 1b: Schools from proper schools table (2,568 vs 56 in OSM)
+      SELECT s.org_name, 'school'::text, 1,
+        ST_AsMVTGeom(ST_Transform(s.geom, 3857), bounds, 4096, 64, true)
+      FROM schools s
+      WHERE s.geom && ST_Transform(bounds, 4326)
+      UNION ALL
+      -- Priority 2: Health
       SELECT COALESCE(oa.name, initcap(oa.subcategory)), oa.subcategory, 2,
         ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true)
       FROM osm_amenities oa
       WHERE oa.geom && ST_Transform(bounds, 4326)
         AND oa.subcategory IN ('pharmacy', 'doctors')
       UNION ALL
-      -- Green space (priority 3)
+      -- Priority 3: Green space + family
       SELECT COALESCE(oa.name, initcap(oa.subcategory)), oa.subcategory, 3,
         ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true)
       FROM osm_amenities oa
       WHERE oa.geom && ST_Transform(bounds, 4326)
-        AND oa.subcategory IN ('park', 'playground')
+        AND oa.subcategory IN ('park', 'playground', 'zoo')
       UNION ALL
-      -- Community (priority 4)
+      -- Priority 3b: Culture + landmarks
+      SELECT COALESCE(oa.name, initcap(oa.subcategory)), oa.subcategory, 3,
+        ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true)
+      FROM osm_amenities oa
+      WHERE oa.geom && ST_Transform(bounds, 4326)
+        AND oa.subcategory IN ('museum', 'gallery', 'cinema', 'theatre', 'university')
+        AND oa.name IS NOT NULL AND oa.name != ''
+      UNION ALL
+      -- Priority 4: Community + transport
       SELECT COALESCE(oa.name, initcap(oa.subcategory)), oa.subcategory, 4,
         ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true)
       FROM osm_amenities oa
       WHERE oa.geom && ST_Transform(bounds, 4326)
-        AND oa.subcategory IN ('library', 'community_centre', 'charging_station', 'sports_centre', 'swimming_pool')
+        AND oa.subcategory IN ('library', 'community_centre', 'charging_station',
+                               'sports_centre', 'swimming_pool', 'fitness_centre')
       UNION ALL
-      -- Food (priority 5, limited to prevent flooding)
+      -- Priority 5: Services (limited)
       SELECT label, kind, 5, geom FROM (
+        SELECT COALESCE(oa.brand, oa.name, initcap(oa.subcategory)) AS label,
+          oa.subcategory AS kind,
+          ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true) AS geom
+        FROM osm_amenities oa
+        WHERE oa.geom && ST_Transform(bounds, 4326)
+          AND oa.subcategory IN ('fuel', 'bank')
+          AND oa.name IS NOT NULL AND oa.name != ''
+        LIMIT 15
+      ) svc
+      UNION ALL
+      -- Priority 6: Food (limited)
+      SELECT label, kind, 6, geom FROM (
         SELECT COALESCE(oa.name, initcap(oa.subcategory)) AS label,
           oa.subcategory AS kind,
           ST_AsMVTGeom(ST_Transform(oa.geom, 3857), bounds, 4096, 64, true) AS geom
@@ -54,7 +81,7 @@ BEGIN
         WHERE oa.geom && ST_Transform(bounds, 4326)
           AND oa.subcategory IN ('cafe', 'restaurant')
           AND oa.name IS NOT NULL AND oa.name != ''
-        LIMIT 20
+        LIMIT 15
       ) food
     ) all_places
   ) q
