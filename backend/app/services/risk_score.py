@@ -381,7 +381,8 @@ def enrich_with_scores(report: dict) -> dict:
 
     # Hazards — only include indicators where we have actual data.
     # NULL raw data = "no data for this location", not "confirmed safe".
-    indicators["flood"] = severity_flood(haz.get("flood"))
+    if haz.get("flood") is not None:
+        indicators["flood"] = severity_flood(haz["flood"])
     if haz.get("tsunami_zone_class") is not None:
         indicators["tsunami"] = SEVERITY_TSUNAMI.get(haz["tsunami_zone_class"], 0)
     if haz.get("liquefaction") is not None:
@@ -389,7 +390,8 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["earthquake"] = normalize_min_max(haz.get("earthquake_count_30km"), 0, 50)
     if haz.get("coastal_exposure") is not None:
         indicators["coastal_erosion"] = SEVERITY_COASTAL_EXPOSURE.get(haz["coastal_exposure"], 0)
-    indicators["wind"] = severity_wind(haz.get("wind_zone"))
+    if haz.get("wind_zone") is not None:
+        indicators["wind"] = severity_wind(haz["wind_zone"])
     indicators["wildfire"] = normalize_min_max(haz.get("wildfire_vhe_days"), 0, 30)
     indicators["epb"] = normalize_min_max(haz.get("epb_count_300m"), 0, 15)
     if haz.get("slope_failure") is not None:
@@ -608,7 +610,8 @@ def enrich_with_scores(report: dict) -> dict:
 
     # Environment
     indicators["noise"] = normalize_min_max(env.get("road_noise_db"), 40, 75)
-    indicators["air_quality"] = SEVERITY_AIR_QUALITY.get(env.get("air_pm10_trend"), 30)
+    if env.get("air_pm10_trend") is not None:
+        indicators["air_quality"] = SEVERITY_AIR_QUALITY.get(env["air_pm10_trend"], 30)
     indicators["water_quality"] = worst_water_band(env)
     indicators["climate"] = normalize_min_max(env.get("climate_temp_change"), 0, 3.0)
     indicators["contaminated_land"] = contamination_score(
