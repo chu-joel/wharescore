@@ -114,6 +114,16 @@ export function PropertySummaryCard({
             <p className="text-sm text-muted-foreground mt-0.5">
               {address.suburb}, {address.city}
             </p>
+            {(() => {
+              const titleType = (report as unknown as Record<string, unknown>)?.property && ((report as unknown as Record<string, unknown>).property as Record<string, unknown>)?.title_type as string;
+              const buildingUse = (report as unknown as Record<string, unknown>)?.property && ((report as unknown as Record<string, unknown>).property as Record<string, unknown>)?.building_use as string;
+              const propType = (titleType && titleType !== 'Unknown' ? titleType : null) || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
+              return propType ? (
+                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-medium">
+                  {propType}
+                </span>
+              ) : null;
+            })()}
           </div>
           <div className="flex gap-1.5 shrink-0 items-center">
             {pdf.shareUrl ? (

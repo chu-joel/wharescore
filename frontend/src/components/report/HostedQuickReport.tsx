@@ -64,6 +64,11 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
 
   const cv = report.property.capital_value;
   const buildingArea = report.property.building_area_sqm;
+  const rawProp = (snapshot.report?.property ?? {}) as Record<string, unknown>;
+  const titleType = rawProp.title_type as string;
+  const buildingUse = rawProp.building_use as string;
+  const propertyType = (titleType && titleType !== 'Unknown' ? titleType : null)
+    || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
 
   // AI bottom line
   const ai = snapshot.ai_insights as { bottom_line?: string; key_takeaways?: string[] } | null;
@@ -119,6 +124,11 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
 
           {/* Key stats pills */}
           <div className="flex flex-wrap justify-center gap-2 pt-2">
+            {propertyType && (
+              <span className="px-3 py-1.5 rounded-lg bg-piq-primary/10 border border-piq-primary/20 text-xs font-medium text-piq-primary">
+                {propertyType}
+              </span>
+            )}
             {cv && (
               <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
                 CV {formatCurrency(cv)}
