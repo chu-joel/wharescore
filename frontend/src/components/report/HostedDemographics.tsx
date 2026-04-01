@@ -9,12 +9,12 @@ interface Props {
 }
 
 function pct(num: number | null, total: number | null): string {
-  if (!num || !total || total === 0) return '-';
+  if (!num || !total || total === 0) return '\u2013';
   return `${Math.round((num / total) * 100)}%`;
 }
 
 function fmt(n: number | null | undefined): string {
-  if (n == null) return '-';
+  if (n == null) return '\u2013';
   return n.toLocaleString();
 }
 
@@ -126,7 +126,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
             )}
           </div>
           <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-amber-700">{demo?.median_age ?? '-'}</div>
+            <div className="text-2xl font-bold text-amber-700">{demo?.median_age ?? '\u2013'}</div>
             <div className="text-xs text-amber-600">Median Age</div>
             {demo?.population_2023 && demo.age_65_plus != null && (
               <div className="text-xs text-muted-foreground mt-0.5">
@@ -165,7 +165,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               </div>
               <div className={`rounded-lg p-2.5 text-center ${(biz.employee_growth_pct ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/30 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'}`}>
                 <div className={`text-lg font-bold ${(biz.employee_growth_pct ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {(biz.employee_growth_pct ?? 0) >= 0 ? '+' : ''}{biz.employee_growth_pct?.toFixed(1) ?? '-'}%
+                  {(biz.employee_growth_pct ?? 0) >= 0 ? '+' : ''}{biz.employee_growth_pct?.toFixed(1) ?? '\u2013'}%
                 </div>
                 <div className="text-xs text-muted-foreground">Job growth/yr</div>
               </div>
@@ -199,7 +199,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               <StatRow label="Homeownership rate" value={pct(hh.tenure_owned, hh.tenure_total)} />
               <StatRow label="Renting" value={pct(hh.tenure_not_owned, hh.tenure_total)} />
               <StatRow label="Family trust" value={pct(hh.tenure_family_trust, hh.tenure_total)} />
-              {hh.rent_median && <StatRow label="Census median rent" value={`$${hh.rent_median}/wk`} />}
+              {hh.rent_median && <StatRow label="Census median (2023)" value={`$${hh.rent_median}/wk`} />}
               {hh.hh_crowded != null && hh.hh_total && (
                 <StatRow label="Crowded households" value={pct(hh.hh_crowded, hh.hh_total)} />
               )}
@@ -251,7 +251,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
       </div>
 
       <div className="px-5 py-2 bg-muted/50 border-t border-border">
-        <p className="text-xs text-muted-foreground/70">Source: Stats NZ Census 2023. CC BY 4.0.</p>
+        <p className="text-xs text-muted-foreground/70">Source: Stats NZ Census 2023 (latest available). CC BY 4.0.</p>
       </div>
     </section>
   );

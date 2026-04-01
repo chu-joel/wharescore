@@ -280,6 +280,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 </div>
               </div>
             )}
+            <p className="text-xs text-muted-foreground/70 mt-1">Source: GTFS schedules, updated regularly.</p>
           </CollapsibleGroup>
         )}
 
@@ -307,7 +308,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   <div>
                     <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Contaminated Land</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} within 2 km`}.
+                      {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} in area (2km)`}.
                       {contamCat && ` Category: ${contamCat}.`}
                     </p>
                   </div>
@@ -320,7 +321,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               <div>
                 <h4 className="text-sm font-semibold mb-1">Geotechnical Reports</h4>
                 <p className="text-xs text-muted-foreground">
-                  {geotechCount} geotech report{geotechCount > 1 ? 's' : ''} filed within 500m.
+                  {geotechCount} geotech report{geotechCount > 1 ? 's' : ''} filed nearby (500m).
                   {geotechHazard && ` Nearest report hazard: ${geotechHazard}.`}
                   {' '}Existing reports can indicate known ground conditions and save on investigation costs.
                 </p>
@@ -361,37 +362,37 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {cf.nearest_ev_charger && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">EV Charger</span>
-                      <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} within 5km)` : ''}</span>
+                      <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} wider area (5km))` : ''}</span>
                     </div>
                   )}
                   {(cf.libraries_2km ?? 0) > 0 && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Libraries</span>
-                      <span className="text-muted-foreground text-xs">{cf.libraries_2km} within 2km</span>
+                      <span className="text-muted-foreground text-xs">{cf.libraries_2km} local (2km)</span>
                     </div>
                   )}
                   {(cf.sports_facilities_2km ?? 0) > 0 && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Sports / Pools</span>
-                      <span className="text-muted-foreground text-xs">{cf.sports_facilities_2km} within 2km</span>
+                      <span className="text-muted-foreground text-xs">{cf.sports_facilities_2km} local (2km)</span>
                     </div>
                   )}
                   {(cf.playgrounds_2km ?? 0) > 0 && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Playgrounds</span>
-                      <span className="text-muted-foreground text-xs">{cf.playgrounds_2km} within 2km</span>
+                      <span className="text-muted-foreground text-xs">{cf.playgrounds_2km} local (2km)</span>
                     </div>
                   )}
                   {(cf.community_centres_2km ?? 0) > 0 && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Community Centres</span>
-                      <span className="text-muted-foreground text-xs">{cf.community_centres_2km} within 2km</span>
+                      <span className="text-muted-foreground text-xs">{cf.community_centres_2km} local (2km)</span>
                     </div>
                   )}
                   {(cf.cycling_facilities_2km ?? 0) > 0 && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Cycling (parking/rental/repair)</span>
-                      <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} within 2km</span>
+                      <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} local (2km)</span>
                     </div>
                   )}
                   {cf.cycleway_km_2km != null && cf.cycleway_km_2km > 0 && (
@@ -445,10 +446,10 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               );
             })()}
 
-            {/* Amenities within 500m */}
+            {/* Amenities nearby (500m) */}
             {amenityItems.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold mb-2">Amenities within 500m</h4>
+                <h4 className="text-sm font-semibold mb-2">Amenities nearby (500m)</h4>
                 <div className="space-y-1.5">
                   {amenityItems.map((a) => (
                     <div key={a.name} className="flex items-center gap-2">
@@ -464,8 +465,8 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
             )}
             {amenityItems.length === 0 && Object.keys(amenities500m).length === 0 && essentials.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold mb-1">Amenities within 500m</h4>
-                <p className="text-xs text-muted-foreground">No commercial amenities mapped within 500m. Nearest essentials shown above.</p>
+                <h4 className="text-sm font-semibold mb-1">Amenities nearby (500m)</h4>
+                <p className="text-xs text-muted-foreground">No commercial amenities mapped nearby (500m). Nearest essentials shown above.</p>
               </div>
             )}
           </CollapsibleGroup>
@@ -551,7 +552,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {heritageListed && <p className="font-medium text-amber-700">This property is heritage-listed.</p>}
                   {heritageCount > 0 && (
                     <p>
-                      {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} within 500m
+                      {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} nearby (500m)
                       {heritageCount >= 50
                         ? ' — dense heritage area. Development restrictions likely apply to surrounding buildings.'
                         : heritageCount >= 10
@@ -570,12 +571,12 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <h4 className="text-sm font-semibold mb-1">Green Space & Trees</h4>
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   {notableTreeCount > 0 && (
-                    <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} within 50m.
+                    <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} nearby (50m).
                       {notableTreeNearest?.name && ` Nearest: ${notableTreeNearest.name}${notableTreeNearest.tree_type ? ` (${notableTreeNearest.tree_type})` : ''}.`}
                       {' '}Protected trees cannot be removed — check before planning building work.
                     </p>
                   )}
-                  {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} within 500m.</p>}
+                  {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} nearby (500m).</p>}
                 </div>
               </div>
             )}
@@ -602,7 +603,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                         ? 'Very close proximity. May affect property value, building restrictions, and insurance. Check Transpower corridor requirements.'
                         : transmissionDist <= 200
                           ? 'Nearby transmission infrastructure. Consider potential EMF exposure and building height restrictions.'
-                          : 'Transmission line within 500m. Generally low impact at this distance.'}
+                          : 'Transmission line nearby (500m). Generally low impact at this distance.'}
                     </p>
                   </div>
                 </div>
@@ -656,28 +657,28 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                     <tr className="border-b border-border/50">
                       <td className="py-1.5 pr-2 text-muted-foreground">Avg Deprivation</td>
                       {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.avg_nzdep?.toFixed(1)}</td>}
-                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_nzdep?.toFixed(1) ?? '—'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_nzdep?.toFixed(1) ?? '\u2013'}</td>}
                     </tr>
                   )}
                   {(suburbAvg?.school_count_1500m != null || cityAvg?.avg_school_count_1500m != null) && (
                     <tr className="border-b border-border/50">
                       <td className="py-1.5 pr-2 text-muted-foreground">Schools (1.5km)</td>
-                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.school_count_1500m ?? '—'}</td>}
-                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_school_count_1500m?.toFixed(0) ?? '—'}</td>}
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.school_count_1500m ?? '\u2013'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_school_count_1500m?.toFixed(0) ?? '\u2013'}</td>}
                     </tr>
                   )}
                   {(suburbAvg?.transit_count_400m != null || cityAvg?.avg_transit_count_400m != null) && (
                     <tr className="border-b border-border/50">
                       <td className="py-1.5 pr-2 text-muted-foreground">Transit (400m)</td>
-                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.transit_count_400m ?? '—'}</td>}
-                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_transit_count_400m?.toFixed(0) ?? '—'}</td>}
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.transit_count_400m ?? '\u2013'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_transit_count_400m?.toFixed(0) ?? '\u2013'}</td>}
                     </tr>
                   )}
                   {(suburbAvg?.max_noise_db != null || cityAvg?.avg_noise_db != null) && (
                     <tr className="border-b border-border/50">
                       <td className="py-1.5 pr-2 text-muted-foreground">Road Noise (dB)</td>
-                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.max_noise_db?.toFixed(0) ?? '—'}</td>}
-                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_noise_db?.toFixed(0) ?? '—'}</td>}
+                      {suburbAvg && <td className="py-1.5 px-2 text-center font-medium">{suburbAvg.max_noise_db?.toFixed(0) ?? '\u2013'}</td>}
+                      {cityAvg && <td className="py-1.5 px-2 text-center font-medium">{cityAvg.avg_noise_db?.toFixed(0) ?? '\u2013'}</td>}
                     </tr>
                   )}
                 </tbody>

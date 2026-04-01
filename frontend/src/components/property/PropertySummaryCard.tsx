@@ -2,27 +2,15 @@
 
 import { useState } from 'react';
 import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
 
-import type { PropertyReport, RatingBin } from '@/lib/types';
+import type { PropertyReport } from '@/lib/types';
 import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
-
-function ratingVariant(rating: RatingBin) {
-  const map: Record<RatingBin, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    'very-low': 'default',
-    'low': 'default',
-    'moderate': 'secondary',
-    'high': 'destructive',
-    'very-high': 'destructive',
-  };
-  return map[rating];
-}
 
 function StreetViewLink({ lat, lng }: { lat: number; lng: number }) {
   const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
@@ -183,9 +171,6 @@ export function PropertySummaryCard({
               </div>
               <div className="flex-1">
                 <p className="text-base font-semibold">{bin.label} Risk</p>
-                <Badge variant={ratingVariant(scores.rating)} className="mt-1">
-                  Score: {Math.round(scores.overall)}/100
-                </Badge>
                 {coverage && (
                   <p className="text-xs text-muted-foreground mt-1.5">
                     {coverage.available} of {coverage.total} risk checks available

@@ -49,10 +49,10 @@ export function HostedAtAGlance({ report }: Props) {
   ];
 
   const statusConfig = {
-    good: { icon: <CircleCheck className="h-4 w-4" />, color: 'text-piq-success', bg: 'bg-green-100 dark:bg-green-900/20' },
-    moderate: { icon: <CircleMinus className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-yellow-100 dark:bg-yellow-900/20' },
-    concern: { icon: <AlertTriangle className="h-4 w-4" />, color: 'text-risk-high', bg: 'bg-red-100 dark:bg-red-900/20' },
-    unknown: { icon: <Shield className="h-4 w-4" />, color: 'text-muted-foreground', bg: 'bg-muted' },
+    good: { icon: <CircleCheck className="h-4 w-4" />, color: 'text-piq-success', bg: 'bg-green-100 dark:bg-green-900/20', suffix: 'OK' },
+    moderate: { icon: <CircleMinus className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-yellow-100 dark:bg-yellow-900/20', suffix: 'Watch' },
+    concern: { icon: <AlertTriangle className="h-4 w-4" />, color: 'text-risk-high', bg: 'bg-red-100 dark:bg-red-900/20', suffix: 'Risk' },
+    unknown: { icon: <Shield className="h-4 w-4" />, color: 'text-muted-foreground', bg: 'bg-muted', suffix: '?' },
   };
 
   return (
@@ -74,6 +74,7 @@ export function HostedAtAGlance({ report }: Props) {
                 >
                   {cfg.icon}
                   {item.label}
+                  <span className="opacity-70 text-[10px]">({cfg.suffix})</span>
                 </div>
               );
             })}
@@ -92,6 +93,7 @@ export function HostedAtAGlance({ report }: Props) {
                 >
                   {cfg.icon}
                   {item.label}
+                  <span className="opacity-70 text-[10px]">({cfg.suffix})</span>
                 </div>
               );
             })}

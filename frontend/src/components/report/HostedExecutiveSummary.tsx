@@ -194,7 +194,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         {persona === 'renter' && medianRent && (
           <div className="rounded-lg border border-border bg-piq-primary/5 p-3 mb-5">
             <p className="text-sm">
-              <span className="font-medium text-muted-foreground">Median rent: </span>
+              <span className="font-medium text-muted-foreground">Market rent estimate: </span>
               <span className="font-bold text-piq-primary">${medianRent}/wk</span>
               <span className="text-muted-foreground"> for this area</span>
               {market?.trend?.cagr_1yr != null && (
@@ -208,7 +208,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         {persona === 'buyer' && rentBand?.baseline && rentBand.bandLow > 0 && (
           <div className="rounded-lg border border-border bg-piq-primary/5 p-3 mb-5">
             <p className="text-sm">
-              <span className="font-medium text-muted-foreground">Expected rent: </span>
+              <span className="font-medium text-muted-foreground">Market rent estimate: </span>
               <span className="font-bold text-piq-primary">${rentBand.bandLow}–${rentBand.bandHigh}/wk</span>
               <span className="text-muted-foreground"> ({formatCurrency(Math.round((rentBand.bandLow + rentBand.bandHigh) / 2 * 52))}/yr)</span>
               {market?.trend?.cagr_1yr != null && (

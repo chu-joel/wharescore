@@ -104,16 +104,16 @@ function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; high
             {schools.map((s) => (
               <tr key={s.name} className={`border-b border-border/50 last:border-0 ${highlight ? 'bg-green-50/50 dark:bg-green-950/5' : ''}`}>
                 <td className="py-2 pr-2 font-medium text-xs">{s.name}</td>
-                <td className="py-2 pr-2 text-xs text-muted-foreground">{s.type || '—'}</td>
-                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.decile ?? '—'}</td>
+                <td className="py-2 pr-2 text-xs text-muted-foreground">{s.type || '\u2013'}</td>
+                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.decile ?? '\u2013'}</td>
                 <td className="py-2 pr-2 text-center">
                   {s.eqi ? (
                     <span className={`text-xs font-semibold ${eqiColor(s.eqi)}`}>{s.eqi}</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-xs text-muted-foreground">{'\u2013'}</span>
                   )}
                 </td>
-                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.roll?.toLocaleString() ?? '—'}</td>
+                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.roll?.toLocaleString() ?? '\u2013'}</td>
                 <td className="py-2 text-right text-xs text-muted-foreground">{Math.round(s.distance_m)} m</td>
               </tr>
             ))}

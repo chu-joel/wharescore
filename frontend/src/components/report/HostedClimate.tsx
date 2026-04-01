@@ -76,22 +76,22 @@ export function HostedClimate({ snapshot }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-red-50 rounded-lg p-2.5 text-center">
             <Thermometer className="w-4 h-4 text-red-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-red-600">{hottestMonth?.temp_max ?? '-'}&deg;</div>
+            <div className="text-lg font-bold text-red-600">{hottestMonth?.temp_max ?? '\u2013'}&deg;</div>
             <div className="text-xs text-red-500">Warmest ({MONTH_NAMES[(hottestMonth?.month ?? 1) - 1]})</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-2.5 text-center">
             <Thermometer className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-blue-600">{coldestMonth?.temp_min ?? '-'}&deg;</div>
+            <div className="text-lg font-bold text-blue-600">{coldestMonth?.temp_min ?? '\u2013'}&deg;</div>
             <div className="text-xs text-blue-500">Coldest ({MONTH_NAMES[(coldestMonth?.month ?? 1) - 1]})</div>
           </div>
           <div className="bg-cyan-50 rounded-lg p-2.5 text-center">
             <CloudRain className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
-            <div className="text-lg font-bold text-cyan-600">{annualRain ?? '-'}</div>
+            <div className="text-lg font-bold text-cyan-600">{annualRain ?? '\u2013'}</div>
             <div className="text-xs text-cyan-500">mm rain/year</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-2.5 text-center">
             <Wind className="w-4 h-4 text-muted-foreground/70 mx-auto mb-1" />
-            <div className="text-lg font-bold text-muted-foreground">{avg(allMonths.map(d => d.wind_speed_mean)) ?? '-'}</div>
+            <div className="text-lg font-bold text-muted-foreground">{avg(allMonths.map(d => d.wind_speed_mean)) ?? '\u2013'}</div>
             <div className="text-xs text-muted-foreground">km/h avg wind</div>
           </div>
         </div>
@@ -132,7 +132,7 @@ export function HostedClimate({ snapshot }: Props) {
       </div>
 
       <div className="px-5 py-2 bg-muted/50 border-t border-border">
-        <p className="text-xs text-muted-foreground/70">Source: Open-Meteo Climate API (EC-Earth3P-HR model, 2010-2019 average).</p>
+        <p className="text-xs text-muted-foreground/70">Source: Open-Meteo Climate API (EC-Earth3P-HR model, 10-year average 2010-2019).</p>
       </div>
     </section>
   );
@@ -172,10 +172,10 @@ function SeasonalSummary({ seasons }: { seasons: SeasonData[] }) {
           <div key={s.name} className="rounded-lg bg-muted/30 p-2.5 text-xs">
             <div className="font-medium text-foreground mb-1">{s.name}{s.name === seasons[currentIdx].name ? ' (now)' : ''}</div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-              <span>High: <span className="font-medium text-foreground">{s.tempMax ?? '-'}&deg;</span></span>
-              <span>Low: <span className="font-medium text-foreground">{s.tempMin ?? '-'}&deg;</span></span>
-              <span>Rain: <span className="font-medium text-foreground">{s.rainfall ?? '-'}mm</span></span>
-              <span>Wind: <span className="font-medium text-foreground">{s.wind ?? '-'}km/h</span></span>
+              <span>High: <span className="font-medium text-foreground">{s.tempMax ?? '\u2013'}&deg;</span></span>
+              <span>Low: <span className="font-medium text-foreground">{s.tempMin ?? '\u2013'}&deg;</span></span>
+              <span>Rain: <span className="font-medium text-foreground">{s.rainfall ?? '\u2013'}mm</span></span>
+              <span>Wind: <span className="font-medium text-foreground">{s.wind ?? '\u2013'}km/h</span></span>
             </div>
           </div>
         ))}
@@ -197,11 +197,11 @@ function SeasonalSummary({ seasons }: { seasons: SeasonData[] }) {
             {visibleSeasons.map(s => (
               <tr key={s.name} className="border-b border-border/50">
                 <td className="py-1.5 font-medium text-foreground">{s.name}{s.name === seasons[currentIdx].name ? ' (now)' : ''}</td>
-                <td className="text-right text-muted-foreground">{s.tempMax ?? '-'}&deg;</td>
-                <td className="text-right text-muted-foreground">{s.tempMin ?? '-'}&deg;</td>
-                <td className="text-right text-muted-foreground">{s.rainfall ?? '-'}mm</td>
-                <td className="text-right text-muted-foreground">{s.rainDays ?? '-'}/mo</td>
-                <td className="text-right text-muted-foreground">{s.wind ?? '-'}km/h</td>
+                <td className="text-right text-muted-foreground">{s.tempMax ?? '\u2013'}&deg;</td>
+                <td className="text-right text-muted-foreground">{s.tempMin ?? '\u2013'}&deg;</td>
+                <td className="text-right text-muted-foreground">{s.rainfall ?? '\u2013'}mm</td>
+                <td className="text-right text-muted-foreground">{s.rainDays ?? '\u2013'}/mo</td>
+                <td className="text-right text-muted-foreground">{s.wind ?? '\u2013'}km/h</td>
               </tr>
             ))}
           </tbody>
