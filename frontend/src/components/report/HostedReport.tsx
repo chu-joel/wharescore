@@ -168,7 +168,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             )}
             {report.coverage && (
               <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
-                {report.coverage.label || `${report.coverage.available} sources checked`}
+                {`${report.coverage.available} sources checked`}
               </span>
             )}
             {snapshot.terrain?.elevation_m != null && (

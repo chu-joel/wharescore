@@ -1220,6 +1220,33 @@ async def compute_rent_advice(
     band_low = round(raw_median * min(product_low, product_high) * 0.99)
     band_high = round(raw_median * max(product_low, product_high) * 1.01)
 
+    # --- IQR guardrails ---
+    # Use bond quartiles to reality-check band width.
+    # Q1/Q3 are for this exact SA2 + dwelling type + bedroom count,
+    # so the IQR represents actual like-for-like rent variation.
+    lq = baseline.get("lower_quartile")
+    uq = baseline.get("upper_quartile")
+    iqr = (uq - lq) if (lq is not None and uq is not None) else None
+
+    if iqr and iqr > 0:
+        # Cap: band can't be wider than the IQR — we can't claim more
+        # spread than the market actually exhibits for this property type
+        if (band_high - band_low) > iqr:
+            mid = (band_low + band_high) / 2
+            band_low = round(mid - iqr / 2)
+            band_high = round(mid + iqr / 2)
+
+        # Floor: if we haven't analysed many factors, the band should
+        # reflect our ignorance. More factors analysed → tighter band OK.
+        # With 0/27 factors → min_width = IQR (full market spread).
+        # With 27/27 factors → min_width = 0 (adjustments explain everything).
+        coverage = factors_analysed / factors_available if factors_available > 0 else 0
+        min_width = iqr * (1 - coverage)
+        if (band_high - band_low) < min_width:
+            mid = (band_low + band_high) / 2
+            band_low = round(mid - min_width / 2)
+            band_high = round(mid + min_width / 2)
+
     # --- Verdict (relative to band) ---
     if weekly_rent is None:
         verdict = None
@@ -1277,6 +1304,12 @@ async def compute_rent_advice(
     # --- Confidence ---
     stars = market_confidence_stars(baseline["bond_count"], None, None)
 
+    # Reduce confidence when estimate is far outside observed quartile range
+    if iqr and iqr > 0:
+        band_mid = (band_low + band_high) / 2
+        if band_mid < lq - iqr or band_mid > uq + iqr:
+            stars = max(1, stars - 1)
+
     # Sort adjustments: hazards first, then location, then property features
     cat_order = {"hazard": 0, "location": 1, "property": 2}
     adjustments.sort(key=lambda a: (cat_order.get(a.get("category", ""), 3), -abs(a["pct_high"])))
@@ -1298,6 +1331,11 @@ async def compute_rent_advice(
         "confidence": stars,
         "bond_count": baseline["bond_count"],
         "data_source": baseline["data_source"],
+        "market_quartiles": {
+            "lower": round(lq) if lq is not None else None,
+            "upper": round(uq) if uq is not None else None,
+            "iqr": round(iqr) if iqr is not None else None,
+        },
         "sa2_name": sa2["sa2_name"],
         "disclaimer": (
             "This estimate is based on MBIE bond records, council valuation data, "

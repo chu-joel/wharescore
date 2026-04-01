@@ -114,6 +114,14 @@ echo "$ALL_FILES" | grep -q 'AdminAuthGate.tsx' && \
   ! echo "$ALL_FILES" | grep -q 'docs/SYSTEM-FLOWS.md' && \
   MISSING="${MISSING}\n- AdminAuthGate changed: update docs/SYSTEM-FLOWS.md Admin-auth if gate logic changed"
 
+echo "$ALL_FILES" | grep -q 'rent_advisor.py' && \
+  ! echo "$ALL_FILES" | grep -q 'FAIR-PRICE-ENGINE.md' && \
+  MISSING="${MISSING}\n- rent_advisor.py changed: update FAIR-PRICE-ENGINE.md if estimation logic changed"
+
+echo "$ALL_FILES" | grep -q 'price_advisor.py' && \
+  ! echo "$ALL_FILES" | grep -q 'FAIR-PRICE-ENGINE.md' && \
+  MISSING="${MISSING}\n- price_advisor.py changed: update FAIR-PRICE-ENGINE.md if estimation logic changed"
+
 echo "$ALL_FILES" | grep -qE 'migrations/00' && \
   ! echo "$ALL_FILES" | grep -qE 'docs/' && \
   MISSING="${MISSING}\n- migration changed: update relevant docs (DATA-CATALOG.md tables, WIRING-TRACES.md traces)"

@@ -145,6 +145,16 @@ fair_rent_high  = upper_quartile_rent (75th percentile)
 
 The IQR naturally captures variation due to unobserved property characteristics (age, condition, features). A property in good condition should be near Q3; average near the median; lower condition near Q1.
 
+**IQR guardrails on the adjustment-derived band:**
+
+After the rent advisor computes a band from median × stacked adjustments, the IQR is used as a reality check:
+
+1. **Band width cap:** The band cannot be wider than the IQR. We can't claim more spread than the market actually exhibits for this SA2 + dwelling type + bedroom count.
+2. **Minimum band width:** If few adjustment factors have been analysed, the band is widened to reflect ignorance. Formula: `min_width = IQR × (1 - factors_analysed / factors_available)`. With 0/27 factors → full IQR width. With 27/27 → no minimum.
+3. **Confidence reduction:** If the band midpoint falls more than 1 IQR beyond Q1 or Q3, confidence stars are reduced by 1 (min 1★). The estimate is preserved but flagged as uncertain.
+
+These guardrails don't change the point estimate — they constrain uncertainty width and signal confidence.
+
 **Example — 2-bed flat in SA2 252500 (Te Aro), Q3 2025:**
 - Lower quartile: $550/week
 - Median: $610/week
