@@ -24,7 +24,7 @@ const FAQ = [
   },
   {
     q: 'Why is some data missing for my property?',
-    a: 'We cover Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson with council-specific data. National datasets (earthquakes, schools, crime, heritage) cover all of NZ. Some councils publish more data than others — the coverage badge on each report shows how many data layers are available for your address.',
+    a: 'We cover Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson with council-specific data. National datasets (earthquakes, schools, crime, heritage) cover all of NZ. Some councils publish more data than others — the coverage badge on each report shows how many risk checks are available for your address.',
   },
   {
     q: 'How much does WhareScore cost?',

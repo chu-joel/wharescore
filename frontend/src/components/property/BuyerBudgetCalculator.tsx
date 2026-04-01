@@ -280,9 +280,9 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
       <p className="text-xs text-muted-foreground">
         {isMultiUnit && unitCount > 1
           ? alreadyPerUnit
-            ? `Unit CV ${formatCurrency(estimatedUnitCv!)} (from rates). `
-            : `Building CV ${formatCurrency(cv!)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
-          : `Based on CV of ${formatCurrency(cv!)}. `}
+            ? `Unit valuation ${formatCurrency(estimatedUnitCv!)} (from rates). `
+            : `Building valuation ${formatCurrency(cv!)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
+          : `Based on valuation of ${formatCurrency(cv!)}. `}
         P&I mortgage. Rates, insurance{isMultiUnit ? ', body corp' : ''} &amp; utilities are estimates — adjust sliders to match.
       </p>
     </div>

@@ -79,7 +79,7 @@ export function DataLayersAccordion({ coverage, compact }: DataLayersAccordionPr
       <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
         <div className="flex items-center gap-2 mb-2">
           <Layers className="h-3.5 w-3.5 text-piq-primary shrink-0" />
-          <span className="text-xs font-medium">{totalWithBonus} data layers available for this property</span>
+          <span className="text-xs font-medium">{totalWithBonus} risk checks available for this property</span>
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {CATEGORY_ORDER.map((cat) => {

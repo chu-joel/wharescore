@@ -187,7 +187,7 @@ export function PropertySummaryCard({
                 </Badge>
                 {coverage && (
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    {coverage.available} of {coverage.total} data layers available
+                    {coverage.available} of {coverage.total} risk checks available
                   </p>
                 )}
               </div>
@@ -216,7 +216,7 @@ export function PropertySummaryCard({
                     <>
                       {perUnit
                         ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
-                        : <>CV {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
+                        : <>Valuation {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
                       {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                       {cvIsLive && <span className="text-muted-foreground font-normal">live</span>}
                     </>

@@ -76,8 +76,11 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          {isHostedQuick ? 'Upgrade to Full Report' : `Unlock full report — ${isPro ? '$4.99' : '$9.99'}`}
+          {isHostedQuick ? 'Upgrade to Full Report' : `See all ${findings.length + 2} findings`}
         </p>
+        {!isHostedQuick && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">In the full report</p>
+        )}
       </button>
     </div>
   );

@@ -129,9 +129,9 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     return 'Some historic land use concerns nearby.';
   }
   if (n.includes('nzdep') || n.includes('deprivation')) {
-    if (isGood) return 'Low deprivation area — better services and lower crime.';
-    if (isBad) return 'Higher deprivation area — fewer services, higher social need.';
-    return 'Average deprivation level for New Zealand.';
+    if (isGood) return 'Low deprivation index — better services and lower crime.';
+    if (isBad) return 'Higher deprivation index — fewer services, higher social need.';
+    return 'Average deprivation index for New Zealand.';
   }
   if (n.includes('school')) {
     if (isGood) return 'Good school access — multiple options nearby.';

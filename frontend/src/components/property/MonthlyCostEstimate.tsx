@@ -113,7 +113,7 @@ export function MonthlyCostEstimate({ report }: MonthlyCostEstimateProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Based on CV of {formatCurrency(cv)}. 30yr P&I mortgage. Rates and insurance are estimates.
+        Based on valuation of {formatCurrency(cv)}. 30yr P&I mortgage. Rates and insurance are estimates.
       </p>
     </div>
   );

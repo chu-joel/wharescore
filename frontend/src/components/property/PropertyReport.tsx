@@ -174,7 +174,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
                 rel="noopener noreferrer"
                 className="inline-block text-xs font-medium text-red-700 underline hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
               >
-                Check MBIE EPB Register →
+                Check building safety register →
               </a>
             </div>
           </div>
@@ -394,7 +394,7 @@ function ReportSkeleton() {
         </div>
 
         <p className="text-xs text-muted-foreground text-center">
-          Scanning 40+ data layers across government databases
+          Checking 40+ government risk factors
         </p>
       </div>
     </div>

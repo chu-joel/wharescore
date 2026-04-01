@@ -98,7 +98,7 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
     case 'true-cost': {
       if (report.property.capital_value) {
         const cv = report.property.capital_value;
-        chips.push({ label: `CV $${cv >= 1000000 ? (cv / 1000000).toFixed(1) + 'M' : (cv / 1000).toFixed(0) + 'k'}`, variant: 'blue' });
+        chips.push({ label: `Valuation $${cv >= 1000000 ? (cv / 1000000).toFixed(1) + 'M' : (cv / 1000).toFixed(0) + 'k'}`, variant: 'blue' });
       }
       if (m.rent_assessment?.median && report.property.capital_value) {
         const grossYield = (m.rent_assessment.median * 52 / report.property.capital_value) * 100;
@@ -226,7 +226,7 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
     case 'true-cost': {
       const parts: string[] = [];
       if (report.property.capital_value) {
-        parts.push(`CV $${(report.property.capital_value / 1000).toFixed(0)}k`);
+        parts.push(`Valuation $${(report.property.capital_value / 1000).toFixed(0)}k`);
       }
       if (m.rent_assessment?.median) {
         const annualRent = m.rent_assessment.median * 52;

@@ -28,14 +28,14 @@ export const metadata: Metadata = {
     template: "%s | WhareScore",
   },
   description:
-    "Free NZ property intelligence for buyers and renters. Search any address for flood, earthquake & tsunami risk, school zones, crime stats, fair rent estimate, neighbourhood demographics, climate data, and 40+ government data layers. Generate a full interactive report instantly.",
+    "Free NZ property intelligence for buyers and renters. Search any address for flood, earthquake & tsunami risk, school zones, crime stats, fair rent estimate, neighbourhood demographics, climate data, and 40+ government risk checks. Generate a full interactive report instantly.",
   openGraph: {
     type: "website",
     locale: "en_NZ",
     siteName: "WhareScore",
     title: "WhareScore — Everything the listing doesn't tell you",
     description:
-      "Free NZ property report for buyers & renters. Hazard risk scores, school zones, fair rent, neighbourhood demographics, climate — 40+ data layers for any NZ address.",
+      "Free NZ property report for buyers & renters. Hazard risk scores, school zones, fair rent, neighbourhood demographics, climate — 40+ risk checks for any NZ address.",
     url: siteUrl,
     images: [
       {
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "WhareScore — NZ Property Intelligence",
     description:
-      "Free NZ property report — hazard scores, school zones, fair rent, demographics, climate. 40+ data layers for any address.",
+      "Free NZ property report — hazard scores, school zones, fair rent, demographics, climate. 40+ risk checks for any address.",
     images: ["/og-image.png"],
   },
   icons: {
