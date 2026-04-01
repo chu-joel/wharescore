@@ -190,7 +190,7 @@ function RenterFields({ addressId }: { addressId: number }) {
             ))}
           </div>
           {finishTier && (
-            <p className="text-[10px] text-muted-foreground mt-1 italic">
+            <p className="text-xs text-muted-foreground mt-1 italic">
               {FINISH_TIERS.find(t => t.value === finishTier)?.desc}
             </p>
           )}
@@ -222,13 +222,13 @@ function RenterFields({ addressId }: { addressId: number }) {
           </Pill>
         </div>
         {isFurnished === true && !isPartiallyFurnished && (
-          <p className="text-[10px] text-muted-foreground mt-1 italic">Fully furnished with beds, couch, appliances, kitchenware</p>
+          <p className="text-xs text-muted-foreground mt-1 italic">Fully furnished with beds, couch, appliances, kitchenware</p>
         )}
         {!!isPartiallyFurnished && (
-          <p className="text-[10px] text-muted-foreground mt-1 italic">Some furniture provided (e.g. whiteware only, or beds but no couch)</p>
+          <p className="text-xs text-muted-foreground mt-1 italic">Some furniture provided (e.g. whiteware only, or beds but no couch)</p>
         )}
         {isFurnished === false && !isPartiallyFurnished && (
-          <p className="text-[10px] text-muted-foreground mt-1 italic">Empty — you bring everything</p>
+          <p className="text-xs text-muted-foreground mt-1 italic">Empty — you bring everything</p>
         )}
       </div>
 
@@ -400,7 +400,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
             ))}
           </div>
           {buyerFinishTier && (
-            <p className="text-[10px] text-muted-foreground mt-1 italic">
+            <p className="text-xs text-muted-foreground mt-1 italic">
               {FINISH_TIERS.find(t => t.value === buyerFinishTier)?.desc}
             </p>
           )}
@@ -602,7 +602,7 @@ export function ReportConfirmModal() {
               <Zap className="h-3.5 w-3.5 text-piq-primary" />
               <span className="text-xs font-semibold">Quick Report</span>
             </div>
-            <p className="text-[10px] text-muted-foreground">8 key sections, 30-day link</p>
+            <p className="text-xs text-muted-foreground">8 key sections, 30-day link</p>
             <p className="text-xs font-bold text-piq-success mt-1">Free</p>
           </button>
           <button
@@ -618,7 +618,7 @@ export function ReportConfirmModal() {
               <Sparkles className="h-3.5 w-3.5 text-piq-primary" />
               <span className="text-xs font-semibold">Full Report</span>
             </div>
-            <p className="text-[10px] text-muted-foreground">25+ sections, permanent link</p>
+            <p className="text-xs text-muted-foreground">25+ sections, permanent link</p>
             <p className="text-xs font-bold mt-1">
               {hasFullCredits ? (
                 <span className="text-piq-success">Use credit</span>

@@ -111,7 +111,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
             <div key={s.label} className="rounded-lg bg-muted/40 border border-border p-2.5 text-center">
               <div className="flex justify-center mb-1 text-muted-foreground">{s.icon}</div>
               <p className="text-sm font-bold tabular-nums">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</p>
             </div>
           ))}
         </div>
@@ -148,7 +148,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
               insuranceLevel === 'Low' ? 'text-green-700' : insuranceLevel === 'Moderate' ? 'text-amber-700' : 'text-red-700'
             }`}>{insuranceLevel}</p>
             {insuranceFactors.length > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 May face excess or exclusions for {insuranceFactors.join(', ').toLowerCase()}.
               </p>
             )}
@@ -217,7 +217,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
                 </span>
               )}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               For {storeBedrooms ?? '2'}-bed {snapshot.meta.dwelling_type.toLowerCase()} · {rentBand.baseline.bond_count} recent bonds in {snapshot.meta.sa2_name}
             </p>
           </div>

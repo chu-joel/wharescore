@@ -175,7 +175,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
       <div className="rounded-xl border border-dashed border-border p-3.5 opacity-50">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">{indicator.name}</span>
-          <Badge variant="outline" className="text-[10px]">No data</Badge>
+          <Badge variant="outline" className="text-xs">No data</Badge>
         </div>
       </div>
     );
@@ -189,7 +189,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
             <RiskIcon rating={indicator.rating} />
             <span className="text-sm font-semibold">{indicator.name}</span>
           </div>
-          <Badge variant={badgeVariant(indicator.rating)} className="text-[11px] sm:text-xs shrink-0">
+          <Badge variant={badgeVariant(indicator.rating)} className="text-xs sm:text-xs shrink-0">
             {indicator.value}
           </Badge>
         </div>
@@ -208,7 +208,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
               }}
             />
           </div>
-          <span className="text-[11px] font-medium text-muted-foreground tabular-nums w-7 text-right">
+          <span className="text-xs font-medium text-muted-foreground tabular-nums w-7 text-right">
             {Math.round(indicator.score)}
           </span>
         </div>
@@ -216,7 +216,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
         {indicator.source && (
           <Tooltip>
             <TooltipTrigger
-              className="text-[11px] text-muted-foreground/70 mt-1.5 cursor-default block text-left"
+              className="text-xs text-muted-foreground/70 mt-1.5 cursor-default block text-left"
             >
               {indicator.source}
             </TooltipTrigger>

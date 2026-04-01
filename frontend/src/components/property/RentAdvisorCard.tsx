@@ -284,7 +284,7 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
             />
             <span className="text-xs text-muted-foreground">
               Property is <span className="font-medium text-risk-high">not insulated</span>
-              <span className="text-[10px] opacity-70 ml-1">(required by Healthy Homes Standards)</span>
+              <span className="text-xs opacity-70 ml-1">(required by Healthy Homes Standards)</span>
             </span>
           </label>
 
@@ -345,7 +345,7 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
                     ))}
                   </div>
                   {hiddenCount > 0 && (
-                    <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
                       {hiddenCount} more factor{hiddenCount > 1 ? 's' : ''} in full report
                     </p>
                   )}
@@ -362,13 +362,13 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
                 <p className="text-xs font-medium text-piq-primary">
                   Full breakdown in your report
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   All {result.factors_analysed} factors · area context · negotiation advice · insurance flags
                 </p>
               </button>
 
               {/* Footer */}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{result.bond_count} bonds · {result.sa2_name}</span>
                 <span className="text-[9px]">MBIE bond data + council records</span>
               </div>
@@ -389,7 +389,7 @@ function HazardFlags({ adjustments }: { adjustments: RentAdjustment[] }) {
       {hazards.map((h) => (
         <span
           key={h.factor}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
+          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
         >
           <AlertTriangle className="w-2.5 h-2.5" />
           {h.label}
@@ -443,7 +443,7 @@ function AdjustmentRow({ adj, median }: { adj: RentAdjustment; median: number })
         />
       </div>
       {/* Range */}
-      <span className="text-[10px] tabular-nums font-medium text-right w-[70px] shrink-0">
+      <span className="text-xs tabular-nums font-medium text-right w-[70px] shrink-0">
         {adj.pct_low === adj.pct_high
           ? `${adj.pct_low > 0 ? '+' : ''}${adj.pct_low}%`
           : `${adj.pct_low > 0 ? '+' : ''}${adj.pct_low} to ${adj.pct_high > 0 ? '+' : ''}${adj.pct_high}%`}
@@ -459,7 +459,7 @@ function AreaContextRow({ ctx }: { ctx: RentAreaContext }) {
   return (
     <div className="flex items-center gap-2">
       {/* Direction arrow */}
-      <span className={`text-[10px] w-3 text-center shrink-0 ${
+      <span className={`text-xs w-3 text-center shrink-0 ${
         isHazard ? 'text-risk-high' :
         ctx.direction === 'up' ? 'text-piq-success' :
         ctx.direction === 'down' ? 'text-piq-accent-warm' :
@@ -482,7 +482,7 @@ function AreaContextRow({ ctx }: { ctx: RentAreaContext }) {
         />
       </div>
       {/* Description */}
-      <span className="text-[10px] text-muted-foreground shrink-0 max-w-[140px] truncate">
+      <span className="text-xs text-muted-foreground shrink-0 max-w-[140px] truncate">
         {ctx.description}
       </span>
     </div>

@@ -110,7 +110,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
                 <span className="text-xs font-semibold">
                   {Math.round(report.coverage.percentage)}% confidence
                 </span>
-                <span className="text-[10px] text-piq-primary/70">
+                <span className="text-xs text-piq-primary/70">
                   ({formatCoverage(report.coverage.available, report.coverage.total)} indicators)
                 </span>
               </div>

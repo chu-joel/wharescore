@@ -41,19 +41,19 @@ export function HostedInfrastructure({ rawReport }: Props) {
       <div className="px-5 pb-5 space-y-2">
         {sorted.map((p, i) => (
           <div key={`${p.name}-${i}`} className="flex items-start gap-3 rounded-lg border border-border/50 p-2.5">
-            <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold ${SECTOR_COLORS[p.sector] ?? 'bg-gray-100 text-gray-600'}`}>
+            <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-semibold ${SECTOR_COLORS[p.sector] ?? 'bg-gray-100 text-gray-600'}`}>
               {p.sector}
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{p.name}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {p.distance_km != null && `${p.distance_km.toFixed(1)} km away`}
                 {p.status && ` · ${p.status}`}
               </p>
             </div>
           </div>
         ))}
-        <p className="text-[10px] text-muted-foreground pt-1">
+        <p className="text-xs text-muted-foreground pt-1">
           Source: NZ Infrastructure Commission, council long-term plans.
         </p>
       </div>

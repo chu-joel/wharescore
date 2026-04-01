@@ -393,7 +393,7 @@ function ReportSkeleton() {
           })}
         </div>
 
-        <p className="text-[10px] text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center">
           Scanning 40+ data layers across government databases
         </p>
       </div>

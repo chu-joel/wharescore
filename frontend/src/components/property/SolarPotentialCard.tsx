@@ -52,7 +52,7 @@ export function SolarPotentialCard({ meanKwh, maxKwh }: SolarPotentialCardProps)
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Based on rooftop solar irradiance data
       </p>
     </div>

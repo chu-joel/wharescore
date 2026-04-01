@@ -333,16 +333,16 @@ export default function AccountPage() {
                               day: 'numeric', month: 'short', year: 'numeric',
                             })}
                           </span>
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize">
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize">
                             {report.persona}
                           </span>
                           {isQuick && (
-                            <span className="rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold">
+                            <span className="rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 text-xs font-semibold">
                               Quick
                             </span>
                           )}
                           {isFull && (
-                            <span className="rounded-full bg-piq-primary/10 text-piq-primary px-2 py-0.5 text-[10px] font-semibold">
+                            <span className="rounded-full bg-piq-primary/10 text-piq-primary px-2 py-0.5 text-xs font-semibold">
                               Full
                             </span>
                           )}

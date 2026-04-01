@@ -33,7 +33,7 @@ export function AirQualityCard({ trend, site, distanceM }: AirQualityCardProps) 
       <div className="flex items-center gap-2 mb-3">
         <Wind className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Air Quality</span>
-        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Regional</span>
+        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Regional</span>
       </div>
 
       <div className="flex items-baseline gap-2 mb-2">
@@ -59,7 +59,7 @@ export function AirQualityCard({ trend, site, distanceM }: AirQualityCardProps) 
         </p>
       )}
 
-      <p className="text-[10px] text-muted-foreground mt-2 italic">
+      <p className="text-xs text-muted-foreground mt-2 italic">
         Only 72 LAWA monitoring sites exist nationwide. This is a regional trend, not a property-specific reading.
       </p>
     </div>

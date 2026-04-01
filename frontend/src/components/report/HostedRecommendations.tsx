@@ -66,17 +66,17 @@ export function HostedRecommendations({ snapshot, persona }: Props) {
         </p>
         <div className="flex gap-2 mt-2">
           {criticalCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
               {criticalCount} Critical
             </span>
           )}
           {importantCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
               {importantCount} Important
             </span>
           )}
           {advisoryCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
               {advisoryCount} Advisory
             </span>
           )}

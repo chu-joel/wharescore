@@ -44,7 +44,7 @@ export function AffordabilityGauge({ ratio }: AffordabilityGaugeProps) {
         <div className="absolute top-0 bottom-0 left-[40%] w-px bg-foreground/20" />
       </div>
 
-      <div className="flex justify-between text-[10px] text-muted-foreground">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>0%</span>
         <span>30%</span>
         <span>40%</span>

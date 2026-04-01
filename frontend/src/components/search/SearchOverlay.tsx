@@ -57,12 +57,12 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search any NZ address..."
-          className="flex-1 border-0 shadow-none focus-visible:ring-0"
+          className="flex-1 border-0 shadow-none focus-visible:ring-0 h-12"
           maxLength={200}
         />
         <button
           onClick={closeOverlay}
-          className="text-sm text-piq-primary font-medium shrink-0 px-2"
+          className="text-sm text-piq-primary font-medium shrink-0 px-3 py-2 min-h-[44px] flex items-center"
         >
           Cancel
         </button>
@@ -76,7 +76,7 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
               <li key={result.address_id}>
                 <button
                   onClick={() => handleSelect(result)}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-4 text-left hover:bg-muted active:bg-muted/75 transition-colors"
                 >
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">

@@ -46,7 +46,7 @@ export function SavedProperties() {
                 <span className="text-sm truncate flex-1">{item.fullAddress}</span>
                 {bin && (
                   <Badge
-                    className="text-[10px] text-white shrink-0"
+                    className="text-xs text-white shrink-0"
                     style={{ backgroundColor: bin.color }}
                   >
                     {Math.round(item.score!)}

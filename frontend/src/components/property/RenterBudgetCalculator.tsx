@@ -172,7 +172,7 @@ export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) 
         >
           {overridesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           Adjust estimates
-          {r.roomOnly && <span className="ml-auto text-[10px]">Shared costs split by {r.householdSize}</span>}
+          {r.roomOnly && <span className="ml-auto text-xs">Shared costs split by {r.householdSize}</span>}
         </button>
 
         {overridesOpen && (
@@ -238,7 +238,7 @@ export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) 
         )}
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Based on Stats NZ averages. {r.roomOnly ? 'Shared costs divided by household size.' : ''} Adjust to match your situation.
       </p>
     </div>
@@ -300,12 +300,12 @@ function OverrideInput({
       <span className="text-xs text-muted-foreground w-24">{label}</span>
       <span className="flex-1 text-xs font-medium tabular-nums">
         {formatCurrency(shown)}/mo
-        {isShared && <span className="text-muted-foreground ml-1 text-[10px]">(your share)</span>}
-        {value !== null && <span className="text-piq-primary ml-1 text-[10px]">(custom)</span>}
+        {isShared && <span className="text-muted-foreground ml-1 text-xs">(your share)</span>}
+        {value !== null && <span className="text-piq-primary ml-1 text-xs">(custom)</span>}
       </span>
       <button
         onClick={() => { setInputVal(String(value ?? defaultValue)); setEditing(true); }}
-        className="text-[10px] text-piq-primary hover:underline"
+        className="text-xs text-piq-primary hover:underline"
       >
         edit
       </button>

@@ -143,7 +143,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
           threshold={0}
         />
         {planning.notable_tree_nearest && planning.notable_tree_count_50m != null && planning.notable_tree_count_50m > 0 && (
-          <p className="text-[10px] text-muted-foreground pl-7 ml-1">
+          <p className="text-xs text-muted-foreground pl-7 ml-1">
             Nearest: {planning.notable_tree_nearest}
           </p>
         )}
@@ -173,7 +173,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
           </div>
         )}
         {planning.nearest_park_name && planning.nearest_park_distance_m != null && (
-          <p className="text-[10px] text-muted-foreground pl-7 ml-1">
+          <p className="text-xs text-muted-foreground pl-7 ml-1">
             Nearest: {planning.nearest_park_name} ({Math.round(planning.nearest_park_distance_m)}m)
           </p>
         )}

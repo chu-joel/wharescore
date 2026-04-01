@@ -312,7 +312,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               <div>
                 <p className="text-sm font-semibold">~{Math.round(peakTrips)} services/hr at peak</p>
                 {nearestStopName && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Nearest stop: {nearestStopName}
                   </p>
                 )}
@@ -512,21 +512,21 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               <div className="rounded-lg border border-border p-3 text-center">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Warming 2050</p>
                 <p className="text-sm font-bold mt-1">+{(typeof climateTemp === 'number' ? climateTemp.toFixed(1) : climateTemp)}°C</p>
-                <p className="text-[10px] text-muted-foreground">projected</p>
+                <p className="text-xs text-muted-foreground">projected</p>
               </div>
             )}
             {climatePrecip != null && (
               <div className="rounded-lg border border-border p-3 text-center">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Rainfall 2050</p>
                 <p className="text-sm font-bold mt-1">{climatePrecip > 0 ? '+' : ''}{(typeof climatePrecip === 'number' ? climatePrecip.toFixed(0) : climatePrecip)}%</p>
-                <p className="text-[10px] text-muted-foreground">change</p>
+                <p className="text-xs text-muted-foreground">change</p>
               </div>
             )}
             {solarMean && (
               <div className="rounded-lg border border-border p-3 text-center">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Solar Potential</p>
                 <p className="text-sm font-bold mt-1">{Math.round(solarMean)} kWh/yr</p>
-                <p className="text-[10px] text-muted-foreground">avg radiation</p>
+                <p className="text-xs text-muted-foreground">avg radiation</p>
               </div>
             )}
           </div>
@@ -550,7 +550,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Source: Council rates API. Amounts may differ from your actual rates notice.
             </p>
           </div>

@@ -71,22 +71,22 @@ export function HostedClimate({ snapshot }: Props) {
           <div className="bg-red-50 rounded-lg p-2.5 text-center">
             <Thermometer className="w-4 h-4 text-red-400 mx-auto mb-1" />
             <div className="text-lg font-bold text-red-600">{hottestMonth?.temp_max ?? '-'}&deg;</div>
-            <div className="text-[11px] text-red-500">Warmest ({MONTH_NAMES[(hottestMonth?.month ?? 1) - 1]})</div>
+            <div className="text-xs text-red-500">Warmest ({MONTH_NAMES[(hottestMonth?.month ?? 1) - 1]})</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-2.5 text-center">
             <Thermometer className="w-4 h-4 text-blue-400 mx-auto mb-1" />
             <div className="text-lg font-bold text-blue-600">{coldestMonth?.temp_min ?? '-'}&deg;</div>
-            <div className="text-[11px] text-blue-500">Coldest ({MONTH_NAMES[(coldestMonth?.month ?? 1) - 1]})</div>
+            <div className="text-xs text-blue-500">Coldest ({MONTH_NAMES[(coldestMonth?.month ?? 1) - 1]})</div>
           </div>
           <div className="bg-cyan-50 rounded-lg p-2.5 text-center">
             <CloudRain className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
             <div className="text-lg font-bold text-cyan-600">{annualRain ?? '-'}</div>
-            <div className="text-[11px] text-cyan-500">mm rain/year</div>
+            <div className="text-xs text-cyan-500">mm rain/year</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-2.5 text-center">
             <Wind className="w-4 h-4 text-muted-foreground/70 mx-auto mb-1" />
             <div className="text-lg font-bold text-muted-foreground">{avg(allMonths.map(d => d.wind_speed_mean)) ?? '-'}</div>
-            <div className="text-[11px] text-muted-foreground">km/h avg wind</div>
+            <div className="text-xs text-muted-foreground">km/h avg wind</div>
           </div>
         </div>
 
@@ -110,12 +110,12 @@ export function HostedClimate({ snapshot }: Props) {
                       style={{ bottom: `${bottom}%`, height: `${Math.max(height, 4)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-muted-foreground/70 mt-1">{MONTH_NAMES[i]}</span>
+                  <span className="text-xs text-muted-foreground/70 mt-1">{MONTH_NAMES[i]}</span>
                 </div>
               );
             })}
           </div>
-          <div className="flex justify-between text-[11px] text-muted-foreground/70 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground/70 mt-1">
             <span>{Math.round(tempMinAll)}&deg;C</span>
             <span>{Math.round(tempMax)}&deg;C</span>
           </div>
@@ -154,7 +154,7 @@ export function HostedClimate({ snapshot }: Props) {
       </div>
 
       <div className="px-5 py-2 bg-muted/50 border-t border-border">
-        <p className="text-[10px] text-muted-foreground/70">Source: Open-Meteo Climate API (EC-Earth3P-HR model, 2010-2019 average).</p>
+        <p className="text-xs text-muted-foreground/70">Source: Open-Meteo Climate API (EC-Earth3P-HR model, 2010-2019 average).</p>
       </div>
     </section>
   );

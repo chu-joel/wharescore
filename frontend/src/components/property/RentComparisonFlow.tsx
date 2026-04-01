@@ -169,7 +169,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
             >
               {value}
               {detection?.detected_type === value.toLowerCase() && (
-                <span className="text-[10px] ml-1 opacity-70">(detected)</span>
+                <span className="text-xs ml-1 opacity-70">(detected)</span>
               )}
             </button>
           ))}
@@ -237,7 +237,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
           <div className="rounded-lg border border-border p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold">Rental Market</span>
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-xs">
                 {assessment.bond_count} bonds
               </Badge>
             </div>

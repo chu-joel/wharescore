@@ -94,7 +94,7 @@ export function InvestmentMetrics({ report }: InvestmentMetricsProps) {
       <div className="grid grid-cols-2 gap-2.5">
         {metrics.map((m) => (
           <div key={m.label} className="rounded-lg bg-muted/30 p-3">
-            <p className="text-[10px] text-muted-foreground mb-1">{m.label}</p>
+            <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
             <p className="text-lg font-bold tabular-nums">{m.value}</p>
             {m.context && (
               <div className="mt-1.5">

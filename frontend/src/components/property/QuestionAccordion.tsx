@@ -96,7 +96,7 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
                       {chips.map((chip) => (
                         <span
                           key={chip.label}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${CHIP_STYLES[chip.variant]}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${CHIP_STYLES[chip.variant]}`}
                         >
                           {chip.label}
                         </span>

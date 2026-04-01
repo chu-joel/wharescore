@@ -173,7 +173,7 @@ function ActiveFaultDetailCard({ fault }: {
           </div>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2.5">Source: GNS Active Faults Database</p>
+      <p className="text-xs text-muted-foreground mt-2.5">Source: GNS Active Faults Database</p>
     </div>
   );
 }
@@ -216,7 +216,7 @@ function ContaminatedLandCard({ hazards }: { hazards: HazardData }) {
           <span className="font-semibold tabular-nums">{hazards.contamination_count}</span>
         </div>
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2.5">
+      <p className="text-xs text-muted-foreground mt-2.5">
         Check the regional council&apos;s Selected Land Use Register (SLUR) for categories and restrictions.
       </p>
     </div>
@@ -284,7 +284,7 @@ function LandslideDetailCard({ landslide, count }: {
           </div>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2.5">Source: GNS NZ Landslide Database</p>
+      <p className="text-xs text-muted-foreground mt-2.5">Source: GNS NZ Landslide Database</p>
     </div>
   );
 }

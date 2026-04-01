@@ -291,7 +291,7 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
                     <MethodologyRow key={step.step} step={step} />
                   ))}
                   {hiddenStepCount > 0 && (
-                    <p className="text-[10px] text-muted-foreground text-center">
+                    <p className="text-xs text-muted-foreground text-center">
                       {hiddenStepCount} more step{hiddenStepCount > 1 ? 's' : ''} in full report
                     </p>
                   )}
@@ -317,7 +317,7 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
                 ))}
               </div>
               {hiddenAdjCount > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                <p className="text-xs text-muted-foreground mt-2 text-center">
                   {hiddenAdjCount} more factor{hiddenAdjCount > 1 ? 's' : ''} in full report
                 </p>
               )}
@@ -337,13 +337,13 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
             <p className="text-xs font-medium text-piq-primary">
               Full breakdown in your report
             </p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Full methodology · all adjustments · hazard cost analysis · ownership costs · area context
             </p>
           </button>
 
           {/* Footer */}
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{result.sa2_name}</span>
             <span className="text-[9px]">CV + HPI + bond data</span>
           </div>
@@ -363,7 +363,7 @@ function MethodologyRow({ step }: { step: PriceMethodologyStep }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-5 h-5 rounded-full bg-piq-primary/10 text-piq-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+      <span className="w-5 h-5 rounded-full bg-piq-primary/10 text-piq-primary text-xs font-semibold flex items-center justify-center shrink-0">
         {step.step}
       </span>
       <span className="text-xs text-muted-foreground flex-1 min-w-0 truncate">
@@ -387,7 +387,7 @@ function HazardCostFlags({ flags }: { flags: HazardCostFlag[] }) {
         {flags.map((f) => (
           <span
             key={f.hazard}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
             title={f.description}
           >
             <AlertTriangle className="w-2.5 h-2.5" />
@@ -429,7 +429,7 @@ function AdjustmentRow({ adj }: { adj: PriceAdjustment }) {
           style={{ width: `${barPct}%` }}
         />
       </div>
-      <span className={`text-[10px] font-medium tabular-nums w-14 text-right shrink-0 ${isNegative ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
+      <span className={`text-xs font-medium tabular-nums w-14 text-right shrink-0 ${isNegative ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
         {shortDollar(adj.dollar_low)} to {shortDollar(adj.dollar_high)}
       </span>
     </div>

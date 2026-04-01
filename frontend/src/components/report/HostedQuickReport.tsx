@@ -87,7 +87,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
             <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snapshot.meta.full_address}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="px-2 py-0.5 rounded-full bg-piq-primary/10 text-piq-primary text-[10px] font-semibold">Quick</span>
+            <span className="px-2 py-0.5 rounded-full bg-piq-primary/10 text-piq-primary text-xs font-semibold">Quick</span>
             <button onClick={handleShare} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors" title="Copy link to clipboard">
               <Share2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
@@ -141,7 +141,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
             )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             <Calendar className="h-3 w-3 inline mr-1" />
             Generated {generatedDate}
           </p>
@@ -262,11 +262,11 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           <p className="text-xs text-muted-foreground">
             Quick Report generated {generatedDate} for {snapshot.meta.full_address}.
           </p>
-          <p className="text-[10px] text-muted-foreground leading-relaxed max-w-md mx-auto">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
             Based on publicly available government data. Not a registered valuation, appraisal, or legal document.
             Risk scores are indicative estimates. Obtain professional reports before making significant financial decisions.
           </p>
-          <p className="text-[10px] text-muted-foreground pt-1">
+          <p className="text-xs text-muted-foreground pt-1">
             <a href="https://wharescore.co.nz" className="text-piq-primary hover:underline">wharescore.co.nz</a>
           </p>
         </div>

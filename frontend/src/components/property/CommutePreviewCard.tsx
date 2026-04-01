@@ -37,7 +37,7 @@ export function CommutePreviewCard({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold">Morning commute</p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {peakTripsPerHour != null
               ? `~${Math.round(peakTripsPerHour)} services/hr · 7–9 AM`
               : '7–9 AM weekday schedule'}
@@ -63,13 +63,13 @@ export function CommutePreviewCard({
       </div>
 
       {hiddenCount > 0 && (
-        <p className="text-[10px] text-muted-foreground mt-2.5">
+        <p className="text-xs text-muted-foreground mt-2.5">
           + {hiddenCount} more destinations in the full report
         </p>
       )}
 
       {nearestStopName && (
-        <p className="text-[10px] text-muted-foreground/60 mt-1">
+        <p className="text-xs text-muted-foreground/60 mt-1">
           From {nearestStopName}
         </p>
       )}

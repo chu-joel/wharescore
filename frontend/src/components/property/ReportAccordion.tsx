@@ -88,7 +88,7 @@ export function ReportAccordion({ report, orderedSections, defaultOpenSection, l
                   <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 )}
                 <Badge
-                  className="ml-auto mr-2 text-[10px] text-white shrink-0 font-bold"
+                  className="ml-auto mr-2 text-xs text-white shrink-0 font-bold"
                   style={{ backgroundColor: color }}
                 >
                   {formatScore(category.score)}

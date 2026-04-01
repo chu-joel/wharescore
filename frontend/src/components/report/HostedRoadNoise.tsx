@@ -55,7 +55,7 @@ export function HostedRoadNoise({ snapshot }: Props) {
             <span className="text-xs text-muted-foreground">dB LAeq(24h)</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1.5">{description}</p>
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Source: Waka Kotahi / NZTA national road noise contours (state highways & arterials).
           </p>
         </div>

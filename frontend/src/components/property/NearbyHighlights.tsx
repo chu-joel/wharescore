@@ -40,7 +40,7 @@ export function NearbyHighlights({ addressId, schoolCount, transitCount }: Nearb
         {closest ? (
           <>
             <p className="text-xs font-semibold truncate" title={closest.name}>{closest.name}</p>
-            <p className="text-[11px] text-muted-foreground">{formatDistance(closest.distance_m)}</p>
+            <p className="text-xs text-muted-foreground">{formatDistance(closest.distance_m)}</p>
           </>
         ) : (
           <p className="text-xs text-muted-foreground">No data</p>
@@ -55,7 +55,7 @@ export function NearbyHighlights({ addressId, schoolCount, transitCount }: Nearb
         {schoolCount !== null ? (
           <>
             <p className="text-xs font-semibold">{schoolCount} school{schoolCount !== 1 ? 's' : ''}</p>
-            <p className="text-[11px] text-muted-foreground">within 1.5km</p>
+            <p className="text-xs text-muted-foreground">within 1.5km</p>
           </>
         ) : (
           <p className="text-xs text-muted-foreground">No data</p>
@@ -70,7 +70,7 @@ export function NearbyHighlights({ addressId, schoolCount, transitCount }: Nearb
         {transitCount !== null ? (
           <>
             <p className="text-xs font-semibold">{transitCount} stop{transitCount !== 1 ? 's' : ''}</p>
-            <p className="text-[11px] text-muted-foreground">within 400m</p>
+            <p className="text-xs text-muted-foreground">within 400m</p>
           </>
         ) : (
           <p className="text-xs text-muted-foreground">No data</p>

@@ -47,7 +47,7 @@ export function HostedSchoolZones({ snapshot }: Props) {
             <div className="flex justify-between items-start gap-2">
               <div className="min-w-0">
                 <span className="text-sm font-medium">{z.school_name}</span>
-                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                   <span>{typeLabel(z.institution_type)}</span>
                   {z.roll && <span>· Roll: {z.roll.toLocaleString()}</span>}
                   {z.eqi && <span>· EQI: {z.eqi}</span>}
@@ -64,7 +64,7 @@ export function HostedSchoolZones({ snapshot }: Props) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground mt-2">
+      <p className="text-xs text-muted-foreground mt-2">
         Source: Ministry of Education enrolment zone boundaries. Zones may change — verify with school.
       </p>
     </div>

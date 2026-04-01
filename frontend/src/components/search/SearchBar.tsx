@@ -194,7 +194,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           {/* Suburb results */}
           {suburbResults.length > 0 && (
             <>
-              <li className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
+              <li className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
                 Suburbs
               </li>
               {suburbResults.map((r, i) => (
@@ -222,7 +222,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
           {addressResults.length > 0 && (
             <>
               {suburbResults.length > 0 && (
-                <li className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
+                <li className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/50" role="presentation">
                   Addresses
                 </li>
               )}

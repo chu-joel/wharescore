@@ -66,7 +66,7 @@ export function BuildingInfoBanner({
                             <td className="py-1 px-2 truncate max-w-[180px]">
                               {sv.address}
                               {isCurrent && (
-                                <span className="text-[10px] text-piq-primary ml-1">(you)</span>
+                                <span className="text-xs text-piq-primary ml-1">(you)</span>
                               )}
                             </td>
                             <td className="py-1 px-2 text-right tabular-nums">
@@ -78,7 +78,7 @@ export function BuildingInfoBanner({
                   </tbody>
                 </table>
                 {siblingValuations.length > MAX_MINI_TABLE_ROWS && (
-                  <p className="text-[10px] text-muted-foreground px-2 py-1.5 border-t border-border">
+                  <p className="text-xs text-muted-foreground px-2 py-1.5 border-t border-border">
                     {siblingValuations.length - MAX_MINI_TABLE_ROWS} more units — see full comparison below
                   </p>
                 )}

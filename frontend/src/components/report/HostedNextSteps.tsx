@@ -102,7 +102,7 @@ export function HostedNextSteps({ persona, report }: Props) {
             key={card.title}
             className={`rounded-lg border-l-4 border border-border p-3 ${levelColors[card.level]}`}
           >
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+            <span className={`text-xs font-bold uppercase tracking-wider ${
               card.level === 'essential' ? 'text-piq-accent-warm' : card.level === 'recommended' ? 'text-piq-primary' : 'text-blue-500'
             }`}>
               {levelLabels[card.level]}

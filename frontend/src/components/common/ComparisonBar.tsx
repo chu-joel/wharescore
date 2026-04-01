@@ -155,7 +155,7 @@ export function ComparisonBar({
       <div className="flex items-start justify-between gap-2">
         <span className="text-xs font-semibold">{label}</span>
         {insight && (
-          <span className={`text-[10px] font-medium leading-tight text-right flex items-center gap-1 shrink-0 ${SENTIMENT_STYLES[insight.sentiment]}`}>
+          <span className={`text-xs font-medium leading-tight text-right flex items-center gap-1 shrink-0 ${SENTIMENT_STYLES[insight.sentiment]}`}>
             <span className={`inline-block w-1.5 h-1.5 rounded-full ${SENTIMENT_DOT[insight.sentiment]}`} />
             {insight.sentence}
           </span>
@@ -164,7 +164,7 @@ export function ComparisonBar({
 
       {/* Property value bar */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground w-14 shrink-0">This place</span>
+        <span className="text-xs text-muted-foreground w-14 shrink-0">This place</span>
         <div className="flex-1 h-4 bg-muted/30 rounded-sm overflow-hidden relative">
           <div
             className="h-full bg-piq-primary rounded-sm transition-all duration-500"
@@ -179,7 +179,7 @@ export function ComparisonBar({
       {/* Suburb average bar */}
       {suburbAvg !== null && suburbAvg > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-14 shrink-0">Suburb</span>
+          <span className="text-xs text-muted-foreground w-14 shrink-0">Suburb</span>
           <div className="flex-1 h-4 bg-muted/30 rounded-sm overflow-hidden relative">
             <div
               className="h-full bg-muted-foreground/25 rounded-sm transition-all duration-500"
@@ -195,7 +195,7 @@ export function ComparisonBar({
       {/* City average bar */}
       {cityAvg !== null && cityAvg > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground w-14 shrink-0">City</span>
+          <span className="text-xs text-muted-foreground w-14 shrink-0">City</span>
           <div className="flex-1 h-4 bg-muted/30 rounded-sm overflow-hidden relative">
             <div
               className="h-full bg-muted-foreground/15 rounded-sm transition-all duration-500"

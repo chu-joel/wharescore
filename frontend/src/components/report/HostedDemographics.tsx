@@ -157,17 +157,17 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-2.5 text-center">
                 <div className="text-lg font-bold text-blue-700">{fmt(biz.employee_count_2024)}</div>
-                <div className="text-[10px] text-blue-500">Jobs in area</div>
+                <div className="text-xs text-blue-500">Jobs in area</div>
               </div>
               <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-2.5 text-center">
                 <div className="text-lg font-bold text-purple-700">{fmt(biz.business_count_2024)}</div>
-                <div className="text-[10px] text-purple-500">Businesses</div>
+                <div className="text-xs text-purple-500">Businesses</div>
               </div>
               <div className={`rounded-lg p-2.5 text-center ${(biz.employee_growth_pct ?? 0) >= 0 ? 'bg-green-50 dark:bg-green-950/30 dark:bg-green-950/30' : 'bg-red-50 dark:bg-red-950/30'}`}>
                 <div className={`text-lg font-bold ${(biz.employee_growth_pct ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   {(biz.employee_growth_pct ?? 0) >= 0 ? '+' : ''}{biz.employee_growth_pct?.toFixed(1) ?? '-'}%
                 </div>
-                <div className="text-[10px] text-muted-foreground">Job growth/yr</div>
+                <div className="text-xs text-muted-foreground">Job growth/yr</div>
               </div>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
       </div>
 
       <div className="px-5 py-2 bg-muted/50 border-t border-border">
-        <p className="text-[10px] text-muted-foreground/70">Source: Stats NZ Census 2023. CC BY 4.0.</p>
+        <p className="text-xs text-muted-foreground/70">Source: Stats NZ Census 2023. CC BY 4.0.</p>
       </div>
     </section>
   );

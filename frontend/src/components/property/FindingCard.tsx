@@ -73,14 +73,14 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
             <h4 className={`text-sm font-bold ${config.headlineColor}`}>
               {finding.headline}
             </h4>
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.labelBg}`}>
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.labelBg}`}>
               {config.label}
             </span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {finding.interpretation}
           </p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1.5">
+          <p className="text-xs text-muted-foreground/60 mt-1.5">
             Source: {finding.source}
           </p>
         </div>

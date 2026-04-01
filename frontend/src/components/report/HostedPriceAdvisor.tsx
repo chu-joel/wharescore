@@ -90,7 +90,7 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
           <div className="space-y-1.5">
             {pa.methodology_steps.map((step: PriceMethodologyStep) => (
               <div key={step.step} className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-piq-primary/10 text-piq-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-full bg-piq-primary/10 text-piq-primary text-xs font-semibold flex items-center justify-center shrink-0">
                   {step.step}
                 </span>
                 <span className="text-xs text-muted-foreground flex-1 truncate">{step.label}</span>
@@ -99,7 +99,7 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
             ))}
           </div>
           {pa.methods_agree_pct !== null && (
-            <p className="text-[10px] text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Methods {pa.methods_agree_pct < 10 ? 'agree' : 'diverge'} ({pa.methods_agree_pct}% difference).
               {pa.cv_age_months ? ` CV is ${pa.cv_age_months} months old.` : ''}
             </p>
@@ -121,13 +121,13 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
                   <AlertTriangle className="w-3 h-3" /> {f.label}
                 </span>
                 {(f.insurance_uplift_pct_low > 0 || f.insurance_uplift_pct_high > 0) && (
-                  <span className="text-[10px] text-risk-high">
+                  <span className="text-xs text-risk-high">
                     +{f.insurance_uplift_pct_low}–{f.insurance_uplift_pct_high}% insurance
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground">{f.description}</p>
-              <p className="text-[10px] text-piq-primary font-medium">{f.action}</p>
+              <p className="text-xs text-muted-foreground">{f.description}</p>
+              <p className="text-xs text-piq-primary font-medium">{f.action}</p>
             </div>
           ))}
         </div>
@@ -163,7 +163,7 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">{pa.disclaimer}</p>
+      <p className="text-xs text-muted-foreground">{pa.disclaimer}</p>
     </div>
   );
 }

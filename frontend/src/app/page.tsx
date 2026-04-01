@@ -235,7 +235,7 @@ function LandingPanel() {
           <SavedProperties />
         </div>
 
-        <p className="mt-8 text-[11px] text-muted-foreground max-w-sm">
+        <p className="mt-8 text-xs text-muted-foreground max-w-sm">
           Powered by 100+ NZ government open data sources. Free preview for every address.
         </p>
       </div>

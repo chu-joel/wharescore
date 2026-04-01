@@ -63,7 +63,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
     <div className="p-4 space-y-5">
       <div>
         <h3 className="text-sm font-bold mb-1">Adjust property details</h3>
-        <p className="text-[11px] text-muted-foreground">Change inputs to see how the analysis updates.</p>
+        <p className="text-xs text-muted-foreground">Change inputs to see how the analysis updates.</p>
       </div>
 
       {/* Bedrooms */}
@@ -101,7 +101,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
           ))}
         </div>
         {selectedFinish && (
-          <p className="text-[11px] text-muted-foreground mt-1 italic">{selectedFinish.desc}</p>
+          <p className="text-xs text-muted-foreground mt-1 italic">{selectedFinish.desc}</p>
         )}
       </div>
 
@@ -179,7 +179,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
             </div>
           )}
 
-          <p className="text-[11px] text-muted-foreground text-center">
+          <p className="text-xs text-muted-foreground text-center">
             {rentBand.baseline.bond_count} bonds · {snapshot.meta.sa2_name}
           </p>
         </div>
@@ -195,7 +195,7 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
                 <p className="text-lg font-bold tabular-nums text-piq-primary">
                   ${rentBand.bandLow}–${rentBand.bandHigh}/wk
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {store.bedrooms}-bed {snapshot.meta.dwelling_type.toLowerCase()} · {rentBand.baseline.bond_count} bonds
                 </p>
               </div>
@@ -218,12 +218,12 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
                 <p className="text-lg font-bold tabular-nums text-piq-primary">
                   ${(snapshot.price_advisor.estimated_value / 1000).toFixed(0)}K
                 </p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   ${(snapshot.price_advisor.band_low / 1000).toFixed(0)}K – ${(snapshot.price_advisor.band_high / 1000).toFixed(0)}K
                 </p>
               </div>
               {snapshot.price_advisor.hazard_count > 0 && (
-                <p className="text-[11px] text-center text-risk-high font-medium">
+                <p className="text-xs text-center text-risk-high font-medium">
                   {snapshot.price_advisor.hazard_count} hazard flag{snapshot.price_advisor.hazard_count > 1 ? 's' : ''} detected
                 </p>
               )}

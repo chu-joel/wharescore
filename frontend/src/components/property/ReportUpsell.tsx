@@ -105,7 +105,7 @@ export function ReportUpsell({ addressId, feature, hiddenCount, criticalCount, w
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <Lock className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">In the full report</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">In the full report</span>
           </div>
           <p className="text-sm font-bold leading-snug">{teaser.headline}</p>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{teaser.detail}</p>

@@ -15,7 +15,7 @@ const STYLES: Record<Sentiment, string> = {
 
 export function ContextBadge({ text, sentiment = 'neutral' }: ContextBadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STYLES[sentiment]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STYLES[sentiment]}`}>
       {text}
     </span>
   );

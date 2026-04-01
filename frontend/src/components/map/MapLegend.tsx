@@ -207,7 +207,7 @@ export function MapLegend() {
         >
           <span className="flex items-center gap-1.5">
             Legend
-            <span className="text-[10px] text-muted-foreground font-normal">
+            <span className="text-xs text-muted-foreground font-normal">
               ({activeLayers.length} layer{activeLayers.length !== 1 ? 's' : ''})
             </span>
           </span>
@@ -237,7 +237,7 @@ export function MapLegend() {
                         onClick={() => toggleLayer(layer.id)}
                       >
                         <LegendSwatch layerId={layer.id} />
-                        <span className="text-[11px] flex-1">{layer.label}</span>
+                        <span className="text-xs flex-1">{layer.label}</span>
                         <X className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground transition-opacity" />
                       </div>
                       {severity && (

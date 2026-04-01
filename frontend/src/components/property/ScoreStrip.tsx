@@ -47,7 +47,7 @@ export function ScoreStrip({ categories }: ScoreStripProps) {
               >
                 <span className={!hasData ? 'text-xs' : ''}>{score}</span>
               </div>
-              <span className="text-[11px] sm:text-xs text-muted-foreground leading-tight text-center max-w-[60px] font-medium">
+              <span className="text-xs sm:text-xs text-muted-foreground leading-tight text-center max-w-[60px] font-medium">
                 {SHORT_LABELS[meta.name] ?? meta.label.split(' & ')[0]}
               </span>
             </TooltipTrigger>

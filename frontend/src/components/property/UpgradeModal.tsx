@@ -98,7 +98,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
                     key={value}
                     type="button"
                     onClick={() => rentStore.setDwellingType(value)}
-                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
                   >
                     {label}
                   </button>
@@ -118,7 +118,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
                       if (persona === 'renter') rentStore.setBedrooms(opt);
                       else buyerStore.setBedrooms(opt);
                     }}
-                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
                   >
                     {opt}
                   </button>
@@ -138,7 +138,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
                       if (persona === 'renter') rentStore.setFinishTier(value);
                       else buyerStore.setFinishTier(value);
                     }}
-                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
                   >
                     {label}
                   </button>
@@ -158,7 +158,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
                       if (persona === 'renter') rentStore.setBathrooms(opt);
                       else buyerStore.setBathrooms(opt);
                     }}
-                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
+                    className="rounded-full border border-muted-foreground/30 px-2.5 py-1 text-xs text-foreground transition-colors hover:border-piq-primary hover:text-piq-primary"
                   >
                     {opt}
                   </button>
@@ -174,7 +174,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
         </p>
       )}
       {missingRequired.length === 0 && (
-        <p className="text-[10px] text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Close this and enter your details above — your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
         </p>
       )}
@@ -437,7 +437,7 @@ export function UpgradeModal() {
             className="w-full rounded-lg border-2 border-dashed border-piq-primary/30 bg-piq-primary/5 p-3 text-center transition-all hover:border-piq-primary/60 hover:bg-piq-primary/10"
           >
             <p className="text-sm font-semibold text-piq-primary">Sign in for a free Quick Report</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">8 key sections, shareable link, 30-day access</p>
+            <p className="text-xs text-muted-foreground mt-0.5">8 key sections, shareable link, 30-day access</p>
           </button>
         )}
 
@@ -452,11 +452,11 @@ export function UpgradeModal() {
             >
               <div>
                 <p className="text-xs sm:text-sm font-semibold">Full Report</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
               </div>
               <div className="text-right">
                 <span className="text-xs sm:text-sm font-bold text-piq-success">Use credit</span>
-                <p className="text-[10px] text-muted-foreground">{fullCredits} remaining</p>
+                <p className="text-xs text-muted-foreground">{fullCredits} remaining</p>
               </div>
             </button>
           ) : (
@@ -465,12 +465,12 @@ export function UpgradeModal() {
               disabled={!!loading}
               className="relative flex items-center justify-between rounded-lg border-2 border-piq-primary bg-piq-primary/5 p-2.5 sm:p-3 text-left transition-all hover:bg-piq-primary/10 hover:shadow-md disabled:opacity-60"
             >
-              <div className="absolute -top-2.5 left-3 rounded-full bg-piq-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm shadow-piq-primary/30">
+              <div className="absolute -top-2.5 left-3 rounded-full bg-piq-primary px-2 py-0.5 text-xs font-bold uppercase text-white shadow-sm shadow-piq-primary/30">
                 Best value
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-semibold">Full Report</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
               </div>
               {loading === 'full_single' ? (
                 <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
@@ -489,9 +489,9 @@ export function UpgradeModal() {
             <div>
               <p className="text-xs sm:text-sm font-semibold">
                 Pro monthly
-                <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">For professionals</span>
+                <span className="ml-1.5 text-xs font-medium text-muted-foreground">For professionals</span>
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Full Reports — 30/month, agents & investors</p>
+              <p className="text-xs sm:text-xs text-muted-foreground">Full Reports — 30/month, agents & investors</p>
             </div>
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
@@ -509,7 +509,7 @@ export function UpgradeModal() {
         {/* Feature comparison — hidden on mobile to reduce modal height */}
         <div className="hidden sm:grid grid-cols-2 gap-2 pt-1">
           <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Quick</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Quick</p>
             <ul className="space-y-0.5">
               {QUICK_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-1 text-xs text-muted-foreground">
@@ -520,7 +520,7 @@ export function UpgradeModal() {
             </ul>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-piq-primary uppercase tracking-wide mb-1">Full</p>
+            <p className="text-xs font-semibold text-piq-primary uppercase tracking-wide mb-1">Full</p>
             <ul className="space-y-0.5">
               {FULL_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-1 text-xs">
@@ -565,7 +565,7 @@ export function UpgradeModal() {
         )}
 
         <DialogFooter className="sm:flex-col">
-          <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Shield className="h-3 w-3" /> Secure payment via Stripe
             </span>

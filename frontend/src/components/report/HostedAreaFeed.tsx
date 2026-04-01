@@ -296,8 +296,8 @@ function TopEventCard({ event }: { event: TopEvent }) {
       <div className={`mx-auto ${colors.text}`}>{event.icon}</div>
       <p className={`text-xl font-black tabular-nums ${colors.text}`}>{event.headline}</p>
       <p className="text-xs font-semibold text-foreground">{event.subline}</p>
-      {event.detail && <p className="text-[10px] text-muted-foreground">{event.detail}</p>}
-      <p className="text-[10px] text-muted-foreground">{event.dateStr}</p>
+      {event.detail && <p className="text-xs text-muted-foreground">{event.detail}</p>}
+      <p className="text-xs text-muted-foreground">{event.dateStr}</p>
     </div>
   );
 }
@@ -315,7 +315,7 @@ function AdviceSection({ advice }: { advice: NonNullable<ReportSnapshot['hazard_
         {open ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
         <ShieldAlert className={`h-4 w-4 shrink-0 ${colors.icon}`} />
         <span className="text-sm font-semibold flex-1">{advice.title}</span>
-        <span className="text-[10px] text-muted-foreground shrink-0">{advice.source}</span>
+        <span className="text-xs text-muted-foreground shrink-0">{advice.source}</span>
       </button>
       {open && (
         <div className="px-4 pb-3 pt-0 space-y-2">
@@ -327,7 +327,7 @@ function AdviceSection({ advice }: { advice: NonNullable<ReportSnapshot['hazard_
               </li>
             ))}
           </ul>
-          <p className="text-[10px] text-muted-foreground italic">Source: {advice.source}</p>
+          <p className="text-xs text-muted-foreground italic">Source: {advice.source}</p>
         </div>
       )}
     </div>
@@ -349,15 +349,15 @@ function TimelineEvent({ event }: { event: AreaFeedEvent }) {
         </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
           {event.magnitude != null && (
-            <span className="text-[10px] text-muted-foreground">M{event.magnitude.toFixed(1)}</span>
+            <span className="text-xs text-muted-foreground">M{event.magnitude.toFixed(1)}</span>
           )}
           {event.mmi != null && (
-            <span className="text-[10px] text-muted-foreground">MMI {event.mmi} ({mmiDescription(event.mmi)})</span>
+            <span className="text-xs text-muted-foreground">MMI {event.mmi} ({mmiDescription(event.mmi)})</span>
           )}
           {event.distance_km != null && (
-            <span className="text-[10px] text-muted-foreground">{event.distance_km < 1 ? '<1' : event.distance_km.toFixed(0)}km</span>
+            <span className="text-xs text-muted-foreground">{event.distance_km < 1 ? '<1' : event.distance_km.toFixed(0)}km</span>
           )}
-          <span className="text-[10px] text-muted-foreground">{formatDateTime(event.timestamp)}</span>
+          <span className="text-xs text-muted-foreground">{formatDateTime(event.timestamp)}</span>
         </div>
       </div>
     </div>
@@ -379,15 +379,15 @@ function WeatherTimelineEvent({ event }: { event: NonNullable<ReportSnapshot['we
         </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
           {event.precipitation_mm != null && event.precipitation_mm > 0 && (
-            <span className="text-[10px] text-muted-foreground">{event.precipitation_mm.toFixed(0)}mm rain</span>
+            <span className="text-xs text-muted-foreground">{event.precipitation_mm.toFixed(0)}mm rain</span>
           )}
           {event.wind_gust_kmh != null && event.wind_gust_kmh > 0 && (
-            <span className="text-[10px] text-muted-foreground">{event.wind_gust_kmh.toFixed(0)}km/h gusts</span>
+            <span className="text-xs text-muted-foreground">{event.wind_gust_kmh.toFixed(0)}km/h gusts</span>
           )}
           {event.distance_km != null && (
-            <span className="text-[10px] text-muted-foreground">{event.distance_km.toFixed(0)}km</span>
+            <span className="text-xs text-muted-foreground">{event.distance_km.toFixed(0)}km</span>
           )}
-          <span className="text-[10px] text-muted-foreground">{formatDate(event.date)}</span>
+          <span className="text-xs text-muted-foreground">{formatDate(event.date)}</span>
         </div>
       </div>
     </div>
@@ -421,7 +421,7 @@ function ExpandableTimeline({ timeline }: { timeline: TimelineItem[] }) {
         className="flex items-center gap-1.5 w-full text-left"
       >
         {sectionOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Event Timeline <span className="font-normal">({timeline.length} total)</span>
         </p>
       </button>
@@ -515,7 +515,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
         {/* ═══ WATCH ITEMS — permanent hazard context ═══ */}
         {watchItems.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Active Watches</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Watches</p>
             <div className="grid gap-2">
               {watchItems.map((item, i) => (
                 <WatchCard key={i} item={item} />
@@ -527,7 +527,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
         {/* ═══ TOP EVENTS — 3 most notable ═══ */}
         {topEvents.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Top Events</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Events</p>
             <div className="grid grid-cols-3 gap-2">
               {topEvents.map((evt, i) => (
                 <TopEventCard key={i} event={evt} />
@@ -539,7 +539,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
         {/* ═══ HAZARD ADVICE — collapsible ═══ */}
         {hazardAdvice.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Preparedness Advice</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preparedness Advice</p>
             <div className="space-y-2">
               {hazardAdvice.map((advice, i) => (
                 <AdviceSection key={i} advice={advice} />
@@ -554,7 +554,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
         )}
 
         {/* Source attribution */}
-        <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+        <p className="text-xs text-muted-foreground pt-2 border-t border-border">
           Sources: GeoNet (earthquakes & volcanic alerts), MetService (severe weather), NEMA (emergency alerts), council hazard maps.
           Events shown are within approximately 100km of this property.
         </p>

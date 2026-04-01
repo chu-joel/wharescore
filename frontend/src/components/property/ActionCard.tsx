@@ -36,7 +36,7 @@ function ActionItem({ action }: { action: Action }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{action.title}</span>
-          <span className={`text-[10px] font-medium ${config.labelColor}`}>
+          <span className={`text-xs font-medium ${config.labelColor}`}>
             {config.label}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function DueDiligenceChecklist({ actions }: { actions: Action[] }) {
         </div>
         <div>
           <h3 className="text-sm font-bold">Before You Buy: Your Checklist</h3>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {actions.length} action{actions.length !== 1 ? 's' : ''} based on this property&apos;s risks
           </p>
         </div>

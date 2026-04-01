@@ -42,7 +42,7 @@ export function MarketSection({ addressId, category, market, property, detection
           <div className="flex items-center gap-2.5 mb-2">
             <span className="text-sm font-semibold">Council Valuation</span>
             {isMultiUnit && (
-              <Badge variant="secondary" className="text-[10px]">Unit valuation</Badge>
+              <Badge variant="secondary" className="text-xs">Unit valuation</Badge>
             )}
           </div>
           <dl className="space-y-1">
@@ -63,7 +63,7 @@ export function MarketSection({ addressId, category, market, property, detection
               </div>
             )}
           </dl>
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Rateable value, not market value.
           </p>
         </div>
@@ -109,7 +109,7 @@ export function MarketSection({ addressId, category, market, property, detection
                 <p className={`text-sm font-semibold tabular-nums ${market.trend.cagr_1yr >= 0 ? 'text-risk-high' : 'text-piq-success'}`}>
                   {formatPercentChange(market.trend.cagr_1yr)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">1yr</p>
+                <p className="text-xs text-muted-foreground">1yr</p>
               </div>
             )}
             {market.trend.cagr_5yr !== null && (
@@ -117,7 +117,7 @@ export function MarketSection({ addressId, category, market, property, detection
                 <p className={`text-sm font-semibold tabular-nums ${market.trend.cagr_5yr >= 0 ? 'text-risk-high' : 'text-piq-success'}`}>
                   {formatPercentChange(market.trend.cagr_5yr)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">5yr</p>
+                <p className="text-xs text-muted-foreground">5yr</p>
               </div>
             )}
             {market.trend.cagr_10yr !== null && (
@@ -125,11 +125,11 @@ export function MarketSection({ addressId, category, market, property, detection
                 <p className={`text-sm font-semibold tabular-nums ${market.trend.cagr_10yr >= 0 ? 'text-risk-high' : 'text-piq-success'}`}>
                   {formatPercentChange(market.trend.cagr_10yr)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">10yr</p>
+                <p className="text-xs text-muted-foreground">10yr</p>
               </div>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">CAGR = compound annual growth rate</p>
+          <p className="text-xs text-muted-foreground mt-2">CAGR = compound annual growth rate</p>
         </div>
       )}
 

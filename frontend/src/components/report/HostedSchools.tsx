@@ -62,7 +62,7 @@ export function HostedSchools({ rawReport }: Props) {
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Source: Ministry of Education. EQI = Education Quality Indicator (lower is better).
         </p>
       </div>

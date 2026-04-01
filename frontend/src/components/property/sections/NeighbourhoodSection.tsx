@@ -51,8 +51,8 @@ export function NeighbourhoodSection({ category, liveability, addressId }: Neigh
             ))}
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">Least deprived</span>
-            <span className="text-[10px] text-muted-foreground">Most deprived</span>
+            <span className="text-xs text-muted-foreground">Least deprived</span>
+            <span className="text-xs text-muted-foreground">Most deprived</span>
           </div>
         </div>
       )}

@@ -41,7 +41,7 @@ export function HPITrendChart() {
   return (
     <div className="rounded-lg border border-border p-3">
       <span className="text-sm font-semibold">NZ House Price Index</span>
-      <p className="text-[10px] text-muted-foreground mb-2">
+      <p className="text-xs text-muted-foreground mb-2">
         National quarterly index (RBNZ / CoreLogic)
       </p>
 
@@ -104,7 +104,7 @@ export function HPITrendChart() {
       </ResponsiveContainer>
 
       {data.peak && (
-        <p className="text-[10px] text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Peak: {data.peak.period} ({data.peak.hpi.toFixed(1)})
         </p>
       )}

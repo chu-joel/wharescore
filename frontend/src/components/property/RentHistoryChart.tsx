@@ -140,7 +140,7 @@ export function RentHistoryChart({ addressId }: RentHistoryChartProps) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <p className="text-[10px] text-muted-foreground mt-1">
+      <p className="text-xs text-muted-foreground mt-1">
         SA2-level rent data from MBIE bond lodgements
       </p>
     </div>

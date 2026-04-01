@@ -223,7 +223,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       {/* Drag handle */}
       <div
         data-drawer-handle
-        className="flex flex-col items-center pt-3 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex flex-col items-center pt-4 pb-4 shrink-0 cursor-grab active:cursor-grabbing select-none"
         style={{ touchAction: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

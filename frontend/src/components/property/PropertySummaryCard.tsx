@@ -119,7 +119,7 @@ export function PropertySummaryCard({
               const buildingUse = (report as unknown as Record<string, unknown>)?.property && ((report as unknown as Record<string, unknown>).property as Record<string, unknown>)?.building_use as string;
               const propType = (titleType && titleType !== 'Unknown' ? titleType : null) || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
               return propType ? (
-                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-medium">
+                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-xs font-medium">
                   {propType}
                 </span>
               ) : null;

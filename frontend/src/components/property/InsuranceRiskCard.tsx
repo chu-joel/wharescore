@@ -99,7 +99,7 @@ export function InsuranceRiskCard({ report }: InsuranceRiskCardProps) {
           <p className={`text-sm font-bold ${config.color}`}>
             Insurance Risk: {config.label}
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Based on {factors.length} hazard indicators
           </p>
         </div>
@@ -112,7 +112,7 @@ export function InsuranceRiskCard({ report }: InsuranceRiskCardProps) {
           {activeFactors.map((f) => (
             <span
               key={f.label}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-xs font-medium"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
               {f.label}

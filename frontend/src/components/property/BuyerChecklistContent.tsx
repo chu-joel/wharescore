@@ -72,7 +72,7 @@ export function BuyerChecklistContent({ report }: { report: PropertyReport }) {
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{item.text}</p>
                 {item.estimatedCost && (
-                  <span className="text-[10px] text-muted-foreground shrink-0">{item.estimatedCost}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{item.estimatedCost}</span>
                 )}
               </div>
               {item.reason && (

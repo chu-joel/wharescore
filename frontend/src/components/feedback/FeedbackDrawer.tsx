@@ -201,9 +201,9 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
               />
               <div className="flex justify-between mt-1 px-0.5">
                 {description.length > 0 && description.trim().length < 10 ? (
-                  <p className="text-[11px] text-destructive">At least 10 characters</p>
+                  <p className="text-xs text-destructive">At least 10 characters</p>
                 ) : <span />}
-                <p className="text-[11px] text-muted-foreground tabular-nums">{description.length}/2000</p>
+                <p className="text-xs text-muted-foreground tabular-nums">{description.length}/2000</p>
               </div>
             </div>
 
@@ -242,7 +242,7 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
                 className="mt-1.5 rounded-xl"
               />
               {email && !emailValid && (
-                <p className="text-[11px] text-destructive mt-1 px-0.5">Invalid email format</p>
+                <p className="text-xs text-destructive mt-1 px-0.5">Invalid email format</p>
               )}
             </div>
 

@@ -103,7 +103,7 @@ export function WalkabilityScore({ report }: WalkabilityScoreProps) {
             {factors.filter(f => f.available).map((f) => (
               <span
                 key={f.label}
-                className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-[10px] font-medium"
+                className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-xs font-medium"
               >
                 {f.label}: {f.score}
               </span>

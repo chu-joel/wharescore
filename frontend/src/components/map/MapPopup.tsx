@@ -97,14 +97,14 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {bin && (
                 <Badge
-                  className="text-[10px] text-white px-1.5 py-0"
+                  className="text-xs text-white px-1.5 py-0"
                   style={{ backgroundColor: bin.color }}
                 >
                   {bin.label}
                 </Badge>
               )}
               {summary.median_rent && (
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   ~{formatRent(summary.median_rent)}
                 </span>
               )}
@@ -122,7 +122,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
           {ctaLabel ?? 'Get the Full Report'}
           <ArrowRight className="h-4 w-4 shrink-0" />
         </Button>
-        <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+        <p className="text-xs text-muted-foreground text-center mt-1.5">
           Risk · Rent · 27 indicators · AI summary
         </p>
       </div>
@@ -130,7 +130,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
       {/* Notable findings — teasers that reinforce clicking */}
       {summary.notable_findings && summary.notable_findings.length > 0 && (
         <div className="px-4 pb-3">
-          <ul className="text-[11px] text-muted-foreground space-y-0.5">
+          <ul className="text-xs text-muted-foreground space-y-0.5">
             {summary.notable_findings.slice(0, 3).map((finding, i) => (
               <li key={i} className="flex items-start gap-1.5">
                 <span className="text-piq-accent-warm mt-0.5">&#8226;</span>
@@ -144,7 +144,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
       {/* Overlay context — visible layers at this location (replaces hover tooltip on touch) */}
       {overlayLines && overlayLines.length > 0 && (
         <div className="px-4 pb-3">
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 bg-muted/40 rounded-md px-2.5 py-1.5">
+          <ul className="text-xs text-muted-foreground space-y-0.5 bg-muted/40 rounded-md px-2.5 py-1.5">
             {overlayLines.slice(0, 5).map((line, i) => (
               <li key={i} className="flex items-start gap-1.5">
                 <span className="text-piq-primary mt-0.5">&#9679;</span>
@@ -158,7 +158,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
       {/* Multi-unit indicator */}
       {summary.unit_count && summary.unit_count > 1 && (
         <div className="px-4 pb-3">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 rounded-md px-2 py-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1">
             <Building2 className="h-3 w-3" />
             <span>{summary.unit_count} units at this address</span>
           </div>
@@ -171,7 +171,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
           href={streetViewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
           aria-label="Open in Google Street View"
         >
           <Eye className="h-3 w-3" /> Street View

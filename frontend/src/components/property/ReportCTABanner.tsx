@@ -58,7 +58,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
   return (
     <div className="rounded-xl border border-piq-primary/20 bg-gradient-to-br from-piq-primary/8 via-piq-primary/3 to-transparent p-5 space-y-4 card-elevated">
       <div>
-        <p className="text-[10px] font-bold text-piq-primary uppercase tracking-widest mb-1">
+        <p className="text-xs font-bold text-piq-primary uppercase tracking-widest mb-1">
           Full Intelligence Report
         </p>
         <p className="text-base font-bold leading-snug tracking-tight">
@@ -85,7 +85,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — {fullPrice}</>
         )}
       </Button>
-      <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Shield className="h-3 w-3" /> Secure payment
         </span>

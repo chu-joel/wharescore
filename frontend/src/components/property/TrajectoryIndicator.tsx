@@ -143,7 +143,7 @@ export function TrajectoryIndicator({ report }: TrajectoryIndicatorProps) {
           <p className={`text-sm font-bold ${config.color}`}>
             Neighbourhood Trajectory: {config.label}
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {improvingCount > 0 && <span className="text-green-600 dark:text-green-400">{improvingCount} positive</span>}
             {improvingCount > 0 && (stableCount > 0 || decliningCount > 0) && ' · '}
             {stableCount > 0 && <span>{stableCount} neutral</span>}

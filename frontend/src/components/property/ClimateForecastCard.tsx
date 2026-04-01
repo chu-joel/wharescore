@@ -34,7 +34,7 @@ export function ClimateForecastCard({ projection }: ClimateForecastCardProps) {
                 +{tempChange.toFixed(1)}°C
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">avg temperature</p>
+            <p className="text-xs text-muted-foreground mt-1">avg temperature</p>
           </div>
         )}
 
@@ -52,13 +52,13 @@ export function ClimateForecastCard({ projection }: ClimateForecastCardProps) {
                 {precipChange >= 0 ? '+' : ''}{precipChange.toFixed(0)}%
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">rainfall change</p>
+            <p className="text-xs text-muted-foreground mt-1">rainfall change</p>
           </div>
         )}
       </div>
 
       {/* Note */}
-      <p className="text-[10px] text-muted-foreground mt-3">
+      <p className="text-xs text-muted-foreground mt-3">
         Based on NIWA climate projections for this region
       </p>
     </div>

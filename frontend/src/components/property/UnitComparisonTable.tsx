@@ -88,7 +88,7 @@ export function UnitComparisonTable({
     <div className="rounded-lg border border-border overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 bg-muted/30">
         <span className="text-sm font-semibold">Units in this building</span>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-xs">
           {allUnits.length} units
         </Badge>
       </div>
@@ -193,7 +193,7 @@ export function UnitComparisonTable({
       </div>
 
       {allUnits.length >= 20 && (
-        <p className="text-[10px] text-muted-foreground px-3 py-1.5 border-t border-border">
+        <p className="text-xs text-muted-foreground px-3 py-1.5 border-t border-border">
           Showing first 20 units
         </p>
       )}

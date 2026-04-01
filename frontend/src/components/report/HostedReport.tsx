@@ -178,7 +178,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             )}
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             <Calendar className="h-3 w-3 inline mr-1" />
             Generated {generatedDate}
           </p>
@@ -386,11 +386,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
           <p className="text-xs text-muted-foreground">
             Report generated {generatedDate} for {snapshot.meta.full_address}.
           </p>
-          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md mx-auto">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
             Based on publicly available government data. Not a registered valuation, appraisal, or legal document.
             Risk scores are indicative estimates. Obtain professional reports before making significant financial decisions.
           </p>
-          <p className="text-[11px] text-muted-foreground pt-1">
+          <p className="text-xs text-muted-foreground pt-1">
             <a href="https://wharescore.co.nz" className="text-piq-primary hover:underline">wharescore.co.nz</a>
           </p>
         </div>
@@ -446,7 +446,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   return (
     <div className="rounded-lg bg-muted/40 border border-border p-3 text-center">
       <p className="text-lg font-bold tabular-nums">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{label}{sub && <span className="ml-0.5">({sub})</span>}</p>
+      <p className="text-xs text-muted-foreground">{label}{sub && <span className="ml-0.5">({sub})</span>}</p>
     </div>
   );
 }

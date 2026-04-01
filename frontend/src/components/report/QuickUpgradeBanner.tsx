@@ -90,7 +90,7 @@ export function QuickUpgradeBanner({ token }: Props) {
           Upgrade to Full Report — {fullPrice}
         </button>
         {error && <p className="text-xs text-destructive">{error}</p>}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           One-time payment · 25+ sections unlocked · Instant access
         </p>
       </div>

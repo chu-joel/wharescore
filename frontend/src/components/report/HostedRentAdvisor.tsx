@@ -101,7 +101,7 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
           {hazardAdjs.map((h: RentAdjustment) => (
             <span
               key={h.factor}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-risk-high/10 text-risk-high border border-risk-high/20"
             >
               <AlertTriangle className="w-2.5 h-2.5" />
               {h.label}
@@ -158,7 +158,7 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Based on MBIE bond records, council valuations, and hazard data. Not a registered valuation.
       </p>
     </div>

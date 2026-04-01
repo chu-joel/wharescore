@@ -60,7 +60,7 @@ export function HostedMethodology() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
               <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function HostedMethodology() {
               {CATEGORIES.map((cat) => (
                 <div
                   key={cat.name}
-                  className="rounded-lg flex items-center justify-center py-1.5 text-white text-[10px] font-bold"
+                  className="rounded-lg flex items-center justify-center py-1.5 text-white text-xs font-bold"
                   style={{ backgroundColor: cat.color, flex: cat.weight }}
                 >
                   {cat.name} {cat.weight}%

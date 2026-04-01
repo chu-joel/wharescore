@@ -58,7 +58,7 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
           <p className="text-sm font-bold" style={{ color: severity.color }}>
             {severity.label}
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Based on NZ Police victimisation data (2022–2025)
           </p>
         </div>
@@ -89,9 +89,9 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
           />
         </div>
         <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-green-600 dark:text-green-400">Safest</span>
-          <span className="text-[10px] text-muted-foreground">50th</span>
-          <span className="text-[10px] text-red-500">Most crime</span>
+          <span className="text-xs text-green-600 dark:text-green-400">Safest</span>
+          <span className="text-xs text-muted-foreground">50th</span>
+          <span className="text-xs text-red-500">Most crime</span>
         </div>
       </div>
 
@@ -110,7 +110,7 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
         {victimisations !== null && (
           <div className="flex-1 rounded-lg bg-card dark:bg-card/50 border border-border p-2.5 text-center">
             <p className="text-lg font-bold tabular-nums">{victimisations.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground leading-tight">victimisations reported</p>
+            <p className="text-xs text-muted-foreground leading-tight">victimisations reported</p>
           </div>
         )}
         {comparisonText && (
@@ -119,7 +119,7 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
               <ComparisonIcon className="h-4 w-4" style={{ color: severity.color }} />
               <p className="text-xs font-semibold" style={{ color: severity.color }}>{comparisonText}</p>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">vs city average</p>
+            <p className="text-xs text-muted-foreground leading-tight mt-0.5">vs city average</p>
           </div>
         )}
       </div>

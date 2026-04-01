@@ -86,14 +86,14 @@ export function DataLayersAccordion({ coverage, compact }: DataLayersAccordionPr
             const data = coverage.per_category[cat];
             if (!data || data.available === 0) return null;
             return (
-              <span key={cat} className="text-[10px] text-muted-foreground">
+              <span key={cat} className="text-xs text-muted-foreground">
                 <Check className="inline h-3 w-3 text-piq-success mr-0.5 -mt-0.5" />
                 {CATEGORY_LABELS[cat] ?? cat} ({data.available})
               </span>
             );
           })}
           {coverage.bonus_features?.map((f) => (
-            <span key={f} className="text-[10px] text-muted-foreground">
+            <span key={f} className="text-xs text-muted-foreground">
               <Check className="inline h-3 w-3 text-piq-success mr-0.5 -mt-0.5" />
               {BONUS_LABELS[f] ?? f}
             </span>
@@ -125,13 +125,13 @@ export function DataLayersAccordion({ coverage, compact }: DataLayersAccordionPr
                 <div key={cat}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium">{CATEGORY_LABELS[cat] ?? cat}</span>
-                    <span className="text-[10px] text-muted-foreground">{data.available} of {data.total}</span>
+                    <span className="text-xs text-muted-foreground">{data.available} of {data.total}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {data.indicators.map((ind) => (
                       <span
                         key={ind}
-                        className="inline-flex items-center gap-1 rounded-full bg-piq-primary/10 px-2 py-0.5 text-[10px] text-piq-primary"
+                        className="inline-flex items-center gap-1 rounded-full bg-piq-primary/10 px-2 py-0.5 text-xs text-piq-primary"
                       >
                         <Check className="h-2.5 w-2.5" />
                         {INDICATOR_LABELS[ind] ?? ind}
@@ -152,7 +152,7 @@ export function DataLayersAccordion({ coverage, compact }: DataLayersAccordionPr
                   {coverage.bonus_features.map((f) => (
                     <span
                       key={f}
-                      className="inline-flex items-center gap-1 rounded-full bg-piq-success/10 px-2 py-0.5 text-[10px] text-piq-success"
+                      className="inline-flex items-center gap-1 rounded-full bg-piq-success/10 px-2 py-0.5 text-xs text-piq-success"
                     >
                       <Check className="h-2.5 w-2.5" />
                       {BONUS_LABELS[f] ?? f}

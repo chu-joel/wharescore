@@ -62,7 +62,7 @@ export function RentDistributionBar({
       </div>
 
       {/* Labels */}
-      <div className="flex justify-between text-[10px] text-muted-foreground">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>{formatRent(lowerQuartile)}</span>
         <span className="text-xs font-semibold text-foreground">{formatRent(median)}</span>
         <span>{formatRent(upperQuartile)}</span>
@@ -84,7 +84,7 @@ export function RentDistributionBar({
 
       {/* Low confidence warning */}
       {confidence <= 2 && (
-        <div className="flex items-center gap-1 text-[10px] text-piq-accent-warm">
+        <div className="flex items-center gap-1 text-xs text-piq-accent-warm">
           <AlertTriangle className="h-3 w-3" />
           <span>Limited data — {confidence === 1 ? 'very few' : 'few'} bonds in this area</span>
         </div>

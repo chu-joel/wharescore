@@ -24,7 +24,7 @@ export function SocialProof({ suburbName }: SocialProofProps) {
   const daysAgo = 1 + (hash % 5);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
       <span className="flex items-center gap-1">
         <Users className="h-3 w-3 shrink-0" />
         {reportCount} reports for {suburbName} this month

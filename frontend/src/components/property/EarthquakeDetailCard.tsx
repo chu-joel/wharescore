@@ -50,7 +50,7 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
     rows.push({
       label: 'Hazard Grade',
       value: (
-        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${color}`}>
+        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold ${color}`}>
           {label}
         </span>
       ),
@@ -106,7 +106,7 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
               style={{ width: `${Math.min(100, (earthquake_hazard_index / 15000) * 100)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Low</span>
             <span>High</span>
           </div>

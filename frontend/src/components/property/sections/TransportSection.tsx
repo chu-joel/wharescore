@@ -82,7 +82,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Bus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{walkingReach.bus_stops}</p>
-                  <p className="text-[10px] text-muted-foreground">Bus</p>
+                  <p className="text-xs text-muted-foreground">Bus</p>
                 </div>
               </div>
             )}
@@ -91,7 +91,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <TrainFront className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{walkingReach.rail_stops}</p>
-                  <p className="text-[10px] text-muted-foreground">Rail</p>
+                  <p className="text-xs text-muted-foreground">Rail</p>
                 </div>
               </div>
             )}
@@ -100,12 +100,12 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Ship className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{walkingReach.ferry_stops}</p>
-                  <p className="text-[10px] text-muted-foreground">Ferry</p>
+                  <p className="text-xs text-muted-foreground">Ferry</p>
                 </div>
               </div>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Based on actual walking routes{walkingReach.method === 'valhalla' ? ' with hill penalties' : ''}, not straight-line distance.
           </p>
         </div>
@@ -119,7 +119,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Bus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.bus_stops_800m}</p>
-                  <p className="text-[10px] text-muted-foreground">Bus</p>
+                  <p className="text-xs text-muted-foreground">Bus</p>
                 </div>
               </div>
             )}
@@ -128,7 +128,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <TrainFront className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.rail_stops_800m}</p>
-                  <p className="text-[10px] text-muted-foreground">Rail</p>
+                  <p className="text-xs text-muted-foreground">Rail</p>
                 </div>
               </div>
             )}
@@ -137,7 +137,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Ship className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.ferry_stops_800m}</p>
-                  <p className="text-[10px] text-muted-foreground">Ferry</p>
+                  <p className="text-xs text-muted-foreground">Ferry</p>
                 </div>
               </div>
             )}
@@ -146,7 +146,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <CableCar className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.cable_car_stops_800m}</p>
-                  <p className="text-[10px] text-muted-foreground">Cable car</p>
+                  <p className="text-xs text-muted-foreground">Cable car</p>
                 </div>
               </div>
             )}
@@ -173,7 +173,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                   </p>
                 </div>
                 {liveability.peak_trips_per_hour != null && (
-                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                     ~{Math.round(liveability.peak_trips_per_hour)} services/hr
                   </span>
                 )}
@@ -184,7 +184,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 ))}
               </div>
               {liveability.nearest_stop_name && (
-                <p className="text-[10px] text-muted-foreground mt-2.5">
+                <p className="text-xs text-muted-foreground mt-2.5">
                   From nearest stop: {liveability.nearest_stop_name}
                 </p>
               )}
@@ -266,7 +266,7 @@ function TravelTimeRow({ tt }: { tt: TransitTravelTime }) {
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-2">
         {routeLabel && (
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
             {routeLabel}
           </span>
         )}

@@ -277,7 +277,7 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
         )}
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {isMultiUnit && unitCount > 1
           ? alreadyPerUnit
             ? `Unit CV ${formatCurrency(estimatedUnitCv!)} (from rates). `
@@ -340,11 +340,11 @@ function OverrideInput({
       <span className="text-xs text-muted-foreground w-24">{label}</span>
       <span className="flex-1 text-xs font-medium tabular-nums">
         {formatCurrency(displayValue)}/mo
-        {value !== null && <span className="text-piq-primary ml-1 text-[10px]">(custom)</span>}
+        {value !== null && <span className="text-piq-primary ml-1 text-xs">(custom)</span>}
       </span>
       <button
         onClick={() => { setInputVal(String(displayValue)); setEditing(true); }}
-        className="text-[10px] text-piq-primary hover:underline"
+        className="text-xs text-piq-primary hover:underline"
       >
         edit
       </button>

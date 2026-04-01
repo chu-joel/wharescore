@@ -7,7 +7,7 @@ interface DataSourceBadgeProps {
 
 export function DataSourceBadge({ source, updated }: DataSourceBadgeProps) {
   return (
-    <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border">
+    <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-border">
       Source: {source}
       {updated && <> | Updated: {updated}</>}
     </p>

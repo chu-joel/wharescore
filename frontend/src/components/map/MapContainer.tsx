@@ -1024,7 +1024,7 @@ export function MapContainer() {
               anchor="center"
             >
               <div className="flex flex-col items-center animate-fade-in" style={{ opacity: 0.7 }}>
-                <span className="text-[10px] font-bold text-piq-primary drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">N</span>
+                <span className="text-xs font-bold text-piq-primary drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">N</span>
                 <svg width="8" height="6" viewBox="0 0 8 6" className="text-piq-primary -mt-0.5">
                   <polygon points="4,0 0,6 8,6" fill="currentColor" />
                 </svg>

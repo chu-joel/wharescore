@@ -88,12 +88,12 @@ function BuyerVerdict({ snapshot }: { snapshot: ReportSnapshot }) {
         <div className="flex justify-center gap-4 text-center">
           <div>
             <p className="text-sm font-medium tabular-nums">{formatCurrency(pa.band_low)}</p>
-            <p className="text-[10px] text-muted-foreground">Low</p>
+            <p className="text-xs text-muted-foreground">Low</p>
           </div>
           <div className="w-px bg-border" />
           <div>
             <p className="text-sm font-medium tabular-nums">{formatCurrency(pa.band_high)}</p>
-            <p className="text-[10px] text-muted-foreground">High</p>
+            <p className="text-xs text-muted-foreground">High</p>
           </div>
         </div>
         {pa.cv && (

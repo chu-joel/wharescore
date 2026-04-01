@@ -155,7 +155,7 @@ function RentalRow({ rental, trend }: { rental: SuburbRental; trend?: SuburbRent
             {trendPct}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground">({rental.bond_count} bonds)</span>
+        <span className="text-xs text-muted-foreground">({rental.bond_count} bonds)</span>
       </div>
     </div>
   );
@@ -203,7 +203,7 @@ function ComparisonRow({
             <span className="font-semibold">{fmt(cityValue)}</span>
           </span>
         )}
-        {diff && <span className={`text-[10px] font-medium ${diffColor}`}>{diff}</span>}
+        {diff && <span className={`text-xs font-medium ${diffColor}`}>{diff}</span>}
       </div>
     </div>
   );

@@ -91,7 +91,7 @@ export function RentBandGauge({
       </div>
 
       {/* Labels — only inner band edges + user rent, positioned above/below to avoid overlap */}
-      <div className="flex items-center justify-between text-[10px] px-1">
+      <div className="flex items-center justify-between text-xs px-1">
         <span className="text-muted-foreground/60 tabular-nums">{formatRent(bandLowOuter)}</span>
         <span className="text-piq-primary font-medium tabular-nums">
           {formatRent(bandLow)} – {formatRent(bandHigh)}
@@ -106,14 +106,14 @@ export function RentBandGauge({
             Your rent: {formatRent(userRent)}
           </span>
         ) : (
-          <span className="text-[10px] text-muted-foreground italic">
+          <span className="text-xs text-muted-foreground italic">
             Enter your rent to compare
           </span>
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="w-3 h-1.5 rounded-sm bg-piq-primary/20 border border-piq-primary/30" />
           Fair range

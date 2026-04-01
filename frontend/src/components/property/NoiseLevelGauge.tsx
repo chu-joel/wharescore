@@ -75,8 +75,8 @@ export function NoiseLevelGauge({ noiseDb }: NoiseLevelGaugeProps) {
 
       {/* Labels */}
       <div className="flex justify-between mb-3">
-        <span className="text-[10px] text-muted-foreground">Quiet</span>
-        <span className="text-[10px] text-muted-foreground">Very Loud</span>
+        <span className="text-xs text-muted-foreground">Quiet</span>
+        <span className="text-xs text-muted-foreground">Very Loud</span>
       </div>
 
       {/* Context badge + line */}

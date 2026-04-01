@@ -46,7 +46,7 @@ export function RecentSearches({ compact = false }: RecentSearchesProps) {
   if (compact) {
     return (
       <div>
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
           Recent
         </p>
         <div className="space-y-0.5">
@@ -74,7 +74,7 @@ export function RecentSearches({ compact = false }: RecentSearchesProps) {
         </p>
         <button
           onClick={clearAll}
-          className="text-[11px] text-piq-primary hover:underline"
+          className="text-xs text-piq-primary hover:underline"
         >
           Clear all
         </button>
@@ -92,13 +92,13 @@ export function RecentSearches({ compact = false }: RecentSearchesProps) {
                 <span className="text-sm truncate flex-1">{item.fullAddress}</span>
                 {bin && (
                   <Badge
-                    className="text-[10px] text-white shrink-0"
+                    className="text-xs text-white shrink-0"
                     style={{ backgroundColor: bin.color }}
                   >
                     {Math.round(item.score!)}
                   </Badge>
                 )}
-                <span className="text-[10px] text-muted-foreground shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {timeAgo(item.timestamp)}
                 </span>
               </button>

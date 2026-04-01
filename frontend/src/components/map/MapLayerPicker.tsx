@@ -184,7 +184,7 @@ export function MapLayerPicker() {
                 </h3>
                 <button
                   onClick={() => toggleGroup(group.ids)}
-                  className="text-[11px] text-piq-primary hover:underline"
+                  className="text-xs text-piq-primary hover:underline"
                 >
                   {group.ids.every((id) => layers[id]) ? 'Hide all' : 'Show all'}
                 </button>

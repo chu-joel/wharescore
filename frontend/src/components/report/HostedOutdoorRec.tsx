@@ -49,7 +49,7 @@ export function HostedOutdoorRec({ snapshot }: Props) {
                 <div key={i} className="flex justify-between items-center py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{t.name || 'DOC Track'}</p>
-                    <p className="text-[10px] text-muted-foreground">{t.category || t.status}</p>
+                    <p className="text-xs text-muted-foreground">{t.category || t.status}</p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">{formatDist(t.distance_m)}</span>
                 </div>
@@ -70,7 +70,7 @@ export function HostedOutdoorRec({ snapshot }: Props) {
                 <div key={i} className="flex justify-between items-center py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{h.name || 'DOC Hut'}</p>
-                    <p className="text-[10px] text-muted-foreground">{h.category}</p>
+                    <p className="text-xs text-muted-foreground">{h.category}</p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">{formatDist(h.distance_m)}</span>
                 </div>
@@ -91,7 +91,7 @@ export function HostedOutdoorRec({ snapshot }: Props) {
                 <div key={i} className="flex justify-between items-center py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{c.name || 'DOC Campsite'}</p>
-                    <p className="text-[10px] text-muted-foreground">{c.category}</p>
+                    <p className="text-xs text-muted-foreground">{c.category}</p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">{formatDist(c.distance_m)}</span>
                 </div>
@@ -100,7 +100,7 @@ export function HostedOutdoorRec({ snapshot }: Props) {
           </div>
         )}
 
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Source: Department of Conservation. Distances are straight-line.
         </p>
       </div>

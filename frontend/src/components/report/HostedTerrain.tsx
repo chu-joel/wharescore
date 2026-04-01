@@ -93,9 +93,9 @@ function SlopeBar({ degrees }: { degrees: number }) {
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[10px] text-muted-foreground">Flat (0°)</span>
-        <span className="text-[10px] font-medium">{degrees.toFixed(0)}°</span>
-        <span className="text-[10px] text-muted-foreground">Extreme (45°+)</span>
+        <span className="text-xs text-muted-foreground">Flat (0°)</span>
+        <span className="text-xs font-medium">{degrees.toFixed(0)}°</span>
+        <span className="text-xs text-muted-foreground">Extreme (45°+)</span>
       </div>
     </div>
   );
@@ -116,7 +116,7 @@ function AspectCompass({ label, degrees }: { label: string; degrees: number | nu
       </div>
       <div>
         <span className="text-sm font-semibold capitalize">{label}-facing</span>
-        <p className="text-[10px] text-muted-foreground">{degrees.toFixed(0)}° from north</p>
+        <p className="text-xs text-muted-foreground">{degrees.toFixed(0)}° from north</p>
       </div>
     </div>
   );
@@ -161,7 +161,7 @@ function InsightCard({
         <div className="px-4 pb-4 pt-0 border-t border-border/30">
           <p className="text-xs text-muted-foreground leading-relaxed mt-3">{insight.detail}</p>
           <div className="mt-3 rounded-md bg-background/60 border border-border/40 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-piq-primary mb-1.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-piq-primary mb-1.5">
               What to do
             </p>
             <p className="text-xs text-foreground leading-relaxed">{insight.action}</p>
@@ -222,32 +222,32 @@ export function HostedTerrain({ snapshot }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Elevation */}
               <div className="rounded-lg border border-border p-3 text-center">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
                   Elevation
                 </p>
                 <p className="text-xl font-bold mt-1 tabular-nums">{elev.toFixed(0)}m</p>
-                <p className="text-[10px] text-muted-foreground">above sea level</p>
+                <p className="text-xs text-muted-foreground">above sea level</p>
               </div>
 
               {/* Slope */}
               {slope != null && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
                     Slope
                   </p>
                   <p className="text-xl font-bold mt-1 tabular-nums">{slope.toFixed(0)}°</p>
-                  <p className="text-[10px] text-muted-foreground capitalize">{slopeCat}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{slopeCat}</p>
                 </div>
               )}
 
               {/* Aspect */}
               {aspectLabel !== 'flat' && aspectLabel !== 'unknown' && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
                     Faces
                   </p>
                   <p className="text-xl font-bold mt-1 capitalize">{aspectLabel}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {aspectLabel.includes('north') ? 'Best sun' : aspectLabel.includes('south') ? 'Limited sun' : 'Partial sun'}
                   </p>
                 </div>
@@ -256,7 +256,7 @@ export function HostedTerrain({ snapshot }: Props) {
               {/* Landslide risk from slope */}
               {landslideRisk && landslideRisk.slope_risk_score != null && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
                     Slope Risk
                   </p>
                   <p
@@ -270,14 +270,14 @@ export function HostedTerrain({ snapshot }: Props) {
                   >
                     {landslideRisk.slope_risk.replace('_', ' ')}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">landslide susceptibility</p>
+                  <p className="text-xs text-muted-foreground">landslide susceptibility</p>
                 </div>
               )}
 
               {/* Wind exposure */}
               {windExposure !== 'unknown' && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
                     <Wind className="h-3 w-3" /> Wind
                   </p>
                   <p
@@ -291,7 +291,7 @@ export function HostedTerrain({ snapshot }: Props) {
                   >
                     {windExposure.replace('_', ' ')}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {relativePos !== 'unknown' ? relativePos.replace('-', ' ') : 'wind exposure'}
                   </p>
                 </div>
@@ -300,7 +300,7 @@ export function HostedTerrain({ snapshot }: Props) {
               {/* Flood terrain risk */}
               {floodTerrain !== 'unknown' && floodTerrain !== 'none' && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
                     <Droplets className="h-3 w-3" /> Drainage
                   </p>
                   <p
@@ -314,7 +314,7 @@ export function HostedTerrain({ snapshot }: Props) {
                   >
                     {floodTerrain}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {isDepression ? 'depression — water collects' : 'flood terrain risk'}
                   </p>
                 </div>
@@ -323,7 +323,7 @@ export function HostedTerrain({ snapshot }: Props) {
               {/* Nearest waterway */}
               {waterwayM != null && waterwayM <= 500 && (
                 <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
                     <Droplets className="h-3 w-3" /> Waterway
                   </p>
                   <p
@@ -337,7 +337,7 @@ export function HostedTerrain({ snapshot }: Props) {
                   >
                     {waterwayM}m
                   </p>
-                  <p className="text-[10px] text-muted-foreground truncate max-w-[100px] mx-auto">
+                  <p className="text-xs text-muted-foreground truncate max-w-[100px] mx-auto">
                     {waterwayName
                       ? waterwayName
                       : waterwayType === 'river_cl'
@@ -388,7 +388,7 @@ export function HostedTerrain({ snapshot }: Props) {
             )}
 
             {/* Source */}
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               Source: SRTM 30m elevation data via {source === 'valhalla' ? 'Valhalla routing engine' : source === 'postgis' ? 'PostGIS raster analysis' : 'elevation service'}.
               Slope and aspect derived from surrounding elevation samples.
             </p>
@@ -474,7 +474,7 @@ export function HostedTerrain({ snapshot }: Props) {
             )}
 
             {/* Source */}
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/60">
               {isoMethod === 'valhalla'
                 ? 'Walking isochrone computed by Valhalla routing engine using OpenStreetMap road network with SRTM elevation data for hill penalties.'
                 : `Estimated using ${totalStops > 0 ? '800m' : ''} straight-line radius (routing engine unavailable).`}
