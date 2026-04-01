@@ -109,7 +109,7 @@ export function PropertySummaryCard({
               const propType = (titleType && titleType !== 'Unknown' ? titleType : null) || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
               return propType ? (
                 <span className="inline-block mt-1 px-2 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-xs font-medium">
-                  {propType}
+                  {String(propType)}
                 </span>
               ) : null;
             })()}
