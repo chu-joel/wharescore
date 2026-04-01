@@ -22,7 +22,12 @@ function sum(vals: (number | null)[]): number | null {
 
 export function HostedClimate({ snapshot }: Props) {
   const data = snapshot.climate_normals;
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) return (
+    <section className="bg-card rounded-xl border border-border p-6 text-center">
+      <Sun className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+      <p className="text-sm text-muted-foreground">Climate data not available for this location</p>
+    </section>
+  );
 
   const locationName = data[0]?.location_name || 'this area';
 

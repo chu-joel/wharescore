@@ -161,7 +161,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
             if (query.length >= 2 && totalResults > 0) setIsOpen(true);
           }}
           className={`pl-10 pr-10 rounded-lg bg-background shadow-sm border border-input ${
-            compact ? 'h-9 text-sm' : 'h-12'
+            compact ? 'h-10 sm:h-9 text-sm' : 'h-12'
           }`}
           maxLength={MAX_QUERY_LENGTH}
           role="combobox"

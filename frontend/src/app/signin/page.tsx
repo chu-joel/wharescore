@@ -162,7 +162,7 @@ function SignInContent() {
               autoFocus
               maxLength={6}
               inputMode="numeric"
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-piq-primary"
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-xl sm:text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-piq-primary"
             />
             <Button type="submit" className="w-full" size="lg" disabled={loading || code.length !== 6}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

@@ -186,7 +186,7 @@ export function MapControls({ mapRef }: MapControlsProps) {
   }, [mapRef, terrainEnabled, reducedMotion]);
 
   return (
-    <div className="absolute bottom-80 right-3 lg:top-14 lg:bottom-auto lg:right-3 z-30 flex flex-col gap-1">
+    <div className="absolute bottom-[16rem] sm:bottom-80 right-3 lg:top-14 lg:bottom-auto lg:right-3 z-30 flex flex-col gap-1">
       <ControlButton onClick={zoomIn} label="Zoom in" disabled={viewport.zoom >= 18}>
         <Plus className="h-4 w-4" />
       </ControlButton>

@@ -36,7 +36,7 @@ function BarChart({ items }: { items: { label: string; value: number; color: str
     <div className="space-y-1.5">
       {items.map(({ label, value, color }) => (
         <div key={label} className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-20 text-right shrink-0">{label}</span>
+          <span className="text-xs text-muted-foreground w-16 sm:w-20 text-right shrink-0">{label}</span>
           <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
             <div
               className={`h-full rounded-full ${color}`}

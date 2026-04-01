@@ -19,7 +19,17 @@ interface KeyFindingsProps {
 export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
   const findings = generateFindings(report, persona);
 
-  if (findings.length === 0) return null;
+  if (findings.length === 0) return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Lightbulb className="h-5 w-5 text-piq-primary" />
+        <h3 className="text-sm font-bold">No findings for this property</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        We didn&apos;t find any notable concerns or highlights for this address.
+      </p>
+    </div>
+  );
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
   const warningCount = findings.filter(f => f.severity === 'warning').length;

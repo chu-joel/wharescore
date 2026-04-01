@@ -59,7 +59,7 @@ function Pill({ selected, onClick, children }: { selected: boolean; onClick: () 
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+      className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors min-h-[36px] flex items-center ${
         selected
           ? 'bg-piq-primary text-white border-piq-primary'
           : 'border-border text-foreground hover:border-piq-primary hover:text-piq-primary'
@@ -182,7 +182,7 @@ function RenterFields({ addressId }: { addressId: number }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {FINISH_TIERS.map((t) => (
               <Pill key={t.value} selected={finishTier === t.value} onClick={() => setFinishTier(t.value)}>
                 {t.label}
@@ -197,7 +197,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Bathrooms</label>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {BATHROOM_OPTIONS.map((b) => (
               <Pill key={b} selected={bathrooms === b} onClick={() => setBathrooms(b)}>
                 {b}
@@ -210,7 +210,7 @@ function RenterFields({ addressId }: { addressId: number }) {
       {/* Furnishing (3-way) */}
       <div>
         <label className="text-xs text-muted-foreground mb-1.5 block">Furnishing</label>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           <Pill selected={isFurnished === true && !isPartiallyFurnished} onClick={() => { setIsFurnished(true); setIsPartiallyFurnished(null); }}>
             Furnished
           </Pill>
@@ -237,7 +237,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         {(dwellingType === 'Flat' || dwellingType === 'Apartment') && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Parking?</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {([true, false] as const).map((v) => (
                 <Pill key={String(v)} selected={hasParking === v} onClick={() => setHasParking(v)}>
                   {v ? 'Yes' : 'No'}
@@ -248,7 +248,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Outdoor space?</span>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={hasOutdoorSpace === v} onClick={() => setHasOutdoorSpace(v)}>
                 {v ? 'Yes' : 'No'}
@@ -258,7 +258,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Character / unique?</span>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={isCharacterProperty === v} onClick={() => setIsCharacterProperty(v)}>
                 {v ? 'Yes' : 'No'}
@@ -269,7 +269,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         {(dwellingType === 'Room' || dwellingType === 'Flat') && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Shared kitchen?</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {([true, false] as const).map((v) => (
                 <Pill key={String(v)} selected={sharedKitchen === v} onClick={() => setSharedKitchen(v)}>
                   {v ? 'Yes' : 'No'}
@@ -280,7 +280,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Utilities included?</span>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={utilitiesIncluded === v} onClick={() => setUtilitiesIncluded(v)}>
                 {v ? 'Yes' : 'No'}
@@ -382,7 +382,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Bathrooms</label>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {BATHROOM_OPTIONS.map((ba) => (
               <Pill key={ba} selected={buyerBathrooms === ba} onClick={() => setBuyerBathrooms(ba)}>
                 {ba}
@@ -392,7 +392,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {FINISH_TIERS.map((t) => (
               <Pill key={t.value} selected={buyerFinishTier === t.value} onClick={() => setBuyerFinishTier(t.value)}>
                 {t.label}
@@ -543,7 +543,7 @@ export function ReportConfirmModal() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !generating) close(); }}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto overflow-x-hidden scrollbar-none">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col scrollbar-none">
         <DialogHeader>
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-piq-primary/10">
             <FileText className="h-6 w-6 text-piq-primary" />
@@ -567,6 +567,7 @@ export function ReportConfirmModal() {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {/* Editable fields */}
         <div className="py-1">
           {persona === 'renter' ? (
@@ -628,8 +629,9 @@ export function ReportConfirmModal() {
             </p>
           </button>
         </div>
+        </div>
 
-        <DialogFooter className="flex gap-2 sm:flex-row">
+        <DialogFooter className="sticky bottom-0 bg-background border-t pt-3 flex gap-2 sm:flex-row">
           <button
             onClick={close}
             disabled={generating}
