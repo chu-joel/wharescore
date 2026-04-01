@@ -183,23 +183,23 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
 
   return (
     <TooltipProvider>
-      <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
+      <div className="rounded-xl border border-border bg-card p-2.5 sm:p-3.5 card-elevated">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <RiskIcon rating={indicator.rating} />
             <span className="text-sm font-semibold">{indicator.name}</span>
           </div>
-          <Badge variant={badgeVariant(indicator.rating)} className="text-[10px] shrink-0">
+          <Badge variant={badgeVariant(indicator.rating)} className="text-[11px] sm:text-xs shrink-0">
             {indicator.value}
           </Badge>
         </div>
         {/* Description */}
         {description && (
-          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{description}</p>
         )}
         {/* Score bar */}
-        <div className="mt-2 flex items-center gap-2.5">
-          <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden relative">
+        <div className="mt-1.5 sm:mt-2 flex items-center gap-2">
+          <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden relative">
             <div
               className="h-full rounded-full transition-all duration-700 ease-out"
               style={{
@@ -208,7 +208,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
               }}
             />
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground tabular-nums w-6 text-right">
+          <span className="text-[11px] font-medium text-muted-foreground tabular-nums w-7 text-right">
             {Math.round(indicator.score)}
           </span>
         </div>
@@ -216,7 +216,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
         {indicator.source && (
           <Tooltip>
             <TooltipTrigger
-              className="text-[10px] text-muted-foreground/70 mt-2 cursor-default block text-left"
+              className="text-[11px] text-muted-foreground/70 mt-1.5 cursor-default block text-left"
             >
               {indicator.source}
             </TooltipTrigger>

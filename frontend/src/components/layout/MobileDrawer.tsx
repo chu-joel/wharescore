@@ -236,7 +236,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       {/* Scrollable content — hidden overflow when mini to prevent stuck scroll */}
       <div
         ref={contentRef}
-        className={`flex-1 px-4 pb-4 ${snapId === 'mini' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
+        className={`flex-1 px-2 pb-3 ${snapId === 'mini' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
         style={{ touchAction: snapId === 'mini' ? 'none' : 'pan-y' }}
       >
         <h2 className="sr-only">Property Details</h2>

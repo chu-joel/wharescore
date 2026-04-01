@@ -101,7 +101,7 @@ export function PropertySummaryCard({
 
   return (
     <Card className="rounded-xl card-elevated overflow-hidden">
-      <CardContent className="p-5 space-y-4">
+      <CardContent className="p-3 sm:p-5 space-y-3 sm:space-y-4">
         {/* Address + actions */}
         <div className="flex items-start justify-between gap-2">
           <div>

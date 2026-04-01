@@ -132,7 +132,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   return (
     <div className="flex flex-col min-h-full" key={`${addressId}-${persona}`}>
-      <div className="flex-1 px-4 py-5 space-y-5">
+      <div className="flex-1 px-3 sm:px-4 py-3 sm:py-5 space-y-3 sm:space-y-5">
         {/* Beta Banner */}
         <BetaBanner />
 
@@ -144,7 +144,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
             fullAddress={report.address.full_address}
           />
           {isEnriching ? (
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground animate-pulse">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">
               <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-pulse" />
               Finalising score…
             </span>
@@ -261,7 +261,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         )}
 
         {/* === QUESTION ACCORDION — remaining questions as expandable sections === */}
-        <div className="section-divider space-y-5">
+        <div className="section-divider space-y-3 sm:space-y-5">
           <p className="section-heading">
             {persona === 'renter' ? 'More about this rental' : 'More about this property'}
           </p>

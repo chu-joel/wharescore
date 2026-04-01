@@ -80,7 +80,7 @@ export function ScoreGauge({ score, label, color, percentileText, animated = tru
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 200" className="w-36 h-36" role="img" aria-label={`Score: ${score} out of 100, ${displayLabel}`}>
+      <svg viewBox="0 0 200 200" className="w-28 h-28 sm:w-36 sm:h-36" role="img" aria-label={`Score: ${score} out of 100, ${displayLabel}`}>
         <defs>
           <filter id="scoreGlow">
             <feGaussianBlur stdDeviation="3" result="blur" />
