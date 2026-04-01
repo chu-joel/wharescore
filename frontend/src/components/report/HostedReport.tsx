@@ -418,7 +418,7 @@ function TabNavFooter({ direction, targetTab, label }: { direction: 'next' | 'pr
     <div className="print:hidden pb-6">
       <button
         onClick={handleClick}
-        className="w-full flex items-center justify-between px-6 py-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors group"
+        className="w-full flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors group"
       >
         {direction === 'next' ? (
           <>

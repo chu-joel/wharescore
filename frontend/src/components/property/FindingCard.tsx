@@ -63,10 +63,10 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
 
   return (
     <div
-      className={`rounded-xl border-2 ${config.border} ${bgClass} p-4 animate-fade-in-up ${staggerClass}`}
+      className={`rounded-xl border-2 ${config.border} ${bgClass} p-3 sm:p-4 animate-fade-in-up ${staggerClass}`}
       style={bgStyle}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 sm:gap-3">
         <Icon className={`h-5 w-5 ${config.iconColor} shrink-0 mt-0.5`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">

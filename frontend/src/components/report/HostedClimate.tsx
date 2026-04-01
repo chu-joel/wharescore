@@ -65,7 +65,7 @@ export function HostedClimate({ snapshot }: Props) {
         <p className="text-xs text-muted-foreground mt-0.5">Typical weather near {locationName} (10-year average)</p>
       </div>
 
-      <div className="p-5 space-y-5">
+      <div className="p-3 sm:p-5 space-y-4 sm:space-y-5">
         {/* Highlight cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-red-50 rounded-lg p-2.5 text-center">
@@ -121,10 +121,25 @@ export function HostedClimate({ snapshot }: Props) {
           </div>
         </div>
 
-        {/* Seasonal table */}
+        {/* Seasonal summary — card stack on mobile, table on desktop */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-2">Seasonal Summary</h3>
-          <div className="overflow-x-auto">
+          {/* Mobile: compact cards */}
+          <div className="sm:hidden space-y-2">
+            {seasons.map(s => (
+              <div key={s.name} className="rounded-lg bg-muted/30 p-2.5 text-xs">
+                <div className="font-medium text-foreground mb-1">{s.name}</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
+                  <span>High: <span className="font-medium text-foreground">{s.tempMax ?? '-'}&deg;</span></span>
+                  <span>Low: <span className="font-medium text-foreground">{s.tempMin ?? '-'}&deg;</span></span>
+                  <span>Rain: <span className="font-medium text-foreground">{s.rainfall ?? '-'}mm</span></span>
+                  <span>Wind: <span className="font-medium text-foreground">{s.wind ?? '-'}km/h</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-muted-foreground border-b border-border">

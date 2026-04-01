@@ -49,8 +49,8 @@ export function PremiumGate({
         onClick={() => setShowUpgradeModal(true, trigger, context)}
         className="absolute inset-0 flex items-center justify-center gap-3 bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background shadow-md border border-border group-hover:scale-110 transition-transform shrink-0">
-          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background shadow-md border border-border group-hover:scale-110 transition-transform shrink-0">
+          <Lock className="h-4 w-4 text-muted-foreground" />
         </div>
         <div>
           <p className="text-xs font-bold text-foreground">{label}</p>

@@ -113,7 +113,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
         <p className="text-xs text-muted-foreground mt-0.5">Census 2023 data for {areaName}</p>
       </div>
 
-      <div className="p-5 space-y-6">
+      <div className="p-3 sm:p-5 space-y-4 sm:space-y-6">
         {/* Population & Age — always shown */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-3 text-center">
