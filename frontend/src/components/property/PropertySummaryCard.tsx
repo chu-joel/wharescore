@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -198,96 +199,7 @@ export function PropertySummaryCard({
         </div>
 
         {/* Property info — key-value pills */}
-        {(effectiveCV || ratesLoading || property.land_area_sqm || property.building_area_sqm || property.title_ref) && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {(effectiveCV || ratesLoading) && (() => {
-              const isMulti = !!report.property_detection?.is_multi_unit;
-              const units = report.property_detection?.unit_count ?? 1;
-              const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
-              const perUnit = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : null;
-              return (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                  {ratesLoading && !effectiveCV ? (
-                    <>
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      <span className="text-muted-foreground">Checking live pricing…</span>
-                    </>
-                  ) : effectiveCV ? (
-                    <>
-                      {perUnit
-                        ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
-                        : <>Valuation {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
-                      {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                      {cvIsLive && <span className="text-muted-foreground font-normal">live</span>}
-                    </>
-                  ) : null}
-                </span>
-              );
-            })()}
-            {property.land_area_sqm && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                Land {property.land_area_sqm.toLocaleString()}m²
-              </span>
-            )}
-            {property.building_area_sqm && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                Building {property.building_area_sqm.toLocaleString()}m²
-              </span>
-            )}
-            {property.title_ref && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium text-muted-foreground">
-                Title: {property.title_ref}
-              </span>
-            )}
-            {report.terrain?.elevation_m != null && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-                {report.terrain.elevation_m.toFixed(0)}m elevation
-              </span>
-            )}
-            {report.terrain?.slope_category && report.terrain.slope_category !== 'unknown' && report.terrain.slope_category !== 'flat' && (
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                report.terrain.slope_category === 'extreme' || report.terrain.slope_category === 'very steep'
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  : report.terrain.slope_category === 'steep'
-                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                  : 'bg-muted/60'
-              }`}>
-                {report.terrain.slope_category.charAt(0).toUpperCase() + report.terrain.slope_category.slice(1)} slope
-              </span>
-            )}
-            {report.terrain?.wind_exposure && report.terrain.wind_exposure !== 'unknown' && report.terrain.wind_exposure !== 'moderate' && (
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                report.terrain.wind_exposure === 'very_exposed'
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  : report.terrain.wind_exposure === 'exposed'
-                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-              }`}>
-                {report.terrain.wind_exposure === 'very_exposed' ? 'Very exposed' :
-                 report.terrain.wind_exposure === 'exposed' ? 'Wind exposed' : 'Wind sheltered'}
-              </span>
-            )}
-            {report.terrain?.is_depression && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                Low point
-              </span>
-            )}
-            {report.terrain?.nearest_waterway_m != null && report.terrain.nearest_waterway_m <= 100 && (
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                report.terrain.nearest_waterway_m <= 50
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-              }`}>
-                {report.terrain.nearest_waterway_name || 'Waterway'} {report.terrain.nearest_waterway_m}m
-              </span>
-            )}
-            {report.event_history && report.event_history.extreme_weather_5yr >= 3 && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
-                {report.event_history.extreme_weather_5yr} weather events (5yr)
-              </span>
-            )}
-          </div>
-        )}
+        <PropertyPills report={report} property={property} effectiveCV={effectiveCV} cvIsLive={cvIsLive} ratesLoading={ratesLoading} />
 
         {/* Persona-specific headline */}
         {personaHeadline && (
@@ -298,5 +210,146 @@ export function PropertySummaryCard({
       </CardContent>
 
     </Card>
+  );
+}
+
+function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }: {
+  report: PropertyReport;
+  property: PropertyReport['property'];
+  effectiveCV: number | null | undefined;
+  cvIsLive: boolean;
+  ratesLoading?: boolean;
+}) {
+  const [showAllPills, setShowAllPills] = useState(false);
+
+  if (!effectiveCV && !ratesLoading && !property.land_area_sqm && !property.building_area_sqm && !property.title_ref) return null;
+
+  // Build all pills as an array of ReactNode
+  const pills: React.ReactNode[] = [];
+
+  if (effectiveCV || ratesLoading) {
+    const isMulti = !!report.property_detection?.is_multi_unit;
+    const units = report.property_detection?.unit_count ?? 1;
+    const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
+    const perUnit = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : null;
+    pills.push(
+      <span key="cv" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+        {ratesLoading && !effectiveCV ? (
+          <>
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            <span className="text-muted-foreground">Checking live pricing...</span>
+          </>
+        ) : effectiveCV ? (
+          <>
+            {perUnit
+              ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
+              : <>Valuation {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
+            {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            {cvIsLive && <span className="text-muted-foreground font-normal">live</span>}
+          </>
+        ) : null}
+      </span>
+    );
+  }
+  if (property.land_area_sqm) {
+    pills.push(
+      <span key="land" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+        Land {property.land_area_sqm.toLocaleString()}m²
+      </span>
+    );
+  }
+  if (property.building_area_sqm) {
+    pills.push(
+      <span key="building" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+        Building {property.building_area_sqm.toLocaleString()}m²
+      </span>
+    );
+  }
+  if (property.title_ref) {
+    pills.push(
+      <span key="title" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium text-muted-foreground">
+        Title: {property.title_ref}
+      </span>
+    );
+  }
+  if (report.terrain?.elevation_m != null) {
+    pills.push(
+      <span key="elev" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+        {report.terrain.elevation_m.toFixed(0)}m elevation
+      </span>
+    );
+  }
+  if (report.terrain?.slope_category && report.terrain.slope_category !== 'unknown' && report.terrain.slope_category !== 'flat') {
+    pills.push(
+      <span key="slope" className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+        report.terrain.slope_category === 'extreme' || report.terrain.slope_category === 'very steep'
+          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+          : report.terrain.slope_category === 'steep'
+          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+          : 'bg-muted/60'
+      }`}>
+        {report.terrain.slope_category.charAt(0).toUpperCase() + report.terrain.slope_category.slice(1)} slope
+      </span>
+    );
+  }
+  if (report.terrain?.wind_exposure && report.terrain.wind_exposure !== 'unknown' && report.terrain.wind_exposure !== 'moderate') {
+    pills.push(
+      <span key="wind" className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+        report.terrain.wind_exposure === 'very_exposed'
+          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+          : report.terrain.wind_exposure === 'exposed'
+          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+          : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+      }`}>
+        {report.terrain.wind_exposure === 'very_exposed' ? 'Very exposed' :
+         report.terrain.wind_exposure === 'exposed' ? 'Wind exposed' : 'Wind sheltered'}
+      </span>
+    );
+  }
+  if (report.terrain?.is_depression) {
+    pills.push(
+      <span key="depression" className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+        Low point
+      </span>
+    );
+  }
+  if (report.terrain?.nearest_waterway_m != null && report.terrain.nearest_waterway_m <= 100) {
+    pills.push(
+      <span key="waterway" className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+        report.terrain.nearest_waterway_m <= 50
+          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+      }`}>
+        {report.terrain.nearest_waterway_name || 'Waterway'} {report.terrain.nearest_waterway_m}m
+      </span>
+    );
+  }
+  if (report.event_history && report.event_history.extreme_weather_5yr >= 3) {
+    pills.push(
+      <span key="weather" className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+        {report.event_history.extreme_weather_5yr} weather events (5yr)
+      </span>
+    );
+  }
+
+  if (pills.length === 0) return null;
+
+  const VISIBLE_COUNT = 3;
+  const visiblePills = pills.slice(0, VISIBLE_COUNT);
+  const hiddenPills = pills.slice(VISIBLE_COUNT);
+
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {visiblePills}
+      {showAllPills && hiddenPills}
+      {hiddenPills.length > 0 && (
+        <button
+          onClick={() => setShowAllPills(!showAllPills)}
+          className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium text-piq-primary hover:bg-muted transition-colors"
+        >
+          {showAllPills ? 'Show less' : `Show ${hiddenPills.length} more`}
+        </button>
+      )}
+    </div>
   );
 }

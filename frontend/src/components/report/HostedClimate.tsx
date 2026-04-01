@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Sun, CloudRain, Wind, Thermometer } from 'lucide-react';
 import type { ReportSnapshot } from '@/lib/types';
 
@@ -127,55 +128,85 @@ export function HostedClimate({ snapshot }: Props) {
         </div>
 
         {/* Seasonal summary — card stack on mobile, table on desktop */}
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-2">Seasonal Summary</h3>
-          {/* Mobile: compact cards */}
-          <div className="sm:hidden space-y-2">
-            {seasons.map(s => (
-              <div key={s.name} className="rounded-lg bg-muted/30 p-2.5 text-xs">
-                <div className="font-medium text-foreground mb-1">{s.name}</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-                  <span>High: <span className="font-medium text-foreground">{s.tempMax ?? '-'}&deg;</span></span>
-                  <span>Low: <span className="font-medium text-foreground">{s.tempMin ?? '-'}&deg;</span></span>
-                  <span>Rain: <span className="font-medium text-foreground">{s.rainfall ?? '-'}mm</span></span>
-                  <span>Wind: <span className="font-medium text-foreground">{s.wind ?? '-'}km/h</span></span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Desktop: table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-muted-foreground border-b border-border">
-                  <th className="text-left py-1.5 font-medium">Season</th>
-                  <th className="text-right py-1.5 font-medium">High</th>
-                  <th className="text-right py-1.5 font-medium">Low</th>
-                  <th className="text-right py-1.5 font-medium">Rain</th>
-                  <th className="text-right py-1.5 font-medium">Rain days</th>
-                  <th className="text-right py-1.5 font-medium">Wind</th>
-                </tr>
-              </thead>
-              <tbody>
-                {seasons.map(s => (
-                  <tr key={s.name} className="border-b border-border/50">
-                    <td className="py-1.5 font-medium text-foreground">{s.name}</td>
-                    <td className="text-right text-muted-foreground">{s.tempMax ?? '-'}&deg;</td>
-                    <td className="text-right text-muted-foreground">{s.tempMin ?? '-'}&deg;</td>
-                    <td className="text-right text-muted-foreground">{s.rainfall ?? '-'}mm</td>
-                    <td className="text-right text-muted-foreground">{s.rainDays ?? '-'}/mo</td>
-                    <td className="text-right text-muted-foreground">{s.wind ?? '-'}km/h</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <SeasonalSummary seasons={seasons} />
       </div>
 
       <div className="px-5 py-2 bg-muted/50 border-t border-border">
         <p className="text-xs text-muted-foreground/70">Source: Open-Meteo Climate API (EC-Earth3P-HR model, 2010-2019 average).</p>
       </div>
     </section>
+  );
+}
+
+type SeasonData = { name: string; tempMean: number | null; tempMax: number | null; tempMin: number | null; rainfall: number | null; rainDays: number | null; wind: number | null };
+
+function getCurrentSeasonIndex(): number {
+  const month = new Date().getMonth() + 1; // 1-12
+  if ([12, 1, 2].includes(month)) return 0; // Summer
+  if ([3, 4, 5].includes(month)) return 1;  // Autumn
+  if ([6, 7, 8].includes(month)) return 2;  // Winter
+  return 3; // Spring
+}
+
+function SeasonalSummary({ seasons }: { seasons: SeasonData[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const currentIdx = getCurrentSeasonIndex();
+  const nextIdx = (currentIdx + 1) % 4;
+
+  const visibleSeasons = showAll ? seasons : [seasons[currentIdx], seasons[nextIdx]];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium text-foreground">Seasonal Summary</h3>
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="text-xs text-piq-primary font-medium hover:underline"
+        >
+          {showAll ? 'Show less' : 'Show all seasons'}
+        </button>
+      </div>
+      {/* Mobile: compact cards */}
+      <div className="sm:hidden space-y-2">
+        {visibleSeasons.map(s => (
+          <div key={s.name} className="rounded-lg bg-muted/30 p-2.5 text-xs">
+            <div className="font-medium text-foreground mb-1">{s.name}{s.name === seasons[currentIdx].name ? ' (now)' : ''}</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
+              <span>High: <span className="font-medium text-foreground">{s.tempMax ?? '-'}&deg;</span></span>
+              <span>Low: <span className="font-medium text-foreground">{s.tempMin ?? '-'}&deg;</span></span>
+              <span>Rain: <span className="font-medium text-foreground">{s.rainfall ?? '-'}mm</span></span>
+              <span>Wind: <span className="font-medium text-foreground">{s.wind ?? '-'}km/h</span></span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-muted-foreground border-b border-border">
+              <th className="text-left py-1.5 font-medium">Season</th>
+              <th className="text-right py-1.5 font-medium">High</th>
+              <th className="text-right py-1.5 font-medium">Low</th>
+              <th className="text-right py-1.5 font-medium">Rain</th>
+              <th className="text-right py-1.5 font-medium">Rain days</th>
+              <th className="text-right py-1.5 font-medium">Wind</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleSeasons.map(s => (
+              <tr key={s.name} className="border-b border-border/50">
+                <td className="py-1.5 font-medium text-foreground">{s.name}{s.name === seasons[currentIdx].name ? ' (now)' : ''}</td>
+                <td className="text-right text-muted-foreground">{s.tempMax ?? '-'}&deg;</td>
+                <td className="text-right text-muted-foreground">{s.tempMin ?? '-'}&deg;</td>
+                <td className="text-right text-muted-foreground">{s.rainfall ?? '-'}mm</td>
+                <td className="text-right text-muted-foreground">{s.rainDays ?? '-'}/mo</td>
+                <td className="text-right text-muted-foreground">{s.wind ?? '-'}km/h</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

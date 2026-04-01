@@ -60,20 +60,42 @@ export function HostedAtAGlance({ report }: Props) {
       <div className="px-5 pt-4 pb-3">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">At a Glance</h3>
       </div>
-      <div className="px-5 pb-4">
-        <div className="flex flex-wrap gap-2">
-          {items.map((item) => {
-            const cfg = statusConfig[item.status];
-            return (
-              <div
-                key={item.label}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.color}`}
-              >
-                {cfg.icon}
-                {item.label}
-              </div>
-            );
-          })}
+      <div className="px-5 pb-4 space-y-2">
+        {/* Risk group */}
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Risk</p>
+          <div className="flex flex-wrap gap-2">
+            {items.filter(i => ['Hazard Risk', 'Insurance', 'Crime', 'Noise'].includes(i.label)).map((item) => {
+              const cfg = statusConfig[item.status];
+              return (
+                <div
+                  key={item.label}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.color}`}
+                >
+                  {cfg.icon}
+                  {item.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* Lifestyle group */}
+        <div>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Lifestyle</p>
+          <div className="flex flex-wrap gap-2">
+            {items.filter(i => ['Schools', 'Neighbourhood', 'Transport', 'Rent'].includes(i.label)).map((item) => {
+              const cfg = statusConfig[item.status];
+              return (
+                <div
+                  key={item.label}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.color}`}
+                >
+                  {cfg.icon}
+                  {item.label}
+                </div>
+              );
+            })}
+          </div>
         </div>
         {scores.percentile != null && (
           <p className="text-xs text-muted-foreground mt-2">

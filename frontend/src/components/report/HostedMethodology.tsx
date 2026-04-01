@@ -20,6 +20,22 @@ const CATEGORIES = [
   { name: 'Environment', weight: 10, color: '#10B981' },
 ];
 
+function SubSection({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div className="border-b border-border/50 last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-3 text-sm font-semibold hover:text-piq-primary transition-colors"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="pb-4">{children}</div>}
+    </div>
+  );
+}
+
 export function HostedMethodology() {
   const [open, setOpen] = useState(false);
 
@@ -33,22 +49,15 @@ export function HostedMethodology() {
         <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="px-5 pb-5 space-y-5">
-          <div>
-            <h4 className="text-sm font-semibold mb-2">How Scores Are Computed</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              WhareScore computes a composite risk score (0–100) using a weighted average of six
-              category scores: Hazards (25%), Liveability (20%), Transport (15%), Market (15%),
-              Planning (15%), and Environment (10%). Lower scores are better — a score of 0 means
-              minimal risk, while 100 means maximum risk. Each category is derived from normalised
-              sub-indicators — for example, Hazards aggregates flood zone presence, liquefaction class,
+        <div className="px-5 pb-2">
+          <SubSection title="How Scores Work">
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              <span className="font-semibold text-foreground">Lower is better.</span> WhareScore computes a composite risk score (0-100) using a weighted average of six
+              category scores. A score of 0 means minimal risk, while 100 means maximum risk. Each category is derived from normalised
+              sub-indicators -- for example, Hazards aggregates flood zone presence, liquefaction class,
               seismic activity, wind zone, tsunami zone, wildfire danger days, coastal erosion risk,
               earthquake-prone building proximity, and slope failure susceptibility.
             </p>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Score Scale</h4>
             <div className="flex rounded-lg overflow-hidden h-6">
               {SCORE_BINS.map((bin) => (
                 <div
@@ -63,10 +72,9 @@ export function HostedMethodology() {
             <div className="flex justify-between mt-1 text-xs text-muted-foreground">
               <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
             </div>
-          </div>
+          </SubSection>
 
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Category Weights</h4>
+          <SubSection title="Category Weights">
             <div className="flex gap-1.5">
               {CATEGORIES.map((cat) => (
                 <div
@@ -78,10 +86,12 @@ export function HostedMethodology() {
                 </div>
               ))}
             </div>
-          </div>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Hazards (25%), Liveability (20%), Transport (15%), Market (15%), Planning (15%), Environment (10%).
+            </p>
+          </SubSection>
 
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Data Sources</h4>
+          <SubSection title="Data Sources">
             <p className="text-xs text-muted-foreground leading-relaxed">
               This report draws on 12+ government open data sources including LINZ Property Titles &
               Valuations, GWRC Hazard Maps, MBIE Earthquake-Prone Buildings Register, NZTA Road Noise,
@@ -89,7 +99,7 @@ export function HostedMethodology() {
               Transport Feeds, MoE School Directory, LAWA Water & Air Quality, NIWA Climate Projections,
               and GWRC Contaminated Land (SLUR).
             </p>
-          </div>
+          </SubSection>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { MapPin, AlertTriangle, Wind, Droplets, ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, AlertTriangle, Wind, Droplets, ShoppingCart, ChevronDown } from 'lucide-react';
 import type { ReportSnapshot } from '@/lib/types';
 
 interface NearestSupermarket {
@@ -14,6 +15,22 @@ interface NearestSupermarket {
 interface Props {
   rawReport: Record<string, unknown>;
   snapshot?: ReportSnapshot;
+}
+
+function CollapsibleGroup({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-2 text-sm font-semibold hover:text-piq-primary transition-colors"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="space-y-4 pb-2">{children}</div>}
+    </div>
+  );
 }
 
 export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
@@ -162,432 +179,468 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const hasContent = essentials.length > 0 || contamCount || climateTemp || solarMean || crashTotal || airSite || waterSite || amenityItems.length > 0 || transitModes.length > 0 || travelTimes.length > 0 || suburbAvg || cityAvg || peakTrips || ratesData?.total_rates || transmissionDist;
   if (!hasContent) return null;
 
+  // Group content flags
+  const hasTransit = transitModes.length > 0 || (peakTrips != null && peakTrips > 0) || travelTimes.length > 0 || travelTimesPm.length > 0;
+  const hasSafety = (crashTotal != null && crashTotal > 0) || (contamCount != null && contamCount > 0) || (geotechCount != null && geotechCount > 0);
+  const hasAmenities = essentials.length > 0 || (cf && (cf.nearest_hospital || cf.libraries_2km || cf.ev_chargers_5km)) || amenityItems.length > 0;
+  const hasEnvironment = (airSite && (airPm10 || airPm25)) || (waterSite && (waterDrp || waterAmmonia)) || climateTemp || climatePrecip || solarMean || inCorrosionZone;
+  const hasPlanning = (heritageListed || (heritageCount && heritageCount > 0) || overlays.length > 0) || ((notableTreeCount && notableTreeCount > 0) || (parkCount && parkCount > 0)) || (transmissionDist != null && transmissionDist > 0 && transmissionDist <= 500);
+
   return (
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <MapPin className="h-5 w-5 text-piq-primary" />
         <h3 className="text-lg font-bold">Neighbourhood Snapshot</h3>
       </div>
-      <div className="px-5 pb-5 space-y-4">
-        {/* Nearest essentials */}
-        {essentials.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Nearest Essentials</h4>
-            <div className="divide-y divide-border/50">
-              {essentials.map((e) => (
-                <div key={e.label} className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">{e.label}</span>
-                  <span className="text-muted-foreground text-xs">{e.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="px-5 pb-5 space-y-1 divide-y divide-border/50">
 
-        {/* Community facilities */}
-        {cf && (cf.nearest_hospital || cf.libraries_2km || cf.ev_chargers_5km) && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Community Facilities</h4>
-            <div className="divide-y divide-border/50">
-              {cf.nearest_hospital && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Hospital</span>
-                  <span className="text-muted-foreground text-xs">{cf.nearest_hospital.name} — {Math.round(cf.nearest_hospital.distance_m / 1000)}km</span>
+        {/* ── Group 1: Transit & Commute ── */}
+        {hasTransit && (
+          <CollapsibleGroup title="Transit & Commute" defaultOpen>
+            {/* Transit mode breakdown */}
+            {transitModes.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="text-sm font-semibold">
+                    {hasWalkingReach ? 'Transit Stops (10-min walk)' : 'Transit Stops (800m)'}
+                  </h4>
+                  {hasWalkingReach && walkingReach.method === 'valhalla' && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-piq-primary/10 text-piq-primary">
+                      Hill-adjusted
+                    </span>
+                  )}
                 </div>
-              )}
-              {cf.nearest_ev_charger && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">EV Charger</span>
-                  <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} within 5km)` : ''}</span>
+                <div className="flex flex-wrap gap-2">
+                  {transitModes.map((t) => (
+                    <span key={t.mode} className="px-2.5 py-1 rounded-lg bg-piq-primary/10 text-piq-primary text-xs font-medium">
+                      {t.mode}: {t.count}
+                    </span>
+                  ))}
                 </div>
-              )}
-              {(cf.libraries_2km ?? 0) > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Libraries</span>
-                  <span className="text-muted-foreground text-xs">{cf.libraries_2km} within 2km</span>
-                </div>
-              )}
-              {(cf.sports_facilities_2km ?? 0) > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Sports / Pools</span>
-                  <span className="text-muted-foreground text-xs">{cf.sports_facilities_2km} within 2km</span>
-                </div>
-              )}
-              {(cf.playgrounds_2km ?? 0) > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Playgrounds</span>
-                  <span className="text-muted-foreground text-xs">{cf.playgrounds_2km} within 2km</span>
-                </div>
-              )}
-              {(cf.community_centres_2km ?? 0) > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Community Centres</span>
-                  <span className="text-muted-foreground text-xs">{cf.community_centres_2km} within 2km</span>
-                </div>
-              )}
-              {(cf.cycling_facilities_2km ?? 0) > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Cycling (parking/rental/repair)</span>
-                  <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} within 2km</span>
-                </div>
-              )}
-              {cf.cycleway_km_2km != null && cf.cycleway_km_2km > 0 && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Cycle paths nearby</span>
-                  <span className="text-muted-foreground text-xs">
-                    {cf.cycleway_km_2km >= 10
-                      ? <><span className="text-green-600 font-medium">{cf.cycleway_km_2km}km</span> — excellent cycling network</>
-                      : cf.cycleway_km_2km >= 3
-                        ? <><span className="text-blue-600 font-medium">{cf.cycleway_km_2km}km</span> — good cycling options</>
-                        : <>{cf.cycleway_km_2km}km of cycle paths</>
-                    }
-                  </span>
-                </div>
-              )}
-              {cf.fibre_available != null && (
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="font-medium">Fibre broadband</span>
-                  <span className={`text-xs font-medium ${cf.fibre_available ? 'text-green-600' : 'text-amber-600'}`}>
-                    {cf.fibre_available ? `Available (${cf.fibre_provider || 'provider'})` : 'Not in fibre area'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Nearest supermarkets (5 closest, brand-priority) */}
-        {(() => {
-          const supermarkets = ((snapshot as unknown as Record<string, unknown>)?.nearest_supermarkets ?? []) as NearestSupermarket[];
-          if (supermarkets.length === 0) return null;
-          return (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                <h4 className="text-sm font-semibold">Nearest Supermarkets</h4>
               </div>
-              <div className="divide-y divide-border/50">
-                {supermarkets.map((s, i) => (
-                  <div key={i} className="flex justify-between py-1.5 text-xs">
-                    <span className="font-medium">{s.name}</span>
-                    <span className="text-muted-foreground">
-                      {s.distance_m >= 1000
-                        ? `${(s.distance_m / 1000).toFixed(1)} km`
-                        : `${Math.round(s.distance_m)} m`}
+            )}
+
+            {/* Transit peak frequency */}
+            {peakTrips != null && peakTrips > 0 && (
+              <div className="rounded-lg bg-piq-primary/5 border border-piq-primary/20 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">~{Math.round(peakTrips)} services/hr at peak</p>
+                    {nearestStopName && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Nearest stop: {nearestStopName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      peakTrips >= 20 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : peakTrips >= 8 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {peakTrips >= 20 ? 'Excellent' : peakTrips >= 8 ? 'Good' : 'Limited'}
                     </span>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            )}
 
-        {/* Transit mode breakdown */}
-        {transitModes.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h4 className="text-sm font-semibold">
-                {hasWalkingReach ? 'Transit Stops (10-min walk)' : 'Transit Stops (800m)'}
-              </h4>
-              {hasWalkingReach && walkingReach.method === 'valhalla' && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-piq-primary/10 text-piq-primary">
-                  Hill-adjusted
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {transitModes.map((t) => (
-                <span key={t.mode} className="px-2.5 py-1 rounded-lg bg-piq-primary/10 text-piq-primary text-xs font-medium">
-                  {t.mode}: {t.count}
-                </span>
-              ))}
-            </div>
-          </div>
+            {/* Transit travel times — AM peak */}
+            {travelTimes.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">
+                  Morning Peak {travelTimesPm.length > 0 ? '(7-9 AM)' : 'Travel Times'}
+                </h4>
+                <div className="divide-y divide-border/50">
+                  {travelTimes.slice(0, 8).map((t) => (
+                    <div key={t.destination} className="flex justify-between py-1.5 text-xs">
+                      <span className="font-medium">{t.destination}</span>
+                      <span className="text-muted-foreground">
+                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transit travel times — PM peak */}
+            {travelTimesPm.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Evening Peak (4:30-6:30 PM)</h4>
+                <div className="divide-y divide-border/50">
+                  {travelTimesPm.slice(0, 8).map((t) => (
+                    <div key={t.destination} className="flex justify-between py-1.5 text-xs">
+                      <span className="font-medium">{t.destination}</span>
+                      <span className="text-muted-foreground">
+                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CollapsibleGroup>
         )}
 
-        {/* Transit peak frequency */}
-        {peakTrips != null && peakTrips > 0 && (
-          <div className="rounded-lg bg-piq-primary/5 border border-piq-primary/20 p-3">
-            <div className="flex items-center justify-between">
+        {/* ── Group 2: Safety ── */}
+        {hasSafety && (
+          <CollapsibleGroup title="Safety">
+            {/* Road safety */}
+            {crashTotal != null && crashTotal > 0 && (
               <div>
-                <p className="text-sm font-semibold">~{Math.round(peakTrips)} services/hr at peak</p>
-                {nearestStopName && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Nearest stop: {nearestStopName}
+                <h4 className="text-sm font-semibold mb-1">Road Safety (300m, 5yr)</h4>
+                <p className="text-xs text-muted-foreground">
+                  {crashTotal} crashes recorded nearby
+                  {crashFatal ? ` including ${crashFatal} fatal` : ''}
+                  {crashSerious ? ` and ${crashSerious} serious` : ''}.
+                  {crashTotal > 50 ? ' This is a road safety hotspot.' : ''}
+                </p>
+              </div>
+            )}
+
+            {/* Contaminated land */}
+            {contamCount != null && contamCount > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Contaminated Land</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} within 2 km`}.
+                      {contamCat && ` Category: ${contamCat}.`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Geotechnical reports */}
+            {geotechCount != null && geotechCount > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Geotechnical Reports</h4>
+                <p className="text-xs text-muted-foreground">
+                  {geotechCount} geotech report{geotechCount > 1 ? 's' : ''} filed within 500m.
+                  {geotechHazard && ` Nearest report hazard: ${geotechHazard}.`}
+                  {' '}Existing reports can indicate known ground conditions and save on investigation costs.
+                </p>
+              </div>
+            )}
+          </CollapsibleGroup>
+        )}
+
+        {/* ── Group 3: Amenities ── */}
+        {hasAmenities && (
+          <CollapsibleGroup title="Amenities">
+            {/* Nearest essentials */}
+            {essentials.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Nearest Essentials</h4>
+                <div className="divide-y divide-border/50">
+                  {essentials.map((e) => (
+                    <div key={e.label} className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">{e.label}</span>
+                      <span className="text-muted-foreground text-xs">{e.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Community facilities */}
+            {cf && (cf.nearest_hospital || cf.libraries_2km || cf.ev_chargers_5km) && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Community Facilities</h4>
+                <div className="divide-y divide-border/50">
+                  {cf.nearest_hospital && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Hospital</span>
+                      <span className="text-muted-foreground text-xs">{cf.nearest_hospital.name} — {Math.round(cf.nearest_hospital.distance_m / 1000)}km</span>
+                    </div>
+                  )}
+                  {cf.nearest_ev_charger && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">EV Charger</span>
+                      <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} within 5km)` : ''}</span>
+                    </div>
+                  )}
+                  {(cf.libraries_2km ?? 0) > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Libraries</span>
+                      <span className="text-muted-foreground text-xs">{cf.libraries_2km} within 2km</span>
+                    </div>
+                  )}
+                  {(cf.sports_facilities_2km ?? 0) > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Sports / Pools</span>
+                      <span className="text-muted-foreground text-xs">{cf.sports_facilities_2km} within 2km</span>
+                    </div>
+                  )}
+                  {(cf.playgrounds_2km ?? 0) > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Playgrounds</span>
+                      <span className="text-muted-foreground text-xs">{cf.playgrounds_2km} within 2km</span>
+                    </div>
+                  )}
+                  {(cf.community_centres_2km ?? 0) > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Community Centres</span>
+                      <span className="text-muted-foreground text-xs">{cf.community_centres_2km} within 2km</span>
+                    </div>
+                  )}
+                  {(cf.cycling_facilities_2km ?? 0) > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Cycling (parking/rental/repair)</span>
+                      <span className="text-muted-foreground text-xs">{cf.cycling_facilities_2km} within 2km</span>
+                    </div>
+                  )}
+                  {cf.cycleway_km_2km != null && cf.cycleway_km_2km > 0 && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Cycle paths nearby</span>
+                      <span className="text-muted-foreground text-xs">
+                        {cf.cycleway_km_2km >= 10
+                          ? <><span className="text-green-600 font-medium">{cf.cycleway_km_2km}km</span> — excellent cycling network</>
+                          : cf.cycleway_km_2km >= 3
+                            ? <><span className="text-blue-600 font-medium">{cf.cycleway_km_2km}km</span> — good cycling options</>
+                            : <>{cf.cycleway_km_2km}km of cycle paths</>
+                        }
+                      </span>
+                    </div>
+                  )}
+                  {cf.fibre_available != null && (
+                    <div className="flex justify-between py-2 text-sm">
+                      <span className="font-medium">Fibre broadband</span>
+                      <span className={`text-xs font-medium ${cf.fibre_available ? 'text-green-600' : 'text-amber-600'}`}>
+                        {cf.fibre_available ? `Available (${cf.fibre_provider || 'provider'})` : 'Not in fibre area'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Nearest supermarkets (5 closest, brand-priority) */}
+            {(() => {
+              const supermarkets = ((snapshot as unknown as Record<string, unknown>)?.nearest_supermarkets ?? []) as NearestSupermarket[];
+              if (supermarkets.length === 0) return null;
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    <h4 className="text-sm font-semibold">Nearest Supermarkets</h4>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    {supermarkets.map((s, i) => (
+                      <div key={i} className="flex justify-between py-1.5 text-xs">
+                        <span className="font-medium">{s.name}</span>
+                        <span className="text-muted-foreground">
+                          {s.distance_m >= 1000
+                            ? `${(s.distance_m / 1000).toFixed(1)} km`
+                            : `${Math.round(s.distance_m)} m`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Amenities within 500m */}
+            {amenityItems.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Amenities within 500m</h4>
+                <div className="space-y-1.5">
+                  {amenityItems.map((a) => (
+                    <div key={a.name} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-24 text-right shrink-0">{a.name}</span>
+                      <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-piq-primary" style={{ width: `${(a.count / maxAmenity) * 100}%` }} />
+                      </div>
+                      <span className="text-xs font-semibold text-piq-primary w-8 text-right tabular-nums">{a.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {amenityItems.length === 0 && Object.keys(amenities500m).length === 0 && essentials.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Amenities within 500m</h4>
+                <p className="text-xs text-muted-foreground">No commercial amenities mapped within 500m. Nearest essentials shown above.</p>
+              </div>
+            )}
+          </CollapsibleGroup>
+        )}
+
+        {/* ── Group 4: Environment ── */}
+        {hasEnvironment && (
+          <CollapsibleGroup title="Environment">
+            {/* Air quality */}
+            {airSite && (airPm10 || airPm25) && (
+              <div className="flex items-start gap-2">
+                <Wind className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-semibold">Air Quality</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Monitoring: {airSite}.
+                    {airPm10 && ` PM10 trend: ${airPm10.toLowerCase()}.`}
+                    {airPm25 && ` PM2.5 trend: ${airPm25.toLowerCase()}.`}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Water quality */}
+            {waterSite && (waterDrp || waterAmmonia) && (
+              <div className="flex items-start gap-2">
+                <Droplets className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-semibold">Water Quality</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Nearest: {waterSite}.
+                    {waterDrp && ` Nutrient level: Grade ${waterDrp}.`}
+                    {waterAmmonia && ` Ammonia: Grade ${waterAmmonia}.`}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Climate + Solar */}
+            {(climateTemp || climatePrecip || solarMean) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {climateTemp && (
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Warming 2050</p>
+                    <p className="text-sm font-bold mt-1">+{(typeof climateTemp === 'number' ? climateTemp.toFixed(1) : climateTemp)}&deg;C</p>
+                    <p className="text-xs text-muted-foreground">projected</p>
+                  </div>
+                )}
+                {climatePrecip != null && (
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Rainfall 2050</p>
+                    <p className="text-sm font-bold mt-1">{climatePrecip > 0 ? '+' : ''}{(typeof climatePrecip === 'number' ? climatePrecip.toFixed(0) : climatePrecip)}%</p>
+                    <p className="text-xs text-muted-foreground">change</p>
+                  </div>
+                )}
+                {solarMean && (
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Solar Potential</p>
+                    <p className="text-sm font-bold mt-1">{Math.round(solarMean)} kWh/yr</p>
+                    <p className="text-xs text-muted-foreground">avg radiation</p>
+                  </div>
                 )}
               </div>
-              <div className="text-right">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  peakTrips >= 20 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : peakTrips >= 8 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                }`}>
-                  {peakTrips >= 20 ? 'Excellent' : peakTrips >= 8 ? 'Good' : 'Limited'}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Transit travel times — AM peak */}
-        {travelTimes.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">
-              Morning Peak {travelTimesPm.length > 0 ? '(7–9 AM)' : 'Travel Times'}
-            </h4>
-            <div className="divide-y divide-border/50">
-              {travelTimes.slice(0, 8).map((t) => (
-                <div key={t.destination} className="flex justify-between py-1.5 text-xs">
-                  <span className="font-medium">{t.destination}</span>
-                  <span className="text-muted-foreground">
-                    {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Transit travel times — PM peak */}
-        {travelTimesPm.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Evening Peak (4:30–6:30 PM)</h4>
-            <div className="divide-y divide-border/50">
-              {travelTimesPm.slice(0, 8).map((t) => (
-                <div key={t.destination} className="flex justify-between py-1.5 text-xs">
-                  <span className="font-medium">{t.destination}</span>
-                  <span className="text-muted-foreground">
-                    {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Road safety */}
-        {crashTotal != null && crashTotal > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Road Safety (300m, 5yr)</h4>
-            <p className="text-xs text-muted-foreground">
-              {crashTotal} crashes recorded nearby
-              {crashFatal ? ` including ${crashFatal} fatal` : ''}
-              {crashSerious ? ` and ${crashSerious} serious` : ''}.
-              {crashTotal > 50 ? ' This is a road safety hotspot.' : ''}
-            </p>
-          </div>
-        )}
-
-        {/* Air quality */}
-        {airSite && (airPm10 || airPm25) && (
-          <div className="flex items-start gap-2">
-            <Wind className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-semibold">Air Quality</h4>
+            {/* Corrosion zone */}
+            {inCorrosionZone && (
               <p className="text-xs text-muted-foreground">
-                Monitoring: {airSite}.
-                {airPm10 && ` PM10 trend: ${airPm10.toLowerCase()}.`}
-                {airPm25 && ` PM2.5 trend: ${airPm25.toLowerCase()}.`}
+                <span className="font-medium">Corrosion zone:</span> This area has higher corrosion risk — affects exterior paint and metalwork choices.
               </p>
-            </div>
-          </div>
+            )}
+          </CollapsibleGroup>
         )}
 
-        {/* Water quality */}
-        {waterSite && (waterDrp || waterAmmonia) && (
-          <div className="flex items-start gap-2">
-            <Droplets className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-semibold">Water Quality</h4>
-              <p className="text-xs text-muted-foreground">
-                Nearest: {waterSite}.
-                {waterDrp && ` Nutrient level: Grade ${waterDrp}.`}
-                {waterAmmonia && ` Ammonia: Grade ${waterAmmonia}.`}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Contaminated land */}
-        {contamCount != null && contamCount > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/10 p-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+        {/* ── Group 5: Planning ── */}
+        {hasPlanning && (
+          <CollapsibleGroup title="Planning">
+            {/* Heritage + overlays */}
+            {(heritageListed || (heritageCount && heritageCount > 0) || overlays.length > 0) && (
               <div>
-                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Contaminated Land</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} within 2 km`}.
-                  {contamCat && ` Category: ${contamCat}.`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Heritage + overlays */}
-        {(heritageListed || (heritageCount && heritageCount > 0) || overlays.length > 0) && (
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Heritage & Overlays</h4>
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              {heritageListed && <p className="font-medium text-amber-700">This property is heritage-listed.</p>}
-              {heritageCount > 0 && (
-                <p>
-                  {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} within 500m
-                  {heritageCount >= 50
-                    ? ' — dense heritage area. Development restrictions likely apply to surrounding buildings.'
-                    : heritageCount >= 10
-                      ? '. Heritage-rich neighbourhood — check for view protection or character area rules.'
-                      : '.'}
-                </p>
-              )}
-              {overlays.length > 0 && <p>Planning overlays: {overlays.join(', ')}.</p>}
-            </div>
-          </div>
-        )}
-
-        {/* Notable trees & parks */}
-        {((notableTreeCount && notableTreeCount > 0) || (parkCount && parkCount > 0)) && (
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Green Space & Trees</h4>
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              {notableTreeCount > 0 && (
-                <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} within 50m.
-                  {notableTreeNearest?.name && ` Nearest: ${notableTreeNearest.name}${notableTreeNearest.tree_type ? ` (${notableTreeNearest.tree_type})` : ''}.`}
-                  {' '}Protected trees cannot be removed — check before planning building work.
-                </p>
-              )}
-              {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} within 500m.</p>}
-            </div>
-          </div>
-        )}
-
-        {/* Geotechnical reports */}
-        {geotechCount != null && geotechCount > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Geotechnical Reports</h4>
-            <p className="text-xs text-muted-foreground">
-              {geotechCount} geotech report{geotechCount > 1 ? 's' : ''} filed within 500m.
-              {geotechHazard && ` Nearest report hazard: ${geotechHazard}.`}
-              {' '}Existing reports can indicate known ground conditions and save on investigation costs.
-            </p>
-          </div>
-        )}
-
-        {/* Corrosion zone */}
-        {inCorrosionZone && (
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium">Corrosion zone:</span> This area has higher corrosion risk — affects exterior paint and metalwork choices.
-          </p>
-        )}
-
-        {/* Amenities within 500m */}
-        {amenityItems.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Amenities within 500m</h4>
-            <div className="space-y-1.5">
-              {amenityItems.map((a) => (
-                <div key={a.name} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24 text-right shrink-0">{a.name}</span>
-                  <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
-                    <div className="h-full rounded-full bg-piq-primary" style={{ width: `${(a.count / maxAmenity) * 100}%` }} />
-                  </div>
-                  <span className="text-xs font-semibold text-piq-primary w-8 text-right tabular-nums">{a.count}</span>
+                <h4 className="text-sm font-semibold mb-1">Heritage & Overlays</h4>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  {heritageListed && <p className="font-medium text-amber-700">This property is heritage-listed.</p>}
+                  {heritageCount > 0 && (
+                    <p>
+                      {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} within 500m
+                      {heritageCount >= 50
+                        ? ' — dense heritage area. Development restrictions likely apply to surrounding buildings.'
+                        : heritageCount >= 10
+                          ? '. Heritage-rich neighbourhood — check for view protection or character area rules.'
+                          : '.'}
+                    </p>
+                  )}
+                  {overlays.length > 0 && <p>Planning overlays: {overlays.join(', ')}.</p>}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {amenityItems.length === 0 && Object.keys(amenities500m).length === 0 && essentials.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Amenities within 500m</h4>
-            <p className="text-xs text-muted-foreground">No commercial amenities mapped within 500m. Nearest essentials shown above.</p>
-          </div>
+              </div>
+            )}
+
+            {/* Notable trees & parks */}
+            {((notableTreeCount && notableTreeCount > 0) || (parkCount && parkCount > 0)) && (
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Green Space & Trees</h4>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  {notableTreeCount > 0 && (
+                    <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} within 50m.
+                      {notableTreeNearest?.name && ` Nearest: ${notableTreeNearest.name}${notableTreeNearest.tree_type ? ` (${notableTreeNearest.tree_type})` : ''}.`}
+                      {' '}Protected trees cannot be removed — check before planning building work.
+                    </p>
+                  )}
+                  {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} within 500m.</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Transmission line proximity */}
+            {transmissionDist != null && transmissionDist > 0 && transmissionDist <= 500 && (
+              <div className={`rounded-lg border p-3 ${
+                transmissionDist <= 100
+                  ? 'border-red-200 bg-red-50/50 dark:bg-red-950/10'
+                  : transmissionDist <= 200
+                    ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/10'
+                    : 'border-border'
+              }`}>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${
+                    transmissionDist <= 100 ? 'text-red-600' : transmissionDist <= 200 ? 'text-amber-600' : 'text-muted-foreground'
+                  }`} />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      High-voltage transmission line — {Math.round(transmissionDist)} m away
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {transmissionDist <= 100
+                        ? 'Very close proximity. May affect property value, building restrictions, and insurance. Check Transpower corridor requirements.'
+                        : transmissionDist <= 200
+                          ? 'Nearby transmission infrastructure. Consider potential EMF exposure and building height restrictions.'
+                          : 'Transmission line within 500m. Generally low impact at this distance.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CollapsibleGroup>
         )}
 
-        {/* Climate + Solar */}
-        {(climateTemp || climatePrecip || solarMean) && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {climateTemp && (
-              <div className="rounded-lg border border-border p-3 text-center">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Warming 2050</p>
-                <p className="text-sm font-bold mt-1">+{(typeof climateTemp === 'number' ? climateTemp.toFixed(1) : climateTemp)}°C</p>
-                <p className="text-xs text-muted-foreground">projected</p>
-              </div>
-            )}
-            {climatePrecip != null && (
-              <div className="rounded-lg border border-border p-3 text-center">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Rainfall 2050</p>
-                <p className="text-sm font-bold mt-1">{climatePrecip > 0 ? '+' : ''}{(typeof climatePrecip === 'number' ? climatePrecip.toFixed(0) : climatePrecip)}%</p>
-                <p className="text-xs text-muted-foreground">change</p>
-              </div>
-            )}
-            {solarMean && (
-              <div className="rounded-lg border border-border p-3 text-center">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Solar Potential</p>
-                <p className="text-sm font-bold mt-1">{Math.round(solarMean)} kWh/yr</p>
-                <p className="text-xs text-muted-foreground">avg radiation</p>
-              </div>
-            )}
-          </div>
-        )}
-
+        {/* ── Always visible: Rates & Comparisons (not grouped) ── */}
         {/* Annual council rates */}
         {ratesData?.total_rates != null && ratesData.total_rates > 0 && (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="text-sm font-semibold mb-2">Annual Council Rates</h4>
-            <p className="text-2xl font-bold text-piq-primary">
-              ${ratesData.total_rates.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              <span className="text-xs font-normal text-muted-foreground ml-1">/year</span>
-            </p>
-            {ratesData.rates_breakdown && ratesData.rates_breakdown.length > 0 && (
-              <div className="mt-2 divide-y divide-border/50">
-                {ratesData.rates_breakdown.slice(0, 6).map((item, i) => (
-                  <div key={i} className="flex justify-between py-1 text-xs">
-                    <span className="text-muted-foreground">{item.name}</span>
-                    <span className="font-medium">${item.amount.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">
-              Source: Council rates API. Amounts may differ from your actual rates notice.
-            </p>
-          </div>
-        )}
-
-        {/* Transmission line proximity */}
-        {transmissionDist != null && transmissionDist > 0 && transmissionDist <= 500 && (
-          <div className={`rounded-lg border p-3 ${
-            transmissionDist <= 100
-              ? 'border-red-200 bg-red-50/50 dark:bg-red-950/10'
-              : transmissionDist <= 200
-                ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/10'
-                : 'border-border'
-          }`}>
-            <div className="flex items-start gap-2">
-              <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${
-                transmissionDist <= 100 ? 'text-red-600' : transmissionDist <= 200 ? 'text-amber-600' : 'text-muted-foreground'
-              }`} />
-              <div>
-                <p className="text-sm font-semibold">
-                  High-voltage transmission line — {Math.round(transmissionDist)} m away
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {transmissionDist <= 100
-                    ? 'Very close proximity. May affect property value, building restrictions, and insurance. Check Transpower corridor requirements.'
-                    : transmissionDist <= 200
-                      ? 'Nearby transmission infrastructure. Consider potential EMF exposure and building height restrictions.'
-                      : 'Transmission line within 500m. Generally low impact at this distance.'}
-                </p>
-              </div>
+          <div className="pt-3">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h4 className="text-sm font-semibold mb-2">Annual Council Rates</h4>
+              <p className="text-2xl font-bold text-piq-primary">
+                ${ratesData.total_rates.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="text-xs font-normal text-muted-foreground ml-1">/year</span>
+              </p>
+              {ratesData.rates_breakdown && ratesData.rates_breakdown.length > 0 && (
+                <div className="mt-2 divide-y divide-border/50">
+                  {ratesData.rates_breakdown.slice(0, 6).map((item, i) => (
+                    <div key={i} className="flex justify-between py-1 text-xs">
+                      <span className="text-muted-foreground">{item.name}</span>
+                      <span className="font-medium">${item.amount.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Source: Council rates API. Amounts may differ from your actual rates notice.
+              </p>
             </div>
           </div>
         )}
 
         {/* Comparison benchmarks */}
         {(suburbAvg || cityAvg) && (
-          <div>
+          <div className="pt-3">
             <h4 className="text-sm font-semibold mb-2">How This Property Compares</h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">

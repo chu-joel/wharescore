@@ -140,7 +140,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             {persona === 'renter' ? 'Renter Report' : 'Buyer Report'}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{snapshot.meta.full_address}</h1>
+          <h1 className="hidden sm:block text-2xl sm:text-3xl font-bold tracking-tight">{snapshot.meta.full_address}</h1>
           <p className="text-sm text-muted-foreground">{snapshot.meta.sa2_name} · {snapshot.meta.ta_name}</p>
 
           {hasScores && bin && (

@@ -72,37 +72,54 @@ export function HostedSchools({ rawReport }: Props) {
 
 function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; highlight?: boolean; eqiColor: (n: number) => string }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">School</th>
-            <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Type</th>
-            <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Decile</th>
-            <th className="hidden sm:table-cell text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">EQI</th>
-            <th className="hidden sm:table-cell text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Roll</th>
-            <th className="text-right py-1.5 text-xs font-semibold text-piq-primary uppercase tracking-wider">Distance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {schools.map((s) => (
-            <tr key={s.name} className={`border-b border-border/50 last:border-0 ${highlight ? 'bg-green-50/50 dark:bg-green-950/5' : ''}`}>
-              <td className="py-2 pr-2 font-medium text-xs">{s.name}</td>
-              <td className="py-2 pr-2 text-xs text-muted-foreground">{s.type || '—'}</td>
-              <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.decile ?? '—'}</td>
-              <td className="hidden sm:table-cell py-2 pr-2 text-center">
-                {s.eqi ? (
-                  <span className={`text-xs font-semibold ${eqiColor(s.eqi)}`}>{s.eqi}</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </td>
-              <td className="hidden sm:table-cell py-2 pr-2 text-center text-xs text-muted-foreground">{s.roll?.toLocaleString() ?? '—'}</td>
-              <td className="py-2 text-right text-xs text-muted-foreground">{Math.round(s.distance_m)} m</td>
+    <>
+      {/* Mobile: compact cards */}
+      <div className="sm:hidden space-y-2">
+        {schools.map((s) => (
+          <div key={s.name} className={`rounded-lg p-2.5 ${highlight ? 'bg-green-50/50 dark:bg-green-950/5 border border-green-200/50 dark:border-green-800/30' : 'bg-muted/30 border border-border/50'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{s.name}</p>
+                <p className="text-xs text-muted-foreground">{s.type || 'School'}{s.decile ? ` · Decile ${s.decile}` : ''}</p>
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0">{Math.round(s.distance_m)} m</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">School</th>
+              <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Type</th>
+              <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Decile</th>
+              <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">EQI</th>
+              <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Roll</th>
+              <th className="text-right py-1.5 text-xs font-semibold text-piq-primary uppercase tracking-wider">Distance</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {schools.map((s) => (
+              <tr key={s.name} className={`border-b border-border/50 last:border-0 ${highlight ? 'bg-green-50/50 dark:bg-green-950/5' : ''}`}>
+                <td className="py-2 pr-2 font-medium text-xs">{s.name}</td>
+                <td className="py-2 pr-2 text-xs text-muted-foreground">{s.type || '—'}</td>
+                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.decile ?? '—'}</td>
+                <td className="py-2 pr-2 text-center">
+                  {s.eqi ? (
+                    <span className={`text-xs font-semibold ${eqiColor(s.eqi)}`}>{s.eqi}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.roll?.toLocaleString() ?? '—'}</td>
+                <td className="py-2 text-right text-xs text-muted-foreground">{Math.round(s.distance_m)} m</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

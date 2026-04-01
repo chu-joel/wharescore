@@ -57,7 +57,7 @@ export function HostedRecommendations({ snapshot, persona }: Props) {
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
       <div className="px-5 pt-5 pb-3">
         <h3 className="text-lg font-bold">
-          {persona === 'renter' ? 'Before You Move In' : 'Before You Buy'}
+          Priority Actions
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           {persona === 'renter'

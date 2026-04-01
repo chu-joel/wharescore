@@ -48,14 +48,14 @@ export function HostedNextSteps({ persona, report }: Props) {
   ];
 
   const buyerCards: ActionCard[] = [
-    { level: 'essential', title: 'Get a LIM Report', description: 'Council info memorandum — your #1 document ($300-$500)' },
-    { level: 'essential', title: "Builder's Report", description: 'Pre-purchase building inspection ($400-$1,500)' },
+    { level: 'essential', title: 'Get a LIM Report (~$300-$500)', description: 'Council info memorandum — your #1 due diligence document' },
+    { level: 'essential', title: "Builder's Report (~$400-$1,500)", description: 'Pre-purchase building inspection by a qualified inspector' },
     { level: 'essential', title: 'Insurance Quotes', description: 'Get 2+ quotes BEFORE going unconditional' },
     { level: 'recommended', title: 'Legal Review', description: 'Title, covenants, easements, cross-lease checks' },
     ...(needsGeotech ? [{
       level: 'recommended' as const,
-      title: 'Geotechnical Report',
-      description: 'Soil stability assessment — critical for foundations ($1,500-$3,000)',
+      title: 'Geotechnical Report (~$1,500-$3,000)',
+      description: 'Soil stability assessment — critical for foundations',
     }] : []),
     ...(hasFlood ? [{
       level: 'recommended' as const,
@@ -64,8 +64,8 @@ export function HostedNextSteps({ persona, report }: Props) {
     }] : []),
     ...(hasContamination ? [{
       level: 'recommended' as const,
-      title: 'Environmental Assessment',
-      description: 'Phase 1 ESA for contaminated land nearby ($1,500-$3,000)',
+      title: 'Environmental Assessment (~$1,500-$3,000)',
+      description: 'Phase 1 ESA for contaminated land nearby',
     }] : []),
     ...(hasEpb ? [{
       level: 'consider' as const,

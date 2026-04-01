@@ -109,7 +109,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
           {stats.map((s) => (
             <div key={s.label} className="rounded-lg bg-muted/40 border border-border p-2.5 text-center">
-              <div className="flex justify-center mb-1 text-muted-foreground">{s.icon}</div>
+              <div className="hidden sm:flex justify-center mb-1 text-muted-foreground">{s.icon}</div>
               <p className="text-sm font-bold tabular-nums">{s.value}</p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</p>
             </div>
