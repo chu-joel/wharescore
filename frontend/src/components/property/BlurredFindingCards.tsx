@@ -33,13 +33,13 @@ export function BlurredFindingCards({
   return (
     <div className="relative">
       {/* Blurred ghost cards — show severity colors but not text */}
-      <div className="space-y-2 select-none" aria-hidden>
-        {findings.slice(0, 3).map((finding, i) => (
+      <div className="space-y-1.5 select-none" aria-hidden>
+        {findings.slice(0, 2).map((finding, i) => (
           <BlurredCard key={i} severity={finding.severity} />
         ))}
-        {findings.length > 3 && (
-          <div className="text-center text-xs text-muted-foreground py-1">
-            +{findings.length - 3} more...
+        {findings.length > 2 && (
+          <div className="text-center text-xs text-muted-foreground py-0.5">
+            +{findings.length - 2} more...
           </div>
         )}
       </div>
@@ -114,13 +114,12 @@ function BlurredCard({ severity }: { severity: Finding['severity'] }) {
   const Icon = config.icon;
 
   return (
-    <div className={`rounded-xl border-2 ${config.border} ${config.bg} p-4 blur-[3px]`}>
-      <div className="flex items-start gap-3">
-        <Icon className={`h-5 w-5 ${config.iconColor} shrink-0 mt-0.5`} />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3.5 w-3/4 bg-current/10 rounded" />
-          <div className="h-3 w-full bg-current/5 rounded" />
-          <div className="h-3 w-2/3 bg-current/5 rounded" />
+    <div className={`rounded-lg border ${config.border} ${config.bg} p-2.5 blur-[3px]`}>
+      <div className="flex items-center gap-2">
+        <Icon className={`h-4 w-4 ${config.iconColor} shrink-0`} />
+        <div className="flex-1 space-y-1">
+          <div className="h-3 w-3/4 bg-current/10 rounded" />
+          <div className="h-2.5 w-1/2 bg-current/5 rounded" />
         </div>
       </div>
     </div>

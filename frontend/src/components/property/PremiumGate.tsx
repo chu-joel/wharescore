@@ -37,9 +37,9 @@ export function PremiumGate({
 
   return (
     <div className="relative">
-      {/* Render the actual content but blurred — teases structure/colors */}
-      <div className="select-none pointer-events-none" aria-hidden>
-        <div className="blur-[8px] opacity-50">
+      {/* Render blurred content at fixed height — teases structure without wasting space */}
+      <div className="select-none pointer-events-none max-h-24 overflow-hidden" aria-hidden>
+        <div className="blur-[6px] opacity-40">
           {children}
         </div>
       </div>
@@ -47,15 +47,17 @@ export function PremiumGate({
       {/* Clickable overlay */}
       <button
         onClick={() => setShowUpgradeModal(true, trigger, context)}
-        className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/40 transition-colors group"
+        className="absolute inset-0 flex items-center justify-center gap-3 bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
       >
-        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-background shadow-lg border border-border mb-1.5 group-hover:scale-110 transition-transform">
-          <Lock className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background shadow-md border border-border group-hover:scale-110 transition-transform shrink-0">
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
-        <p className="text-xs font-bold text-foreground">{label}</p>
-        <p className="text-[10px] text-piq-primary font-semibold mt-1 group-hover:underline">
-          {isPro ? 'Tap to unlock with 1 credit' : 'Tap to unlock in full report'}
-        </p>
+        <div>
+          <p className="text-xs font-bold text-foreground">{label}</p>
+          <p className="text-xs text-piq-primary font-semibold group-hover:underline">
+            {isPro ? 'Unlock with 1 credit' : 'Unlock in full report'}
+          </p>
+        </div>
       </button>
     </div>
   );
