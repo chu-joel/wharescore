@@ -41,6 +41,44 @@ function rasterStyle(
   };
 }
 
+/** Satellite imagery + CARTO vector labels overlay for readable road names */
+function satelliteWithLabels(
+  imageryTiles: string[],
+  imageryAttribution: string,
+): string | maplibregl.StyleSpecification {
+  // We return the Positron vector style URL and inject the satellite source + layer
+  // via MapContainer's style.load handler, so labels render as crisp vector text
+  // on top of satellite imagery.
+  return {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+    sources: {
+      basemap: {
+        type: 'raster',
+        tiles: imageryTiles,
+        tileSize: 256,
+        maxzoom: 18,
+        attribution: imageryAttribution,
+      },
+      'carto-labels': {
+        type: 'raster',
+        tiles: [
+          'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
+          'https://b.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
+          'https://c.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
+        ],
+        tileSize: 256,
+        maxzoom: 18,
+        attribution: CARTO_ATTRIBUTION,
+      },
+    },
+    layers: [
+      { id: 'basemap-tiles', type: 'raster', source: 'basemap' },
+      { id: 'label-tiles', type: 'raster', source: 'carto-labels' },
+    ],
+  };
+}
+
 
 // Wellington CBD tile at z=10, x=1008, y=642
 const WLG = { z: 10, x: 1008, y: 642 };
@@ -84,7 +122,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
     label: 'Satellite',
     color: '#1a3a1a',
     previewUrl: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${WLG.z}/${WLG.y}/${WLG.x}`,
-    style: rasterStyle(
+    style: satelliteWithLabels(
       ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
       ESRI_ATTRIBUTION,
     ),
@@ -97,7 +135,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
           label: 'Satellite HD',
           color: '#1a3a1a',
           previewUrl: `https://basemaps.linz.govt.nz/v1/tiles/aerial/WebMercatorQuad/${WLG.z}/${WLG.x}/${WLG.y}.webp?api=${LINZ_KEY}`,
-          style: rasterStyle(
+          style: satelliteWithLabels(
             [`https://basemaps.linz.govt.nz/v1/tiles/aerial/WebMercatorQuad/{z}/{x}/{y}.webp?api=${LINZ_KEY}`],
             LINZ_ATTRIBUTION,
           ),
