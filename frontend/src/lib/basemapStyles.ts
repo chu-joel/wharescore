@@ -41,14 +41,13 @@ function rasterStyle(
   };
 }
 
-/** Satellite imagery + CARTO vector labels overlay for readable road names */
+/** Satellite imagery + vector place/road labels (no POI — our notable_places handles that) */
 function satelliteWithLabels(
   imageryTiles: string[],
   imageryAttribution: string,
 ): string | maplibregl.StyleSpecification {
-  // We return the Positron vector style URL and inject the satellite source + layer
-  // via MapContainer's style.load handler, so labels render as crisp vector text
-  // on top of satellite imagery.
+  const labelFont = ['Open Sans Regular', 'Arial Unicode MS Regular'];
+  const labelFontBold = ['Open Sans Semibold', 'Arial Unicode MS Regular'];
   return {
     version: 8,
     glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
@@ -60,22 +59,94 @@ function satelliteWithLabels(
         maxzoom: 18,
         attribution: imageryAttribution,
       },
-      'carto-labels': {
-        type: 'raster',
-        tiles: [
-          'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
-          'https://b.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
-          'https://c.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png',
-        ],
-        tileSize: 256,
-        maxzoom: 18,
+      openmaptiles: {
+        type: 'vector',
+        url: 'https://tiles.basemaps.cartocdn.com/vector/carto.streets/v1/tiles.json',
         attribution: CARTO_ATTRIBUTION,
       },
     },
     layers: [
       { id: 'basemap-tiles', type: 'raster', source: 'basemap' },
-      { id: 'label-tiles', type: 'raster', source: 'carto-labels' },
-    ],
+      // Road names — white text, dark halo for satellite readability
+      {
+        id: 'road-label',
+        type: 'symbol',
+        source: 'openmaptiles',
+        'source-layer': 'transportation_name',
+        minzoom: 14,
+        layout: {
+          'text-field': '{name}',
+          'text-font': labelFont,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 14, 10, 16, 12, 18, 14],
+          'symbol-placement': 'line',
+          'text-rotation-alignment': 'map',
+          'text-pitch-alignment': 'viewport',
+          'text-max-angle': 30,
+        },
+        paint: {
+          'text-color': '#FFFFFF',
+          'text-halo-color': 'rgba(0,0,0,0.6)',
+          'text-halo-width': 1.5,
+        },
+      },
+      // Suburb / neighbourhood names
+      {
+        id: 'place-suburb',
+        type: 'symbol',
+        source: 'openmaptiles',
+        'source-layer': 'place',
+        filter: ['in', 'class', 'suburb', 'neighbourhood', 'quarter'],
+        minzoom: 12,
+        layout: {
+          'text-field': '{name}',
+          'text-font': labelFontBold,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 12, 11, 15, 14],
+          'text-transform': 'uppercase',
+          'text-letter-spacing': 0.1,
+        },
+        paint: {
+          'text-color': 'rgba(255,255,255,0.9)',
+          'text-halo-color': 'rgba(0,0,0,0.5)',
+          'text-halo-width': 1.5,
+        },
+      },
+      // Town / city names
+      {
+        id: 'place-city',
+        type: 'symbol',
+        source: 'openmaptiles',
+        'source-layer': 'place',
+        filter: ['in', 'class', 'city', 'town', 'village'],
+        minzoom: 6,
+        layout: {
+          'text-field': '{name}',
+          'text-font': labelFontBold,
+          'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 10, 14, 14, 16],
+        },
+        paint: {
+          'text-color': '#FFFFFF',
+          'text-halo-color': 'rgba(0,0,0,0.6)',
+          'text-halo-width': 2,
+        },
+      },
+      // Water names
+      {
+        id: 'water-label',
+        type: 'symbol',
+        source: 'openmaptiles',
+        'source-layer': 'water_name',
+        layout: {
+          'text-field': '{name}',
+          'text-font': labelFont,
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': 'rgba(180,220,255,0.9)',
+          'text-halo-color': 'rgba(0,0,0,0.4)',
+          'text-halo-width': 1,
+        },
+      },
+    ] as maplibregl.LayerSpecification[],
   };
 }
 
