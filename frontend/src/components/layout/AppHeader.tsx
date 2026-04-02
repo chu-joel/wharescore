@@ -2,7 +2,7 @@
 
 import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/search/SearchBar';
@@ -11,6 +11,8 @@ import { useRouter, usePathname } from 'next/navigation';
 
 export function AppHeader() {
   const [isDark, setIsDark] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
@@ -27,6 +29,18 @@ export function AppHeader() {
       document.documentElement.classList.add('dark');
     }
   }, []);
+
+  // Close account menu on outside click
+  useEffect(() => {
+    if (!showAccountMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showAccountMenu]);
 
   function toggleTheme() {
     const next = !isDark;
@@ -120,14 +134,32 @@ export function AppHeader() {
                 <FileText className="h-3.5 w-3.5" />
                 My Reports
               </a>
-              <a
-                href="/account"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
-                aria-label="Account"
-                title={session.user?.name || 'Account'}
-              >
-                <UserCircle className="h-5 w-5" />
-              </a>
+              <div className="relative" ref={accountMenuRef}>
+                <button
+                  onClick={() => setShowAccountMenu(!showAccountMenu)}
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
+                  aria-label="Account menu"
+                >
+                  <UserCircle className="h-5 w-5" />
+                </button>
+                {showAccountMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1 z-50">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-sm font-medium truncate">{session.user?.name || 'Account'}</p>
+                      {session.user?.email && (
+                        <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => { setShowAccountMenu(false); signOut(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <a
