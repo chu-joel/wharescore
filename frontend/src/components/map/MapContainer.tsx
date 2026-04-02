@@ -746,13 +746,13 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Notable places — supermarkets, schools, parks etc at high zoom */}
+        {/* Notable places — key landmarks at zoom 14, all places at zoom 15+ */}
         {mapLoaded && (
           <Source
             id="source-notable-places"
             type="vector"
             tiles={[getTileUrl('notable_places')]}
-            minzoom={15}
+            minzoom={14}
             maxzoom={18}
           >
             <Layer
@@ -760,7 +760,15 @@ export function MapContainer() {
               source="source-notable-places"
               source-layer="notable_places"
               type="symbol"
-              minzoom={15}
+              minzoom={14}
+              filter={[
+                'any',
+                ['>=', ['zoom'], 15],
+                ['in', ['get', 'kind'], ['literal', [
+                  'supermarket', 'school', 'hospital', 'university',
+                  'library', 'park', 'museum', 'zoo',
+                ]]],
+              ]}
               layout={{
                 'text-field': [
                   'format',
@@ -794,6 +802,7 @@ export function MapContainer() {
                 ],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
+                  14, 11,
                   15, 12,
                   16, 13,
                   17, 14,

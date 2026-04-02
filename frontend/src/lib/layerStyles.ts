@@ -434,6 +434,86 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
+  // Special: district plan zones — color-coded by zone type
+  // Zone names are mixed (numeric codes + text), so we use case expressions
+  // to pattern-match into categories: Residential, Commercial, Industrial, etc.
+  if (layerId === 'district_plan_zones') {
+    const fillColor: SeverityExpr = [
+      'case',
+      ['any',
+        ['in', 'Residential', ['get', 'zone_name']],
+        ['in', 'residential', ['get', 'zone_name']],
+        ['in', 'Living', ['get', 'zone_name']],
+        ['in', 'Township', ['get', 'zone_name']],
+      ], '#F59E0B',  // amber — residential
+      ['any',
+        ['in', 'Business', ['get', 'zone_name']],
+        ['in', 'BUSINESS', ['get', 'zone_name']],
+        ['in', 'Commercial', ['get', 'zone_name']],
+        ['in', 'Centre', ['get', 'zone_name']],
+        ['in', 'Retail', ['get', 'zone_name']],
+        ['in', 'Mixed Use', ['get', 'zone_name']],
+      ], '#3B82F6',  // blue — commercial/business
+      ['any',
+        ['in', 'Industrial', ['get', 'zone_name']],
+        ['in', 'INDUSTRIAL', ['get', 'zone_name']],
+        ['in', 'Airport', ['get', 'zone_name']],
+        ['in', 'AIRPORT', ['get', 'zone_name']],
+        ['in', 'Port', ['get', 'zone_name']],
+      ], '#7C3AED',  // purple — industrial
+      ['any',
+        ['in', 'Rural', ['get', 'zone_name']],
+        ['in', 'RURAL', ['get', 'zone_name']],
+        ['in', 'Coastal', ['get', 'zone_name']],
+      ], '#16A34A',  // green — rural/coastal
+      ['any',
+        ['in', 'Open Space', ['get', 'zone_name']],
+        ['in', 'Recreation', ['get', 'zone_name']],
+        ['in', 'Conservation', ['get', 'zone_name']],
+        ['in', 'Reserve', ['get', 'zone_name']],
+      ], '#059669',  // emerald — open space
+      ['any',
+        ['in', 'Road', ['get', 'zone_name']],
+        ['in', 'Rail', ['get', 'zone_name']],
+        ['in', 'Corridor', ['get', 'zone_name']],
+      ], '#6B7280',  // gray — transport corridors
+      '#D4863B',  // fallback — original orange for numeric/unknown codes
+    ];
+    const outlineColor: SeverityExpr = [
+      'case',
+      ['any', ['in', 'Residential', ['get', 'zone_name']], ['in', 'residential', ['get', 'zone_name']], ['in', 'Living', ['get', 'zone_name']], ['in', 'Township', ['get', 'zone_name']]], '#D97706',
+      ['any', ['in', 'Business', ['get', 'zone_name']], ['in', 'BUSINESS', ['get', 'zone_name']], ['in', 'Commercial', ['get', 'zone_name']], ['in', 'Centre', ['get', 'zone_name']], ['in', 'Retail', ['get', 'zone_name']], ['in', 'Mixed Use', ['get', 'zone_name']]], '#2563EB',
+      ['any', ['in', 'Industrial', ['get', 'zone_name']], ['in', 'INDUSTRIAL', ['get', 'zone_name']], ['in', 'Airport', ['get', 'zone_name']], ['in', 'AIRPORT', ['get', 'zone_name']], ['in', 'Port', ['get', 'zone_name']]], '#6D28D9',
+      ['any', ['in', 'Rural', ['get', 'zone_name']], ['in', 'RURAL', ['get', 'zone_name']], ['in', 'Coastal', ['get', 'zone_name']]], '#15803D',
+      ['any', ['in', 'Open Space', ['get', 'zone_name']], ['in', 'Recreation', ['get', 'zone_name']], ['in', 'Conservation', ['get', 'zone_name']], ['in', 'Reserve', ['get', 'zone_name']]], '#047857',
+      ['any', ['in', 'Road', ['get', 'zone_name']], ['in', 'Rail', ['get', 'zone_name']], ['in', 'Corridor', ['get', 'zone_name']]], '#4B5563',
+      '#B06E2D',
+    ];
+    return [
+      {
+        id: 'layer-district_plan_zones',
+        source: 'source-district_plan_zones',
+        'source-layer': 'district_plan_zones',
+        type: 'fill' as const,
+        paint: {
+          'fill-color': fillColor,
+          'fill-opacity': 0.18,
+        },
+      },
+      {
+        id: 'layer-district_plan_zones-outline',
+        source: 'source-district_plan_zones',
+        'source-layer': 'district_plan_zones',
+        type: 'line' as const,
+        paint: {
+          'line-color': outlineColor,
+          'line-width': 1,
+          'line-opacity': 0.5,
+        },
+      },
+    ];
+  }
+
   // Special: crashes — severity-driven colors and sizes
   // Fatal = large red, Serious = orange, Minor = amber, Non-injury = gray
   if (layerId === 'crashes') {
