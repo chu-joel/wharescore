@@ -714,10 +714,11 @@ export function MapContainer() {
               source="source-addresses-click"
               source-layer="addresses"
               type="circle"
-              minzoom={15}
+              minzoom={ADDRESSES_MINZOOM}
               paint={{
                 'circle-radius': [
                   'interpolate', ['linear'], ['zoom'],
+                  14, 1.5,
                   15, 2.5,
                   16, 4,
                   17, 5.5,
@@ -726,6 +727,7 @@ export function MapContainer() {
                 'circle-color': '#14B8A6',
                 'circle-opacity': [
                   'interpolate', ['linear'], ['zoom'],
+                  14, 0.2,
                   15, 0.35,
                   16, 0.5,
                   18, 0.7,
@@ -734,6 +736,7 @@ export function MapContainer() {
                 'circle-stroke-color': '#ffffff',
                 'circle-stroke-opacity': [
                   'interpolate', ['linear'], ['zoom'],
+                  14, 0.15,
                   15, 0.3,
                   16, 0.6,
                   18, 0.8,
@@ -1101,13 +1104,13 @@ export function MapContainer() {
       )}
 
       {/* Zoom hint — contextual based on zoom level, positioned above mobile drawer */}
-      {(viewport.zoom < 14 && !selectedAddress) && (
+      {(viewport.zoom <= 14 && !selectedAddress) && (
         <div className="absolute bottom-60 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
           {viewport.zoom < 8
             ? 'Zoom in or search for an address to get started'
             : viewport.zoom < 11
               ? 'Zoom in closer to see properties'
-              : 'Zoom in or tap a building to select'
+              : 'Tap a building or search for an address'
           }
         </div>
       )}

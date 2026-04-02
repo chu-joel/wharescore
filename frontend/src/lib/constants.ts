@@ -94,7 +94,7 @@ export const CHART_THEME = {
 } as const;
 
 // --- Map layer defaults ---
-export const DEFAULT_LAYERS: Record<string, boolean> = { building_outlines: true };
+export const DEFAULT_LAYERS: Record<string, boolean> = { building_outlines: true, district_plan_zones: true };
 export const PROPERTY_CONTEXT_LAYERS: Record<string, boolean> = { building_outlines: true };
 export const MAX_ACTIVE_LAYERS = 5;
 

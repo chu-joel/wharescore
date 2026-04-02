@@ -236,7 +236,7 @@ function RenterFields({ addressId }: { addressId: number }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {(dwellingType === 'Flat' || dwellingType === 'Apartment') && (
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Parking?</span>
+            <span className="text-xs text-muted-foreground">Has parking</span>
             <div className="flex gap-1.5">
               {([true, false] as const).map((v) => (
                 <Pill key={String(v)} selected={hasParking === v} onClick={() => setHasParking(v)}>
@@ -247,7 +247,7 @@ function RenterFields({ addressId }: { addressId: number }) {
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Outdoor space?</span>
+          <span className="text-xs text-muted-foreground">Has outdoor space</span>
           <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={hasOutdoorSpace === v} onClick={() => setHasOutdoorSpace(v)}>
@@ -257,7 +257,7 @@ function RenterFields({ addressId }: { addressId: number }) {
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Character / unique?</span>
+          <span className="text-xs text-muted-foreground">Character / unique property</span>
           <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={isCharacterProperty === v} onClick={() => setIsCharacterProperty(v)}>
@@ -268,7 +268,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         </div>
         {(dwellingType === 'Room' || dwellingType === 'Flat') && (
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Shared kitchen?</span>
+            <span className="text-xs text-muted-foreground">Shared kitchen</span>
             <div className="flex gap-1.5">
               {([true, false] as const).map((v) => (
                 <Pill key={String(v)} selected={sharedKitchen === v} onClick={() => setSharedKitchen(v)}>
@@ -279,7 +279,7 @@ function RenterFields({ addressId }: { addressId: number }) {
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Utilities included?</span>
+          <span className="text-xs text-muted-foreground">Utilities included</span>
           <div className="flex gap-1.5">
             {([true, false] as const).map((v) => (
               <Pill key={String(v)} selected={utilitiesIncluded === v} onClick={() => setUtilitiesIncluded(v)}>
@@ -549,7 +549,7 @@ export function ReportConfirmModal() {
             <FileText className="h-6 w-6 text-piq-primary" />
           </div>
           <DialogTitle className="text-center text-lg">
-            Review your details
+            About this property
           </DialogTitle>
           {addressName && (
             <p className="text-center text-sm font-medium text-foreground truncate px-4">
@@ -557,13 +557,9 @@ export function ReportConfirmModal() {
             </p>
           )}
           <DialogDescription className="text-center">
-            {persona === 'renter'
-              ? isReady
-                ? 'These details drive your rent analysis. Update anything that looks wrong.'
-                : 'Fill in the required fields (*) for a personalised analysis.'
-              : isReady
-                ? 'These details drive your value estimate. Update anything that looks wrong.'
-                : 'Fill in the required fields (*) for a personalised analysis.'}
+            {isReady
+              ? 'The more accurate these details, the more tailored your report. Update anything that doesn\u2019t look right.'
+              : 'Tell us about this property so we can tailor your report. Fill in the required fields (*) to get started.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -581,10 +577,10 @@ export function ReportConfirmModal() {
           <div className="rounded-lg border border-risk-high/30 bg-risk-high/5 p-2.5 text-xs text-center">
             <p className="font-semibold text-risk-high">
               {persona === 'renter'
-                ? 'Required: Select property type and bedrooms above'
-                : 'Required: Select bedrooms above'}
+                ? 'Select the property type and bedrooms to continue'
+                : 'Select the number of bedrooms to continue'}
             </p>
-            <p className="text-muted-foreground mt-0.5">These are needed for an accurate personalised analysis</p>
+            <p className="text-muted-foreground mt-0.5">We need these basics to tailor the analysis to this property</p>
           </div>
         )}
 

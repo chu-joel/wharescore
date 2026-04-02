@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, LogIn } from 'lucide-react';
+import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -120,26 +120,22 @@ export function AppHeader() {
                 <FileText className="h-3.5 w-3.5" />
                 My Reports
               </a>
-              <span className="hidden sm:inline text-xs text-muted-foreground px-1.5 truncate max-w-[120px]">
-                {session.user?.name?.split(' ')[0]}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => signOut()}
-                className="h-9 w-9"
-                aria-label="Sign out"
+              <a
+                href="/account"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
+                aria-label="Account"
+                title={session.user?.name || 'Account'}
               >
-                <LogOut className="h-4 w-4" />
-              </Button>
+                <UserCircle className="h-5 w-5" />
+              </a>
             </>
           ) : (
             <a
               href="/signin"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
-              aria-label="Sign in"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-2.5 py-2 rounded-lg hover:bg-muted transition-colors"
             >
               <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign in</span>
             </a>
           )}
 

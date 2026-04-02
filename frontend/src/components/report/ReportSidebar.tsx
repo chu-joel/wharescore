@@ -62,8 +62,8 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
   return (
     <div className="p-4 space-y-5">
       <div>
-        <h3 className="text-sm font-bold mb-1">Adjust property details</h3>
-        <p className="text-xs text-muted-foreground">Change inputs to see how the analysis updates.</p>
+        <h3 className="text-sm font-bold mb-1">Property details</h3>
+        <p className="text-xs text-muted-foreground">Adjust to match this property — the analysis updates automatically.</p>
       </div>
 
       {/* Bedrooms */}
@@ -107,18 +107,18 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
 
       {/* Toggles — persona-aware */}
       <div className="space-y-2">
-        <Toggle label="Parking?" value={store.hasParking} onChange={store.setHasParking} />
-        <Toggle label="Outdoor space?" value={store.hasOutdoorSpace} onChange={store.setHasOutdoorSpace} />
-        <Toggle label="Character property?" value={store.isCharacterProperty} onChange={store.setIsCharacterProperty} />
+        <Toggle label="Has parking" value={store.hasParking} onChange={store.setHasParking} />
+        <Toggle label="Has outdoor space" value={store.hasOutdoorSpace} onChange={store.setHasOutdoorSpace} />
+        <Toggle label="Character / unique property" value={store.isCharacterProperty} onChange={store.setIsCharacterProperty} />
         {persona === 'renter' && (
           <>
-            <Toggle label="Furnished?" value={store.isFurnished} onChange={store.setIsFurnished} />
-            <Toggle label="Partially furnished?" value={store.isPartiallyFurnished} onChange={store.setIsPartiallyFurnished} />
-            <Toggle label="Not insulated?" value={store.notInsulated} onChange={store.setNotInsulated} />
+            <Toggle label="Furnished" value={store.isFurnished} onChange={store.setIsFurnished} />
+            <Toggle label="Partially furnished" value={store.isPartiallyFurnished} onChange={store.setIsPartiallyFurnished} />
+            <Toggle label="Not insulated" value={store.notInsulated} onChange={store.setNotInsulated} />
             {(snapshot.meta.dwelling_type === 'Room' || snapshot.meta.dwelling_type === 'Flat') && (
-              <Toggle label="Shared kitchen?" value={store.sharedKitchen} onChange={store.setSharedKitchen} />
+              <Toggle label="Shared kitchen" value={store.sharedKitchen} onChange={store.setSharedKitchen} />
             )}
-            <Toggle label="Utilities included?" value={store.utilitiesIncluded} onChange={store.setUtilitiesIncluded} />
+            <Toggle label="Utilities included" value={store.utilitiesIncluded} onChange={store.setUtilitiesIncluded} />
           </>
         )}
       </div>
