@@ -755,6 +755,53 @@ export function MapContainer() {
             minzoom={15}
             maxzoom={18}
           >
+            {/* Colored circle background per category */}
+            <Layer
+              id="layer-notable-places-circle"
+              source="source-notable-places"
+              source-layer="notable_places"
+              type="circle"
+              minzoom={15}
+              paint={{
+                'circle-radius': [
+                  'interpolate', ['linear'], ['zoom'],
+                  15, 12,
+                  16, 14,
+                  17, 16,
+                ],
+                'circle-color': [
+                  'match', ['get', 'kind'],
+                  'hospital',           '#DC2626',
+                  'doctors',            '#DC2626',
+                  'pharmacy',           '#E11D48',
+                  'park',               '#16A34A',
+                  'playground',         '#16A34A',
+                  'zoo',                '#16A34A',
+                  'school',             '#7C3AED',
+                  'university',         '#7C3AED',
+                  'supermarket',        '#2563EB',
+                  'library',            '#2563EB',
+                  'cafe',               '#D97706',
+                  'restaurant',         '#D97706',
+                  'museum',             '#9333EA',
+                  'gallery',            '#9333EA',
+                  'cinema',             '#9333EA',
+                  'theatre',            '#9333EA',
+                  'sports_centre',      '#0D9488',
+                  'swimming_pool',      '#0D9488',
+                  'fitness_centre',     '#0D9488',
+                  'community_centre',   '#0D9488',
+                  'charging_station',   '#0891B2',
+                  'fuel',               '#64748B',
+                  'bank',               '#64748B',
+                  '#64748B',
+                ],
+                'circle-stroke-width': 2.5,
+                'circle-stroke-color': '#FFFFFF',
+                'circle-opacity': 0.92,
+              }}
+            />
+            {/* Emoji icon centered on the circle */}
             <Layer
               id="layer-notable-places"
               source="source-notable-places"
@@ -762,53 +809,71 @@ export function MapContainer() {
               type="symbol"
               minzoom={15}
               layout={{
-                'text-field': [
-                  'format',
-                  ['match', ['get', 'kind'],
-                    'supermarket', '\u{1F6D2} ',
-                    'school', '\u{1F3EB} ',
-                    'hospital', '\u{1F3E5} ',
-                    'doctors', '\u{2695}\uFE0F ',
-                    'pharmacy', '\u{1F48A} ',
-                    'park', '\u{1F333} ',
-                    'playground', '\u{1F3A0} ',
-                    'cafe', '\u{2615} ',
-                    'restaurant', '\u{1F37D}\uFE0F ',
-                    'library', '\u{1F4DA} ',
-                    'community_centre', '\u{1F3E0} ',
-                    'charging_station', '\u{26A1} ',
-                    'sports_centre', '\u{1F3CB}\uFE0F ',
-                    'swimming_pool', '\u{1F3CA} ',
-                    'museum', '\u{1F3DB}\uFE0F ',
-                    'gallery', '\u{1F3A8} ',
-                    'cinema', '\u{1F3AC} ',
-                    'theatre', '\u{1F3AD} ',
-                    'university', '\u{1F393} ',
-                    'zoo', '\u{1F981} ',
-                    'fuel', '\u{26FD} ',
-                    'bank', '\u{1F3E6} ',
-                    'fitness_centre', '\u{1F4AA} ',
-                    '',
-                  ], {},
-                  ['get', 'label'], { 'font-scale': 0.85 },
+                'text-field': ['match', ['get', 'kind'],
+                  'supermarket', '\u{1F6D2}',
+                  'school', '\u{1F3EB}',
+                  'hospital', '\u{1F3E5}',
+                  'doctors', '\u{2695}\uFE0F',
+                  'pharmacy', '\u{1F48A}',
+                  'park', '\u{1F333}',
+                  'playground', '\u{1F3A0}',
+                  'cafe', '\u{2615}',
+                  'restaurant', '\u{1F37D}\uFE0F',
+                  'library', '\u{1F4DA}',
+                  'community_centre', '\u{1F3E0}',
+                  'charging_station', '\u{26A1}',
+                  'sports_centre', '\u{1F3CB}\uFE0F',
+                  'swimming_pool', '\u{1F3CA}',
+                  'museum', '\u{1F3DB}\uFE0F',
+                  'gallery', '\u{1F3A8}',
+                  'cinema', '\u{1F3AC}',
+                  'theatre', '\u{1F3AD}',
+                  'university', '\u{1F393}',
+                  'zoo', '\u{1F981}',
+                  'fuel', '\u{26FD}',
+                  'bank', '\u{1F3E6}',
+                  'fitness_centre', '\u{1F4AA}',
+                  '',
                 ],
                 'text-size': [
                   'interpolate', ['linear'], ['zoom'],
-                  14, 11,
-                  15, 12,
-                  16, 13,
-                  17, 14,
+                  15, 14,
+                  16, 16,
+                  17, 18,
                 ],
                 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
-                'text-anchor': 'left',
-                'text-justify': 'left',
-                'text-max-width': 10,
-                'text-allow-overlap': false,
-                'text-ignore-placement': false,
-                'text-optional': true,
-                'text-padding': 6,
+                'text-anchor': 'center',
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
                 'symbol-sort-key': ['get', 'priority'],
-                'symbol-z-order': 'source',
+              }}
+              paint={{
+                'text-opacity': 1,
+              }}
+            />
+            {/* Name label below the icon circle — colored for medical/nature, white otherwise */}
+            <Layer
+              id="layer-notable-places-label"
+              source="source-notable-places"
+              source-layer="notable_places"
+              type="symbol"
+              minzoom={16}
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-size': [
+                  'interpolate', ['linear'], ['zoom'],
+                  16, 11,
+                  17, 12,
+                  18, 13,
+                ],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+                'text-anchor': 'top',
+                'text-offset': [0, 1.8],
+                'text-max-width': 8,
+                'text-allow-overlap': false,
+                'text-optional': true,
+                'text-padding': 4,
+                'symbol-sort-key': ['get', 'priority'],
               }}
               paint={{
                 'text-color': [
@@ -819,17 +884,10 @@ export function MapContainer() {
                   'park', '#4ADE80',
                   'playground', '#4ADE80',
                   'zoo', '#4ADE80',
-                  'conservation_land', '#4ADE80',
                   '#FFFFFF',
                 ],
                 'text-halo-color': 'rgba(0,0,0,0.7)',
                 'text-halo-width': 1.5,
-                'text-opacity': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 0.8,
-                  16, 0.9,
-                  17, 1.0,
-                ],
               }}
             />
           </Source>
