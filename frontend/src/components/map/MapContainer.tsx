@@ -746,13 +746,13 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Notable places — key landmarks at zoom 14, all places at zoom 15+ */}
+        {/* Notable places — supermarkets, schools, parks etc */}
         {mapLoaded && (
           <Source
             id="source-notable-places"
             type="vector"
             tiles={[getTileUrl('notable_places')]}
-            minzoom={14}
+            minzoom={15}
             maxzoom={18}
           >
             <Layer
@@ -760,15 +760,7 @@ export function MapContainer() {
               source="source-notable-places"
               source-layer="notable_places"
               type="symbol"
-              minzoom={14}
-              filter={[
-                'any',
-                ['>=', ['zoom'], 15],
-                ['in', ['get', 'kind'], ['literal', [
-                  'supermarket', 'school', 'hospital', 'university',
-                  'library', 'park', 'museum', 'zoo',
-                ]]],
-              ]}
+              minzoom={15}
               layout={{
                 'text-field': [
                   'format',
@@ -1113,7 +1105,7 @@ export function MapContainer() {
       )}
 
       {/* Zoom hint — contextual based on zoom level, positioned above mobile drawer */}
-      {(viewport.zoom <= 14 && !selectedAddress) && (
+      {(viewport.zoom <= 15 && !selectedAddress) && (
         <div className="absolute bottom-60 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
           {viewport.zoom < 8
             ? 'Zoom in or search for an address to get started'

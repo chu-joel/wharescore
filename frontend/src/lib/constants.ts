@@ -105,4 +105,4 @@ export const COVERAGE_TOTAL = 28;
 export const LINZ_KEY = process.env.NEXT_PUBLIC_LINZ_API_KEY ?? '';
 
 // Wellington default center
-export const DEFAULT_CENTER = { longitude: 174.776, latitude: -41.290, zoom: 14 };
+export const DEFAULT_CENTER = { longitude: 174.776, latitude: -41.290, zoom: 15 };
