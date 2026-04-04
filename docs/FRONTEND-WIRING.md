@@ -14,8 +14,8 @@
 |---|---|---|---|
 | `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | Header | No |
 | `scores.overall, .rating` | PropertySummaryCard, ScoreGauge | Header | No |
-| `scores.categories[]` | ScoreStrip, CategoryRadar | Scores | No |
-| `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | Scores (expandable accordion) | No |
+| `scores.categories[]` | ScoreStrip | Scores (plain-English concerns/strengths, no numeric circles) | No |
+| `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | Below fold (compact mode) | No |
 | `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | Header | No |
 | `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | Header (per-unit CV calc) | No |
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | Header (elevation pill + slope pill) | No |
@@ -41,6 +41,10 @@
 | `planning.height_limit, .in_viewshaft, .in_heritage_overlay` | PlanningSection | "Planning" | No |
 | `planning.in_ecological_area, .in_mana_whenua, .epb_listed` | PlanningSection | "Planning" | No |
 | `planning.park_count_500m, .nearest_park_name` | PlanningSection | "Planning" | No |
+| `hazards.*, environment.wind_zone` | HealthyHomesSummary | Healthy Homes (renter only, after score strip) | No |
+| `hazards.*, planning.*, market.trend.*` | BuyerPropertyInsights | Buyer Intelligence (buyer only, after score strip) — renovation potential, insurance quotability, capital growth | No |
+| `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | Flatmate-friendly? (renter only, rent-fair section) | No |
+| `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | Aircraft noise overlay (daily-life section) | No |
 | All hazards + liveability + planning | KeyFindings | Key findings | First 2 free |
 | (live API call) | AISummaryCard | AI summary | No |
 
@@ -53,7 +57,7 @@
 | `report.scores.categories` | HostedAtAGlance | Yes |
 | `report.property, report.scores, meta` | HostedExecutiveSummary | Yes |
 | `ai_insights` | HostedAISummary | Yes (on-screen fetches live) |
-| `report.scores.categories` | CategoryRadar | No (shared) |
+| `report.scores.categories` | CategoryRadar | Yes (hosted only — removed from on-screen report) |
 | `report.*` (all) | KeyFindings (all, no gating) | No (shared, but ungated) |
 | `hazard_advice, weather_history` | HostedAreaFeed | Yes |
 | `rent_baselines` | HostedRentAdvisor | Yes (renter only) |

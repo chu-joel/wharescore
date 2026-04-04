@@ -13,13 +13,15 @@ interface RiskHazardsSectionProps {
   category: CategoryScore;
   hazards?: HazardData;
   environment?: EnvironmentData;
+  persona?: 'renter' | 'buyer';
 }
 
-export function RiskHazardsSection({ category, hazards, environment }: RiskHazardsSectionProps) {
+export function RiskHazardsSection({ category, hazards, environment, persona }: RiskHazardsSectionProps) {
   const available = category.indicators.filter((i) => i.is_available);
   const critical = available.filter((i) => i.score >= 60);
   const normal = available.filter((i) => i.score < 60);
   const unavailable = category.indicators.filter((i) => !i.is_available);
+  const isRenter = persona === 'renter';
 
   if (available.length === 0) {
     return (
@@ -33,15 +35,13 @@ export function RiskHazardsSection({ category, hazards, environment }: RiskHazar
 
   return (
     <div className="space-y-3">
-      {/* Earthquake detail card */}
-      {hazards && <EarthquakeDetailCard hazards={hazards} />}
-
-      {/* Active fault detail */}
-      {hazards?.active_fault_nearest && (
+      {/* Technical earthquake/fault details — buyers only */}
+      {!isRenter && hazards && <EarthquakeDetailCard hazards={hazards} />}
+      {!isRenter && hazards?.active_fault_nearest && (
         <ActiveFaultDetailCard fault={hazards.active_fault_nearest} />
       )}
 
-      {/* Fault avoidance zone warning */}
+      {/* Fault avoidance zone warning — show for both (it's actionable) */}
       {hazards?.fault_avoidance_zone && (
         <FaultAvoidanceZoneCard zone={hazards.fault_avoidance_zone} />
       )}
@@ -69,7 +69,7 @@ export function RiskHazardsSection({ category, hazards, environment }: RiskHazar
         </div>
       )}
 
-      {/* Normal indicators in 2-col grid */}
+      {/* Normal indicators — show for buyers, simplified summary for renters */}
       {normal.length > 0 && (
         <>
           {critical.length === 0 && (
@@ -81,36 +81,45 @@ export function RiskHazardsSection({ category, hazards, environment }: RiskHazar
               />
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {normal.map((indicator) => (
-              <IndicatorCard key={indicator.name} indicator={indicator} />
-            ))}
-          </div>
+          {isRenter ? (
+            // Renters: just a summary count, not the full grid
+            critical.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {normal.length} other hazard{normal.length !== 1 ? 's' : ''} checked — all within normal range.
+              </p>
+            )
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {normal.map((indicator) => (
+                <IndicatorCard key={indicator.name} indicator={indicator} />
+              ))}
+            </div>
+          )}
         </>
       )}
 
-      {/* Contaminated land detail */}
+      {/* Contaminated land — both personas (actionable) */}
       {hazards && hazards.contamination_count != null && hazards.contamination_count > 0 && (
         <ContaminatedLandCard hazards={hazards} />
       )}
 
-      {/* Landslide nearest detail */}
-      {hazards?.landslide_nearest && (
+      {/* Landslide detail — buyers only (too technical for renters) */}
+      {!isRenter && hazards?.landslide_nearest && (
         <LandslideDetailCard landslide={hazards.landslide_nearest} count={hazards.landslide_count_500m} />
       )}
 
-      {/* Climate projections */}
-      {environment?.climate_temp_change != null && (
+      {/* Climate projections — buyers only */}
+      {!isRenter && environment?.climate_temp_change != null && (
         <ClimateForecastCard projection={{ temp_change: environment.climate_temp_change, precip_change_pct: environment.climate_precip_change_pct }} />
       )}
 
-      {/* Solar potential (Wellington) */}
-      {hazards && (
+      {/* Solar potential — buyers only */}
+      {!isRenter && hazards && (
         <SolarPotentialCard meanKwh={hazards.solar_mean_kwh} maxKwh={hazards.solar_max_kwh} />
       )}
 
-      {/* Unavailable indicators */}
-      {unavailable.length > 0 && (
+      {/* Unavailable indicators — buyers only */}
+      {!isRenter && unavailable.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />

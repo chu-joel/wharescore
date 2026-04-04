@@ -21,8 +21,8 @@ import {
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionSection, QuestionId } from '@/lib/reportSections';
 
-/** Questions that should be expanded by default in the accordion */
-const DEFAULT_EXPANDED: QuestionId[] = ['neighbourhood-improving', 'neighbourhood', 'deal-breakers', 'true-cost', 'rent-fair'];
+/** Questions that should be expanded by default in the accordion — keep minimal for progressive disclosure */
+const DEFAULT_EXPANDED: QuestionId[] = [];
 import { getQuestionSummary, getPreviewChips, type PreviewChip } from './QuestionSummary';
 import { QuestionContent } from './QuestionContent';
 

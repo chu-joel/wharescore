@@ -20,11 +20,13 @@ interface TransportSectionProps {
     ferry_stops: number;
   };
   elevation?: number | null;
+  persona?: 'renter' | 'buyer';
 }
 
-export function TransportSection({ category, liveability, walkingReach, elevation }: TransportSectionProps) {
+export function TransportSection({ category, liveability, walkingReach, elevation, persona }: TransportSectionProps) {
   const available = category.indicators.filter((i) => i.is_available);
   const unavailable = category.indicators.filter((i) => !i.is_available);
+  const isRenter = persona === 'renter';
 
   const cbdDistance = liveability.cbd_distance_m;
   const trainDistance = liveability.nearest_train_m;
@@ -218,22 +220,22 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
         );
       })()}
 
-      {/* Indicator cards grid */}
-      {available.length > 0 ? (
+      {/* Indicator cards grid — buyers see full detail, renters see distance/commute cards above */}
+      {!isRenter && available.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {available.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
           ))}
         </div>
-      ) : (
+      ) : !isRenter && available.length === 0 ? (
         <EmptyState
           variant="no-data"
           title="No transport data available"
           description="Transport indicators are not available for this location."
         />
-      )}
+      ) : null}
 
-      {unavailable.length > 0 && (
+      {!isRenter && unavailable.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />

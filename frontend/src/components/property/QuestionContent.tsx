@@ -25,8 +25,10 @@ import { RenterChecklistContent } from './RenterChecklistContent';
 import { BuyerChecklistContent } from './BuyerChecklistContent';
 import { BuyerBudgetCalculator } from './BuyerBudgetCalculator';
 import { RenterBudgetCalculator } from './RenterBudgetCalculator';
+import { FlatmateFriendly } from './FlatmateFriendly';
 import { PriceAdvisorCard } from './PriceAdvisorCard';
 import { useHostedReport } from '@/components/report/HostedReportContext';
+import { usePersonaStore } from '@/stores/personaStore';
 
 interface QuestionContentProps {
   questionId: QuestionId;
@@ -39,8 +41,10 @@ function findCategory(report: PropertyReport, name: string): CategoryScore | und
   return report.scores?.categories?.find((c) => c.name === name);
 }
 
-export function QuestionContent({ questionId, report, locked = false, persona }: QuestionContentProps) {
+export function QuestionContent({ questionId, report, locked = false, persona: personaProp }: QuestionContentProps) {
   const hosted = useHostedReport();
+  const storePersona = usePersonaStore((s) => s.persona);
+  const persona = personaProp ?? storePersona;
   if (locked && !hosted) {
     return (
       <ReportUpsell
@@ -56,10 +60,10 @@ export function QuestionContent({ questionId, report, locked = false, persona }:
     case 'safety': {
       const riskCat = findCategory(report, 'risk');
       if (hosted && riskCat) {
-        // Hosted: show FULL hazard breakdown (user has paid)
+        // Hosted: show hazard breakdown (persona-filtered)
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} />
             <CrimeCard
               percentile={report.liveability.crime_rate}
               victimisations={report.liveability.crime_victimisations}
@@ -116,7 +120,7 @@ export function QuestionContent({ questionId, report, locked = false, persona }:
       if (hosted && riskCat) {
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} />
             <InsuranceRiskCard report={report} />
           </div>
         );
@@ -171,6 +175,7 @@ export function QuestionContent({ questionId, report, locked = false, persona }:
             property={report.property}
             detection={report.property_detection}
           />
+          <FlatmateFriendly report={report} />
           <RenterBudgetCalculator report={report} />
         </div>
       );
@@ -215,8 +220,13 @@ export function QuestionContent({ questionId, report, locked = false, persona }:
       return (
         <div className="space-y-4">
           <WalkabilityScore report={report} />
-          <TransportSection category={transCat} liveability={report.liveability} walkingReach={report.walking_reach} elevation={report.terrain?.elevation_m} />
-          <NoiseLevelGauge noiseDb={report.environment.noise_db} />
+          <TransportSection category={transCat} liveability={report.liveability} walkingReach={report.walking_reach} elevation={report.terrain?.elevation_m} persona={persona} />
+          <NoiseLevelGauge
+            noiseDb={report.environment.noise_db}
+            aircraftNoiseName={report.hazards?.aircraft_noise_name}
+            aircraftNoiseDba={report.hazards?.aircraft_noise_dba}
+            aircraftNoiseCategory={report.hazards?.aircraft_noise_category}
+          />
         </div>
       );
     }
@@ -249,6 +259,7 @@ export function QuestionContent({ questionId, report, locked = false, persona }:
               category={livCat}
               liveability={report.liveability}
               addressId={report.address.address_id}
+              persona={persona}
             />
           )}
         </div>

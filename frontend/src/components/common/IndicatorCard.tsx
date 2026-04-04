@@ -1,8 +1,6 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getRatingColor } from '@/lib/constants';
 import { Shield, CircleMinus, AlertTriangle } from 'lucide-react';
 import type { IndicatorScore } from '@/lib/types';
 
@@ -167,7 +165,6 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
 }
 
 export function IndicatorCard({ indicator }: IndicatorCardProps) {
-  const color = getRatingColor(indicator.rating);
   const description = getIndicatorDescription(indicator.name, indicator.score, indicator.rating);
 
   if (!indicator.is_available) {
@@ -182,50 +179,20 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
   }
 
   return (
-    <TooltipProvider>
-      <div className="rounded-xl border border-border bg-card p-2.5 sm:p-3.5 card-elevated">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <RiskIcon rating={indicator.rating} />
-            <span className="text-sm font-semibold">{indicator.name}</span>
-          </div>
-          <Badge variant={badgeVariant(indicator.rating)} className="text-xs sm:text-xs shrink-0">
-            {indicator.value}
-          </Badge>
+    <div className="rounded-xl border border-border bg-card p-2.5 sm:p-3.5 card-elevated">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <RiskIcon rating={indicator.rating} />
+          <span className="text-sm font-semibold">{indicator.name}</span>
         </div>
-        {/* Description */}
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{description}</p>
-        )}
-        {/* Score bar */}
-        <div className="mt-1.5 sm:mt-2 flex items-center gap-2">
-          <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden relative">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${indicator.score}%`,
-                background: `linear-gradient(90deg, #0D7377, ${color})`,
-              }}
-            />
-          </div>
-          <span className="text-xs font-medium text-muted-foreground tabular-nums w-7 text-right">
-            {Math.round(indicator.score)}
-          </span>
-        </div>
-        {/* Source */}
-        {indicator.source && (
-          <Tooltip>
-            <TooltipTrigger
-              className="text-xs text-muted-foreground/70 mt-1.5 cursor-default block text-left"
-            >
-              {indicator.source}
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Updated: {indicator.updated || 'Recently'}</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <Badge variant={badgeVariant(indicator.rating)} className="text-xs sm:text-xs shrink-0">
+          {indicator.value}
+        </Badge>
       </div>
-    </TooltipProvider>
+      {/* Plain-English description — replaces numeric score bar */}
+      {description && (
+        <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{description}</p>
+      )}
+    </div>
   );
 }

@@ -25,7 +25,8 @@ import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
 import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
-import { CategoryRadar } from './CategoryRadar';
+import { HealthyHomesSummary } from './HealthyHomesSummary';
+import { BuyerPropertyInsights } from './BuyerPropertyInsights';
 import { PremiumGate } from './PremiumGate';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
@@ -214,27 +215,14 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Score Strip — 5 circles */}
+        {/* Score Strip — top concerns and strengths in plain English */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
-        {/* Data Layers Accordion */}
-        {report.coverage && (
-          <DataLayersAccordion coverage={report.coverage} />
-        )}
+        {/* Persona-specific intelligence card */}
+        {persona === 'renter' && <HealthyHomesSummary report={report} />}
+        {persona === 'buyer' && <BuyerPropertyInsights report={report} />}
 
-        {/* Category Radar — visual profile */}
-        {hasCategories && <CategoryRadar categories={report.scores.categories} />}
-
-        {/* Email capture + AI Summary */}
-        <div className="section-divider">
-          <EmailSummaryCapture
-            addressId={addressId}
-            fullAddress={report.address.full_address}
-            findingCount={findings.length}
-            riskCount={riskCount}
-          />
-        </div>
-
+        {/* AI Summary — high value, keep free */}
         <AISummaryCard
           summary={aiData?.ai_summary ?? null}
           areaProfile={aiData?.area_profile ?? null}
@@ -242,23 +230,20 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           loading={aiLoading}
         />
 
-        {/* Daily life snapshot — always visible, high-value info */}
-        {(() => {
-          const dailyLifeQ = questions.find((q) => q.id === 'daily-life' || q.id === 'neighbourhood');
-          if (!dailyLifeQ) return null;
-          return (
-            <div className="section-divider">
-              <HeroQuestion question={dailyLifeQ} report={report} />
-            </div>
-          );
-        })()}
-
         {/* === HERO QUESTION — first question promoted to full-width card === */}
         {heroQuestion && heroQuestion.id !== 'daily-life' && heroQuestion.id !== 'neighbourhood' && (
           <div className="section-divider">
             <HeroQuestion question={heroQuestion} report={report} />
           </div>
         )}
+
+        {/* CTA Banner — primary conversion point (moved higher) */}
+        <ReportCTABanner
+          addressId={addressId}
+          suburbName={report.address.sa2_name}
+          capitalValue={report.property.capital_value}
+          medianRent={report.market.rent_assessment?.median}
+        />
 
         {/* === QUESTION ACCORDION — remaining questions as expandable sections === */}
         <div className="section-divider space-y-3 sm:space-y-5">
@@ -271,13 +256,20 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         </div>
 
-        {/* CTA Banner — primary conversion point */}
-        <ReportCTABanner
-          addressId={addressId}
-          suburbName={report.address.sa2_name}
-          capitalValue={report.property.capital_value}
-          medianRent={report.market.rent_assessment?.median}
-        />
+        {/* Email capture — below the fold, after user has engaged */}
+        <div className="section-divider">
+          <EmailSummaryCapture
+            addressId={addressId}
+            fullAddress={report.address.full_address}
+            findingCount={findings.length}
+            riskCount={riskCount}
+          />
+        </div>
+
+        {/* Data coverage — compact mode, for users who want to verify */}
+        {report.coverage && (
+          <DataLayersAccordion coverage={report.coverage} compact />
+        )}
 
         {/* Key Takeaways — simplified (just CTA buttons) */}
         <div className="section-divider">

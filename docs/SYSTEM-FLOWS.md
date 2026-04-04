@@ -12,13 +12,14 @@
 ### Free On-Screen Report (`/property/{id}`)
 **Purpose:** Show enough real value that the user trusts WhareScore knows what it's talking about, then make them want the full report. The free report should make the user think "this is already more useful than anything else I've found — imagine what the full report has."
 
-**Content rules:**
-- SHOW: Overall score (0-100 with colour), 5 category scores (Risk, Area, Market, Transit, Planning), first 2 key findings with full detail, basic overview of each question section (hazards, neighbourhood, transport, market, planning), AI summary preview, CV and property details
-- GATE (blur/lock with count badge): Findings beyond first 2 (show "X more findings" count — creates urgency), PM transit times, HPI trend chart, detailed rent/price analysis
-- NEVER SHOW (hosted-report-only): Rent advisor, price advisor, school zones, DOC facilities, road noise detail, weather history, hazard-specific advice, actionable recommendations, neighbourhood stats, infrastructure detail, healthy homes — these are the premium value
-- DATA: Uses live API call (`GET /property/{id}/report?fast=true` first, then full in background). CV fetched lazily via `/property/{id}/rates`. Transit overlay for all cities. AI summary fetched separately.
-- PERSONA: Toggle between renter/buyer changes which questions show and finding priority order. The toggle should be prominent — users should feel the report adapts to them.
-- CONVERSION: Every gated section should make the value of upgrading obvious. "3 critical risks found — unlock full report to see details" not just a generic blur. CTAs show $9.99 (Full Report). Signed-in users can get a free Quick Report (8 sections, 30-day expiry).
+**Content rules — tiered progressive disclosure:**
+- **Layer 1 (glanceable, 10sec):** Score gauge (0-100), ScoreStrip (top 2 concerns + top 2 strengths in plain English), first 2 key findings, persona-specific intelligence card (HealthyHomesSummary for renters / BuyerPropertyInsights for buyers), AI summary
+- **Layer 2 (scannable, 2min):** Hero question section (expanded), CTA banner, remaining question accordion sections (all collapsed by default)
+- **Layer 3 (deep dive):** Indicator score grids (buyers only — hidden for renters), technical hazard details (fault slip rates, landslide events — buyers only), data layers accordion (compact mode, below fold)
+- GATE (blur/lock with count badge): Findings beyond first 2, PM transit times, HPI trend, investment metrics, checklists
+- NEVER SHOW (hosted-report-only): Rent advisor, price advisor, school zones, DOC facilities, weather history, hazard-specific advice, recommendations, neighbourhood stats
+- PERSONA (aggressive filtering): Renters see simplified hazard view (critical alerts only, no indicator grids, no fault/landslide/climate/solar detail), no Planning section in accordion, FlatmateFriendly card in rent section, aircraft noise surfaced prominently. Buyers see full indicator grids, all technical detail, BuyerPropertyInsights (renovation potential, insurance quotability, capital growth trajectory).
+- CONVERSION: CTA banner moved higher (after hero question). Email capture below fold. Data layers accordion compact mode. Free report is a teaser — enough to hook, not enough to satisfy.
 
 ### Paid Hosted Report (`/report/{token}`)
 **Purpose:** This is the product people pay money for. It must be professional, comprehensive, truthful, and actionable. The user should finish reading it and know exactly what to do next — whether to proceed with the property, what to investigate further, what risks to price in, and what questions to ask the landlord/agent. It replaces the need for hours of manual research.

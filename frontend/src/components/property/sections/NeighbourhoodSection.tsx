@@ -11,11 +11,13 @@ interface NeighbourhoodSectionProps {
   category: CategoryScore;
   liveability: LiveabilityData;
   addressId: number;
+  persona?: 'renter' | 'buyer';
 }
 
-export function NeighbourhoodSection({ category, liveability, addressId }: NeighbourhoodSectionProps) {
+export function NeighbourhoodSection({ category, liveability, addressId, persona }: NeighbourhoodSectionProps) {
   const available = category.indicators.filter((i) => i.is_available);
   const unavailable = category.indicators.filter((i) => !i.is_available);
+  const isRenter = persona === 'renter';
 
   if (available.length === 0) {
     return (
@@ -64,14 +66,16 @@ export function NeighbourhoodSection({ category, liveability, addressId }: Neigh
         cityMedian={liveability.crime_city_median}
       />
 
-      {/* Indicator cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-        {available.map((indicator) => (
-          <IndicatorCard key={indicator.name} indicator={indicator} />
-        ))}
-      </div>
+      {/* Indicator cards grid — buyers only */}
+      {!isRenter && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {available.map((indicator) => (
+            <IndicatorCard key={indicator.name} indicator={indicator} />
+          ))}
+        </div>
+      )}
 
-      {unavailable.length > 0 && (
+      {!isRenter && unavailable.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
             <IndicatorCard key={indicator.name} indicator={indicator} />
