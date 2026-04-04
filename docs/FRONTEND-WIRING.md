@@ -42,7 +42,8 @@
 | `planning.in_ecological_area, .in_mana_whenua, .epb_listed` | PlanningSection | "Planning" | No |
 | `planning.park_count_500m, .nearest_park_name` | PlanningSection | "Planning" | No |
 | `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | Unified renter intelligence card (Layer 1, after score strip) — overall verdict + rent/market power/healthy homes/mould risk/sun sections. Replaces 5 separate cards. | No |
-| `hazards.*, planning.*, market.trend.*` | BuyerPropertyInsights | Buyer Intelligence (buyer only, after score strip) — renovation potential, insurance quotability, capital growth | No |
+| `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | Unified buyer intelligence card (Layer 1) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type. One card, one verdict. | No |
+| `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | Due diligence tracker (buyer hero) — "We've covered X of Y checks. Here's what you still need." Shows our coverage + remaining items with costs and property-specific notes. | No |
 | `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | Flatmate-friendly? (renter only, rent-fair section) | No |
 | `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | Aircraft noise overlay (daily-life section) | No |
 | `hazards.*, terrain.*, environment.wind_zone` | MouldDampnessRisk | Dampness risk assessment (renter only, Layer 1) — aspect, flood, liquefaction, depression, coastal, wind | No |

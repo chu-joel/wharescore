@@ -25,7 +25,8 @@ import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
 import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
-import { BuyerPropertyInsights } from './BuyerPropertyInsights';
+import { BuyerSnapshot } from './BuyerSnapshot';
+import { BuyerDueDiligence } from './BuyerDueDiligence';
 import { RenterSnapshot } from './RenterSnapshot';
 import { LandlordChecklist } from './LandlordChecklist';
 import { PremiumGate } from './PremiumGate';
@@ -129,7 +130,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   // For buyers, all questions go in the accordion.
   // For renters, skip renter-checklist from accordion (it's now the hero).
   const promotedIds = new Set(['daily-life', 'neighbourhood']);
-  const skipIds = persona === 'renter' ? new Set([...promotedIds, 'renter-checklist']) : promotedIds;
+  const skipIds = persona === 'renter'
+    ? new Set([...promotedIds, 'renter-checklist'])
+    : new Set([...promotedIds, 'buyer-checklist']);
   const accordionQuestions = questions.filter((q) => !skipIds.has(q.id));
 
   return (
@@ -221,7 +224,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
         {/* Persona-specific intelligence — ONE unified card each */}
         {persona === 'renter' && <RenterSnapshot report={report} />}
-        {persona === 'buyer' && <BuyerPropertyInsights report={report} />}
+        {persona === 'buyer' && <BuyerSnapshot report={report} />}
 
         {/* AI Summary — high value, keep free */}
         <AISummaryCard
@@ -235,6 +238,11 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {persona === 'renter' && (
           <div className="section-divider">
             <LandlordChecklist report={report} />
+          </div>
+        )}
+        {persona === 'buyer' && (
+          <div className="section-divider">
+            <BuyerDueDiligence report={report} />
           </div>
         )}
 
