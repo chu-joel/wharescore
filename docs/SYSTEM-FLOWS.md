@@ -12,14 +12,17 @@
 ### Free On-Screen Report (`/property/{id}`)
 **Purpose:** Show enough real value that the user trusts WhareScore knows what it's talking about, then make them want the full report. The free report should make the user think "this is already more useful than anything else I've found — imagine what the full report has."
 
-**Content rules — tiered progressive disclosure:**
-- **Layer 1 (glanceable, 10sec):** Score gauge (0-100), ScoreStrip (top 2 concerns + top 2 strengths in plain English), first 2 key findings, persona-specific intelligence card (HealthyHomesSummary for renters / BuyerPropertyInsights for buyers), AI summary
-- **Layer 2 (scannable, 2min):** Hero question section (expanded), CTA banner, remaining question accordion sections (all collapsed by default)
-- **Layer 3 (deep dive):** Indicator score grids (buyers only — hidden for renters), technical hazard details (fault slip rates, landslide events — buyers only), data layers accordion (compact mode, below fold)
-- GATE (blur/lock with count badge): Findings beyond first 2, PM transit times, HPI trend, investment metrics, checklists
-- NEVER SHOW (hosted-report-only): Rent advisor, price advisor, school zones, DOC facilities, weather history, hazard-specific advice, recommendations, neighbourhood stats
-- PERSONA (aggressive filtering): Renters see simplified hazard view (critical alerts only, no indicator grids, no fault/landslide/climate/solar detail), no Planning section in accordion, FlatmateFriendly card in rent section, aircraft noise surfaced prominently. Buyers see full indicator grids, all technical detail, BuyerPropertyInsights (renovation potential, insurance quotability, capital growth trajectory).
-- CONVERSION: CTA banner moved higher (after hero question). Email capture below fold. Data layers accordion compact mode. Free report is a teaser — enough to hook, not enough to satisfy.
+**Report flow: Verdict → Evidence → Action → Upgrade → Deep Dive**
+
+- **1. VERDICT (glanceable, 5sec):** RenterSnapshot (rent affordability, market power, healthy homes, mould risk, sun aspect → overall verdict) OR BuyerSnapshot (insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type → overall verdict). ScoreGauge and ScoreStrip removed — Snapshots provide the verdict.
+- **2. EVIDENCE:** First 2 key findings (severity-ranked). Area activity teaser.
+- **3. ACTION (high-value free content):** LandlordChecklist (renter hero — personalized questions with climate-zone insulation R-values, heating requirements, HH compliance) OR BuyerDueDiligence (buyer hero — "We've covered 6 of 12 checks, here's what you still need" with costs). KnowYourRights panel in renter checklist accordion (bond max, rent increase rules, modification rights, fibre broadband rights).
+- **4. UPGRADE:** CTA banner.
+- **5. DEEP DIVE:** Question accordion. Renters: `rent-fair` and `daily-life` expanded by default. Buyers: `deal-breakers` and `true-cost` expanded by default. All others collapsed.
+- **6. BELOW FOLD:** AI Summary (area narrative), email capture, data layers (compact), key takeaways, disclaimer.
+- GATE (blur/lock): Findings 3+, PM transit, HPI, investment metrics, full checklists.
+- NEVER SHOW (hosted-only): Rent advisor, price advisor, school zones, DOC, weather history, hazard advice, recommendations, neighbourhood stats.
+- PERSONA FILTERING: Renters see simplified hazard view (critical alerts only, no indicator grids, no fault/landslide/climate/solar detail), FlatmateFriendly card in rent section, SunAspectCard in daily-life, aircraft noise in NoiseLevelGauge. Buyers see full indicator grids, all technical detail. CrimeCard humanized for all ("Safer than X% of areas", no raw victimisation count). IndicatorCards show plain-English descriptions only (no numeric score bars).
 
 ### Paid Hosted Report (`/report/{token}`)
 **Purpose:** This is the product people pay money for. It must be professional, comprehensive, truthful, and actionable. The user should finish reading it and know exactly what to do next — whether to proceed with the property, what to investigate further, what risks to price in, and what questions to ask the landlord/agent. It replaces the need for hours of manual research.

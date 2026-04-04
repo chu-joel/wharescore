@@ -10,48 +10,40 @@
 
 ### On-screen report (`/property/{id}`, component: `PropertyReport.tsx`)
 
+**Report flow: Verdict → Evidence → Action → Upgrade → Deep Dive.** ScoreGauge and ScoreStrip removed from on-screen report (Snapshots provide the verdict). CategoryRadar removed (visual noise). IndicatorCards no longer show numeric score bars — plain-English descriptions only. Indicator grids hidden for renters (buyers still see them).
+
 | Report field path | Component | Section | Gated? |
 |---|---|---|---|
-| `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | Header | No |
-| `scores.overall, .rating` | PropertySummaryCard, ScoreGauge | Header | No |
-| `scores.categories[]` | ScoreStrip | Scores (plain-English concerns/strengths, no numeric circles) | No |
-| `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | Below fold (compact mode) | No |
-| `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | Header | No |
-| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | Header (per-unit CV calc) | No |
-| `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | Header (elevation pill + slope pill) | No |
-| `hazards.*` (all) | RiskHazardsSection | "Is it Safe?" | No |
-| `hazards.council_liquefaction, .council_liquefaction_geology` | RiskHazardsSection | Risk section (all cities) | No |
-| `hazards.council_tsunami_ranking, .council_tsunami_scenario` | RiskHazardsSection | Risk section (all cities) | No |
-| `hazards.council_slope_severity` | RiskHazardsSection | Risk section (all cities) | No |
-| `hazards.active_fault_nearest` | ActiveFaultDetailCard | Risk section | No |
-| `hazards.contamination_count` | ContaminatedLandCard | Risk section | No |
-| `hazards.landslide_nearest, .landslide_count_500m` | LandslideDetailCard | Risk section | No |
-| `environment.climate_temp_change, .climate_precip_change_pct` | ClimateForecastCard | Risk section | No |
-| `liveability.nzdep_score` | NeighbourhoodSection | "Daily Life" | No |
-| `liveability.crime_rate, .crime_victimisations, .crime_city_median` | CrimeCard | "Daily Life" | No |
-| `liveability.cbd_distance_m, .nearest_train_m` | TransportSection | "Transport" | No |
-| `liveability.bus_stops_800m, .rail_stops_800m, .ferry_stops_800m` | TransportSection | "Transport" (falls back to 800m radius if no walking_reach) | No |
-| `walking_reach.bus, .rail, .ferry` | TransportSection | "Transport" (hill-adjusted 10-min walk isochrone) | No |
-| `liveability.transit_travel_times[]` | TransportSection | "Transport" | Top 3 free, rest gated |
-| `liveability.transit_travel_times_pm[]` | TransportSection | "Transport" | PremiumGate |
-| `liveability.peak_trips_per_hour, .nearest_stop_name` | TransportSection | "Transport" | No |
-| `property.capital_value, .land_value` | MarketSection | "Affordable?" | No |
-| `market.market_heat, .trend.cagr_*` | MarketSection | "Affordable?" | No. market_heat derived client-side in transformReport.ts from 1yr rent trend + bond volume (≥8%→hot, ≥4%→warm, ≤-4%→cold, ≤-1%→cool, else neutral) |
-| `planning.zone_name, .zone_category, .zone_code` | PlanningSection | "Planning" | No |
-| `planning.height_limit, .in_viewshaft, .in_heritage_overlay` | PlanningSection | "Planning" | No |
-| `planning.in_ecological_area, .in_mana_whenua, .epb_listed` | PlanningSection | "Planning" | No |
-| `planning.park_count_500m, .nearest_park_name` | PlanningSection | "Planning" | No |
-| `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | Unified renter intelligence card (Layer 1, after score strip) — overall verdict + rent/market power/healthy homes/mould risk/sun sections. Replaces 5 separate cards. | No |
-| `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | Unified buyer intelligence card (Layer 1) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type. One card, one verdict. | No |
-| `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | Due diligence tracker (buyer hero) — "We've covered X of Y checks. Here's what you still need." Shows our coverage + remaining items with costs and property-specific notes. | No |
-| `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | Flatmate-friendly? (renter only, rent-fair section) | No |
-| `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | Aircraft noise overlay (daily-life section) | No |
-| `hazards.*, terrain.*, environment.wind_zone` | MouldDampnessRisk | Dampness risk assessment (renter only, Layer 1) — aspect, flood, liquefaction, depression, coastal, wind | No |
-| `market.trend.cagr_1yr, market.market_heat, market.rent_assessment.bond_count` | RentMarketPower | Negotiating leverage indicator (renter only, Layer 1) — rents falling/flat/rising | No |
-| `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | "What to ask the landlord" (renter only, FREE in checklist section) — climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
-| `market.rent_assessment.median, hazards.earthquake_count, hazards.active_fault_nearest` | KnowYourRights | Tenant rights panel (renter only, FREE in checklist section) — bond max, rent increase rules, modification rights, fibre rights, HH compliance, quiet enjoyment, letting fee ban | No |
-| All hazards + liveability + planning | KeyFindings | Key findings | First 2 free |
-| (live API call) | AISummaryCard | AI summary | No |
+| `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header | No |
+| `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | 0. Header | No |
+| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV calc) | No |
+| `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | 0. Header (elevation pill + slope pill) | No |
+| `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | 1. VERDICT (renter only) — overall verdict + rent/market power/healthy homes/mould risk/sun sections | No |
+| `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type | No |
+| All hazards + liveability + planning | KeyFindings | 2. EVIDENCE — key findings | First 2 free |
+| `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | 3. ACTION (renter hero) — personalized "What to ask the landlord" with climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
+| `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | 3. ACTION (buyer hero) — "We've covered X of Y due diligence checks. Here's what you still need" with costs and property-specific notes | No |
+| `market.rent_assessment.median, hazards.earthquake_count, hazards.active_fault_nearest` | KnowYourRights | 3. ACTION (inside renter checklist accordion) — bond max, rent increase rules, modification rights, fibre rights, HH compliance, quiet enjoyment, letting fee ban | No |
+| `hazards.*` (all) | RiskHazardsSection | 5. DEEP DIVE accordion "Is it Safe?" — persona-aware: renters see critical alerts + summary count only; buyers see full detail incl. fault/landslide/climate/solar | No |
+| `hazards.active_fault_nearest` | ActiveFaultDetailCard | 5. DEEP DIVE (buyers only) | No |
+| `hazards.contamination_count` | ContaminatedLandCard | 5. DEEP DIVE | No |
+| `hazards.landslide_nearest, .landslide_count_500m` | LandslideDetailCard | 5. DEEP DIVE (buyers only) | No |
+| `environment.climate_temp_change, .climate_precip_change_pct` | ClimateForecastCard | 5. DEEP DIVE (buyers only) | No |
+| `liveability.crime_rate, .crime_city_median` | CrimeCard | 5. DEEP DIVE "neighbourhood" — humanized: "Safer than X% of areas" (no raw victimisation count) | No |
+| `liveability.nzdep_score` | NeighbourhoodSection | 5. DEEP DIVE "neighbourhood" | No |
+| `liveability.cbd_distance_m, .nearest_train_m` | TransportSection | 5. DEEP DIVE "daily life" — persona-aware: renters see distances/commute only; buyers also see indicator grid | No |
+| `walking_reach.bus, .rail, .ferry` | TransportSection | 5. DEEP DIVE "daily life" | No |
+| `liveability.transit_travel_times[]` | TransportSection | 5. DEEP DIVE "daily life" | Top 3 free, rest gated |
+| `terrain.aspect_label` | SunAspectCard | 5. DEEP DIVE "daily life" (renter only) | No |
+| `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | 5. DEEP DIVE "daily life" — aircraft noise shown prominently alongside road noise | No |
+| `property.capital_value, .land_value` | MarketSection | 5. DEEP DIVE "rent fair" / "investment" | No |
+| `market.market_heat, .trend.cagr_*` | MarketSection | 5. DEEP DIVE | No |
+| `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | 5. DEEP DIVE "rent fair" (renter only) | No |
+| `planning.zone_name, .zone_category, .height_limit, overlays` | PlanningSection | 5. DEEP DIVE "restrictions" (buyers) | No |
+| `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | 6. Below fold (compact mode) | No |
+| (live API call) | AISummaryCard | 6. Below fold (after accordion) | No |
+
+**Default expanded accordion sections:** Renters: `rent-fair`, `daily-life`. Buyers: `deal-breakers`, `true-cost`.
 
 ### Hosted report (`/report/{token}`, component: `HostedReport.tsx`)
 

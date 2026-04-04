@@ -70,6 +70,10 @@ echo "$ALL_FILES" | grep -q 'sections/.*\.tsx' && \
   ! echo "$ALL_FILES" | grep -q 'docs/FRONTEND-WIRING.md' && \
   MISSING="${MISSING}\n- sections/*.tsx changed: update docs/FRONTEND-WIRING.md On-screen-sections"
 
+echo "$ALL_FILES" | grep -qE 'components/property/[A-Z].*\.tsx' && \
+  ! echo "$ALL_FILES" | grep -q 'docs/FRONTEND-WIRING.md' && \
+  MISSING="${MISSING}\n- property component changed: update docs/FRONTEND-WIRING.md Report-fields if new fields/components added"
+
 echo "$ALL_FILES" | grep -q 'risk_score.py' && \
   ! echo "$ALL_FILES" | grep -q 'docs/SYSTEM-FLOWS.md' && \
   MISSING="${MISSING}\n- risk_score.py changed: update docs/SYSTEM-FLOWS.md Scoring-system"
