@@ -25,22 +25,34 @@ export function LandlordChecklist({ report }: Props) {
 
   const items: CheckItem[] = [];
 
-  // Universal must-asks
+  // Determine climate zone from city (simplified — Zone 3 = alpine/inland, Zone 1 = far north)
+  const city = report.address.city?.toLowerCase() || '';
+  const ta = report.address.ta?.toLowerCase() || '';
+  const isZone3 = ta.includes('queenstown') || ta.includes('central otago') || ta.includes('mackenzie') || ta.includes('waitaki') || city.includes('queenstown') || city.includes('wanaka') || city.includes('cromwell');
+  const ceilingR = isZone3 ? 'R3.3' : 'R2.9';
+
+  // Universal must-asks — Healthy Homes compliance
   items.push({
-    question: 'Can I see the Healthy Homes compliance statement?',
-    why: 'Landlords must provide this by law since July 2021',
+    question: 'Can I see the signed Healthy Homes compliance statement?',
+    why: 'Legally required since July 2025. Must be provided before you sign. Penalty up to $7,200 per breach.',
+    priority: 'must-ask',
+  });
+
+  items.push({
+    question: 'What fixed heating is in the main living area? What capacity?',
+    why: `Must be a fixed heater (not portable) capable of heating to 18°C. If the room needs >2.4 kW, only a heat pump qualifies. Unflued gas heaters don't count.`,
+    priority: 'must-ask',
+  });
+
+  items.push({
+    question: `Is the ceiling insulation at least ${ceilingR}? Underfloor at least R1.3?`,
+    why: `This property is in Climate Zone ${isZone3 ? '3' : '1/2'} — minimum ceiling insulation is ${ceilingR}. Ask when it was last checked.`,
     priority: 'must-ask',
   });
 
   items.push({
     question: 'When was the last rent increase, and how much?',
-    why: 'Rent can only increase once per 12 months',
-    priority: 'must-ask',
-  });
-
-  items.push({
-    question: 'What type of heating is in the main living area?',
-    why: 'Must have a fixed heater capable of warming to 18°C',
+    why: 'Rent can only increase once per 12 months with 60 days written notice. You can challenge excessive increases at the Tribunal within 28 days.',
     priority: 'must-ask',
   });
 

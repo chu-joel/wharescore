@@ -28,6 +28,7 @@ import { RenterBudgetCalculator } from './RenterBudgetCalculator';
 import { FlatmateFriendly } from './FlatmateFriendly';
 import { SunAspectCard } from './SunAspectCard';
 import { LandlordChecklist } from './LandlordChecklist';
+import { KnowYourRights } from './KnowYourRights';
 import { PriceAdvisorCard } from './PriceAdvisorCard';
 import { useHostedReport } from '@/components/report/HostedReportContext';
 import { usePersonaStore } from '@/stores/personaStore';
@@ -282,6 +283,8 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
         <div className="space-y-4">
           {/* Landlord checklist is FREE — high-value conversion hook */}
           <LandlordChecklist report={report} />
+          {/* Know Your Rights — FREE, builds trust */}
+          <KnowYourRights report={report} />
           {/* Detailed renter checklist behind paywall */}
           <PremiumGate label="Full personalised checklist with cost estimates" trigger="default">
             <RenterChecklistContent report={report} />

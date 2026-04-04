@@ -29,6 +29,8 @@ import { HealthyHomesSummary } from './HealthyHomesSummary';
 import { BuyerPropertyInsights } from './BuyerPropertyInsights';
 import { RentAffordabilitySnap } from './RentAffordabilitySnap';
 import { SunAspectCard } from './SunAspectCard';
+import { MouldDampnessRisk } from './MouldDampnessRisk';
+import { RentMarketPower } from './RentMarketPower';
 import { PremiumGate } from './PremiumGate';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
@@ -224,7 +226,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {persona === 'renter' && (
           <>
             <RentAffordabilitySnap report={report} />
+            <RentMarketPower report={report} />
             <HealthyHomesSummary report={report} />
+            <MouldDampnessRisk report={report} />
             <SunAspectCard report={report} />
           </>
         )}

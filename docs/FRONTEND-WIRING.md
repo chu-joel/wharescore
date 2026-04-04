@@ -47,7 +47,10 @@
 | `hazards.*, planning.*, market.trend.*` | BuyerPropertyInsights | Buyer Intelligence (buyer only, after score strip) — renovation potential, insurance quotability, capital growth | No |
 | `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | Flatmate-friendly? (renter only, rent-fair section) | No |
 | `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | Aircraft noise overlay (daily-life section) | No |
-| `hazards.*, environment.*, planning.epb_listed, terrain.aspect_label, .elevation_m` | LandlordChecklist | "What to ask the landlord" (renter only, FREE in checklist section) — personalized by hazards, aspect, elevation, wind, noise, construction type | No |
+| `hazards.*, terrain.*, environment.wind_zone` | MouldDampnessRisk | Dampness risk assessment (renter only, Layer 1) — aspect, flood, liquefaction, depression, coastal, wind | No |
+| `market.trend.cagr_1yr, market.market_heat, market.rent_assessment.bond_count` | RentMarketPower | Negotiating leverage indicator (renter only, Layer 1) — rents falling/flat/rising | No |
+| `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | "What to ask the landlord" (renter only, FREE in checklist section) — climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
+| `market.rent_assessment.median, hazards.earthquake_count, hazards.active_fault_nearest` | KnowYourRights | Tenant rights panel (renter only, FREE in checklist section) — bond max, rent increase rules, modification rights, fibre rights, HH compliance, quiet enjoyment, letting fee ban | No |
 | All hazards + liveability + planning | KeyFindings | Key findings | First 2 free |
 | (live API call) | AISummaryCard | AI summary | No |
 
