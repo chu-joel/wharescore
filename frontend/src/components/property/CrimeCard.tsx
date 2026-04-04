@@ -64,12 +64,13 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
         </div>
       </div>
 
-      {/* Percentile gauge */}
+      {/* Safety gauge */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-muted-foreground">Crime percentile</span>
-          <span className="text-sm font-bold tabular-nums" style={{ color: severity.color }}>
-            {Math.round(percentile)}th
+          <span className="text-xs text-muted-foreground">
+            {percentile <= 50
+              ? `Safer than ${100 - Math.round(percentile)}% of areas`
+              : `More crime than ${Math.round(percentile)}% of areas`}
           </span>
         </div>
         <div className="relative h-3 rounded-full bg-gradient-to-r from-green-200 via-amber-200 to-red-300 dark:from-green-900 dark:via-amber-900 dark:to-red-900 overflow-hidden">
@@ -105,24 +106,13 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
         </div>
       )}
 
-      {/* Stats row */}
-      <div className="flex gap-3">
-        {victimisations !== null && (
-          <div className="flex-1 rounded-lg bg-card dark:bg-card/50 border border-border p-2.5 text-center">
-            <p className="text-lg font-bold tabular-nums">{victimisations.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground leading-tight">victimisations reported</p>
-          </div>
-        )}
-        {comparisonText && (
-          <div className="flex-1 rounded-lg bg-card dark:bg-card/50 border border-border p-2.5 text-center">
-            <div className="flex items-center justify-center gap-1">
-              <ComparisonIcon className="h-4 w-4" style={{ color: severity.color }} />
-              <p className="text-xs font-semibold" style={{ color: severity.color }}>{comparisonText}</p>
-            </div>
-            <p className="text-xs text-muted-foreground leading-tight mt-0.5">vs city average</p>
-          </div>
-        )}
-      </div>
+      {/* Comparison to city average */}
+      {comparisonText && (
+        <div className="flex items-center gap-2 rounded-lg bg-card dark:bg-card/50 border border-border p-2.5">
+          <ComparisonIcon className="h-4 w-4 shrink-0" style={{ color: severity.color }} />
+          <p className="text-xs font-medium" style={{ color: severity.color }}>{comparisonText}</p>
+        </div>
+      )}
 
       {/* Context */}
       <p className="text-xs text-muted-foreground leading-relaxed">

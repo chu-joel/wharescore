@@ -26,6 +26,8 @@ import { BuyerChecklistContent } from './BuyerChecklistContent';
 import { BuyerBudgetCalculator } from './BuyerBudgetCalculator';
 import { RenterBudgetCalculator } from './RenterBudgetCalculator';
 import { FlatmateFriendly } from './FlatmateFriendly';
+import { SunAspectCard } from './SunAspectCard';
+import { LandlordChecklist } from './LandlordChecklist';
 import { PriceAdvisorCard } from './PriceAdvisorCard';
 import { useHostedReport } from '@/components/report/HostedReportContext';
 import { usePersonaStore } from '@/stores/personaStore';
@@ -219,6 +221,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
       const transCat = findCategory(report, 'transport') ?? { name: 'transport', score: 0, rating: 'moderate' as const, indicators: [] };
       return (
         <div className="space-y-4">
+          {persona === 'renter' && <SunAspectCard report={report} />}
           <WalkabilityScore report={report} />
           <TransportSection category={transCat} liveability={report.liveability} walkingReach={report.walking_reach} elevation={report.terrain?.elevation_m} persona={persona} />
           <NoiseLevelGauge
@@ -276,9 +279,14 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
     // ── Checklists (PREMIUM: actionable due diligence lists) ──
     case 'renter-checklist':
       return (
-        <PremiumGate label="Personalised renter checklist" trigger="default">
-          <RenterChecklistContent report={report} />
-        </PremiumGate>
+        <div className="space-y-4">
+          {/* Landlord checklist is FREE — high-value conversion hook */}
+          <LandlordChecklist report={report} />
+          {/* Detailed renter checklist behind paywall */}
+          <PremiumGate label="Full personalised checklist with cost estimates" trigger="default">
+            <RenterChecklistContent report={report} />
+          </PremiumGate>
+        </div>
       );
 
     case 'buyer-checklist':

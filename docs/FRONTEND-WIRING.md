@@ -41,10 +41,13 @@
 | `planning.height_limit, .in_viewshaft, .in_heritage_overlay` | PlanningSection | "Planning" | No |
 | `planning.in_ecological_area, .in_mana_whenua, .epb_listed` | PlanningSection | "Planning" | No |
 | `planning.park_count_500m, .nearest_park_name` | PlanningSection | "Planning" | No |
+| `market.rent_assessment.median, .lower_quartile, .upper_quartile, .bedrooms, .dwelling_type, .bond_count` | RentAffordabilitySnap | Rent affordability (renter only, Layer 1 — after score strip) | No |
 | `hazards.*, environment.wind_zone` | HealthyHomesSummary | Healthy Homes (renter only, after score strip) | No |
+| `terrain.aspect_label` | SunAspectCard | Sun/aspect orientation (renter only, Layer 1 + daily-life section) | No |
 | `hazards.*, planning.*, market.trend.*` | BuyerPropertyInsights | Buyer Intelligence (buyer only, after score strip) — renovation potential, insurance quotability, capital growth | No |
 | `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | Flatmate-friendly? (renter only, rent-fair section) | No |
 | `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | Aircraft noise overlay (daily-life section) | No |
+| `hazards.*, environment.*, planning.epb_listed, terrain.aspect_label, .elevation_m` | LandlordChecklist | "What to ask the landlord" (renter only, FREE in checklist section) — personalized by hazards, aspect, elevation, wind, noise, construction type | No |
 | All hazards + liveability + planning | KeyFindings | Key findings | First 2 free |
 | (live API call) | AISummaryCard | AI summary | No |
 

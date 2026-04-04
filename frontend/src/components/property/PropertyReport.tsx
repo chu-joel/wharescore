@@ -27,6 +27,8 @@ import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
 import { HealthyHomesSummary } from './HealthyHomesSummary';
 import { BuyerPropertyInsights } from './BuyerPropertyInsights';
+import { RentAffordabilitySnap } from './RentAffordabilitySnap';
+import { SunAspectCard } from './SunAspectCard';
 import { PremiumGate } from './PremiumGate';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
@@ -218,8 +220,14 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Score Strip — top concerns and strengths in plain English */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
-        {/* Persona-specific intelligence card */}
-        {persona === 'renter' && <HealthyHomesSummary report={report} />}
+        {/* Persona-specific intelligence cards */}
+        {persona === 'renter' && (
+          <>
+            <RentAffordabilitySnap report={report} />
+            <HealthyHomesSummary report={report} />
+            <SunAspectCard report={report} />
+          </>
+        )}
         {persona === 'buyer' && <BuyerPropertyInsights report={report} />}
 
         {/* AI Summary — high value, keep free */}
