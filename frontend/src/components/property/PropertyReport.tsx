@@ -120,13 +120,11 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   // Score data used by Snapshot components internally
 
-  // For renters, the landlord checklist is the hero (always visible, high-value free content).
-  // For buyers, all questions go in the accordion.
-  // For renters, skip renter-checklist from accordion (it's now the hero).
-  const promotedIds = new Set(['daily-life', 'neighbourhood']);
+  // Skip checklist questions from accordion — they're promoted to hero sections.
+  // All other questions (including daily-life, neighbourhood, rent-fair) stay in accordion.
   const skipIds = persona === 'renter'
-    ? new Set([...promotedIds, 'renter-checklist'])
-    : new Set([...promotedIds, 'buyer-checklist']);
+    ? new Set(['renter-checklist'])
+    : new Set(['buyer-checklist']);
   const accordionQuestions = questions.filter((q) => !skipIds.has(q.id));
 
   return (
