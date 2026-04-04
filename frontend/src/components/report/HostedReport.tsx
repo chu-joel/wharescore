@@ -31,6 +31,10 @@ import { HostedTerrain } from './HostedTerrain';
 import { HostedDemographics } from './HostedDemographics';
 import { HostedClimate } from './HostedClimate';
 
+import { LandlordChecklist } from '@/components/property/LandlordChecklist';
+import { KnowYourRights } from '@/components/property/KnowYourRights';
+import { MouldDampnessRisk } from '@/components/property/MouldDampnessRisk';
+import { SunAspectCard } from '@/components/property/SunAspectCard';
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
 import { CategoryRadar } from '@/components/property/CategoryRadar';
@@ -265,6 +269,21 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 <HostedRentAdvisor snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} />
               </div>
 
+              {/* Renter-specific: Healthy Homes + Mould Risk + Sun — right after rent (their #1 concern) */}
+              {persona === 'renter' && (
+                <>
+                  <div className="pb-6">
+                    <HostedHealthyHomes report={report} />
+                  </div>
+                  <div className="pb-6">
+                    <MouldDampnessRisk report={report} />
+                  </div>
+                  <div className="pb-6">
+                    <SunAspectCard report={report} />
+                  </div>
+                </>
+              )}
+
               {snapshot.rent_history?.length > 0 && (
                 <div className="pb-6">
                   <HostedRentHistory snapshot={snapshot} />
@@ -296,10 +315,16 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 ))}
               </HostedReportProvider>
 
+              {/* Renter-specific: Landlord checklist + Rights — after questions, before hazard advice */}
               {persona === 'renter' && (
-                <div className="pb-6">
-                  <HostedHealthyHomes report={report} />
-                </div>
+                <>
+                  <div className="pb-6">
+                    <LandlordChecklist report={report} />
+                  </div>
+                  <div className="pb-6">
+                    <KnowYourRights report={report} />
+                  </div>
+                </>
               )}
 
               <div className="pb-6">

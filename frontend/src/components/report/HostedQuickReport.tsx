@@ -16,6 +16,9 @@ import { HostedDemographics } from './HostedDemographics';
 import { ScoreGauge } from '@/components/property/ScoreGauge';
 import { ScoreStrip } from '@/components/property/ScoreStrip';
 import { KeyFindings } from '@/components/property/KeyFindings';
+import { LandlordChecklist } from '@/components/property/LandlordChecklist';
+import { MouldDampnessRisk } from '@/components/property/MouldDampnessRisk';
+import { KnowYourRights } from '@/components/property/KnowYourRights';
 import { getRatingBin } from '@/lib/constants';
 import { formatCurrency } from '@/lib/format';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
@@ -193,6 +196,21 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
             userRent={store.weeklyRent}
           />
         </div>
+
+        {/* ═══ RENTER-SPECIFIC: Mould risk + Landlord checklist + Rights ═══ */}
+        {persona === 'renter' && (
+          <>
+            <div className="pb-6">
+              <MouldDampnessRisk report={report} />
+            </div>
+            <div className="pb-6">
+              <LandlordChecklist report={report} />
+            </div>
+            <div className="pb-6">
+              <KnowYourRights report={report} />
+            </div>
+          </>
+        )}
 
         {/* ═══ 4. HAZARD SUMMARY ═══ */}
         <div className="pb-6">

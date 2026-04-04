@@ -76,7 +76,11 @@
 | `climate_normals` | HostedClimate | Yes. Monthly temp range chart, seasonal table, highlight cards. |
 | `nearby_doc` | HostedOutdoorRec | Yes |
 | `report.planning` | HostedInfrastructure | Yes |
-| `report.hazards` (flood_zone, liquefaction, coastal_erosion_exposure, wind_zone) | HostedHealthyHomes | Yes (renter only). Accesses raw snapshot via cast — uses SQL field names (flood, liquefaction, coastal_exposure), not transformed type names. |
+| `report.hazards` | HostedHealthyHomes | Yes (renter only). Moved to after Rent Advisor (was after questions). |
+| `report.hazards, terrain, environment` | MouldDampnessRisk | Yes (renter only, Full + Quick). After HealthyHomes in Full, after Rent Verdict in Quick. |
+| `report.terrain.aspect_label` | SunAspectCard | Yes (renter only, Full). After MouldDampnessRisk. |
+| `report.hazards, environment, planning, terrain, address` | LandlordChecklist | Yes (renter only, Full + Quick). In Full: after questions, before hazard advice. In Quick: after rent verdict. |
+| `report.market.rent_assessment, hazards.earthquake_count` | KnowYourRights | Yes (renter only, Full + Quick). After LandlordChecklist. |
 | `hazard_advice` | HostedHazardAdvice | Yes |
 | `recommendations` | HostedRecommendations | Yes |
 | (persona template) | HostedNextSteps | Yes |
@@ -95,6 +99,9 @@ Rendered when `report_tier === 'quick'`. **Free with sign-in.** Single-column, n
 | `report.scores.categories` | HostedAtAGlance | Yes |
 | `report` | KeyFindings (maxFree=3) | Yes (capped at 3, Full shows all) |
 | `rent_baselines` / `price_advisor` | QuickVerdict | New (simplified) |
+| `report.hazards, terrain, environment` | MouldDampnessRisk | Renter only — dampness risk with viewing tips |
+| `report.hazards, environment, planning, terrain, address` | LandlordChecklist | Renter only — personalized landlord questions |
+| `report.market.rent_assessment, hazards` | KnowYourRights | Renter only — tenant rights (bond max, rent rules, modifications) |
 | `report.hazards` | QuickHazardSummary | New (traffic lights) |
 | `school_zones` | HostedSchoolZones | Yes |
 | `nearby_highlights` | HostedNearbyHighlights | Yes |
