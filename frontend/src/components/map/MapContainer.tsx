@@ -755,53 +755,7 @@ export function MapContainer() {
             minzoom={15}
             maxzoom={18}
           >
-            {/* Colored circle background per category */}
-            <Layer
-              id="layer-notable-places-circle"
-              source="source-notable-places"
-              source-layer="notable_places"
-              type="circle"
-              minzoom={15}
-              paint={{
-                'circle-radius': [
-                  'interpolate', ['linear'], ['zoom'],
-                  15, 12,
-                  16, 14,
-                  17, 16,
-                ],
-                'circle-color': [
-                  'match', ['get', 'kind'],
-                  'hospital',           '#DC2626',
-                  'doctors',            '#DC2626',
-                  'pharmacy',           '#E11D48',
-                  'park',               '#16A34A',
-                  'playground',         '#16A34A',
-                  'zoo',                '#16A34A',
-                  'school',             '#7C3AED',
-                  'university',         '#7C3AED',
-                  'supermarket',        '#2563EB',
-                  'library',            '#2563EB',
-                  'cafe',               '#D97706',
-                  'restaurant',         '#D97706',
-                  'museum',             '#9333EA',
-                  'gallery',            '#9333EA',
-                  'cinema',             '#9333EA',
-                  'theatre',            '#9333EA',
-                  'sports_centre',      '#0D9488',
-                  'swimming_pool',      '#0D9488',
-                  'fitness_centre',     '#0D9488',
-                  'community_centre',   '#0D9488',
-                  'charging_station',   '#0891B2',
-                  'fuel',               '#64748B',
-                  'bank',               '#64748B',
-                  '#64748B',
-                ],
-                'circle-stroke-width': 2.5,
-                'circle-stroke-color': '#FFFFFF',
-                'circle-opacity': 0.92,
-              }}
-            />
-            {/* Emoji icon centered on the circle */}
+            {/* Google Maps-style POI icons — white symbol on colored circle */}
             <Layer
               id="layer-notable-places"
               source="source-notable-places"
@@ -809,46 +763,41 @@ export function MapContainer() {
               type="symbol"
               minzoom={15}
               layout={{
-                'text-field': ['match', ['get', 'kind'],
-                  'supermarket', '\u{1F6D2}',
-                  'school', '\u{1F3EB}',
-                  'hospital', '\u{1F3E5}',
-                  'doctors', '\u{2695}\uFE0F',
-                  'pharmacy', '\u{1F48A}',
-                  'park', '\u{1F333}',
-                  'playground', '\u{1F3A0}',
-                  'cafe', '\u{2615}',
-                  'restaurant', '\u{1F37D}\uFE0F',
-                  'library', '\u{1F4DA}',
-                  'community_centre', '\u{1F3E0}',
-                  'charging_station', '\u{26A1}',
-                  'sports_centre', '\u{1F3CB}\uFE0F',
-                  'swimming_pool', '\u{1F3CA}',
-                  'museum', '\u{1F3DB}\uFE0F',
-                  'gallery', '\u{1F3A8}',
-                  'cinema', '\u{1F3AC}',
-                  'theatre', '\u{1F3AD}',
-                  'university', '\u{1F393}',
-                  'zoo', '\u{1F981}',
-                  'fuel', '\u{26FD}',
-                  'bank', '\u{1F3E6}',
-                  'fitness_centre', '\u{1F4AA}',
-                  '',
+                'icon-image': ['match', ['get', 'kind'],
+                  'hospital',           'poi-hospital',
+                  'doctors',            'poi-doctors',
+                  'pharmacy',           'poi-pharmacy',
+                  'park',               'poi-park',
+                  'playground',         'poi-playground',
+                  'zoo',                'poi-park',
+                  'school',             'poi-school',
+                  'university',         'poi-university',
+                  'supermarket',        'poi-supermarket',
+                  'library',            'poi-library',
+                  'cafe',               'poi-cafe',
+                  'restaurant',         'poi-restaurant',
+                  'museum',             'poi-museum',
+                  'gallery',            'poi-museum',
+                  'cinema',             'poi-museum',
+                  'theatre',            'poi-museum',
+                  'sports_centre',      'poi-sports',
+                  'swimming_pool',      'poi-sports',
+                  'fitness_centre',     'poi-sports',
+                  'community_centre',   'poi-default',
+                  'charging_station',   'poi-charging',
+                  'fuel',               'poi-default',
+                  'bank',               'poi-default',
+                  'poi-default',
                 ],
-                'text-size': [
+                'icon-size': [
                   'interpolate', ['linear'], ['zoom'],
-                  15, 14,
-                  16, 16,
-                  17, 18,
+                  15, 0.7,
+                  16, 0.85,
+                  17, 1,
                 ],
-                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
-                'text-anchor': 'center',
-                'text-allow-overlap': true,
-                'text-ignore-placement': true,
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
                 'symbol-sort-key': ['get', 'priority'],
-              }}
-              paint={{
-                'text-opacity': 1,
               }}
             />
             {/* Name label below the icon circle — colored for medical/nature, white otherwise */}

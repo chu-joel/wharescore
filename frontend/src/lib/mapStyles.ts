@@ -149,6 +149,431 @@ export function addLayerIcons(map: maplibregl.Map) {
     const { data } = ctx.getImageData(0, 0, SIZE, SIZE);
     map.addImage(name, { width: SIZE, height: SIZE, data: new Uint8Array(data.buffer) });
   }
+
+  // Google Maps-style POI icons: white symbol on colored circle
+  addPoiIcons(map);
+}
+
+// ---------------------------------------------------------------------------
+// Google Maps-style POI icons — white symbol on colored circle
+// ---------------------------------------------------------------------------
+
+interface PoiIconDef {
+  name: string;
+  bg: string;
+  drawSymbol: (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => void;
+}
+
+/** Draw a white outlined symbol for each POI category */
+function drawWhiteSymbol(ctx: CanvasRenderingContext2D, fn: (ctx: CanvasRenderingContext2D) => void) {
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  fn(ctx);
+}
+
+const POI_ICON_DEFS: PoiIconDef[] = [
+  {
+    name: 'poi-hospital',
+    bg: '#DC2626',
+    drawSymbol(ctx, cx, cy) {
+      // White cross
+      drawWhiteSymbol(ctx, (c) => {
+        c.fillRect(cx - 2, cy - 7, 4, 14);
+        c.fillRect(cx - 7, cy - 2, 14, 4);
+      });
+    },
+  },
+  {
+    name: 'poi-doctors',
+    bg: '#DC2626',
+    drawSymbol(ctx, cx, cy) {
+      // White cross (same as hospital)
+      drawWhiteSymbol(ctx, (c) => {
+        c.fillRect(cx - 2, cy - 6, 4, 12);
+        c.fillRect(cx - 6, cy - 2, 12, 4);
+      });
+    },
+  },
+  {
+    name: 'poi-pharmacy',
+    bg: '#E11D48',
+    drawSymbol(ctx, cx, cy) {
+      // Pill shape
+      drawWhiteSymbol(ctx, (c) => {
+        c.beginPath();
+        c.ellipse(cx, cy, 7, 4, Math.PI / 4, 0, Math.PI * 2);
+        c.fill();
+        // Dividing line
+        c.strokeStyle = '#E11D48';
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(cx - 3, cy + 3);
+        c.lineTo(cx + 3, cy - 3);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-park',
+    bg: '#16A34A',
+    drawSymbol(ctx, cx, cy) {
+      // Tree shape
+      drawWhiteSymbol(ctx, (c) => {
+        // Trunk
+        c.fillRect(cx - 1.5, cy + 2, 3, 5);
+        // Crown (triangle)
+        c.beginPath();
+        c.moveTo(cx, cy - 8);
+        c.lineTo(cx + 7, cy + 3);
+        c.lineTo(cx - 7, cy + 3);
+        c.closePath();
+        c.fill();
+      });
+    },
+  },
+  {
+    name: 'poi-playground',
+    bg: '#16A34A',
+    drawSymbol(ctx, cx, cy) {
+      // Swing set
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 2;
+        // A-frame
+        c.beginPath();
+        c.moveTo(cx - 7, cy + 7);
+        c.lineTo(cx, cy - 7);
+        c.lineTo(cx + 7, cy + 7);
+        c.stroke();
+        // Crossbar
+        c.beginPath();
+        c.moveTo(cx - 5, cy - 2);
+        c.lineTo(cx + 5, cy - 2);
+        c.stroke();
+        // Swing
+        c.beginPath();
+        c.moveTo(cx, cy - 2);
+        c.lineTo(cx, cy + 4);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-school',
+    bg: '#7C3AED',
+    drawSymbol(ctx, cx, cy) {
+      // Building with flag
+      drawWhiteSymbol(ctx, (c) => {
+        // Building
+        c.fillRect(cx - 7, cy - 3, 14, 10);
+        // Door
+        c.fillStyle = '#7C3AED';
+        c.fillRect(cx - 2, cy + 1, 4, 6);
+        // Roof triangle
+        c.fillStyle = '#FFFFFF';
+        c.beginPath();
+        c.moveTo(cx, cy - 8);
+        c.lineTo(cx + 8, cy - 3);
+        c.lineTo(cx - 8, cy - 3);
+        c.closePath();
+        c.fill();
+      });
+    },
+  },
+  {
+    name: 'poi-university',
+    bg: '#7C3AED',
+    drawSymbol(ctx, cx, cy) {
+      // Graduation cap
+      drawWhiteSymbol(ctx, (c) => {
+        // Cap base (diamond)
+        c.beginPath();
+        c.moveTo(cx, cy - 5);
+        c.lineTo(cx + 9, cy);
+        c.lineTo(cx, cy + 3);
+        c.lineTo(cx - 9, cy);
+        c.closePath();
+        c.fill();
+        // Tassel line
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.moveTo(cx + 6, cy + 1);
+        c.lineTo(cx + 6, cy + 6);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-supermarket',
+    bg: '#2563EB',
+    drawSymbol(ctx, cx, cy) {
+      // Shopping cart
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(cx - 7, cy - 6);
+        c.lineTo(cx - 4, cy - 6);
+        c.lineTo(cx - 1, cy + 3);
+        c.lineTo(cx + 6, cy + 3);
+        c.lineTo(cx + 7, cy - 3);
+        c.lineTo(cx - 3, cy - 3);
+        c.stroke();
+        // Wheels
+        c.beginPath();
+        c.arc(cx, cy + 6, 1.5, 0, Math.PI * 2);
+        c.arc(cx + 5, cy + 6, 1.5, 0, Math.PI * 2);
+        c.fill();
+      });
+    },
+  },
+  {
+    name: 'poi-library',
+    bg: '#2563EB',
+    drawSymbol(ctx, cx, cy) {
+      // Book
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 2;
+        // Open book
+        c.beginPath();
+        c.moveTo(cx - 8, cy - 5);
+        c.lineTo(cx, cy - 3);
+        c.lineTo(cx + 8, cy - 5);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(cx - 8, cy + 5);
+        c.lineTo(cx, cy + 3);
+        c.lineTo(cx + 8, cy + 5);
+        c.stroke();
+        // Spine
+        c.beginPath();
+        c.moveTo(cx, cy - 3);
+        c.lineTo(cx, cy + 3);
+        c.stroke();
+        // Side edges
+        c.beginPath();
+        c.moveTo(cx - 8, cy - 5);
+        c.lineTo(cx - 8, cy + 5);
+        c.moveTo(cx + 8, cy - 5);
+        c.lineTo(cx + 8, cy + 5);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-cafe',
+    bg: '#D97706',
+    drawSymbol(ctx, cx, cy) {
+      // Coffee cup
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 2;
+        // Cup body
+        c.beginPath();
+        c.moveTo(cx - 5, cy - 3);
+        c.lineTo(cx - 4, cy + 5);
+        c.lineTo(cx + 4, cy + 5);
+        c.lineTo(cx + 5, cy - 3);
+        c.closePath();
+        c.stroke();
+        // Handle
+        c.beginPath();
+        c.arc(cx + 6, cy + 1, 3, -Math.PI / 2, Math.PI / 2, false);
+        c.stroke();
+        // Steam
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(cx - 2, cy - 5);
+        c.quadraticCurveTo(cx - 1, cy - 7, cx, cy - 5);
+        c.moveTo(cx + 2, cy - 5);
+        c.quadraticCurveTo(cx + 3, cy - 8, cx + 4, cy - 5);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-restaurant',
+    bg: '#D97706',
+    drawSymbol(ctx, cx, cy) {
+      // Fork and knife
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 1.5;
+        // Fork (left)
+        c.beginPath();
+        c.moveTo(cx - 4, cy - 7);
+        c.lineTo(cx - 4, cy - 1);
+        c.moveTo(cx - 6, cy - 7);
+        c.lineTo(cx - 6, cy - 1);
+        c.moveTo(cx - 2, cy - 7);
+        c.lineTo(cx - 2, cy - 1);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(cx - 6, cy - 1);
+        c.lineTo(cx - 2, cy - 1);
+        c.stroke();
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(cx - 4, cy - 1);
+        c.lineTo(cx - 4, cy + 7);
+        c.stroke();
+        // Knife (right)
+        c.beginPath();
+        c.moveTo(cx + 4, cy - 7);
+        c.lineTo(cx + 4, cy + 7);
+        c.stroke();
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.moveTo(cx + 4, cy - 7);
+        c.quadraticCurveTo(cx + 7, cy - 4, cx + 4, cy);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-museum',
+    bg: '#9333EA',
+    drawSymbol(ctx, cx, cy) {
+      // Temple columns
+      drawWhiteSymbol(ctx, (c) => {
+        c.fillRect(cx - 7, cy + 4, 14, 3);
+        c.fillRect(cx - 7, cy - 4, 14, 2);
+        // Columns
+        c.fillRect(cx - 5, cy - 2, 2, 6);
+        c.fillRect(cx - 1, cy - 2, 2, 6);
+        c.fillRect(cx + 3, cy - 2, 2, 6);
+        // Roof
+        c.beginPath();
+        c.moveTo(cx, cy - 8);
+        c.lineTo(cx + 8, cy - 4);
+        c.lineTo(cx - 8, cy - 4);
+        c.closePath();
+        c.fill();
+      });
+    },
+  },
+  {
+    name: 'poi-sports',
+    bg: '#0D9488',
+    drawSymbol(ctx, cx, cy) {
+      // Running person
+      drawWhiteSymbol(ctx, (c) => {
+        c.lineWidth = 2;
+        // Head
+        c.beginPath();
+        c.arc(cx + 1, cy - 6, 2.5, 0, Math.PI * 2);
+        c.fill();
+        // Body
+        c.beginPath();
+        c.moveTo(cx, cy - 3);
+        c.lineTo(cx - 2, cy + 3);
+        c.stroke();
+        // Legs
+        c.beginPath();
+        c.moveTo(cx - 2, cy + 3);
+        c.lineTo(cx - 5, cy + 7);
+        c.moveTo(cx - 2, cy + 3);
+        c.lineTo(cx + 3, cy + 7);
+        c.stroke();
+        // Arms
+        c.beginPath();
+        c.moveTo(cx + 4, cy - 2);
+        c.lineTo(cx - 1, cy);
+        c.lineTo(cx - 5, cy - 2);
+        c.stroke();
+      });
+    },
+  },
+  {
+    name: 'poi-charging',
+    bg: '#0891B2',
+    drawSymbol(ctx, cx, cy) {
+      // Lightning bolt
+      drawWhiteSymbol(ctx, (c) => {
+        c.beginPath();
+        c.moveTo(cx + 2, cy - 8);
+        c.lineTo(cx - 4, cy + 1);
+        c.lineTo(cx, cy + 1);
+        c.lineTo(cx - 2, cy + 8);
+        c.lineTo(cx + 4, cy - 1);
+        c.lineTo(cx, cy - 1);
+        c.closePath();
+        c.fill();
+      });
+    },
+  },
+  {
+    name: 'poi-default',
+    bg: '#64748B',
+    drawSymbol(ctx, cx, cy) {
+      // Simple map pin dot
+      drawWhiteSymbol(ctx, (c) => {
+        c.beginPath();
+        c.arc(cx, cy, 3, 0, Math.PI * 2);
+        c.fill();
+      });
+    },
+  },
+];
+
+/** Maps notable_places 'kind' field to a POI icon name */
+export const POI_KIND_TO_ICON: Record<string, string> = {
+  hospital: 'poi-hospital',
+  doctors: 'poi-doctors',
+  pharmacy: 'poi-pharmacy',
+  park: 'poi-park',
+  playground: 'poi-playground',
+  zoo: 'poi-park',
+  school: 'poi-school',
+  university: 'poi-university',
+  supermarket: 'poi-supermarket',
+  library: 'poi-library',
+  cafe: 'poi-cafe',
+  restaurant: 'poi-restaurant',
+  museum: 'poi-museum',
+  gallery: 'poi-museum',
+  cinema: 'poi-museum',
+  theatre: 'poi-museum',
+  sports_centre: 'poi-sports',
+  swimming_pool: 'poi-sports',
+  fitness_centre: 'poi-sports',
+  community_centre: 'poi-default',
+  charging_station: 'poi-charging',
+  fuel: 'poi-default',
+  bank: 'poi-default',
+};
+
+function addPoiIcons(map: maplibregl.Map) {
+  const SIZE = 32; // Slightly larger for readability
+  const R = SIZE / 2;
+  const PIXEL_RATIO = 2; // Retina
+
+  for (const def of POI_ICON_DEFS) {
+    if (map.hasImage(def.name)) continue;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE * PIXEL_RATIO;
+    canvas.height = SIZE * PIXEL_RATIO;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
+
+    // Colored circle with white border
+    ctx.fillStyle = def.bg;
+    ctx.beginPath();
+    ctx.arc(R, R, R - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // White symbol centered
+    def.drawSymbol(ctx, R, R, R);
+
+    const { data } = ctx.getImageData(0, 0, SIZE * PIXEL_RATIO, SIZE * PIXEL_RATIO);
+    map.addImage(def.name, {
+      width: SIZE * PIXEL_RATIO,
+      height: SIZE * PIXEL_RATIO,
+      data: new Uint8Array(data.buffer),
+    }, { pixelRatio: PIXEL_RATIO });
+  }
 }
 
 // ---------------------------------------------------------------------------
