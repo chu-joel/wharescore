@@ -6,8 +6,7 @@ import { usePropertyRates } from '@/hooks/usePropertyRates';
 import { useAreaFeed } from '@/hooks/useAreaFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PropertySummaryCard } from './PropertySummaryCard';
-import { ScoreGauge } from './ScoreGauge';
-import { ScoreStrip } from './ScoreStrip';
+// ScoreGauge + ScoreStrip removed — Snapshots now provide the verdict
 import { AISummaryCard } from './AISummaryCard';
 import { QuestionAccordion } from './QuestionAccordion';
 import { PersonaToggle } from './PersonaToggle';
@@ -20,7 +19,7 @@ import { FloatingReportButton } from './FloatingReportButton';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ReportDisclaimer } from '@/components/common/ReportDisclaimer';
 import { AppFooter } from '@/components/layout/AppFooter';
-import { getRatingBin } from '@/lib/constants';
+// getRatingBin moved to Snapshot components
 import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
 import { KeyFindings } from './KeyFindings';
@@ -119,12 +118,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     );
   }
 
-  const hasScores = Number.isFinite(report.scores?.overall);
-  const bin = hasScores ? getRatingBin(report.scores.overall) : null;
-  const percentileText = hasScores && report.scores.percentile
-    ? `Top ${100 - report.scores.percentile}% in ${report.address.sa2_name}`
-    : undefined;
-  const hasCategories = Array.isArray(report.scores?.categories) && report.scores.categories.length > 0;
+  // Score data used by Snapshot components internally
 
   // For renters, the landlord checklist is the hero (always visible, high-value free content).
   // For buyers, all questions go in the accordion.
@@ -194,47 +188,25 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         )}
 
-        {/* === KEY FINDINGS — the emotional hook, show first === */}
+        {/* ═══════════════════════════════════════════════════════
+            VERDICT → EVIDENCE → ACTION → UPGRADE → DEEP DIVE
+            ═══════════════════════════════════════════════════════ */}
+
+        {/* 1. VERDICT — persona-specific snapshot with overall assessment */}
+        {persona === 'renter' && <RenterSnapshot report={report} />}
+        {persona === 'buyer' && <BuyerSnapshot report={report} />}
+
+        {/* 2. EVIDENCE — key findings that support the verdict */}
         <div className="section-divider">
           <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
         </div>
 
-        {/* === AREA ACTIVITY FEED TEASER — significant events near property === */}
+        {/* Area activity — recent events near property */}
         {areaFeed && areaFeed.summary.total_events > 0 && (
           <AreaEventTeaser feed={areaFeed} addressId={addressId} />
         )}
 
-        {/* Score Gauge + Strip — context after findings */}
-        {hasScores && bin ? (
-          <ScoreGauge
-            score={report.scores.overall}
-            label={bin.label}
-            color={bin.color}
-            percentileText={percentileText}
-          />
-        ) : (
-          <div className="flex flex-col items-center py-4 text-muted-foreground">
-            <p className="text-sm">Score not yet available for this property</p>
-            <p className="text-xs mt-1">Indicator data is still being processed</p>
-          </div>
-        )}
-
-        {/* Score Strip — top concerns and strengths in plain English */}
-        {hasCategories && <ScoreStrip categories={report.scores.categories} />}
-
-        {/* Persona-specific intelligence — ONE unified card each */}
-        {persona === 'renter' && <RenterSnapshot report={report} />}
-        {persona === 'buyer' && <BuyerSnapshot report={report} />}
-
-        {/* AI Summary — high value, keep free */}
-        <AISummaryCard
-          summary={aiData?.ai_summary ?? null}
-          areaProfile={aiData?.area_profile ?? null}
-          suburbName={report.address.sa2_name}
-          loading={aiLoading}
-        />
-
-        {/* === HERO SECTION — persona-specific high-value free content === */}
+        {/* 3. ACTION — what to do about it (highest-value free content) */}
         {persona === 'renter' && (
           <div className="section-divider">
             <LandlordChecklist report={report} />
@@ -246,7 +218,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* CTA Banner — primary conversion point (moved higher) */}
+        {/* 4. UPGRADE — conversion point */}
         <ReportCTABanner
           addressId={addressId}
           suburbName={report.address.sa2_name}
@@ -254,7 +226,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           medianRent={report.market.rent_assessment?.median}
         />
 
-        {/* === QUESTION ACCORDION — remaining questions as expandable sections === */}
+        {/* 5. DEEP DIVE — question sections for users who want more */}
         <div className="section-divider space-y-3 sm:space-y-5">
           <p className="section-heading">
             {persona === 'renter' ? 'More about this rental' : 'More about this property'}
@@ -265,7 +237,15 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         </div>
 
-        {/* Email capture — below the fold, after user has engaged */}
+        {/* AI Summary — area narrative, in the deep dive zone */}
+        <AISummaryCard
+          summary={aiData?.ai_summary ?? null}
+          areaProfile={aiData?.area_profile ?? null}
+          suburbName={report.address.sa2_name}
+          loading={aiLoading}
+        />
+
+        {/* Email capture — below the fold */}
         <div className="section-divider">
           <EmailSummaryCapture
             addressId={addressId}
@@ -275,7 +255,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         </div>
 
-        {/* Data coverage — compact mode, for users who want to verify */}
+        {/* Data coverage — compact, for users who want to verify */}
         {report.coverage && (
           <DataLayersAccordion coverage={report.coverage} compact />
         )}
