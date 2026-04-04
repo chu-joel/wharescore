@@ -11,7 +11,7 @@ import { ScoreStrip } from './ScoreStrip';
 import { AISummaryCard } from './AISummaryCard';
 import { QuestionAccordion } from './QuestionAccordion';
 import { PersonaToggle } from './PersonaToggle';
-import { HeroQuestion } from './HeroQuestion';
+// HeroQuestion removed — renters get LandlordChecklist as hero, buyers use accordion
 import { BuildingInfoBanner } from './BuildingInfoBanner';
 import { KeyTakeaways } from './KeyTakeaways';
 import { BetaBanner } from './BetaBanner';
@@ -25,12 +25,9 @@ import { NotFoundError, RateLimitError } from '@/lib/api';
 import { AlertTriangle } from 'lucide-react';
 import { KeyFindings } from './KeyFindings';
 import { AreaEventTeaser } from './AreaEventTeaser';
-import { HealthyHomesSummary } from './HealthyHomesSummary';
 import { BuyerPropertyInsights } from './BuyerPropertyInsights';
-import { RentAffordabilitySnap } from './RentAffordabilitySnap';
-import { SunAspectCard } from './SunAspectCard';
-import { MouldDampnessRisk } from './MouldDampnessRisk';
-import { RentMarketPower } from './RentMarketPower';
+import { RenterSnapshot } from './RenterSnapshot';
+import { LandlordChecklist } from './LandlordChecklist';
 import { PremiumGate } from './PremiumGate';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
@@ -128,12 +125,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
     : undefined;
   const hasCategories = Array.isArray(report.scores?.categories) && report.scores.categories.length > 0;
 
-  // For renters, first question (safety) is promoted as hero (always expanded).
-  // For buyers, all questions go in the accordion (deal-breakers starts expanded via DEFAULT_EXPANDED).
-  const heroQuestion = persona === 'buyer' ? null : questions[0];
-  // Daily life / neighbourhood is promoted to its own section, so exclude from accordion
+  // For renters, the landlord checklist is the hero (always visible, high-value free content).
+  // For buyers, all questions go in the accordion.
+  // For renters, skip renter-checklist from accordion (it's now the hero).
   const promotedIds = new Set(['daily-life', 'neighbourhood']);
-  const accordionQuestions = (persona === 'buyer' ? questions : questions.slice(1)).filter((q) => !promotedIds.has(q.id));
+  const skipIds = persona === 'renter' ? new Set([...promotedIds, 'renter-checklist']) : promotedIds;
+  const accordionQuestions = questions.filter((q) => !skipIds.has(q.id));
 
   return (
     <div className="flex flex-col min-h-full" key={`${addressId}-${persona}`}>
@@ -222,16 +219,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Score Strip — top concerns and strengths in plain English */}
         {hasCategories && <ScoreStrip categories={report.scores.categories} />}
 
-        {/* Persona-specific intelligence cards */}
-        {persona === 'renter' && (
-          <>
-            <RentAffordabilitySnap report={report} />
-            <RentMarketPower report={report} />
-            <HealthyHomesSummary report={report} />
-            <MouldDampnessRisk report={report} />
-            <SunAspectCard report={report} />
-          </>
-        )}
+        {/* Persona-specific intelligence — ONE unified card each */}
+        {persona === 'renter' && <RenterSnapshot report={report} />}
         {persona === 'buyer' && <BuyerPropertyInsights report={report} />}
 
         {/* AI Summary — high value, keep free */}
@@ -242,10 +231,10 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           loading={aiLoading}
         />
 
-        {/* === HERO QUESTION — first question promoted to full-width card === */}
-        {heroQuestion && heroQuestion.id !== 'daily-life' && heroQuestion.id !== 'neighbourhood' && (
+        {/* === HERO SECTION — persona-specific high-value free content === */}
+        {persona === 'renter' && (
           <div className="section-divider">
-            <HeroQuestion question={heroQuestion} report={report} />
+            <LandlordChecklist report={report} />
           </div>
         )}
 
