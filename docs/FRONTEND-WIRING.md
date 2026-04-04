@@ -10,7 +10,7 @@
 
 ### On-screen report (`/property/{id}`, component: `PropertyReport.tsx`)
 
-**Report flow: Verdict → Evidence → Action → Upgrade → Deep Dive.** ScoreGauge and ScoreStrip removed from on-screen report (Snapshots provide the verdict). CategoryRadar removed (visual noise). IndicatorCards no longer show numeric score bars — plain-English descriptions only. Indicator grids hidden for renters (buyers still see them).
+**Report flow: Verdict → Evidence → Action → Upgrade → Deep Dive.** ScoreGauge and ScoreStrip removed from on-screen report (Snapshots provide the verdict). CategoryRadar removed (visual noise). IndicatorCards no longer show numeric score bars — plain-English descriptions only. Indicator grids hidden for renters (buyers still see them). Deleted orphaned components: HealthyHomesSummary, RentAffordabilitySnap, RentMarketPower, BuyerPropertyInsights (all superseded by Snapshot components).
 
 | Report field path | Component | Section | Gated? |
 |---|---|---|---|

@@ -4,7 +4,6 @@ import { usePropertyReport } from '@/hooks/usePropertyReport';
 import { useAISummary } from '@/hooks/useAISummary';
 import { usePropertyRates } from '@/hooks/usePropertyRates';
 import { useAreaFeed } from '@/hooks/useAreaFeed';
-import { Skeleton } from '@/components/ui/skeleton';
 import { PropertySummaryCard } from './PropertySummaryCard';
 // ScoreGauge + ScoreStrip removed — Snapshots now provide the verdict
 import { AISummaryCard } from './AISummaryCard';
@@ -28,7 +27,6 @@ import { BuyerSnapshot } from './BuyerSnapshot';
 import { BuyerDueDiligence } from './BuyerDueDiligence';
 import { RenterSnapshot } from './RenterSnapshot';
 import { LandlordChecklist } from './LandlordChecklist';
-import { PremiumGate } from './PremiumGate';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
 import { ScrollPrompt } from './ScrollPrompt';
