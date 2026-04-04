@@ -66,7 +66,10 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
   // Listen for "snap to full" events
   useEffect(() => {
-    const handler = () => setSnapId('full');
+    const handler = () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      setSnapId('full');
+    };
     window.addEventListener('drawer:snap-full', handler);
     return () => window.removeEventListener('drawer:snap-full', handler);
   }, []);
@@ -103,6 +106,16 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
   const visibleHeight = snapToPx(snapId, vh);
   const maxHeight = vh - HEADER_HEIGHT;
+
+  // Reset scroll both immediately and after the 300ms height transition,
+  // to prevent the browser from restoring a stale scroll position when
+  // overflow switches from hidden→auto during the animation.
+  const resetScrollAfterTransition = useCallback(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+    setTimeout(() => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+    }, 320);
+  }, []);
 
   const onPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -148,13 +161,14 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     sheetRef.current.style.transition = '';
     sheetRef.current.style.height = '';
 
-    // Tap without drag — cycle: mini→peek→full, full→peek→mini
+    // Tap without drag — cycle upward: mini→peek→full, full→peek
     if (!hasMoved.current) {
-      if (contentRef.current) contentRef.current.scrollTop = 0;
       setSnapId((prev) => {
         const idx = SNAP_ORDER.indexOf(prev);
         return idx < SNAP_ORDER.length - 1 ? SNAP_ORDER[idx + 1] : 'peek';
       });
+      // Reset scroll after transition completes to avoid race with overflow change
+      resetScrollAfterTransition();
       return;
     }
 
@@ -188,10 +202,8 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
     setSnapId(target);
 
-    // Always reset scroll when changing snap — prevents stuck-at-bottom
-    if (contentRef.current) {
-      contentRef.current.scrollTop = 0;
-    }
+    // Reset scroll after transition completes to avoid race with overflow change
+    resetScrollAfterTransition();
   }, [vh, snapId]);
 
   // Push history state when going to full
