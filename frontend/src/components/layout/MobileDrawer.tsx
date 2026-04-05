@@ -159,10 +159,10 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
     dragging.current = false;
 
     sheetRef.current.style.transition = '';
-    sheetRef.current.style.height = '';
 
     // Tap without drag — cycle upward: mini→peek→full, full→peek
     if (!hasMoved.current) {
+      sheetRef.current.style.height = '';
       setSnapId((prev) => {
         const idx = SNAP_ORDER.indexOf(prev);
         return idx < SNAP_ORDER.length - 1 ? SNAP_ORDER[idx + 1] : 'peek';
@@ -200,11 +200,15 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       target = dists.sort((a, b) => a[1] - b[1])[0][0];
     }
 
+    // Set inline height to the target snap. If target === snapId, setSnapId
+    // won't re-render, so clearing the style would leave the drawer stuck at
+    // its natural content height. Setting it explicitly keeps it pinned.
+    sheetRef.current.style.height = `${snapToPx(target, vh)}px`;
     setSnapId(target);
 
     // Reset scroll after transition completes to avoid race with overflow change
     resetScrollAfterTransition();
-  }, [vh, snapId]);
+  }, [vh, snapId, resetScrollAfterTransition]);
 
   // Push history state when going to full
   useEffect(() => {
