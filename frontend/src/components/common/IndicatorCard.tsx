@@ -30,6 +30,47 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
   const isGood = rating === 'very-low' || rating === 'low';
   const isBad = rating === 'high' || rating === 'very-high';
 
+  // === SPECIFIC INDICATORS FIRST (avoid substring collisions) ===
+
+  // Rental market indicators — check BEFORE "air" (Rental Fairness contains "air"!)
+  if (n.includes('rental fair') || n.includes('rental market') || n.includes('market depth')) {
+    if (isGood) return 'Active rental market — good liquidity and choice.';
+    if (isBad) return 'Limited rental market activity — fewer comparable listings.';
+    return 'Moderate rental market activity in this area.';
+  }
+  if (n.includes('rental trend') || n.includes('rent trend')) {
+    if (isGood) return 'Rents stable or falling — good for renters.';
+    if (isBad) return 'Rents rising fast — expect increases on renewal.';
+    return 'Rents tracking inflation.';
+  }
+  if (n.includes('market heat')) {
+    if (isGood) return 'Cool market — more supply, negotiating room.';
+    if (isBad) return 'Hot market — high demand, less negotiating power.';
+    return 'Balanced market conditions.';
+  }
+
+  // Aircraft noise — check BEFORE "air" and "noise" (matches both!)
+  if (n.includes('aircraft')) {
+    if (isGood) return 'Not under a flight path — minimal aircraft noise.';
+    if (isBad) return 'Under a flight path — aircraft noise likely. Visit at peak times.';
+    return 'Some aircraft noise — check flight schedules.';
+  }
+
+  // School quality — check BEFORE "quality" (generic) and "school" (generic)
+  if (n.includes('school') && n.includes('quality')) {
+    if (isGood) return 'Good school access — strong EQI scores nearby.';
+    if (isBad) return 'Limited school options — consider zoning carefully.';
+    return 'Average school access and quality.';
+  }
+
+  // School zoning — check BEFORE "school" (generic) and "zone" (generic)
+  if (n.includes('school') && n.includes('zon')) {
+    if (isGood) return 'In zone for good schools.';
+    if (isBad) return 'Not in zone for top schools nearby.';
+    return 'Some schools zoned for this address.';
+  }
+
+  // === HAZARDS ===
   if (n.includes('flood')) {
     if (isGood) return 'Low flood risk — not in a mapped flood zone.';
     if (isBad) return 'In or near a flood zone. Check insurance and floor level.';
@@ -50,36 +91,25 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     if (isBad) return 'Many earthquake-prone buildings nearby — older building stock.';
     return 'Some older buildings nearby may need seismic strengthening.';
   }
+  if (n.includes('ground') && n.includes('shaking')) {
+    if (isGood) return 'Lower earthquake shaking expected here.';
+    if (isBad) return 'Strong ground shaking expected in earthquakes.';
+    return 'Moderate earthquake shaking expected.';
+  }
+  if (n.includes('fault zone') || n.includes('fault_zone')) {
+    if (isGood) return 'No active fault zone at this address.';
+    if (isBad) return 'Within an active fault zone. Check building setback requirements.';
+    return 'Near a fault zone — check council overlay maps.';
+  }
   if (n.includes('slope') || n.includes('landslide')) {
     if (isGood) return 'Flat or gently sloping terrain — low landslide risk.';
     if (isBad) return 'Steep terrain with landslide risk. Consider geotechnical assessment.';
     return 'Some slope instability risk — check retaining walls.';
   }
-  if (n.includes('crime')) {
-    if (isGood) return 'Lower crime than most comparable areas.';
-    if (isBad) return 'Higher crime than average — check security measures.';
-    return 'Crime levels typical for this type of area.';
-  }
-  if (n.includes('noise')) {
-    if (isGood) return 'Quiet area — minimal road noise impact.';
-    if (isBad) return 'High road noise — consider double glazing and room orientation.';
-    return 'Moderate noise — typical for urban areas.';
-  }
-  if (n.includes('transit') || n.includes('transport')) {
-    // Higher score = worse transport access (consistent with all other categories)
-    if (isGood) return 'Excellent public transport access nearby.';
-    if (isBad) return 'Limited public transport — likely car-dependent.';
-    return 'Some public transport options available.';
-  }
-  if (n.includes('crash')) {
-    if (isGood) return 'Few road crashes recorded nearby — safer streets.';
-    if (isBad) return 'Road safety concern — multiple crashes recorded nearby.';
-    return 'Some road crashes recorded nearby.';
-  }
-  if (n.includes('wind')) {
-    if (isGood) return 'Sheltered location — lower wind exposure.';
-    if (isBad) return 'High wind exposure — check for draughts and weathertightness.';
-    return 'Standard wind exposure for this region.';
+  if (n.includes('overland flow') || n.includes('overland_flow')) {
+    if (isGood) return 'No overland flow path nearby.';
+    if (isBad) return 'Overland flow path crosses property — surface water risk in heavy rain.';
+    return 'Overland flow path nearby — surface water may pass during heavy rain.';
   }
   if (n.includes('wildfire')) {
     if (isGood) return 'Low wildfire risk for this location.';
@@ -91,40 +121,49 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     if (isBad) return 'Coastal erosion risk — may affect property long-term.';
     return 'Some coastal erosion exposure over time.';
   }
+  if (n.includes('wind')) {
+    if (isGood) return 'Sheltered location — lower wind exposure.';
+    if (isBad) return 'High wind exposure — check for draughts and weathertightness.';
+    return 'Standard wind exposure for this region.';
+  }
+  if (n.includes('earthquake') || n.includes('seismic')) {
+    if (isGood) return 'Low seismic activity recorded nearby.';
+    if (isBad) return 'Significant seismic activity recorded — check building resilience.';
+    return 'Moderate seismic activity in this region.';
+  }
+
+  // === ENVIRONMENT ===
+  if (n.includes('road noise') || (n.includes('noise') && !n.includes('aircraft'))) {
+    if (isGood) return 'Quiet area — minimal road noise impact.';
+    if (isBad) return 'High road noise — consider double glazing and room orientation.';
+    return 'Moderate noise — typical for urban areas.';
+  }
   if (n.includes('water') && n.includes('quality')) {
     if (isGood) return 'Good water quality in local waterways.';
     if (isBad) return 'Water quality concerns in local waterways.';
     return 'Moderate water quality in local waterways.';
   }
-  if (n.includes('air') || (n.includes('quality') && !n.includes('water'))) {
+  if (n.includes('air quality') || n.includes('air_quality')) {
     if (isGood) return 'Good air quality in this area.';
     if (isBad) return 'Air quality concerns — check seasonal pollution.';
     return 'Moderate air quality — typical for the region.';
-  }
-  if (n.includes('water')) {
-    if (isGood) return 'Good water quality in local waterways.';
-    if (isBad) return 'Water quality concerns in local waterways.';
-    return 'Moderate water quality in local waterways.';
   }
   if (n.includes('climate')) {
     if (isGood) return 'Minimal climate change impact projected.';
     if (isBad) return 'Higher climate change impacts projected for this area.';
     return 'Moderate climate change impacts expected.';
   }
-  if (n.includes('ground') && n.includes('shaking')) {
-    if (isGood) return 'Lower earthquake shaking expected here.';
-    if (isBad) return 'Strong ground shaking expected in earthquakes.';
-    return 'Moderate earthquake shaking expected.';
-  }
-  if (n.includes('earthquake') && !n.includes('prone')) {
-    if (isGood) return 'Low seismic activity recorded nearby.';
-    if (isBad) return 'Significant seismic activity recorded — check building resilience.';
-    return 'Moderate seismic activity in this region.';
-  }
   if (n.includes('contamina')) {
     if (isGood) return 'No contaminated land concerns nearby.';
     if (isBad) return 'Contaminated land nearby — check council register.';
     return 'Some historic land use concerns nearby.';
+  }
+
+  // === LIVEABILITY ===
+  if (n.includes('crime')) {
+    if (isGood) return 'Lower crime than most comparable areas.';
+    if (isBad) return 'Higher crime than average — check security measures.';
+    return 'Crime levels typical for this type of area.';
   }
   if (n.includes('nzdep') || n.includes('deprivation')) {
     if (isGood) return 'Low deprivation index — better services and lower crime.';
@@ -141,8 +180,47 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     if (isBad) return 'Many heritage-listed buildings — may restrict development.';
     return 'Some heritage considerations in the area.';
   }
+
+  // === TRANSPORT ===
+  if (n.includes('transit access') || n.includes('transit_access')) {
+    if (isGood) return 'Excellent public transport access nearby.';
+    if (isBad) return 'Limited public transport — likely car-dependent.';
+    return 'Some public transport options available.';
+  }
+  if (n.includes('cbd') || n.includes('proximity to cbd')) {
+    if (isGood) return 'Close to the CBD — short commute.';
+    if (isBad) return 'Far from the CBD — expect longer commutes.';
+    return 'Moderate distance to CBD.';
+  }
+  if (n.includes('rail')) {
+    if (isGood) return 'Close to a train station.';
+    if (isBad) return 'Far from the nearest train station.';
+    return 'Some train access in the area.';
+  }
+  if (n.includes('bus')) {
+    if (isGood) return 'Good bus stop density nearby.';
+    if (isBad) return 'Few bus stops in walking distance.';
+    return 'Moderate bus coverage.';
+  }
+  if (n.includes('commute') && n.includes('frequency')) {
+    if (isGood) return 'Frequent peak-hour services.';
+    if (isBad) return 'Infrequent services — plan trips carefully.';
+    return 'Standard peak-hour service frequency.';
+  }
+  if (n.includes('road safety') || n.includes('crash')) {
+    if (isGood) return 'Few road crashes recorded nearby — safer streets.';
+    if (isBad) return 'Road safety concern — multiple crashes recorded nearby.';
+    return 'Some road crashes recorded nearby.';
+  }
+  if (n.includes('transit') || n.includes('transport')) {
+    if (isGood) return 'Good public transport access.';
+    if (isBad) return 'Limited public transport.';
+    return 'Some public transport available.';
+  }
+
+  // === PLANNING ===
   if (n.includes('height')) {
-    if (isGood) return 'Lower height restrictions — development potential limited.';
+    if (isGood) return 'Lower height restrictions — less risk of tall neighbours.';
     if (isBad) return 'Higher height limits — may see new tall buildings nearby.';
     return 'Moderate height limits in this zone.';
   }
@@ -156,11 +234,12 @@ function getIndicatorDescription(name: string, score: number, rating: string): s
     if (isBad) return 'High development activity — expect construction and change.';
     return 'Moderate development activity in the area.';
   }
-  if (n.includes('zone') && n.includes('permissive')) {
+  if (n.includes('zoning') || (n.includes('zone') && n.includes('permissive'))) {
     if (isGood) return 'Restrictive zoning — limited future development.';
     if (isBad) return 'Permissive zoning — significant development may occur.';
     return 'Moderate zoning flexibility.';
   }
+
   return null;
 }
 
