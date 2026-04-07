@@ -27,6 +27,7 @@ import { BuyerSnapshot } from './BuyerSnapshot';
 import { BuyerDueDiligence } from './BuyerDueDiligence';
 import { RenterSnapshot } from './RenterSnapshot';
 import { LandlordChecklist } from './LandlordChecklist';
+import { ComparisonBars } from './ComparisonBars';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
 import { ScrollPrompt } from './ScrollPrompt';
@@ -191,6 +192,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* 1. VERDICT — persona-specific snapshot with overall assessment */}
         {persona === 'renter' && <RenterSnapshot report={report} />}
         {persona === 'buyer' && <BuyerSnapshot report={report} />}
+
+        {/* 1b. COMPARISON — property vs suburb vs city */}
+        {report.comparisons && <ComparisonBars report={report} />}
 
         {/* 2. EVIDENCE — key findings that support the verdict */}
         <div className="section-divider">

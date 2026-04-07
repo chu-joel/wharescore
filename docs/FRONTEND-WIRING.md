@@ -20,6 +20,7 @@
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | 0. Header (elevation pill + slope pill) | No |
 | `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | 1. VERDICT (renter only) — overall verdict + rent/market power/healthy homes/mould risk/sun sections | No |
 | `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type | No |
+| `comparisons.suburb.*, comparisons.city.*, liveability.nzdep_score, .school_count, .transit_count, environment.noise_db, hazards.epb_count` | ComparisonBars | 1b. COMPARISON — property vs suburb vs city horizontal bar charts with contextual labels | No |
 | All hazards + liveability + planning | KeyFindings | 2. EVIDENCE — key findings | First 2 free |
 | `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | 3. ACTION (renter hero) — personalized "What to ask the landlord" with climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
 | `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | 3. ACTION (buyer hero) — "We've covered X of Y due diligence checks. Here's what you still need" with costs and property-specific notes | No |
