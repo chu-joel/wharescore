@@ -26,7 +26,6 @@ export function HostedAtAGlance({ report }: Props) {
   const riskCat = scores.categories.find(c => c.name === 'risk');
   const liveCat = scores.categories.find(c => c.name === 'liveability');
   const transCat = scores.categories.find(c => c.name === 'transport');
-  const planCat = scores.categories.find(c => c.name === 'planning');
 
   const findIndicator = (cat: typeof riskCat, ...names: string[]) => {
     if (!cat) return null;
@@ -37,9 +36,14 @@ export function HostedAtAGlance({ report }: Props) {
     return null;
   };
 
+  // Insurance — derive from actual hazard data fields (not indicator search, which can miss)
+  const hazards = report.hazards;
+  const insuranceFactors = [hazards?.flood_zone, hazards?.tsunami_zone, hazards?.liquefaction_zone, hazards?.coastal_erosion].filter(Boolean).length;
+  const insuranceStatus: GlanceItem['status'] = insuranceFactors === 0 ? 'good' : insuranceFactors <= 2 ? 'moderate' : 'concern';
+
   const items: GlanceItem[] = [
     { label: 'Hazard Risk', status: getStatus(riskCat?.score ?? null) },
-    { label: 'Insurance', status: getStatus(findIndicator(riskCat, 'flood', 'tsunami', 'liquefaction')) },
+    { label: 'Insurance', status: insuranceStatus },
     { label: 'Crime', status: getStatus(findIndicator(riskCat, 'crime')) },
     { label: 'Noise', status: getStatus(findIndicator(riskCat, 'noise')) },
     { label: 'Neighbourhood', status: getStatus(liveCat?.score ?? null) },
