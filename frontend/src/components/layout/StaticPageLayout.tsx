@@ -3,6 +3,17 @@
 import Link from 'next/link';
 import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+
+const STATIC_PAGES = [
+  { href: '/about', label: 'About' },
+  { href: '/help', label: 'Help & FAQ' },
+  { href: '/contact', label: 'Contact' },
+  { href: '/changelog', label: "What's New" },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/suburbs', label: 'Suburb Guides' },
+] as const;
 
 interface StaticPageLayoutProps {
   title: string;
@@ -11,6 +22,7 @@ interface StaticPageLayoutProps {
 
 export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
   const [isDark, setIsDark] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
@@ -46,6 +58,24 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
         <div className="prose prose-sm dark:prose-invert max-w-none">
           {children}
         </div>
+
+        {/* Cross-linking footer for SEO internal linking */}
+        <nav className="mt-12 pt-6 border-t border-border">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {STATIC_PAGES.filter((p) => p.href !== pathname).map((p) => (
+              <Link
+                key={p.href}
+                href={p.href}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {p.label}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            &copy; 2026 WhareScore. Not financial or legal advice.
+          </p>
+        </nav>
       </div>
     </div>
   );

@@ -2,8 +2,9 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 import { Shield, FileSearch, TrendingUp, MapPin, Mountain } from 'lucide-react';
 
 export const metadata = {
-  title: 'About',
-  description: 'WhareScore — free property intelligence for New Zealand. Risk scores, actionable recommendations, and fair price analysis for any NZ address.',
+  title: 'About WhareScore — Free NZ Property Intelligence',
+  description: 'WhareScore gives you everything the listing doesn\'t tell you about a New Zealand property. Risk scores, actionable recommendations, and fair rent & price analysis powered by 40+ official government data sources.',
+  alternates: { canonical: 'https://wharescore.co.nz/about' },
 };
 
 const FEATURES = [

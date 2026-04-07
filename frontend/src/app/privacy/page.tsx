@@ -1,8 +1,9 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Privacy Policy',
-  description: 'WhareScore privacy policy — how we handle your data.',
+  title: 'Privacy Policy — No Tracking, No Cookies, No Third-Party Analytics',
+  description: 'WhareScore privacy policy: no Google Analytics, no tracking cookies, no advertising identifiers. We collect only anonymous search queries and hashed IPs (purged after 7 days).',
+  alternates: { canonical: 'https://wharescore.co.nz/privacy' },
 };
 
 export default function PrivacyPage() {

@@ -2,7 +2,8 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
   title: 'Terms of Use',
-  description: 'WhareScore terms of use — disclaimers and usage conditions.',
+  description: 'WhareScore terms of use — disclaimers, data accuracy, risk score limitations, and usage conditions for New Zealand property reports.',
+  alternates: { canonical: 'https://wharescore.co.nz/terms' },
 };
 
 export default function TermsPage() {

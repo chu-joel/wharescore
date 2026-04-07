@@ -1,8 +1,9 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Changelog',
-  description: "What's new in WhareScore — recent updates and improvements.",
+  title: "What's New in WhareScore — Changelog",
+  description: "Recent updates, new features, and data refreshes for WhareScore property reports. Track what's changed in risk scores, data coverage, and report features.",
+  alternates: { canonical: 'https://wharescore.co.nz/changelog' },
 };
 
 const ENTRIES = [

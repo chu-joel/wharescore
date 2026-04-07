@@ -1,9 +1,10 @@
+import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 
 const FOOTER_LINKS = [
   { label: 'About', href: '/about' },
   { label: 'Help', href: '/help' },
-  { label: 'Methodology', href: '/about#methodology' },
+  { label: 'Suburb Guides', href: '/suburbs' },
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
   { label: 'Contact', href: '/contact' },
@@ -18,13 +19,13 @@ export function AppFooter() {
       <Separator className="my-4" />
       <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
         {FOOTER_LINKS.map((link) => (
-          <a
+          <Link
             key={link.href}
             href={link.href}
             className="hover:text-foreground transition-colors"
           >
             {link.label}
-          </a>
+          </Link>
         ))}
       </nav>
       <p className="mt-4 text-center text-xs">

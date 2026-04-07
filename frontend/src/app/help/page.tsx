@@ -1,8 +1,9 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Help & FAQ',
-  description: 'Frequently asked questions about WhareScore property reports.',
+  title: 'Help & FAQ — How WhareScore Property Reports Work',
+  description: 'Common questions about WhareScore: how risk scores are calculated, where data comes from, rent estimate accuracy, pricing, and data coverage across New Zealand.',
+  alternates: { canonical: 'https://wharescore.co.nz/help' },
 };
 
 const FAQ = [
