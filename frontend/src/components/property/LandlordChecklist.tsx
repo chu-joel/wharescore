@@ -146,11 +146,7 @@ export function LandlordChecklist({ report }: Props) {
   }
 
   // Universal good-to-asks
-  items.push({
-    question: 'Is the property insulated? Ceiling and underfloor?',
-    why: 'Insulation ≥R2.9 (ceiling) and ≥R1.3 (underfloor) is required',
-    priority: 'good-to-ask',
-  });
+  // (insulation question removed — already covered as must-ask with specific R-values above)
 
   items.push({
     question: 'Are pets allowed? Any restrictions?',
