@@ -21,10 +21,10 @@ export default function ContactPage() {
             <div>
               <p className="font-medium">Email</p>
               <a
-                href="mailto:wharescore@gmail.com"
+                href="mailto:hello@wharescore.co.nz"
                 className="text-sm text-primary hover:underline"
               >
-                wharescore@gmail.com
+                hello@wharescore.co.nz
               </a>
               <p className="text-sm text-muted-foreground mt-1">
                 For general enquiries, partnerships, media, or anything else.

@@ -143,6 +143,9 @@ app.include_router(reports.router, prefix="/api/v1")
 from .routers import suburb
 app.include_router(suburb.router, prefix="/api/v1")
 
+from .routers import suburb_guides
+app.include_router(suburb_guides.router, prefix="/api/v1")
+
 from .routers import rent_reports, feedback, email_signups
 app.include_router(rent_reports.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")

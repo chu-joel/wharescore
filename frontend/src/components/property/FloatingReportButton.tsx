@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Download, Loader2, FileCheck, ShieldAlert, ExternalLink } from 'lucide-react';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useEffect, useState, useRef } from 'react';
+import { isConsentBannerVisible } from '@/components/common/AnalyticsConsent';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useReportConfirmStore } from './ReportConfirmModal';
@@ -19,6 +20,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const persona = usePersonaStore((s) => s.persona);
   const pdf = usePdfExport(addressId, persona);
   const [mounted, setMounted] = useState(false);
+  const [consentUp, setConsentUp] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const credits = useDownloadGateStore((s) => s.credits);
   const isAuthenticated = useDownloadGateStore((s) => s.isAuthenticated);
@@ -36,8 +38,12 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     }
     containerRef.current = container;
     setMounted(true);
+    setConsentUp(isConsentBannerVisible());
 
+    const onDismiss = () => setConsentUp(false);
+    window.addEventListener('consent-dismissed', onDismiss);
     return () => {
+      window.removeEventListener('consent-dismissed', onDismiss);
       if (container && container.childNodes.length === 0) {
         container.remove();
       }
@@ -93,7 +99,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const reportReady = !!(pdf.shareUrl || pdf.downloadUrl);
 
   return createPortal(
-    <div className={`fixed bottom-5 left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-opacity duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''}`}>
+    <div className={`fixed left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-all duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''} ${consentUp ? 'bottom-16' : 'bottom-5'}`}>
       {/* Primary button */}
       <button
         onClick={handleClick}

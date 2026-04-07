@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -135,16 +135,16 @@ export function PropertySummaryCard({
               </Button>
             ) : (
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                className="h-8 gap-1.5 text-xs font-medium"
+                className="h-9 gap-1.5 text-sm font-semibold bg-piq-primary hover:bg-piq-primary-dark text-white"
                 onClick={pdf.startExport}
                 disabled={pdf.isGenerating}
               >
                 {pdf.isGenerating ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
                 ) : (
-                  <><Download className="h-3.5 w-3.5" /> Get Your Report</>
+                  <><Download className="h-4 w-4" /> Get Your Report</>
                 )}
               </Button>
             )}
@@ -206,6 +206,13 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
   ratesLoading?: boolean;
 }) {
   const [showAllPills, setShowAllPills] = useState(false);
+  const [ratesTimedOut, setRatesTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!ratesLoading) { setRatesTimedOut(false); return; }
+    const t = setTimeout(() => setRatesTimedOut(true), 15000);
+    return () => clearTimeout(t);
+  }, [ratesLoading]);
 
   if (!effectiveCV && !ratesLoading && !property.land_area_sqm && !property.building_area_sqm && !property.title_ref) return null;
 
@@ -220,10 +227,14 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
     pills.push(
       <span key="cv" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
         {ratesLoading && !effectiveCV ? (
-          <>
-            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-            <span className="text-muted-foreground">Checking live pricing...</span>
-          </>
+          ratesTimedOut ? (
+            <span className="text-muted-foreground">Rates unavailable</span>
+          ) : (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              <span className="text-muted-foreground">Checking live pricing...</span>
+            </>
+          )
         ) : effectiveCV ? (
           <>
             {perUnit

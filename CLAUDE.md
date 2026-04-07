@@ -25,7 +25,7 @@ Before making ANY change, read the relevant doc from the table below to understa
 WhareScore is a property intelligence platform for New Zealand. Users search any NZ address and get:
 - Risk score (0-100) from 40+ hazard/liveability/planning data layers
 - Free on-screen report with key findings (gated: first 2 findings free)
-- Paid hosted interactive report ($4.99/$9.99/$49mo) with rent/price advisor, AI summary, full analysis
+- Paid hosted interactive report ($9.99 single / $140/mo Pro) with rent/price advisor, AI summary, full analysis
 - Persona-specific: renter (rent fairness, healthy homes) vs buyer (price estimate, mortgage calc)
 
 ## Stack

@@ -249,6 +249,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
               userRent={rentValid ? rentValue : undefined}
               confidence={assessment.confidence_stars}
               userPercentile={assessment.user_percentile}
+              bondCount={assessment.bond_count}
             />
 
             {rentValid && assessment.user_percentile !== null && (

@@ -10,6 +10,7 @@ interface RentDistributionBarProps {
   userRent?: number;
   confidence: 1 | 2 | 3 | 4 | 5;
   userPercentile?: number | null;
+  bondCount?: number;
 }
 
 export function RentDistributionBar({
@@ -19,6 +20,7 @@ export function RentDistributionBar({
   userRent,
   confidence,
   userPercentile,
+  bondCount,
 }: RentDistributionBarProps) {
   // Scale: bar spans from LQ - 10% to UQ + 10%
   const padding = (upperQuartile - lowerQuartile) * 0.1;
@@ -86,7 +88,11 @@ export function RentDistributionBar({
       {confidence <= 2 && (
         <div className="flex items-center gap-1 text-xs text-piq-accent-warm">
           <AlertTriangle className="h-3 w-3" />
-          <span>Limited data — {confidence === 1 ? 'very few' : 'few'} bonds in this area</span>
+          <span>
+            {bondCount
+              ? `Based on ${bondCount} bond${bondCount !== 1 ? 's' : ''} in this area`
+              : `Limited sample — ${confidence === 1 ? 'very few' : 'few'} bonds in this area`}
+          </span>
         </div>
       )}
     </div>

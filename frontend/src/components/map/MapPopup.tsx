@@ -123,7 +123,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
           <ArrowRight className="h-4 w-4 shrink-0" />
         </Button>
         <p className="text-xs text-muted-foreground text-center mt-1.5">
-          Risk · Rent · 27 risk checks · AI summary
+          Risk · Rent · 29+ risk checks · AI summary
         </p>
       </div>
 

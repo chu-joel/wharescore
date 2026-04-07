@@ -113,6 +113,7 @@
 | perf_metrics | growing | method, path, path_template, status_code, duration_ms, request_id | `request_metrics.py` middleware | Admin performance dashboard (30-day retention) |
 | error_log | growing | category, level, message, traceback, request_id, path, properties (JSONB) | `event_writer.py` log_error() | Admin error tracking (90-day retention) |
 | daily_metrics | growing | day (PK), metric_name (PK), metric_value, properties (JSONB) | `event_writer.py` midnight aggregation | Pre-aggregated rollups for admin dashboard (2-year retention) |
+| suburb_guide_pages | ~2,200 | sa2_code (UK), slug (UK), suburb_name, ta_name, title, meta_description, h1, intro, sections (JSONB), faqs (JSONB), key_stats (JSONB), internal_links (JSONB), data_hash, status | `scripts/generate_suburb_guides.py` (local Qwen via Ollama) | `GET /suburbs/guide/{slug}`, `GET /suburbs/guides`, `sitemap.ts` |
 
 ---
 

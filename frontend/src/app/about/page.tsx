@@ -15,7 +15,7 @@ const FEATURES = [
   {
     icon: FileSearch,
     title: 'Actionable recommendations',
-    desc: 'Not just "there\'s a risk" — each finding comes with specific next steps sourced from NZ Civil Defence, GNS Science, NEMA, BRANZ, and council guidelines.',
+    desc: "Not just \u201Cthere\u2019s a risk\u201D \u2014 each finding comes with specific next steps sourced from NZ Civil Defence, GNS Science, NEMA, BRANZ, and council guidelines.",
   },
   {
     icon: TrendingUp,

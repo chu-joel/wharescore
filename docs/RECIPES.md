@@ -222,3 +222,35 @@ DELETE FROM data_versions WHERE source = 'source_key';
 3. After payment, Stripe redirects to `/guest/download?session_id=...`
 4. Frontend calls `GET /checkout/guest-token?session_id=...` to get one-time download token
 5. Token used to start PDF generation via `POST /property/{id}/export/pdf/guest-start?token=...`
+
+---
+
+## Recipe: Generate SEO suburb guide pages (local LLM)
+
+**When:** You want to populate / refresh the ~2,200 SEO landing pages at `/suburbs/{slug}`.
+
+**Moving parts:**
+- Table: `suburb_guide_pages` (migration `backend/migrations/0041_suburb_guide_pages.sql`)
+- Generator: `scripts/generate_suburb_guides.py` (calls Ollama + Qwen)
+- API: `GET /api/v1/suburbs/guides`, `GET /api/v1/suburbs/guide/{slug}` (`backend/app/routers/suburb_guides.py`)
+- Frontend: `frontend/src/app/suburbs/page.tsx`, `frontend/src/app/suburbs/[slug]/page.tsx`
+- Sitemap: `frontend/src/app/sitemap.ts`
+
+**Prereqs:**
+- Ollama installed, `qwen2.5:14b-instruct` (or `:7b-instruct` on low RAM) pulled
+- Migration 0041 applied (auto-runs on backend startup)
+- Python 3.14 + `psycopg[binary]` + `requests` installed
+
+**Steps:**
+1. Smoke test: `py -3.14 scripts/generate_suburb_guides.py --limit 3 --publish`
+2. Read 2-3 generated rows for hallucinations and marketing clichés
+3. Full run by TA (resumable via data_hash): `py -3.14 scripts/generate_suburb_guides.py --ta "Wellington City" --publish`
+4. Verify: `SELECT status, COUNT(*) FROM suburb_guide_pages GROUP BY status;`
+5. Spot-check a page: `curl http://localhost:8000/api/v1/suburbs/guide/<slug>` and `http://localhost:3000/suburbs/<slug>`
+6. Submit sitemap in Google Search Console
+
+**Regenerate when:** `mv_rental_market`, `mv_rental_trends`, `mv_crime_ta`, `area_profiles` are refreshed. Hash-based skip ensures only changed suburbs are re-processed.
+
+**Full runbook:** `scripts/RUN-SUBURB-GUIDES.md`
+
+**Docs to update:** `DATA-CATALOG.md` § Major-database-tables (done), `FRONTEND-WIRING.md` § API-endpoints (done).

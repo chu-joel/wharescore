@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, Shield, TrendingUp, MapPin } from 'lucide-react';
 
 export default function SignInPage() {
   return (
@@ -77,7 +77,7 @@ function SignInContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-start sm:items-center justify-center pt-[15vh] sm:pt-0">
       <div className="mx-auto max-w-sm px-4 text-center">
         <img src="/wharescore-logo.png" alt="WhareScore" width={48} height={45} className="mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Sign in to WhareScore</h1>
@@ -120,6 +120,10 @@ function SignInContent() {
               <Mail className="h-5 w-5 mr-2" />
               Continue with email
             </Button>
+
+            <p className="text-xs text-muted-foreground mt-2">
+              New to WhareScore? Signing in creates your account automatically.
+            </p>
           </div>
         )}
 
@@ -189,6 +193,24 @@ function SignInContent() {
 
         {error && (
           <p className="text-sm text-red-500 mt-3">{error}</p>
+        )}
+
+        {mode === 'choose' && (
+          <div className="mt-10 pt-6 border-t border-border space-y-3 text-left">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider text-center">What you get with an account</p>
+            <div className="flex items-start gap-3">
+              <Shield className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">Free Quick Reports with key findings and a shareable link</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <TrendingUp className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">Save properties and track changes over time</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <MapPin className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">Access full reports with AI summary and rent advice</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

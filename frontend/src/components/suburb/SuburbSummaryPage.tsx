@@ -17,7 +17,7 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
   const router = useRouter();
 
   if (isLoading) return <SuburbSkeleton />;
-  if (isError || !data) return <ErrorState variant="not-found" />;
+  if (isError || !data) return <ErrorState variant="suburb-not-found" />;
 
   const areaKm2 = data.area_hectares ? (data.area_hectares / 100).toFixed(1) : null;
 

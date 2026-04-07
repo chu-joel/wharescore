@@ -13,7 +13,7 @@ export default function SuburbPage({ params }: { params: Promise<{ code: string 
       <>
         <AppHeader />
         <div className="pt-14 flex items-center justify-center h-screen">
-          <ErrorState variant="not-found" />
+          <ErrorState variant="suburb-not-found" />
         </div>
       </>
     );

@@ -90,7 +90,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           <Shield className="h-3 w-3" /> Secure payment
         </span>
         <span>·</span>
-        <span>27 risk checks</span>
+        <span>29+ risk checks</span>
         <span>·</span>
         <span>Instant delivery</span>
       </div>

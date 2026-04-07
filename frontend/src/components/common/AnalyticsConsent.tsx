@@ -4,12 +4,20 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { readJSON, writeJSON } from '@/lib/storage';
 
+/** Whether the analytics consent banner is currently visible. Used by FloatingReportButton to avoid overlap. */
+let consentVisible = false;
+export function isConsentBannerVisible() { return consentVisible; }
+
 export function AnalyticsConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const dismissed = readJSON<boolean>('analytics_consent', false);
-    if (!dismissed) setVisible(true);
+    if (!dismissed) {
+      setVisible(true);
+      consentVisible = true;
+    }
+    return () => { consentVisible = false; };
   }, []);
 
   if (!visible) return null;
@@ -17,6 +25,9 @@ export function AnalyticsConsent() {
   const handleDismiss = () => {
     writeJSON('analytics_consent', true);
     setVisible(false);
+    consentVisible = false;
+    // Notify any listeners (e.g. floating button) to re-check
+    window.dispatchEvent(new Event('consent-dismissed'));
   };
 
   return (

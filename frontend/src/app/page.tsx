@@ -224,7 +224,7 @@ function LandingPanel() {
           />
           <FeatureChip
             icon={<Search className="h-4 w-4 text-piq-accent-warm" />}
-            label="27 risk checks"
+            label="29+ risk checks"
             detail="All free government data"
           />
         </div>
