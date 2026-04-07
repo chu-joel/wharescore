@@ -223,12 +223,14 @@ function ComparisonRow({
   lowerIsBetter?: boolean;
 }) {
   if (suburbValue == null && cityValue == null) return null;
-  const fmt = (v: number) => (Number.isInteger(v) ? v.toString() : v.toFixed(1));
+  const fmt = (v: unknown) => { const n = Number(v); return isNaN(n) ? '–' : Number.isInteger(n) ? n.toString() : n.toFixed(1); };
 
   let diff = '';
   let diffColor = 'text-muted-foreground';
-  if (suburbValue != null && cityValue != null && cityValue > 0) {
-    const pct = ((suburbValue - cityValue) / cityValue) * 100;
+  const sv = Number(suburbValue);
+  const cv = Number(cityValue);
+  if (suburbValue != null && cityValue != null && !isNaN(sv) && !isNaN(cv) && cv > 0) {
+    const pct = ((sv - cv) / cv) * 100;
     const absPct = Math.abs(pct);
     if (absPct > 5) {
       diff = `${pct > 0 ? '+' : ''}${Math.round(pct)}%`;
