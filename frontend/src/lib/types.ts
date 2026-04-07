@@ -446,6 +446,8 @@ export interface SuburbSummary {
   sa2_name: string;
   ta_name: string;
   area_hectares: number | null;
+  lat: number | null;
+  lng: number | null;
   property_count: number;
   comparisons: ComparisonAverages | null;
   city_averages: ComparisonAverages | null;

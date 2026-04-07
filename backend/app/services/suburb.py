@@ -51,7 +51,9 @@ async def get_suburb_summary(sa2_code: str) -> dict | None:
         cur = await conn.execute(
             """
             SELECT sa2_code, sa2_name, ta_name,
-                   ST_Area(geom::geography) / 10000 AS area_hectares
+                   ST_Area(geom::geography) / 10000 AS area_hectares,
+                   ST_X(ST_Centroid(ST_Transform(geom, 4326))) AS lng,
+                   ST_Y(ST_Centroid(ST_Transform(geom, 4326))) AS lat
             FROM sa2_boundaries
             WHERE sa2_code = %s
             LIMIT 1

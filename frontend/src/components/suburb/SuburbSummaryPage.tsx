@@ -6,6 +6,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Home, Ruler, TrendingUp, TrendingDown, Minus, Search } from 'lucide-react';
+import { useMapStore } from '@/stores/mapStore';
 import type { SuburbRental, SuburbRentalTrend } from '@/lib/types';
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export function SuburbSummaryPage({ sa2Code }: Props) {
   const { data, isLoading, isError } = useSuburbReport(sa2Code);
   const router = useRouter();
+  const setViewport = useMapStore((s) => s.setViewport);
 
   if (isLoading) return <SuburbSkeleton />;
   if (isError || !data) return <ErrorState variant="suburb-not-found" />;
@@ -71,7 +73,7 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
         <div className="rounded-xl border border-border bg-card p-5 card-elevated">
           <h2 className="text-sm font-bold mb-3">Rental Market</h2>
           <div className="space-y-2">
-            {data.rental_overview.map((r) => (
+            {filterRentalRows(data.rental_overview).map((r) => (
               <RentalRow
                 key={`${r.dwelling_type}-${r.bedrooms}`}
                 rental={r}
@@ -120,7 +122,13 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
 
       {/* CTA */}
       <button
-        onClick={() => router.push(`/?q=${encodeURIComponent(data.sa2_name)}`)}
+        onClick={() => {
+          // Fly the map to the suburb centroid
+          if (data.lat && data.lng) {
+            setViewport({ latitude: data.lat, longitude: data.lng, zoom: 15 });
+          }
+          router.push('/');
+        }}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-piq-primary text-white font-semibold hover:bg-piq-primary/90 transition-colors"
       >
         <Search className="h-4 w-4" />
@@ -130,26 +138,68 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
   );
 }
 
+/**
+ * Filter rental rows to show only useful data:
+ * - Keep the "ALL · ALL" aggregate as a summary row
+ * - Keep specific dwelling type + specific bedroom rows (e.g. House · 2 bed)
+ * - Drop "ALL" dwelling type + specific beds (redundant with per-type rows)
+ * - Drop "NA" bedrooms (meaningless label — usually boarding houses)
+ * - Drop rows where specific type + "ALL" beds duplicates a single bedroom row
+ */
+function filterRentalRows(rows: SuburbRental[]): SuburbRental[] {
+  const hasSpecificTypes = rows.some(r => r.dwelling_type !== 'ALL' && r.bedrooms !== 'ALL' && r.bedrooms !== 'NA');
+
+  return rows.filter((r) => {
+    // Always drop "NA" bedrooms
+    if (r.bedrooms === 'NA') return false;
+
+    // Keep the overall aggregate (ALL · ALL) as summary
+    if (r.dwelling_type === 'ALL' && r.bedrooms === 'ALL') return true;
+
+    // Drop "ALL" dwelling type with specific bedrooms — redundant when per-type rows exist
+    if (r.dwelling_type === 'ALL' && r.bedrooms !== 'ALL' && hasSpecificTypes) return false;
+
+    // Drop per-type "ALL beds" if that type has specific bedroom rows
+    if (r.bedrooms === 'ALL') {
+      const hasSpecificBeds = rows.some(
+        (other) => other.dwelling_type === r.dwelling_type && other.bedrooms !== 'ALL' && other.bedrooms !== 'NA'
+      );
+      if (hasSpecificBeds) return false;
+    }
+
+    return true;
+  });
+}
+
 function RentalRow({ rental, trend }: { rental: SuburbRental; trend?: SuburbRentalTrend }) {
-  const trendIcon = trend?.cagr_1yr != null
-    ? trend.cagr_1yr > 0.01
+  // Don't show extreme CAGR values when bond count is very low (unreliable)
+  const cagrRaw = trend?.cagr_1yr;
+  const cagrReliable = cagrRaw != null && rental.bond_count >= 5 && Math.abs(cagrRaw) < 0.5;
+
+  const trendIcon = cagrReliable
+    ? cagrRaw > 0.01
       ? <TrendingUp className="h-3 w-3 text-red-500" />
-      : trend.cagr_1yr < -0.01
+      : cagrRaw < -0.01
         ? <TrendingDown className="h-3 w-3 text-green-500" />
         : <Minus className="h-3 w-3 text-muted-foreground" />
     : null;
 
-  const trendPct = trend?.cagr_1yr != null ? `${(trend.cagr_1yr * 100).toFixed(1)}%/yr` : null;
+  const trendPct = cagrReliable ? `${(cagrRaw * 100).toFixed(1)}%/yr` : null;
+
+  // Clean labels
+  const typeLabel = rental.dwelling_type === 'ALL' ? 'All types' : rental.dwelling_type;
+  const bedLabel = rental.bedrooms === 'ALL' ? 'all sizes' : `${rental.bedrooms} bed`;
+  const isAggregate = rental.dwelling_type === 'ALL' && rental.bedrooms === 'ALL';
 
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+    <div className={`flex items-center justify-between py-1.5 border-b border-border last:border-0 ${isAggregate ? 'font-medium' : ''}`}>
       <div className="text-sm">
-        <span className="font-medium">{rental.dwelling_type}</span>
-        <span className="text-muted-foreground"> · {rental.bedrooms} bed</span>
+        <span className={isAggregate ? 'font-semibold' : 'font-medium'}>{typeLabel}</span>
+        <span className="text-muted-foreground"> · {bedLabel}</span>
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm font-semibold tabular-nums">${rental.median_rent}/wk</span>
-        {trendIcon && (
+        {trendIcon && trendPct && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             {trendIcon}
             {trendPct}
