@@ -43,22 +43,21 @@ Output ONLY the profile text, no headings or labels."""
 
 # SQL query to gather all available data for an SA2
 DATA_SNAPSHOT_SQL = """
-WITH safe_sa2 AS (
-  SELECT sa2_code, sa2_name, ta_name, ST_MakeValid(geom) AS geom
-  FROM sa2_boundaries WHERE sa2_code = %s
-)
 SELECT
   sa2.sa2_code, sa2.sa2_name, sa2.ta_name,
-  (SELECT COUNT(*) FROM flood_zones fz WHERE ST_Intersects(ST_MakeValid(fz.geom), sa2.geom)) AS flood_zones,
-  (SELECT COUNT(*) FROM tsunami_zones tz WHERE ST_Intersects(ST_MakeValid(tz.geom), sa2.geom)) AS tsunami_zones,
+  (SELECT COUNT(*) FROM flood_zones fz
+   WHERE fz.geom && sa2.geom AND ST_Intersects(fz.geom, ST_Centroid(sa2.geom))) AS flood_zones,
+  (SELECT COUNT(*) FROM tsunami_zones tz
+   WHERE tz.geom && sa2.geom AND ST_Intersects(tz.geom, ST_Centroid(sa2.geom))) AS tsunami_zones,
   (SELECT string_agg(DISTINCT lz.liquefaction, ', ')
-   FROM liquefaction_zones lz WHERE ST_Intersects(ST_MakeValid(lz.geom), sa2.geom)) AS liquefaction,
+   FROM liquefaction_zones lz WHERE lz.geom && sa2.geom
+   AND ST_Intersects(lz.geom, ST_Centroid(sa2.geom))) AS liquefaction,
   (SELECT wz.zone_name FROM wind_zones wz
    WHERE ST_Intersects(wz.geom, ST_Centroid(sa2.geom)) LIMIT 1) AS wind_zone,
   (SELECT MAX(nc.laeq24h) FROM noise_contours nc
-   WHERE ST_Intersects(ST_MakeValid(nc.geom), sa2.geom)) AS max_road_noise_db,
+   WHERE nc.geom && sa2.geom AND ST_Intersects(nc.geom, ST_Centroid(sa2.geom))) AS max_road_noise_db,
   (SELECT COUNT(*) FROM contaminated_land cl
-   WHERE ST_Intersects(cl.geom, sa2.geom)) AS contaminated_sites,
+   WHERE cl.geom && sa2.geom) AS contaminated_sites,
   (SELECT COUNT(*) FROM transit_stops ts
    WHERE ST_Within(ts.geom, sa2.geom)) AS transit_stops,
   (SELECT COUNT(*) FROM schools s
@@ -75,13 +74,15 @@ SELECT
    AND rm.number_of_beds = 'All' LIMIT 1) AS rent_yoy_pct,
   NULL::numeric AS median_cv,
   (SELECT string_agg(DISTINCT dpz.zone_name, ', ')
-   FROM district_plan_zones dpz WHERE ST_Intersects(ST_MakeValid(dpz.geom), sa2.geom)) AS zone_types,
+   FROM district_plan_zones dpz WHERE dpz.geom && sa2.geom
+   AND ST_Intersects(dpz.geom, ST_Centroid(sa2.geom))) AS zone_types,
   (SELECT MAX(hc.height_metres) FROM height_controls hc
-   WHERE ST_Intersects(ST_MakeValid(hc.geom), sa2.geom)) AS max_height_limit,
+   WHERE hc.geom && sa2.geom AND ST_Intersects(hc.geom, ST_Centroid(sa2.geom))) AS max_height_limit,
   (SELECT COUNT(*) FROM infrastructure_projects ip
    WHERE ip.geom IS NOT NULL
    AND ST_DWithin(ip.geom::geography, ST_Centroid(sa2.geom)::geography, 5000)) AS infra_projects
-FROM safe_sa2 sa2
+FROM sa2_boundaries sa2
+WHERE sa2.sa2_code = %s
 """
 
 UPSERT_SQL = """
