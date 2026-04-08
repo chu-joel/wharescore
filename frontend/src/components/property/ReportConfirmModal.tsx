@@ -145,7 +145,7 @@ function RenterFields({ addressId }: { addressId: number }) {
   return (
     <div className="space-y-3">
       {/* Property type (required) */}
-      <div>
+      <div className={!dwellingType ? 'rounded-lg border-2 border-dashed border-piq-primary/40 p-2 -m-2 bg-piq-primary/5' : ''}>
         <label className="text-xs text-muted-foreground mb-1.5 block">Property type <span className="text-risk-high">*</span></label>
         <div className="flex flex-wrap gap-1.5">
           {DWELLING_TYPES.map((dt) => (
@@ -157,7 +157,7 @@ function RenterFields({ addressId }: { addressId: number }) {
       </div>
 
       {/* Bedrooms (required) */}
-      <div>
+      <div className={!bedrooms ? 'rounded-lg border-2 border-dashed border-piq-primary/40 p-2 -m-2 bg-piq-primary/5' : ''}>
         <label className="text-xs text-muted-foreground mb-1.5 block">Bedrooms <span className="text-risk-high">*</span></label>
         <div className="flex flex-wrap gap-1.5">
           {BEDROOM_OPTIONS.map((b) => (
@@ -368,7 +368,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
   return (
     <div className="space-y-3">
       {/* Bedrooms (required) */}
-      <div>
+      <div className={!buyerBedrooms ? 'rounded-lg border-2 border-dashed border-piq-primary/40 p-2 -m-2 bg-piq-primary/5' : ''}>
         <label className="text-xs text-muted-foreground mb-1.5 block">Bedrooms <span className="text-risk-high">*</span></label>
         <div className="flex flex-wrap gap-1.5">
           {BEDROOM_OPTIONS.filter(br => br !== 'Studio').map((br) => (
