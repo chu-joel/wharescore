@@ -99,7 +99,12 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   const buildingUse = rawProp.building_use as string;
   const propertyType = (titleType && titleType !== 'Unknown' ? titleType : null)
     || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
-  const questions = getQuestionsForPersona(persona);
+  const allQuestions = getQuestionsForPersona(persona);
+  // Filter out checklist questions — they're rendered standalone after the question sections
+  const skipIds = persona === 'renter'
+    ? new Set(['renter-checklist'])
+    : new Set(['buyer-checklist']);
+  const questions = allQuestions.filter((q) => !skipIds.has(q.id));
 
   // Extract key risk findings
   const riskIndicators = report.scores?.categories?.find(c => c.name === 'risk');
