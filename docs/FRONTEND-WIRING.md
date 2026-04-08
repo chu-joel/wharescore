@@ -2,6 +2,7 @@
 
 > Source of truth for what data is displayed where and how it gets there.
 > Agents: search by component name, report field, or snapshot key. Update when adding/changing UI.
+> Note: report endpoint strips premium detail (terrain, walking_reach, event_history, area_profile, property_detection) for unauthenticated users.
 
 ---
 

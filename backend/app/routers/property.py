@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from .. import db
 from ..deps import limiter
 from ..redis import cache_get, cache_set, cache_del
-from ..services.auth import _extract_bearer, verify_jwt
+from ..services.auth import _extract_bearer, verify_jwt, optional_user
 from ..services.event_writer import track_event, log_error
 from slowapi.util import get_remote_address
 
