@@ -162,7 +162,7 @@ async def get_rates(request: Request, address_id: int):
     Supports all 25 councils. Returns 404 if city has no rates integration."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
-            "SELECT full_address, city FROM addresses WHERE address_id = %s",
+            "SELECT full_address, town_city AS city FROM addresses WHERE address_id = %s",
             [address_id],
         )
         addr = cur.fetchone()
