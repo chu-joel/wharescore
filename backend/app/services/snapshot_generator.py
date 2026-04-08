@@ -512,11 +512,18 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
     async def _q_census_demographics():
         try:
             async with db.pool.connection() as c:
+                # Try direct match first, fall back to concordance view for 2023→2018 mapping
                 cur = await c.execute(
                     "SELECT * FROM census_demographics WHERE sa2_code = %s",
                     [sa2["sa2_code"]],
                 )
                 row = cur.fetchone()
+                if not row:
+                    cur = await c.execute(
+                        "SELECT * FROM v_census_by_boundary WHERE sa2_code = %s",
+                        [sa2["sa2_code"]],
+                    )
+                    row = cur.fetchone()
                 return dict(row) if row else None
         except Exception:
             return None
@@ -529,6 +536,12 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
                     [sa2["sa2_code"]],
                 )
                 row = cur.fetchone()
+                if not row:
+                    cur = await c.execute(
+                        "SELECT * FROM v_census_households_by_boundary WHERE sa2_code = %s",
+                        [sa2["sa2_code"]],
+                    )
+                    row = cur.fetchone()
                 return dict(row) if row else None
         except Exception:
             return None
@@ -541,6 +554,12 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
                     [sa2["sa2_code"]],
                 )
                 row = cur.fetchone()
+                if not row:
+                    cur = await c.execute(
+                        "SELECT * FROM v_census_commute_by_boundary WHERE sa2_code = %s",
+                        [sa2["sa2_code"]],
+                    )
+                    row = cur.fetchone()
                 return dict(row) if row else None
         except Exception:
             return None
