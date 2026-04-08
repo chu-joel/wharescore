@@ -619,7 +619,22 @@ def enrich_with_scores(report: dict) -> dict:
     )
 
     # Liveability (transit/crashes moved to transport category)
-    indicators["crime"] = normalize_min_max(liv.get("crime_percentile"), 0, 100)
+    # Crime: use area_unit percentile if available, otherwise estimate from TA median
+    crime_pct = liv.get("crime_percentile")
+    if crime_pct is None and liv.get("crime_city_median_vics"):
+        # Approximate percentile from TA median vics using known national quartiles
+        # National distribution: p25=61, median=191, p75=479
+        # Linear interpolation between known percentile points
+        median_vics = float(liv["crime_city_median_vics"])
+        _CRIME_ANCHORS = [(0, 0), (61, 25), (191, 50), (479, 75), (1000, 90), (12000, 100)]
+        crime_pct = _CRIME_ANCHORS[-1][1]  # default to max
+        for i in range(len(_CRIME_ANCHORS) - 1):
+            v0, p0 = _CRIME_ANCHORS[i]
+            v1, p1 = _CRIME_ANCHORS[i + 1]
+            if median_vics <= v1:
+                crime_pct = p0 + (p1 - p0) * (median_vics - v0) / max(v1 - v0, 1)
+                break
+    indicators["crime"] = normalize_min_max(crime_pct, 0, 100)
     indicators["nzdep"] = SEVERITY_NZDEP.get(liv.get("nzdep_decile"))
     indicators["schools"] = school_quality_score(liv.get("schools_1500m") or [])
     indicators["heritage"] = log_normalize(liv.get("heritage_count_500m"), 100)

@@ -282,6 +282,9 @@ Weighted geometric mean. Requires 3+ categories with scores. Market dropped if n
 ### NULL vs 0 handling
 Indicators where NULL raw data means "no data for this location" (not "confirmed safe") are **omitted entirely** when the source field is NULL. This prevents showing "0/100 Low risk" when we simply don't have data. Affected indicators: flood, tsunami, coastal_erosion, liquefaction, slope_failure, wind, air_quality. Council-specific data and terrain/waterway fallbacks still set these indicators when available. Earthquake (GeoNet national), wildfire (always has station data), and EPB (count-based) are always set.
 
+### Crime indicator fallback
+Crime data uses NZ Police "area_unit" names which don't always match SA2 names (~10% of addresses fail the fuzzy match, especially in Auckland). When `crime_percentile` is null but TA-level crime stats exist (`crime_city_median_vics`), the indicator score is estimated by interpolating the TA's median victimisation count against known national quartiles: p25=61, p50=191, p75=479. Example: Auckland median=393 vics → 67.5th percentile → score 67.5/100. This prevents At a Glance from showing "?" for Crime.
+
 ### Coverage count
 `coverage_summary()` counts only indicators present in the `indicators` dict (i.e. where we have data). Shows "N data layers" not "N of M". This avoids showing "30 of 34" when 4 indicators were omitted due to no data for the location.
 
