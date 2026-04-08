@@ -292,9 +292,9 @@ function WatchCard({ item }: { item: WatchItem }) {
 function TopEventCard({ event }: { event: TopEvent }) {
   const colors = severityColors(event.severity);
   return (
-    <div className={`rounded-lg border ${colors.border} ${colors.bg} p-3 text-center space-y-1`}>
+    <div className={`rounded-lg border ${colors.border} ${colors.bg} p-3 text-center space-y-1 overflow-hidden`}>
       <div className={`mx-auto ${colors.text}`}>{event.icon}</div>
-      <p className={`text-xl font-black tabular-nums ${colors.text}`}>{event.headline}</p>
+      <p className={`text-xl font-black tabular-nums ${colors.text} break-words`}>{event.headline}</p>
       <p className="text-xs font-semibold text-foreground">{event.subline}</p>
       {event.detail && <p className="text-xs text-muted-foreground">{event.detail}</p>}
       <p className="text-xs text-muted-foreground">{event.dateStr}</p>
@@ -528,7 +528,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
         {topEvents.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Events</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {topEvents.map((evt, i) => (
                 <TopEventCard key={i} event={evt} />
               ))}

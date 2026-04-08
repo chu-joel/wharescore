@@ -58,7 +58,7 @@
 | `ai_insights` | HostedAISummary | Yes (on-screen fetches live) |
 | `report.scores.categories` | CategoryRadar | Yes (hosted only — removed from on-screen report) |
 | `report.*` (all) | KeyFindings (all, no gating) | No (shared, but ungated) |
-| `hazard_advice, weather_history` | HostedAreaFeed | Yes. Top Events grid: 1 col mobile, 3 col sm+. |
+| `hazard_advice, weather_history` | HostedAreaFeed | Yes. Top Events grid: 1 col mobile, 3 col sm+. Cards use overflow-hidden + break-words. |
 | `rent_baselines` | HostedRentAdvisor | Yes (renter only) |
 | `rent_history` | HostedRentHistory | Yes |
 | `price_advisor, deltas` | HostedPriceAdvisor | Yes (buyer only) |
