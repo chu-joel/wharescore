@@ -155,7 +155,7 @@ Admin page load → AdminAuthGate checks session
 UpgradeModal → handlePurchase(plan)
   → If not signed in: redirect to /signin?callbackUrl=current_path, return
   → POST /checkout/session {plan, address_id?}
-  → Backend: get/create Stripe customer → create Checkout Session
+  → Backend: get/create Stripe customer (verifies stored ID exists in Stripe — handles test→live key switch by creating new customer if stale) → create Checkout Session
   → Redirect to Stripe checkout URL
   → User pays on Stripe
   → Stripe sends webhook: checkout.session.completed

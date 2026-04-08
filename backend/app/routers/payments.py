@@ -109,7 +109,12 @@ async def _get_or_create_customer(user_id: str) -> str:
         )
         row = cur.fetchone()
         if row:
-            return row["stripe_customer_id"]
+            # Verify the stored customer still exists in Stripe (handles test→live switch)
+            try:
+                stripe.Customer.retrieve(row["stripe_customer_id"])
+                return row["stripe_customer_id"]
+            except Exception:
+                logger.info(f"Stored Stripe customer {row['stripe_customer_id']} not found — creating new one")
 
         # Get user email for Stripe
         cur = await conn.execute(
