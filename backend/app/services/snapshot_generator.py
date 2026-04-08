@@ -69,6 +69,29 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
             return None
         report = enrich_with_scores(row["report"])
 
+    # 1b. Transit overlay — the SQL function only queries metlink_stops (Wellington).
+    #     For Auckland (at_stops) and regional cities (transit_stops), we need to
+    #     call get_transit_data() separately, matching what property.py does.
+    liveability = report.get("liveability") or {}
+    if not liveability.get("transit_travel_times"):
+        try:
+            cur = await conn.execute(
+                "SELECT get_transit_data(%s) AS data", [address_id]
+            )
+            trow = cur.fetchone()
+            if trow and trow["data"]:
+                transit = trow["data"]
+                if transit.get("transit_travel_times") or transit.get("bus_stops_800m"):
+                    for key in ("bus_stops_800m", "rail_stops_800m", "ferry_stops_800m",
+                                "cable_car_stops_800m", "transit_travel_times",
+                                "transit_travel_times_pm",
+                                "peak_trips_per_hour", "nearest_stop_name"):
+                        val = transit.get(key)
+                        if val is not None and val != 0:
+                            liveability[key] = val
+        except Exception:
+            pass  # non-critical
+
     # 2. Property detection (skip if report already has it)
     if not report.get("property_detection"):
         from .property_detection import detect_property_type
