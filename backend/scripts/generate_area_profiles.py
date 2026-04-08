@@ -69,8 +69,7 @@ SELECT
   (SELECT rm.yoy_pct FROM mv_rental_market rm
    WHERE rm.sa2_code = sa2.sa2_code AND rm.dwelling_type = 'All'
    AND rm.number_of_beds = 'All' LIMIT 1) AS rent_yoy_pct,
-  (SELECT sv.cv_median FROM mv_sa2_valuations sv
-   WHERE sv.sa2_code = sa2.sa2_code) AS median_cv,
+  NULL::numeric AS median_cv,  -- mv_sa2_valuations removed; CV not needed for profile vibe
   (SELECT string_agg(DISTINCT dpz.zone_name, ', ')
    FROM district_plan_zones dpz WHERE ST_Intersects(dpz.geom, sa2.geom)) AS zone_types,
   (SELECT MAX(hc.height_metres) FROM height_controls hc
