@@ -143,7 +143,7 @@ export function AppHeader() {
                   <UserCircle className="h-5 w-5" />
                 </button>
                 {showAccountMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1 z-50">
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1 z-[60]">
                     <div className="px-3 py-2 border-b border-border">
                       <p className="text-sm font-medium truncate">{session.user?.name || 'Account'}</p>
                       {session.user?.email && (

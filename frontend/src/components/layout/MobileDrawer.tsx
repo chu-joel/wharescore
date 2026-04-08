@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * Mobile bottom-sheet drawer with 3 snap points:
@@ -236,17 +237,29 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       onTouchMove={stopPropagation}
       onTouchEnd={stopPropagation}
     >
-      {/* Drag handle */}
+      {/* Drag handle + back button */}
       <div
         data-drawer-handle
-        className="flex flex-col items-center pt-4 pb-4 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing select-none"
         style={{ touchAction: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
+        <div className="w-8" /> {/* spacer */}
         <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
+        {snapId === 'full' ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setSnapId('peek'); resetScrollAfterTransition(); }}
+            className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            aria-label="Collapse panel"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        ) : (
+          <div className="w-8" /> /* spacer */
+        )}
       </div>
 
       {/* Scrollable content — hidden overflow when mini to prevent stuck scroll */}

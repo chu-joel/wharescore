@@ -30,7 +30,9 @@ export function useAreaFeed(addressId: number | null, enabled: boolean = true) {
     queryKey: ['area-feed', addressId],
     queryFn: () => apiFetch<AreaFeedResponse>(`/api/v1/property/${addressId}/area-feed`),
     enabled: addressId !== null && enabled,
-    staleTime: 30 * 60 * 1000, // 30 minutes — matches backend cache
+    staleTime: 30 * 60 * 1000,      // 30 min — matches backend cache
+    refetchInterval: 10 * 60 * 1000, // Poll every 10 min for live weather/seismic events
+    refetchIntervalInBackground: false, // Only poll when tab is visible
     retry: false,
   });
 }
