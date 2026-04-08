@@ -1,6 +1,6 @@
 # WhareScore — Docker Compose (Production)
 #
-# All services run on a single Azure VM.
+# All services run on a single Azure B4ms VM (4 vCPU, 16GB RAM).
 # PostgreSQL data lives on a mounted data disk (/data/postgres).
 #
 # First deploy:
@@ -15,8 +15,8 @@
 services:
   postgres:
     image: postgis/postgis:17-3.5
-    mem_limit: 3g
-    memswap_limit: 4g
+    mem_limit: 6g
+    memswap_limit: 8g
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
@@ -38,8 +38,8 @@ services:
 
   valhalla:
     image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
-    mem_limit: 1g
-    memswap_limit: 1500m
+    mem_limit: 2g
+    memswap_limit: 3g
     volumes:
       - /data/valhalla:/custom_files
     environment:
@@ -49,7 +49,7 @@ services:
       - build_admins=True
       - build_time_zones=True
       - force_rebuild=False
-      - server_threads=2
+      - server_threads=4
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8002/status || exit 1"]
@@ -62,7 +62,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.prod}
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.prod}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
@@ -94,8 +94,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    mem_limit: 2g
-    memswap_limit: 3g
+    mem_limit: 3g
+    memswap_limit: 4g
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/wharescore?sslmode=disable
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
@@ -146,8 +146,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
-    mem_limit: 512m
-    memswap_limit: 768m
+    mem_limit: 768m
+    memswap_limit: 1g
     environment:
       NODE_ENV: production
       AUTH_SECRET: ${AUTH_SECRET:-}

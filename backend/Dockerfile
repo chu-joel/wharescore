@@ -19,4 +19,4 @@ USER appuser
 EXPOSE 8000
 
 # uvicorn directly — no Windows event loop hack needed in Linux
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--no-server-header"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "8", "--no-server-header"]
