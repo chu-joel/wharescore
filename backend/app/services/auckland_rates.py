@@ -28,6 +28,27 @@ AC_SEARCH_URL = f"{AC_API_BASE}/property"
 AC_RATES_URL = f"{AC_API_BASE}/property/{{key}}/rate-assessment"
 
 
+def _best_match(items: list[dict], search_addr: str) -> str | None:
+    """Pick the best matching rateAccountKey from Auckland Council API results.
+    Compares the result address against the search address to avoid suburb mismatches
+    (e.g. '1 Queen Street Auckland Central' matching Pukekohe)."""
+    if not items:
+        return None
+    search_lower = search_addr.lower()
+    search_words = set(search_lower.split())
+    best_key = None
+    best_score = -1
+    for item in items:
+        addr = (item.get("address") or item.get("name") or "").lower()
+        addr_words = set(addr.replace(",", " ").split())
+        # Score = number of matching words
+        score = len(search_words & addr_words)
+        if score > best_score:
+            best_score = score
+            best_key = item.get("id")
+    return best_key
+
+
 def _simplify_address(full_address: str) -> str:
     """Simplify LINZ full_address for Auckland Council API search.
     '1/63 Landscape Road, Mount Eden, Auckland' -> '1/63 Landscape Road Mount Eden'
@@ -54,9 +75,10 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
             # Fall back to cache
             return await _get_cached(address, conn) if conn else None
 
-        # Find best match
+        # Find best match — verify suburb/street aligns with search to avoid
+        # "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe"
         items = search_data["items"]
-        rate_key = items[0].get("id")
+        rate_key = _best_match(items, search_addr)
         if not rate_key:
             return await _get_cached(address, conn) if conn else None
 

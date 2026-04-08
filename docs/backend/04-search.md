@@ -165,10 +165,23 @@ async def search(query: str, limit: int) -> list[dict]:
     exclude_ids = [r["address_id"] for r in results]
     ts_results = await _tsvector_search(query, limit - len(results), exclude_ids)
     results.extend(ts_results)
+
+    # Road name filter: if query contains a road type (e.g. "14 Aro Street Wellington"),
+    # extract the road name ("Aro") and filter results to those with a matching road_name.
+    # Prevents suburb-name matches (Te Aro suburb) from returning wrong streets.
+    if results:
+        road_name = _extract_road_name(query)
+        if road_name:
+            matched = [r for r in results if road_name.lower() in (r.get("road_name") or "").lower()]
+            if matched:
+                return matched
+            # No road name match — fall through to trigram
+
     if results:
         return results
 
-    # Tier 3: trigram similarity (26ms-2s) — typo correction, only when tiers 1+2 fail
+    # Tier 3: trigram similarity — typo correction, only when tiers 1+2 fail.
+    # Higher similarity threshold (0.4) + 3s timeout to avoid slow scans.
     return await _trigram_fallback(query, limit)
 
 

@@ -108,7 +108,7 @@ async def nearby_schools(
         cur = await conn.execute(
             """
             WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
-            SELECT s.org_name AS school_name, s.definition AS school_type,
+            SELECT s.org_name AS school_name, s.org_type AS school_type,
                    s.eqi_index AS eqi, s.total_roll,
                    round(ST_Distance(s.geom::geography, addr.geom::geography)::numeric) AS distance_m,
                    ST_X(s.geom) AS lng, ST_Y(s.geom) AS lat,

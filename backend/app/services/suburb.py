@@ -23,18 +23,21 @@ async def search_suburbs(query: str, limit: int = 8) -> list[dict]:
         if results:
             return results
 
-        # Fallback: contains match (still indexed via pg_trgm GIN)
+        # Fallback: trigram similarity — handles partial/fuzzy matches
+        # e.g. "Te Aro" → "Aro Valley" (similarity on individual words)
         cur = await conn.execute(
             """
             SELECT sa2_code, sa2_name, ta_name,
                    ST_X(ST_Centroid(ST_Transform(geom, 4326))) AS lng,
-                   ST_Y(ST_Centroid(ST_Transform(geom, 4326))) AS lat
+                   ST_Y(ST_Centroid(ST_Transform(geom, 4326))) AS lat,
+                   similarity(sa2_name, %s) AS sim
             FROM sa2_boundaries
-            WHERE sa2_name ILIKE %s
-            ORDER BY sa2_name
+            WHERE sa2_name %% %s
+               OR sa2_name ILIKE %s
+            ORDER BY sim DESC, length(sa2_name)
             LIMIT %s
             """,
-            [f"%{query}%", limit],
+            [query, query, f"%{query}%", limit],
         )
         return cur.fetchall()
 

@@ -13,7 +13,7 @@
 | # | Council | Module file | City match (lowercase) | Endpoint type | CV | LV | IV | Rates |
 |---|---------|------------|----------------------|--------------|:--:|:--:|:--:|:-----:|
 | 1 | Wellington | `rates.py` | wellington | WCC API + wcc_rates_cache | Y | Y | Y | Y |
-| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API | Y | Y | Y | Y |
+| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API. Uses `_best_match()` to pick result by word overlap (not first result). | Y | Y | Y | Y |
 | 3 | Lower Hutt | `hcc_rates.py` | lower hutt | ArcGIS MapServer | Y | Y | Y | Y |
 | 4 | Upper Hutt | `uhcc_rates.py` | upper hutt | ArcGIS Online | Y | - | - | Y |
 | 5 | Porirua | `pcc_rates.py` | porirua | ArcGIS MapServer | Y | Y | Y | - |
