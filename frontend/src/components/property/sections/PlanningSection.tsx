@@ -80,7 +80,10 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
               <span className="text-muted-foreground">Zone</span>
               <Badge variant="secondary">{planning.zone_name}</Badge>
             </div>
-            {planning.zone_category && planning.zone_category !== planning.zone_name && (
+            {planning.zone_category
+              && planning.zone_category !== planning.zone_name
+              && !/^zone$/i.test(planning.zone_category.trim())
+              && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Category</span>
                 <span className="font-medium text-xs">{planning.zone_category}</span>
@@ -220,10 +223,10 @@ function EpbListedItem({ listed }: { listed: boolean | null }) {
         <CheckCircle2 className="h-4 w-4 text-piq-success shrink-0" />
       )}
       <span className={listed ? 'font-semibold text-red-700 dark:text-red-400' : ''}>
-        Earthquake-prone building
+        This building on the EPB register?
       </span>
       <span className="ml-auto text-xs font-medium">
-        {listed ? 'Listed' : 'Not listed'}
+        {listed ? 'Yes — listed' : 'No'}
       </span>
     </div>
   );

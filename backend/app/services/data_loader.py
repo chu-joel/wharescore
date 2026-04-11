@@ -785,10 +785,18 @@ def load_district_plan_zones(conn: psycopg.Connection, log: Callable = None) -> 
         wkt = _mp_wkt(geom)
         if not wkt:
             continue
+        zone_name = _clean(a.get("DPZone"))
+        raw_category = _clean(a.get("Category"))
+        # WCC's "Category" field sometimes returns the literal string "Zone"
+        # (or matches the zone_name), neither of which is meaningful to users.
+        # Fall back to _derive_zone_category so the frontend can render
+        # "Residential", "Business", etc.
+        if not raw_category or raw_category.strip().lower() == "zone" or raw_category == zone_name:
+            raw_category = _derive_zone_category(zone_name)
         cur.execute(
             "INSERT INTO district_plan_zones (zone_name, zone_code, category, chapter, eplan_url, status, geom) "
             "VALUES (%s,%s,%s,%s,%s,%s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
-            (_clean(a.get("DPZone")), _clean(a.get("DPZoneCode")), _clean(a.get("Category")),
+            (zone_name, _clean(a.get("DPZoneCode")), raw_category,
              _clean(a.get("DP_Chapter")), _clean(a.get("ePlan_URL")), _clean(a.get("Status")), wkt),
         )
         count += 1

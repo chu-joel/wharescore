@@ -152,7 +152,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
               Finalising score…
             </span>
           ) : (
-            <SocialProof suburbName={report.address.sa2_name} />
+            <SocialProof suburbName={report.address.suburb || report.address.sa2_name} />
           )}
         </div>
 
@@ -235,7 +235,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           return (
             <ReportCTABanner
               addressId={addressId}
-              suburbName={report.address.sa2_name}
+              suburbName={report.address.suburb || report.address.sa2_name}
               capitalValue={effectiveCv}
               medianRent={report.market.rent_assessment?.median}
             />
@@ -254,6 +254,9 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         </div>
 
         {/* AI Summary — area narrative, in the deep dive zone */}
+        {/* AI narrative is written per SA2 — keep sa2_name as the label so the
+            header matches the content's subject (which may differ from the
+            user-facing suburb, e.g. 'Kelburn SA2' vs 'Aro Valley' suburb). */}
         <AISummaryCard
           summary={aiData?.ai_summary ?? null}
           areaProfile={aiData?.area_profile ?? null}

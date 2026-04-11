@@ -63,7 +63,7 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
 
     case 'daily-life': {
       if (l.transit_count != null) {
-        chips.push({ label: `${l.transit_count} stops`, variant: l.transit_count >= 5 ? 'green' : 'amber' });
+        chips.push({ label: `${l.transit_count} stops (400m)`, variant: l.transit_count >= 5 ? 'green' : 'amber' });
       }
       if (e.noise_db != null) {
         chips.push({

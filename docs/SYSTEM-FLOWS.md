@@ -292,6 +292,22 @@ and produced contradictory "Rents rising fast" copy on falling-rent
 properties. Buyer-side concerns about falling yield live in
 `BuyerSnapshot`, not in this 0-100 score.
 
+### Rental CAGR sanitisation
+`transformReport.transformMarket` in the frontend runs every CAGR through
+`sanitiseCagr` before handing it to the UI. 1yr values outside ±25% and
+5/10yr values outside ±15% are treated as signal noise (small SA2 bond
+samples regularly throw out 30+% YoY moves that aren't real) and nulled
+so the cards render "—" instead of "1yr -31.3%".
+
+### Schools indicator fallback (EQI missing)
+`school_quality_score` was collapsing to 100 ("no schools nearby") any
+time the feed returned schools without an EQI value joined — this
+silently ruined the scoring for regions where the EQI feed hasn't been
+refreshed. It now checks for EQI-carrying schools first and falls back
+to a proximity-based score (distance to nearest + count bonus) when EQI
+is missing but schools exist. Users stop seeing "Schools: 100/100" for
+addresses with 4 schools in sight.
+
 ### NULL vs 0 handling
 Indicators where NULL raw data means "no data for this location" (not "confirmed safe") are **omitted entirely** when the source field is NULL. This prevents showing "0/100 Low risk" when we simply don't have data. Affected indicators: flood, tsunami, coastal_erosion, liquefaction, slope_failure, wind, air_quality. Council-specific data and terrain/waterway fallbacks still set these indicators when available. Earthquake (GeoNet national), wildfire (always has station data), and EPB (count-based) are always set.
 

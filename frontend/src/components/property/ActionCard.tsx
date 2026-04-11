@@ -237,7 +237,8 @@ export function generateActions(report: {
   }
 
   // --- Contamination ---
-  if (h.contamination_count && h.contamination_count > 0) {
+  const contaminationCount = p.contamination_count ?? h.contamination_count ?? 0;
+  if (contaminationCount > 0) {
     actions.push({
       title: 'Check the SLUR for contamination details',
       description:

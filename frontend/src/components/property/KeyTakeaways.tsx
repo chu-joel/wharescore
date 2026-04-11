@@ -15,10 +15,27 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
   const categories = Array.isArray(report.scores?.categories) ? report.scores.categories : [];
   const allIndicators = categories.flatMap((c) => c.indicators ?? []);
   const hasIndicators = allIndicators.some((i) => i.is_available);
-  const concerns = allIndicators.filter((i) => i.is_available && i.score >= 60);
+  // "Things to investigate" = indicators scored ≥60 (higher = worse in our
+  // scale). "Things that look good" = ≤20. Sort each so the most extreme
+  // item appears first, capped to a readable length.
+  const concerns = allIndicators
+    .filter((i) => i.is_available && i.score >= 60)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
   const positives = allIndicators
     .filter((i) => i.is_available && i.score <= 20)
+    .sort((a, b) => a.score - b.score)
     .slice(0, 3);
+
+  // Replace the raw "17/100" score text with a rating label so users don't
+  // misread a low risk score as "17% good". Badge is driven by rating bin.
+  const ratingLabel = (score: number) => {
+    if (score <= 20) return 'Low';
+    if (score <= 40) return 'Low-Moderate';
+    if (score <= 60) return 'Moderate';
+    if (score <= 80) return 'High';
+    return 'Very High';
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -52,7 +69,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
                     <AlertTriangle className="h-4 w-4 text-risk-very-high shrink-0 mt-0.5" />
                     <span>
                       <span className="font-medium">{indicator.name}:</span>{' '}
-                      <span className="text-muted-foreground">{indicator.value}</span>
+                      <span className="text-muted-foreground">{ratingLabel(indicator.score)} risk</span>
                     </span>
                   </li>
                 ))}
@@ -83,7 +100,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
                     <CheckCircle2 className="h-4 w-4 text-piq-success shrink-0 mt-0.5" />
                     <span>
                       <span className="font-medium">{indicator.name}:</span>{' '}
-                      <span className="text-muted-foreground">{indicator.value}</span>
+                      <span className="text-muted-foreground">Low risk</span>
                     </span>
                   </li>
                 ))}

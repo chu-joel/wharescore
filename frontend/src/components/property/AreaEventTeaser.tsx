@@ -74,7 +74,7 @@ export function AreaEventTeaser({ feed, addressId }: Props) {
         <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
         <div className="flex-1 space-y-2">
           <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-            {pluralise(summary.total_events, 'significant event')} near this property
+            {pluralise(summary.total_events, 'recent event')} tracked near this property
           </p>
 
           <div className="flex flex-wrap gap-2">

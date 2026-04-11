@@ -18,12 +18,20 @@ export function PersonaToggle() {
     // Sticky inside the scrolling report container so the toggle stays in
     // view as users scroll through long reports — on mobile especially
     // this lets them switch renter/buyer without scrolling back to the top.
-    <div className="sticky top-0 z-10 flex rounded-xl border border-border bg-muted/90 backdrop-blur-sm p-1 gap-1 -mx-0.5">
+    <div
+      role="tablist"
+      aria-label="Choose whether you're renting or buying"
+      className="sticky top-0 z-10 flex rounded-xl border border-border bg-muted/90 backdrop-blur-sm p-1 gap-1 -mx-0.5"
+    >
       {OPTIONS.map(({ value, label, Icon }) => {
         const active = hydrated && persona === value;
         return (
           <button
             key={value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-pressed={active}
             onClick={() => setPersona(value)}
             className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-all ${
               active

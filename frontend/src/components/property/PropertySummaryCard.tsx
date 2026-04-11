@@ -112,9 +112,21 @@ export function PropertySummaryCard({
                 {address.full_address}
               </h2>
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {address.suburb}, {address.city}
-            </p>
+            {/* Only repeat suburb/city if the full_address doesn't already
+                include them. LINZ addresses usually end with both, so this
+                line is suppressed for most properties. */}
+            {(() => {
+              const full = (address.full_address || '').toLowerCase();
+              const suburb = (address.suburb || '').toLowerCase();
+              const city = (address.city || '').toLowerCase();
+              const hasSuburb = suburb && full.includes(suburb);
+              const hasCity = city && full.includes(city);
+              if (hasSuburb && hasCity) return null;
+              const missing = [!hasSuburb ? address.suburb : null, !hasCity ? address.city : null].filter(Boolean).join(', ');
+              return missing ? (
+                <p className="text-sm text-muted-foreground mt-0.5">{missing}</p>
+              ) : null;
+            })()}
             {(() => {
               const titleType = (report as unknown as Record<string, unknown>)?.property && ((report as unknown as Record<string, unknown>).property as Record<string, unknown>)?.title_type as string;
               const buildingUse = (report as unknown as Record<string, unknown>)?.property && ((report as unknown as Record<string, unknown>).property as Record<string, unknown>)?.building_use as string;

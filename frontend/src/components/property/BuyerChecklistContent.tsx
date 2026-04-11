@@ -25,8 +25,9 @@ function getItems(report: PropertyReport): ChecklistItem[] {
   if (h.slope_failure?.toLowerCase().includes('high') || h.landslide_in_area) {
     items.push({ text: 'Commission geotechnical report', severity: 'critical', reason: 'High slope failure risk or mapped landslide area', estimatedCost: '$3,000–$8,000' });
   }
-  if (h.contamination_count && h.contamination_count >= 3) {
-    items.push({ text: 'Check contaminated land register (SLUR)', severity: 'critical', reason: `${h.contamination_count} contaminated sites nearby` });
+  const contaminationCount = p.contamination_count ?? h.contamination_count ?? 0;
+  if (contaminationCount >= 3) {
+    items.push({ text: 'Check contaminated land register (HAIL/SLUR)', severity: 'critical', reason: `${contaminationCount} HAIL sites within 500m` });
   }
 
   // Important — always include

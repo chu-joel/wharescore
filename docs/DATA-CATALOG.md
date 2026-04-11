@@ -143,7 +143,7 @@
 | wcc_solar | wcc_solar_radiation |
 | contaminated_land | contaminated_land |
 | epb_wcc | earthquake_prone_buildings |
-| district_plan | district_plan_zones |
+| district_plan | district_plan_zones (WCC ArcGIS `Category` field returns the literal string "Zone" for MRZ — loader now falls back to `_derive_zone_category(zone_name)` when the feed value is missing, equals the zone name, or is "Zone", so DB rows land as "Residential" / "Business" / etc.) |
 | height_controls | height_controls |
 | gwrc_earthquake | earthquake_hazard, ground_shaking, liquefaction_detail, slope_failure |
 | gwrc_landslide | landslide_susceptibility |

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Loader2, ChevronDown, Sparkles, Zap } from 'lucide-react';
 import {
   Dialog,
@@ -518,6 +518,12 @@ export function ReportConfirmModal() {
   const { open, addressId, selectedTier, onConfirm, close, setSelectedTier } = useReportConfirmStore();
   const persona = usePersonaStore((s) => s.persona);
   const [generating, setGenerating] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  // Reset the submit-attempt flag whenever the modal opens, so re-opening
+  // after a failed attempt doesn't carry the red warning across.
+  useEffect(() => {
+    if (open) setAttemptedSubmit(false);
+  }, [open]);
   const queryClient = useQueryClient();
   const credits = useDownloadGateStore((s) => s.credits);
   const isPro = credits?.plan === 'pro';
@@ -542,6 +548,10 @@ export function ReportConfirmModal() {
   const isReady = persona === 'renter' ? renterReady : buyerReady;
 
   const handleConfirm = () => {
+    if (!isReady) {
+      setAttemptedSubmit(true);
+      return;
+    }
     setGenerating(true);
     onConfirm?.(selectedTier);
     setTimeout(() => {
@@ -582,7 +592,7 @@ export function ReportConfirmModal() {
           )}
         </div>
 
-        {!isReady && (
+        {!isReady && attemptedSubmit && (
           <div className="rounded-lg border border-risk-high/30 bg-risk-high/5 p-2.5 text-xs text-center">
             <p className="font-semibold text-risk-high">
               {persona === 'renter'
@@ -646,8 +656,13 @@ export function ReportConfirmModal() {
           </button>
           <button
             onClick={handleConfirm}
-            disabled={generating || !isReady}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-piq-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-piq-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={generating}
+            aria-disabled={!isReady || generating}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${
+              isReady
+                ? 'bg-piq-primary hover:bg-piq-primary-dark'
+                : 'bg-piq-primary/50 hover:bg-piq-primary/60'
+            }`}
           >
             {generating ? (
               <>

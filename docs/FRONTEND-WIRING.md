@@ -15,12 +15,12 @@
 
 | Report field path | Component | Section | Gated? |
 |---|---|---|---|
-| `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header | No |
+| `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header — duplicate "suburb, city" subheading is suppressed when `full_address` already contains both (most LINZ addresses) | No |
 | `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | 0. Header | No |
 | `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV via `effectivePerUnitCv` helper — ignores `cv_is_per_unit` when the value is >$5M on a multi-unit address; land/building area pills hidden for multi-unit). Same helper used by MonthlyCostEstimate, BuyerBudgetCalculator, InvestmentMetrics, HostedExecutiveSummary, QuestionSummary, ReportCTABanner — don't read `report.property.capital_value` directly in new components. | No |
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | 0. Header (elevation pill + slope pill) | No |
 | `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | 1. VERDICT (renter only) — overall verdict + rent/market power/healthy homes/mould risk/sun sections | No |
-| `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type | No |
+| `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type. Verdict headlines ("Strong fundamentals", "Worth extra due diligence", etc.) deliberately avoid the word "risk" so they can't collide with the score-badge label. | No |
 | `comparisons.suburb.*, comparisons.city.*, liveability.nzdep_score, .school_count, .transit_count, environment.noise_db, hazards.epb_count` | ComparisonBars | 1b. COMPARISON — property vs suburb vs city horizontal bar charts with contextual labels | No |
 | All hazards + liveability + planning | KeyFindings | 2. EVIDENCE — key findings. Summary line must sum to `findings.length` — include `info` count alongside critical/warning/positive. BlurredFindingCards takes an explicit `totalCount` prop for the "See all N findings" CTA. | First 2 free |
 | `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | 3. ACTION (renter hero) — personalized "What to ask the landlord" with climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
@@ -41,7 +41,7 @@
 | `property.capital_value, .land_value` | MarketSection | 5. DEEP DIVE "rent fair" / "investment" | No |
 | `market.market_heat, .trend.cagr_*` | MarketSection | 5. DEEP DIVE | No |
 | `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | 5. DEEP DIVE "rent fair" (renter only) | No |
-| `planning.zone_name, .zone_category, .height_limit, overlays` | PlanningSection | 5. DEEP DIVE "restrictions" (buyers) | No |
+| `planning.zone_name, .zone_category, .height_limit, overlays` | PlanningSection | 5. DEEP DIVE "restrictions" (buyers). The "Category" row is hidden when `zone_category` equals `zone_name` or is the literal string "Zone" (WCC ArcGIS feed returns that for MRZ). EPB checklist row asks "This building on the EPB register? Yes — listed / No" instead of the old "Earthquake-prone building / Not listed" phrasing. | No |
 | `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | 6. Below fold (compact mode) | No |
 | (live API call) | AISummaryCard | 6. Below fold (after accordion) | No |
 
@@ -49,7 +49,7 @@
 
 ### Hosted report (`/report/{token}`, component: `HostedReport.tsx`)
 
-**Layout:** Two tabs — "Your Property" (default, Building2 icon) and "The Area" (MapPin icon). Pill-style tab bar (rounded, bg-muted/60). Cover + score strip + orientation text + coverage badge above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both (inputs use `text-base` to prevent iOS zoom). Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs with section headers ("Part 1: Your Property" / "Part 2: The Area") and page breaks. Header: Share button shows "Copied!" feedback + label on desktop; Print button (was "Save PDF"). Quick report (HostedQuickReport.tsx) has no tabs, same share/print buttons. Coverage badge shows `"{N} sources checked"` from `report.coverage.available`.
+**Layout:** Two tabs — "Your Property" (default, Building2 icon) and "The Area" (MapPin icon). Pill-style tab bar (rounded, bg-muted/60, `min-h-[44px]` touch targets). Cover + score strip + orientation text + coverage badge above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both (inputs use `text-base` to prevent iOS zoom). Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs with section headers ("Part 1: Your Property" / "Part 2: The Area") and page breaks. Header: Share button shows "Copied!" feedback + label on desktop; Print button (was "Save PDF"). Share/Print buttons are 44×44 min with `aria-label` so screen readers can identify them on mobile. Quick report (HostedQuickReport.tsx) has no tabs, same share/print buttons. Coverage badge shows `"{N} sources checked"` from `report.coverage.available` on BOTH tiers (Full + Quick). H1 address is visible at all breakpoints (no `hidden sm:block`). ReportSidebar takes an `instanceId` prop so the mobile inline copy and desktop floating copy don't share input IDs.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
@@ -62,11 +62,11 @@
 | `rent_baselines` | HostedRentAdvisor | Yes (renter only) |
 | `rent_history` | HostedRentHistory | Yes |
 | `price_advisor, deltas` | HostedPriceAdvisor | Yes (buyer only) |
-| `hpi_data` | HostedHPIChart | Yes |
+| `hpi_data` | HostedHPIChart | Yes (buyer persona only — renters don't see it) |
 | `report.*` (questions) | QuestionContent (loop) | No (shared) |
 | `nearby_highlights` | HostedNearbyHighlights | Yes |
-| `school_zones` | HostedSchoolZones | Yes |
-| `report.liveability.schools` | HostedSchools | Yes |
+| `school_zones` | HostedSchoolZones | Yes. Filtered to schools ≤5 km so private schools with country-wide enrolment zones (e.g. St Oran's 15 km, Hutt International 27 km) don't appear as "in-zone". |
+| `report.liveability.schools` | HostedSchools | Yes. Shows **only out-of-zone nearby schools** (in-zone ones live in HostedSchoolZones above). Decile column dropped — deciles were retired 2023 and the column rendered as "–" for every row. |
 | `road_noise` | HostedRoadNoise | Yes |
 | `terrain`, `isochrone`, `terrain_insights` | HostedTerrain | Yes |
 | `report.liveability` (crime, deprivation, transit modes, AM+PM travel times, peak_trips_per_hour, nearest_stop_name, crashes, amenities_500m) | HostedNeighbourhoodStats | Yes. Peak frequency shown with Excellent/Good/Limited badge. |
@@ -78,16 +78,16 @@
 | `climate_normals` | HostedClimate | Yes. Monthly temp range chart, seasonal table, highlight cards. |
 | `nearby_doc` | HostedOutdoorRec | Yes |
 | `report.planning` | HostedInfrastructure | Yes |
-| `report.hazards` | HostedHealthyHomes | Yes (renter only). Moved to after Rent Advisor (was after questions). |
+| `report.hazards` | HostedHealthyHomes | Yes (renter only). Rows marked "Not verified — ask at viewing" by default (not "No issues detected"), since the Healthy Homes standards can only be verified in person. Moisture/draught can still flag "Area hazard" when flood / liquefaction / coastal / wind zone data fires. Moved to after Rent Advisor (was after questions). |
 | `report.hazards, terrain, environment` | MouldDampnessRisk | Yes (renter only, Full + Quick). After HealthyHomes in Full, after Rent Verdict in Quick. |
 | `report.terrain.aspect_label` | SunAspectCard | Yes (renter only, Full). After MouldDampnessRisk. |
 | `report.hazards, environment, planning, terrain, address` | LandlordChecklist | Yes (renter only, Full + Quick). In Full: standalone after questions (filtered from QuestionContent to avoid duplication), before hazard advice. In Quick: after rent verdict. |
-| `report.market.rent_assessment, hazards.earthquake_count` | KnowYourRights | Yes (renter only, Full + Quick). Standalone after LandlordChecklist (filtered from QuestionContent to avoid duplication). |
+| `report.market.rent_assessment, hazards.earthquake_count` | KnowYourRights | Yes (renter only, Full + Quick). Accepts a `userRent` prop — bond max is computed from the user's weekly rent first, falling back to area median only if the sidebar input is empty. Standalone after LandlordChecklist (filtered from QuestionContent to avoid duplication). |
 | `hazard_advice` | HostedHazardAdvice | Yes |
 | `recommendations` | HostedRecommendations | Yes |
 | (persona template) | HostedNextSteps | Yes |
 | (static) | HostedMethodology | Yes |
-| `meta, rent_baselines, price_advisor, report.property` | ReportSidebar | Yes |
+| `meta, rent_baselines, price_advisor, report.property` | ReportSidebar | Yes. Takes an `instanceId` prop (`"mobile"` / `"desktop"`) so the two responsive copies generate unique input IDs for `<label htmlFor>` bindings. Inline labels say "Your details" (was "Property details") to avoid colliding with the "Your Property" tab label. |
 
 ### Quick Report (`/report/{token}`, component: `HostedQuickReport.tsx`, tier=quick)
 

@@ -338,12 +338,13 @@ export function generateFindings(report: {
     });
   }
 
-  if (h.contamination_count && h.contamination_count > 0) {
+  const contaminationCount = p.contamination_count ?? h.contamination_count ?? 0;
+  if (contaminationCount > 0) {
     findings.push({
-      headline: `${h.contamination_count} contaminated site${h.contamination_count > 1 ? 's' : ''} nearby`,
+      headline: `${contaminationCount} HAIL site${contaminationCount > 1 ? 's' : ''} within 500m`,
       interpretation:
-        'There are sites with known or suspected contamination in the vicinity. Check the Selected Land Use Register (SLUR) for details and any restrictions.',
-      severity: h.contamination_count >= 5 ? 'warning' : 'info',
+        'HAIL = Hazardous Activities and Industries List (Ministry for the Environment). These are sites with a history of activities that may have contaminated the land — not necessarily this property, but nearby. Check the council\'s SLUR for details before digging or growing food.',
+      severity: contaminationCount >= 5 ? 'warning' : 'info',
       category: 'Planning',
       source: 'Regional Council SLUR / HAIL',
     });

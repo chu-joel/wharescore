@@ -10,6 +10,7 @@ interface WalkabilityScoreProps {
 interface Factor {
   label: string;
   score: number;
+  maxScore: number;
   available: boolean;
 }
 
@@ -20,27 +21,27 @@ function computeWalkability(report: PropertyReport): { total: number; factors: F
   // Amenities within 500m (weight: 25)
   const amenityCount = l.amenity_count ?? 0;
   const amenityScore = Math.min(25, Math.round((amenityCount / 15) * 25));
-  factors.push({ label: 'Nearby amenities', score: amenityScore, available: l.amenity_count != null });
+  factors.push({ label: 'Nearby amenities', score: amenityScore, maxScore: 25, available: l.amenity_count != null });
 
   // Transit stops within 400m (weight: 25)
   const transitCount = l.transit_count ?? 0;
   const transitScore = Math.min(25, Math.round((transitCount / 10) * 25));
-  factors.push({ label: 'Transit access', score: transitScore, available: l.transit_count != null });
+  factors.push({ label: 'Transit access', score: transitScore, maxScore: 25, available: l.transit_count != null });
 
   // CBD distance (weight: 20) — closer = higher
   const cbdDist = l.cbd_distance_m ?? 10000;
   const cbdScore = Math.max(0, Math.round(20 * (1 - Math.min(cbdDist, 5000) / 5000)));
-  factors.push({ label: 'CBD proximity', score: cbdScore, available: l.cbd_distance_m != null });
+  factors.push({ label: 'CBD proximity', score: cbdScore, maxScore: 20, available: l.cbd_distance_m != null });
 
   // Schools nearby (weight: 15)
   const schoolCount = l.school_count ?? 0;
   const schoolScore = Math.min(15, Math.round((schoolCount / 5) * 15));
-  factors.push({ label: 'Schools', score: schoolScore, available: l.school_count != null });
+  factors.push({ label: 'Schools', score: schoolScore, maxScore: 15, available: l.school_count != null });
 
   // Inverse of noise (weight: 15) — quieter = more walkable
   const noiseDb = report.environment.noise_db ?? 50;
   const noiseScore = Math.max(0, Math.round(15 * (1 - Math.max(0, noiseDb - 40) / 40)));
-  factors.push({ label: 'Quiet streets', score: noiseScore, available: report.environment.noise_db != null });
+  factors.push({ label: 'Quiet streets', score: noiseScore, maxScore: 15, available: report.environment.noise_db != null });
 
   const total = factors.reduce((s, f) => s + f.score, 0);
   return { total: Math.min(100, total), factors };
@@ -104,8 +105,9 @@ export function WalkabilityScore({ report }: WalkabilityScoreProps) {
               <span
                 key={f.label}
                 className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-xs font-medium"
+                title={`${f.label} contributes ${f.score} out of ${f.maxScore} points to the overall walkability score`}
               >
-                {f.label}: {f.score}
+                {f.label}: {f.score}/{f.maxScore}
               </span>
             ))}
           </div>

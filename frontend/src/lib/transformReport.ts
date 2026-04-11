@@ -242,7 +242,7 @@ function transformHazards(raw: any): HazardData {
     wildfire_risk: raw.wildfire_trend ?? null,
     epb_count: raw.epb_count_300m ?? null,
     slope_failure: raw.slope_failure ?? raw.council_slope_severity ?? null,
-    contamination_count: null, // moved to planning
+    contamination_count: null, // see post-transform mirror below — source of truth is planning
     // Wellington-specific
     earthquake_hazard_index: raw.earthquake_hazard_index ?? null,
     earthquake_hazard_grade: raw.earthquake_hazard_grade ?? null,
@@ -355,7 +355,17 @@ function transformMarket(raw: any): MarketData {
     }
   }
 
-  // Build trend from trends array — pick the "ALL"/"ALL" row
+  // Build trend from trends array — pick the "ALL"/"ALL" row.
+  // Rent series for small SA2s are volatile and occasionally show extreme
+  // outliers (e.g. -31%/yr) that reflect a data gap, not a real market move.
+  // Suppress anything outside +/- 25% for the headline 1yr number and
+  // +/- 15% for the 5/10yr compound figures — those ranges cover every
+  // genuine Wellington/Auckland movement in the past 20 years with margin.
+  const sanitiseCagr = (v: unknown, clamp: number): number | null => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+    if (Math.abs(v) > clamp) return null;
+    return v;
+  };
   let trend = null;
   if (Array.isArray(raw.trends)) {
     const allTrend = raw.trends.find(
@@ -363,9 +373,9 @@ function transformMarket(raw: any): MarketData {
     );
     if (allTrend) {
       trend = {
-        cagr_1yr: allTrend.yoy_pct ?? null,
-        cagr_5yr: allTrend.cagr_5yr ?? null,
-        cagr_10yr: allTrend.cagr_10yr ?? null,
+        cagr_1yr: sanitiseCagr(allTrend.yoy_pct, 25),
+        cagr_5yr: sanitiseCagr(allTrend.cagr_5yr, 15),
+        cagr_10yr: sanitiseCagr(allTrend.cagr_10yr, 15),
       };
     }
   }
@@ -493,13 +503,20 @@ export function transformReport(raw: any): PropertyReport {
   const overall = typeof scores.composite === 'number' ? scores.composite : NaN;
   const ratingBin = toRatingBin(overall);
 
+  const hazards = transformHazards(raw.hazards);
+  const planning = transformPlanning(raw.planning, raw.liveability, raw.environment ?? raw.hazards);
+  // Mirror contamination_count onto hazards so legacy readers see a consistent number.
+  // Source of truth is planning.contamination_count (fed from raw.planning.contam_count_500m).
+  if (hazards.contamination_count == null && planning.contamination_count != null) {
+    hazards.contamination_count = planning.contamination_count;
+  }
   return {
     address,
     property,
-    hazards: transformHazards(raw.hazards),
+    hazards,
     environment: transformEnvironment(raw.environment ?? raw.hazards, raw.hazards),
     liveability: transformLiveability(raw.liveability),
-    planning: transformPlanning(raw.planning, raw.liveability, raw.environment ?? raw.hazards),
+    planning,
     market: transformMarket(raw.market),
     comparisons: transformComparisons(raw.comparisons),
     scores: {

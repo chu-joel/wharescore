@@ -76,16 +76,23 @@ def school_quality_score(schools: list[dict]) -> float:
     if not schools:
         return 100  # no nearby schools = worst score
     MAX_QUALITY = 8.0
-    quality_points = sum(
-        (1 / max(s.get("distance_m", 1000) / 1000, 0.1))
-        * ((s.get("eqi", 460) - 400) / 120)
-        for s in schools
-        if s.get("eqi")
-    )
-    # Clamp to 0-100: quality_score starts at 0 (worst), increases with good schools nearby
-    quality_score = max(0, min(100, (quality_points / MAX_QUALITY) * 100))
-    # Invert: 100 = no good schools (worst), 0 = excellent schools nearby (best)
-    return 100 - quality_score
+    eqi_schools = [s for s in schools if s.get("eqi")]
+    if eqi_schools:
+        quality_points = sum(
+            (1 / max(s.get("distance_m", 1000) / 1000, 0.1))
+            * ((s.get("eqi", 460) - 400) / 120)
+            for s in eqi_schools
+        )
+        quality_score = max(0, min(100, (quality_points / MAX_QUALITY) * 100))
+        return 100 - quality_score
+    # Fallback: schools exist but EQI missing for all of them (happens when
+    # the EQI feed hasn't been joined). Use proximity-only scoring so the
+    # indicator doesn't collapse to 100 ("no schools") when users can clearly
+    # see N schools in the liveability section.
+    closest_m = min((s.get("distance_m") or 2000) for s in schools)
+    proximity = max(0, min(100, (1 - closest_m / 2000) * 100))
+    count_bonus = min(30, len(schools) * 6)
+    return max(0, min(100, 100 - (proximity * 0.7 + count_bonus)))
 
 
 def contamination_score(distance_m: float | None, category: str | None) -> float:
@@ -680,9 +687,18 @@ def enrich_with_scores(report: dict) -> dict:
     # Find ALL/ALL row for overall market signal
     all_row = next((r for r in rental_overview if isinstance(r, dict) and r.get("dwelling_type") == "ALL" and r.get("beds") == "ALL"), None)
     if all_row:
-        # rental_fairness: bond count as data richness signal (more bonds = more liquid market)
+        # rental_fairness: market depth / data richness signal. HIGHER indicator score
+        # means MORE renter risk, so a thick market (lots of bonds) should produce a
+        # LOW score. Previously this was inverted — a suburb with 180 bonds produced
+        # a 90 "rental_fairness" score which then rendered as "Rental Fairness: High
+        # risk — Limited rental market activity", the exact opposite of reality.
         bonds = all_row.get("bonds") or all_row.get("active_bonds") or 0
-        indicators["rental_fairness"] = min(100, (bonds / 200) * 100) if bonds else None
+        if bonds:
+            # 0 bonds → 100 (high risk, thin market), 200+ bonds → 0 (low risk, thick market)
+            depth_fraction = min(1.0, bonds / 200.0)
+            indicators["rental_fairness"] = round(100 * (1 - depth_fraction))
+        else:
+            indicators["rental_fairness"] = None
         # rental_trend: YoY% mapped to 0-100 where HIGHER = more renter risk
         # (rents rising fast). Falling rents clamp to 0 so they never show as
         # a "risk" — the previous implementation took abs(yoy) which made a

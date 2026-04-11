@@ -201,11 +201,20 @@ export function MapLegend() {
   }, {});
 
   return (
-    <div className="absolute bottom-4 left-3 z-30 max-w-[220px]">
+    <div
+      className="absolute bottom-4 left-3 z-30 max-w-[220px]"
+      // Legend clicks previously fell through to the map below (MapLibre's
+      // click handler fires on the map container), so a user tap-opening
+      // the legend also selected whatever was underneath. Stop propagation
+      // at the wrapper level so the map never sees the event.
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
       <div className="bg-background/95 backdrop-blur-sm rounded-xl border border-border shadow-md overflow-hidden">
         {/* Header */}
         <button
-          onClick={() => setExpanded(!expanded)}
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
           className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium hover:bg-muted/50 transition-colors"
         >
           <span className="flex items-center gap-1.5">

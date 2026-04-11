@@ -45,7 +45,7 @@ export function BuyerDueDiligence({ report }: Props) {
     name: 'Contaminated land check',
     cost: 'Included',
     coveredByUs: true,
-    ourCoverage: `${(hazards?.contamination_count ?? 0) > 0 ? `${hazards!.contamination_count} sites found nearby` : 'No contaminated sites found nearby'}`,
+    ourCoverage: `${(planning?.contamination_count ?? 0) > 0 ? `${planning!.contamination_count} HAIL sites within 500m` : 'No contaminated sites found nearby'}`,
     priority: 'essential',
   });
 

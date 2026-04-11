@@ -28,11 +28,15 @@ interface SnapshotSection {
   verdict: Verdict;
 }
 
+// Headline wording avoids "Low/High Risk" because the main score badge
+// already uses those labels and previously caused visible contradictions
+// (e.g. score badge said "Low Risk" while this card said "Elevated risk").
+// These labels focus on what the BUYER should DO, not on re-scoring.
 const VERDICT_CONFIG = {
-  good: { label: 'Low risk — strong fundamentals', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-800', text: 'text-green-700 dark:text-green-400', icon: CheckCircle },
-  ok: { label: 'Moderate risk — investigate these areas', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', icon: Shield },
-  caution: { label: 'Elevated risk — due diligence critical', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-400', icon: AlertTriangle },
-  warning: { label: 'High risk — proceed with extreme caution', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
+  good: { label: 'Strong fundamentals — standard checks apply', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-800', text: 'text-green-700 dark:text-green-400', icon: CheckCircle },
+  ok: { label: 'A few areas to look closer at', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', icon: Shield },
+  caution: { label: 'Worth extra due diligence before offering', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-400', icon: AlertTriangle },
+  warning: { label: 'Several hazards flagged — thorough review needed', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
 };
 
 const SECTION_DOT = {
