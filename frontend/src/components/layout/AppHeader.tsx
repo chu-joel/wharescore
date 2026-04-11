@@ -143,6 +143,7 @@ export function AppHeader() {
                   onClick={() => setShowAccountMenu(!showAccountMenu)}
                   className="inline-flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
                   aria-label="Account menu"
+                  title="Account"
                 >
                   <UserCircle className="h-5 w-5" />
                 </button>
@@ -181,10 +182,11 @@ export function AppHeader() {
             onClick={toggleTheme}
             className="h-9 w-9"
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <a href="/help" aria-label="Help">
+          <a href="/help" aria-label="Help" title="Help & FAQ">
             <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Help">
               <HelpCircle className="h-4 w-4" />
             </Button>

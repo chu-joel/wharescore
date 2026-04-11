@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Calculator, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import type { PropertyReport } from '@/lib/types';
 import { useBudgetStore, buyerMonthly, affordabilityRatio, NZ_DEFAULTS } from '@/stores/budgetStore';
 import { BudgetSlider } from './BudgetSlider';
@@ -52,9 +52,11 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
   const isMultiUnit = !!report.property_detection?.is_multi_unit;
   const unitCount = report.property_detection?.unit_count ?? 1;
 
-  // For multi-unit, estimate per-unit CV if the CV looks like a whole-building value
-  const alreadyPerUnit = !!report.property.cv_is_per_unit;
-  const estimatedUnitCv = (isMultiUnit && cv && unitCount > 1 && !alreadyPerUnit) ? Math.round(cv / unitCount) : cv;
+  // For multi-unit, estimate per-unit CV. `effectivePerUnitCv` applies a
+  // > $5M sanity check so this fires even when the backend mislabels a
+  // whole-building CV with `cv_is_per_unit = true` (which happened on
+  // 10 Customhouse Quay in the original audit).
+  const estimatedUnitCv = effectivePerUnitCv(cv, { isMultiUnit, unitCount });
 
   const hydrated = useStoreHydrated();
   const { getEntry, updateBuyer } = useBudgetStore();
@@ -278,11 +280,13 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {isMultiUnit && unitCount > 1
-          ? alreadyPerUnit
-            ? `Unit valuation ${formatCurrency(estimatedUnitCv!)} (from rates). `
-            : `Building valuation ${formatCurrency(cv!)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
-          : `Based on valuation of ${formatCurrency(cv!)}. `}
+        {isMultiUnit && unitCount > 1 && cv && estimatedUnitCv !== cv
+          ? `Building valuation ${formatCurrency(cv)} ÷ ${unitCount} units ≈ ${formatCurrency(estimatedUnitCv!)} per unit (estimate). `
+          : isMultiUnit && unitCount > 1 && estimatedUnitCv
+            ? `Unit valuation ${formatCurrency(estimatedUnitCv)} (from rates). `
+            : estimatedUnitCv
+              ? `Based on valuation of ${formatCurrency(estimatedUnitCv)}. `
+              : ''}
         P&I mortgage. Rates, insurance{isMultiUnit ? ', body corp' : ''} &amp; utilities are estimates — adjust sliders to match.
       </p>
     </div>

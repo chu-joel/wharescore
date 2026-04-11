@@ -87,7 +87,7 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
             ))}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            &copy; 2026 WhareScore. Not financial or legal advice.
+            &copy; {new Date().getFullYear()} WhareScore. Not financial or legal advice.
           </p>
         </nav>
       </div>

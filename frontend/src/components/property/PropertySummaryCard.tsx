@@ -66,22 +66,33 @@ export function PropertySummaryCard({
   // Persona-specific headline metric
   const personaHeadline = (() => {
     if (persona === 'renter' && market.rent_assessment?.median) {
-      return `Median rent: $${market.rent_assessment.median}/wk for this area`;
+      // "For this area" was ambiguous — users asked "which area?". Name
+      // the suburb when we have it so the median is grounded.
+      const suburb = address.suburb || address.sa2_name || 'this area';
+      return `Median rent: $${market.rent_assessment.median}/wk in ${suburb}`;
     }
     if (persona === 'buyer') {
       const parts: string[] = [];
       const isMulti = !!report.property_detection?.is_multi_unit;
       const units = report.property_detection?.unit_count ?? 1;
-      const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
+      // Match the same "looks building-level" heuristic used in PropertyPills
+      // so the yield calc doesn't divide rent by an $80M CV and render 0.0%.
+      const looksBuildingLevel = !!effectiveCV && isMulti && units > 1 && effectiveCV > 5_000_000;
+      const alreadyPerUnit = (!!property.cv_is_per_unit || cvIsLive) && !looksBuildingLevel;
       const displayCv = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : effectiveCV;
       if (displayCv) {
         const isEstimated = isMulti && units > 1 && !alreadyPerUnit;
         parts.push(`${isEstimated ? '~' : 'CV: '}${formatCompactCurrency(displayCv)}${isEstimated ? ' est.' : ''}`);
       }
-      if (market.rent_assessment?.median && effectiveCV) {
+      // Only show yield when we actually have a single-unit CV to divide
+      // into. For building-total CVs we've already hidden/estimated the
+      // number above — a "0.0% yield" line below it looks like real data.
+      if (market.rent_assessment?.median && displayCv && !looksBuildingLevel) {
         const annualRent = market.rent_assessment.median * 52;
-        const grossYield = (annualRent / effectiveCV) * 100;
-        parts.push(`Est. yield: ${grossYield.toFixed(1)}%`);
+        const grossYield = (annualRent / displayCv) * 100;
+        if (grossYield >= 0.5 && grossYield <= 20) {
+          parts.push(`Est. yield: ${grossYield.toFixed(1)}%`);
+        }
       }
       return parts.length > 0 ? parts.join(' · ') : null;
     }

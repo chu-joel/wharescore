@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Calculator, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import type { PropertyReport } from '@/lib/types';
 import { useBudgetStore, renterMonthly, affordabilityRatio, NZ_DEFAULTS } from '@/stores/budgetStore';
 import { BudgetSlider } from './BudgetSlider';
@@ -42,7 +42,13 @@ export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) 
 
   const hydrated = useStoreHydrated();
   const { getEntry, updateRenter } = useBudgetStore();
-  const entry = getEntry(addressId, report.property.capital_value, medianRent);
+  // Seed the buyer-side default with a per-unit CV when applicable so a
+  // later persona flip doesn't end up with a building-total purchase price.
+  const seedCv = effectivePerUnitCv(report.property.capital_value, {
+    isMultiUnit: !!report.property_detection?.is_multi_unit,
+    unitCount: report.property_detection?.unit_count,
+  });
+  const entry = getEntry(addressId, seedCv, medianRent);
   const r = entry.renter;
 
   const [overridesOpen, setOverridesOpen] = useState(false);

@@ -61,35 +61,38 @@ const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: str
   },
 };
 
-/** Layers with data-driven severity gradients — show a gradient swatch in legend */
+/** Layers with data-driven severity gradients — show a gradient swatch in legend.
+ * labels[0] is the LEFT (least severe) end, labels[1] is the RIGHT (most severe)
+ * end. Copy should make the direction explicit — e.g. "Zone 3 → Zone 1 (most
+ * severe)" rather than a bare "Zone 3 → Zone 1" that leaves direction ambiguous. */
 const SEVERITY_GRADIENT_LAYERS: Record<string, { colors: string[]; labels: [string, string] }> = {
   mv_nzdep_choropleth: {
     colors: ['#22C55E', '#84CC16', '#EAB308', '#F97316', '#EF4444'],
-    labels: ['1 (low)', '10 (high)'],
+    labels: ['1 (least)', '10 (most deprived)'],
   },
   mv_crime_choropleth: {
     colors: ['#FDE68A', '#F59E0B', '#F97316', '#EF4444', '#DC2626'],
-    labels: ['Low', 'High'],
+    labels: ['Low crime', 'High crime'],
   },
   slope_failure_zones: {
     colors: ['#A8D5BA', '#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
-    labels: ['0', '100'],
+    labels: ['0 (stable)', '100 (failure risk)'],
   },
   liquefaction_zones: {
     colors: ['#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
-    labels: ['Low', 'V.High'],
+    labels: ['Low', 'Very high'],
   },
   tsunami_zones: {
     colors: ['#E69F00', '#D55E00', '#C42D2D'],
-    labels: ['Zone 3', 'Zone 1'],
+    labels: ['Zone 3 (least)', 'Zone 1 (most severe)'],
   },
   wind_zones: {
     colors: ['#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
-    labels: ['Mod', 'Extreme'],
+    labels: ['Moderate', 'Extreme'],
   },
   noise_contours: {
     colors: ['#A8D5BA', '#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
-    labels: ['45dB', '65dB'],
+    labels: ['< 45 dB', '> 65 dB'],
   },
   coastal_erosion: {
     colors: ['#A8D5BA', '#56B4E9', '#E69F00', '#D55E00', '#C42D2D'],
@@ -221,6 +224,11 @@ export function MapLegend() {
         {/* Expanded content */}
         {expanded && (
           <div className="px-2.5 pb-2.5 max-h-[200px] sm:max-h-[280px] overflow-y-auto space-y-2">
+            <p className="text-[9px] text-muted-foreground leading-snug px-0.5 pt-1">
+              Shops, cafés and other labels baked into the satellite basemap
+              come from the map provider. Toggle <span className="font-medium">Amenities</span>{' '}
+              in the layer picker to see WhareScore&rsquo;s own points of interest.
+            </p>
             {Object.entries(grouped).map(([group, items]) => (
               <div key={group}>
                 <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 px-0.5">

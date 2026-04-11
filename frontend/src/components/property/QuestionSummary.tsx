@@ -2,7 +2,7 @@
 
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionId } from '@/lib/reportSections';
-import { formatCompactCurrency } from '@/lib/format';
+import { formatCompactCurrency, effectivePerUnitCv } from '@/lib/format';
 
 export interface PreviewChip {
   label: string;
@@ -119,12 +119,18 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
     }
 
     case 'true-cost': {
-      if (report.property.capital_value) {
-        chips.push({ label: `Valuation ${formatCompactCurrency(report.property.capital_value)}`, variant: 'blue' });
+      const perUnit = effectivePerUnitCv(report.property.capital_value, {
+        isMultiUnit: !!report.property_detection?.is_multi_unit,
+        unitCount: report.property_detection?.unit_count,
+      });
+      if (perUnit) {
+        chips.push({ label: `Valuation ${formatCompactCurrency(perUnit)}`, variant: 'blue' });
       }
-      if (m.rent_assessment?.median && report.property.capital_value) {
-        const grossYield = (m.rent_assessment.median * 52 / report.property.capital_value) * 100;
-        chips.push({ label: `${grossYield.toFixed(1)}% yield`, variant: grossYield >= 5 ? 'green' : 'amber' });
+      if (m.rent_assessment?.median && perUnit) {
+        const grossYield = (m.rent_assessment.median * 52 / perUnit) * 100;
+        if (grossYield >= 0.5 && grossYield <= 20) {
+          chips.push({ label: `${grossYield.toFixed(1)}% yield`, variant: grossYield >= 5 ? 'green' : 'amber' });
+        }
       }
       break;
     }
@@ -258,13 +264,17 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
 
     case 'true-cost': {
       const parts: string[] = [];
-      if (report.property.capital_value) {
-        parts.push(`Valuation ${formatCompactCurrency(report.property.capital_value)}`);
+      const perUnit = effectivePerUnitCv(report.property.capital_value, {
+        isMultiUnit: !!report.property_detection?.is_multi_unit,
+        unitCount: report.property_detection?.unit_count,
+      });
+      if (perUnit) {
+        parts.push(`Valuation ${formatCompactCurrency(perUnit)}`);
       }
-      if (m.rent_assessment?.median) {
+      if (m.rent_assessment?.median && perUnit) {
         const annualRent = m.rent_assessment.median * 52;
-        if (report.property.capital_value) {
-          const grossYield = (annualRent / report.property.capital_value) * 100;
+        const grossYield = (annualRent / perUnit) * 100;
+        if (grossYield >= 0.5 && grossYield <= 20) {
           parts.push(`est. yield ${grossYield.toFixed(1)}%`);
         }
       }

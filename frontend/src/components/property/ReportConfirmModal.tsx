@@ -14,7 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
-import { useBudgetStore } from '@/stores/budgetStore';
+import { useBudgetStore, DEFAULT_NZ_MORTGAGE_RATE_PCT } from '@/stores/budgetStore';
 import { create } from 'zustand';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import type { PropertyReport } from '@/lib/types';
@@ -372,7 +372,6 @@ function BuyerFields({ addressId }: { addressId: number }) {
   const buyerBedrooms = useBuyerInputStore((s) => s.bedrooms);
   const buyerBathrooms = useBuyerInputStore((s) => s.bathrooms);
   const buyerFinishTier = useBuyerInputStore((s) => s.finishTier);
-  const buyerAskingPrice = useBuyerInputStore((s) => s.askingPrice);
   const setBuyerBedrooms = useBuyerInputStore((s) => s.setBedrooms);
   const setBuyerBathrooms = useBuyerInputStore((s) => s.setBathrooms);
   const setBuyerFinishTier = useBuyerInputStore((s) => s.setFinishTier);
@@ -446,7 +445,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
         <NumberField
           label="Interest rate"
           value={b.interestRate}
-          onChange={(v) => updateBuyer(addressId, { interestRate: v ?? 6.5 })}
+          onChange={(v) => updateBuyer(addressId, { interestRate: v ?? DEFAULT_NZ_MORTGAGE_RATE_PCT })}
           suffix="%"
         />
         <div>

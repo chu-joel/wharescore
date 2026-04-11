@@ -222,13 +222,25 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* 4. UPGRADE — conversion point */}
-        <ReportCTABanner
-          addressId={addressId}
-          suburbName={report.address.sa2_name}
-          capitalValue={report.property.capital_value}
-          medianRent={report.market.rent_assessment?.median}
-        />
+        {/* 4. UPGRADE — conversion point. Divide CV by unit_count for
+            multi-unit properties so the "to protect a $X decision" line
+            reflects the user's likely purchase, not the whole-building
+            rateable value. */}
+        {(() => {
+          const rawCv = report.property.capital_value;
+          const units = report.property_detection?.unit_count ?? 1;
+          const isMulti = !!report.property_detection?.is_multi_unit;
+          const looksBuildingLevel = !!rawCv && isMulti && units > 1 && rawCv > 5_000_000;
+          const effectiveCv = looksBuildingLevel && rawCv ? Math.round(rawCv / units) : rawCv;
+          return (
+            <ReportCTABanner
+              addressId={addressId}
+              suburbName={report.address.sa2_name}
+              capitalValue={effectiveCv}
+              medianRent={report.market.rent_assessment?.median}
+            />
+          );
+        })()}
 
         {/* 5. DEEP DIVE — question sections for users who want more */}
         <div className="section-divider space-y-3 sm:space-y-5">

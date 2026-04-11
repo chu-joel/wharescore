@@ -14,7 +14,7 @@ import { useHostedReport } from '@/components/report/HostedReportContext';
 import { PremiumGate } from '@/components/property/PremiumGate';
 import { UnitComparisonTable } from '@/components/property/UnitComparisonTable';
 import { MarketHeatBadge } from '@/components/property/MarketHeatBadge';
-import { formatCurrency, formatPercentChange } from '@/lib/format';
+import { formatCurrency, formatPercentChange, effectivePerUnitCv } from '@/lib/format';
 import type { CategoryScore, MarketData, PropertyInfo, PropertyDetection } from '@/lib/types';
 
 interface MarketSectionProps {
@@ -37,37 +37,55 @@ export function MarketSection({ addressId, category, market, property, detection
       {market.market_heat && <MarketHeatBadge heat={market.market_heat} />}
 
       {/* Council Valuation */}
-      {property.capital_value && (
-        <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
-          <div className="flex items-center gap-2.5 mb-2">
-            <span className="text-sm font-semibold">Council Valuation</span>
-            {isMultiUnit && (
-              <Badge variant="secondary" className="text-xs">Unit valuation</Badge>
-            )}
-          </div>
-          <dl className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <dt className="text-muted-foreground">Capital Value</dt>
-              <dd className="font-semibold tabular-nums">{formatCurrency(property.capital_value)}</dd>
+      {(() => {
+        const effectiveCv = effectivePerUnitCv(property.capital_value, {
+          isMultiUnit: !!detection?.is_multi_unit,
+          unitCount: detection?.unit_count,
+        });
+        const isEstimatedPerUnit =
+          !!detection?.is_multi_unit &&
+          (detection?.unit_count ?? 1) > 1 &&
+          effectiveCv !== property.capital_value;
+        const hideBuildingTotals =
+          !!detection?.is_multi_unit && (detection?.unit_count ?? 1) > 1 && isEstimatedPerUnit;
+        return effectiveCv ? (
+          <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="text-sm font-semibold">Council Valuation</span>
+              {isMultiUnit && (
+                <Badge variant="secondary" className="text-xs">
+                  {isEstimatedPerUnit ? 'Per-unit estimate' : 'Unit valuation'}
+                </Badge>
+              )}
             </div>
-            {property.land_value && (
+            <dl className="space-y-1">
               <div className="flex justify-between text-sm">
-                <dt className="text-muted-foreground">Land Value</dt>
-                <dd className="font-semibold tabular-nums">{formatCurrency(property.land_value)}</dd>
+                <dt className="text-muted-foreground">
+                  {isEstimatedPerUnit ? 'Capital Value (est.)' : 'Capital Value'}
+                </dt>
+                <dd className="font-semibold tabular-nums">{formatCurrency(effectiveCv)}</dd>
               </div>
-            )}
-            {property.improvement_value && (
-              <div className="flex justify-between text-sm">
-                <dt className="text-muted-foreground">Improvements</dt>
-                <dd className="font-semibold tabular-nums">{formatCurrency(property.improvement_value)}</dd>
-              </div>
-            )}
-          </dl>
-          <p className="text-xs text-muted-foreground mt-2">
-            Rateable value, not market value.
-          </p>
-        </div>
-      )}
+              {property.land_value && !hideBuildingTotals && (
+                <div className="flex justify-between text-sm">
+                  <dt className="text-muted-foreground">Land Value</dt>
+                  <dd className="font-semibold tabular-nums">{formatCurrency(property.land_value)}</dd>
+                </div>
+              )}
+              {property.improvement_value && !hideBuildingTotals && (
+                <div className="flex justify-between text-sm">
+                  <dt className="text-muted-foreground">Improvements</dt>
+                  <dd className="font-semibold tabular-nums">{formatCurrency(property.improvement_value)}</dd>
+                </div>
+              )}
+            </dl>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isEstimatedPerUnit
+                ? 'Rateable value estimated per unit — council record is building-level.'
+                : 'Rateable value, not market value.'}
+            </p>
+          </div>
+        ) : null;
+      })()}
 
       {/* Unit Comparison Table (multi-unit only) */}
       {hasSiblings && detection?.sibling_valuations && (

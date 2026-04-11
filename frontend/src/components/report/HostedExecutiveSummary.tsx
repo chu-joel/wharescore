@@ -2,7 +2,7 @@
 
 import { AlertTriangle, MapPin, Building2, Ruler, TreePine, Bus, Navigation, Shield, Footprints, Volume2 } from 'lucide-react';
 import type { PropertyReport, ReportSnapshot } from '@/lib/types';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 
 interface Props {
   report: PropertyReport;
@@ -29,14 +29,33 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   const bedrooms = storeBedrooms ?? String((snapshot.meta.inputs_at_purchase ?? {} as Record<string, unknown>).bedrooms ?? '');
   if (bedrooms) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Bedrooms', value: bedrooms });
 
-  if (prop.capital_value) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Capital Value', value: formatCurrency(prop.capital_value) });
-  if (prop.land_value) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Value', value: formatCurrency(prop.land_value) });
-  if (prop.improvement_value) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Improvements', value: formatCurrency(prop.improvement_value) });
-  if (prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()} m²` });
-  if (prop.land_area_sqm) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
+  // For multi-unit properties where only a building-level CV exists,
+  // show the per-unit estimate instead of the whole-building total so
+  // the sidebar doesn't advertise a "$80.8M Capital Value" on an apartment.
+  const detection = (snapshot.report.property_detection ?? {}) as { is_multi_unit?: boolean; unit_count?: number };
+  const effectiveCv = effectivePerUnitCv(prop.capital_value, {
+    isMultiUnit: !!detection.is_multi_unit,
+    unitCount: detection.unit_count,
+  });
+  const cvIsPerUnitEstimate = !!(
+    detection.is_multi_unit && (detection.unit_count ?? 1) > 1 && effectiveCv !== prop.capital_value
+  );
+  const hideBuildingAreas = !!detection.is_multi_unit && (detection.unit_count ?? 1) > 1;
+
+  if (effectiveCv) stats.push({
+    icon: <Building2 className="h-3.5 w-3.5" />,
+    label: cvIsPerUnitEstimate ? 'Capital Value (est. per unit)' : 'Capital Value',
+    value: formatCurrency(effectiveCv),
+  });
+  if (prop.land_value && !hideBuildingAreas) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Value', value: formatCurrency(prop.land_value) });
+  if (prop.improvement_value && !hideBuildingAreas) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Improvements', value: formatCurrency(prop.improvement_value) });
+  if (prop.building_area_sqm && !hideBuildingAreas) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()} m²` });
+  if (prop.land_area_sqm && !hideBuildingAreas) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
 
   const footprint = rawProp.footprint_sqm as number;
-  if (footprint && footprint !== prop.building_area_sqm) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
+  if (footprint && footprint !== prop.building_area_sqm && !hideBuildingAreas) {
+    stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
+  }
 
   const buildingUse = String(rawProp.building_use ?? '');
   if (buildingUse) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Use', value: buildingUse });

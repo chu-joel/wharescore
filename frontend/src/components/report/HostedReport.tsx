@@ -42,7 +42,7 @@ import { KeyFindings } from '@/components/property/KeyFindings';
 import { QuestionContent } from '@/components/property/QuestionContent';
 import { getRatingBin } from '@/lib/constants';
 import { getQuestionsForPersona } from '@/lib/reportSections';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import { useAreaFeed } from '@/hooks/useAreaFeed';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
 
@@ -92,7 +92,11 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
     }
   };
 
-  const cv = report.property.capital_value;
+  // Per-unit CV so multi-unit apartment reports don't show the whole-building total.
+  const cv = effectivePerUnitCv(report.property.capital_value, {
+    isMultiUnit: !!(report.property_detection?.is_multi_unit),
+    unitCount: report.property_detection?.unit_count,
+  });
   const buildingArea = report.property.building_area_sqm;
   const rawProp = (snapshot.report?.property ?? {}) as Record<string, unknown>;
   const titleType = rawProp.title_type as string;

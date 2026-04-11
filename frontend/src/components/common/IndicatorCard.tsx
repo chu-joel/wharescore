@@ -283,7 +283,11 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
           <RiskIcon rating={indicator.rating} />
           <span className="text-sm font-semibold">{indicator.name}</span>
         </div>
-        <Badge variant={badgeVariant(indicator.rating)} className="text-xs sm:text-xs shrink-0">
+        <Badge
+          variant={badgeVariant(indicator.rating)}
+          className="text-xs sm:text-xs shrink-0"
+          title={`Score ${indicator.value} — 0 = safest, 100 = highest risk`}
+        >
           {ratingLabel(indicator.rating)}
         </Badge>
       </div>

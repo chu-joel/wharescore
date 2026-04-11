@@ -1,9 +1,8 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Share2, Printer, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCoverage } from '@/lib/format';
-import { usePdfExport } from '@/hooks/usePdfExport';
 
 import type { PropertyReport } from '@/lib/types';
 
@@ -20,8 +19,6 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
   const positives = allIndicators
     .filter((i) => i.is_available && i.score <= 20)
     .slice(0, 3);
-
-  const pdf = usePdfExport(report.address.address_id);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -123,7 +120,10 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
         </p>
       )}
 
-      {/* CTA buttons */}
+      {/* Footer actions. "Export PDF" was removed here because the
+          floating "Get Your Report" FAB (bottom-left) is always visible
+          on the same screen and leads to the same flow — two CTAs for
+          the same action confused users in the audit. */}
       <div className="flex flex-col sm:flex-row gap-2">
         <Button onClick={onSearchAnother} className="flex-1">
           Search Another Address
@@ -131,24 +131,6 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
         <Button variant="outline" onClick={handleShare} className="flex-1">
           <Share2 className="h-4 w-4 mr-1.5" />
           Share
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => pdf.startExport()}
-          disabled={pdf.isGenerating}
-          className="flex-1"
-        >
-          {pdf.isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Printer className="h-4 w-4 mr-1.5" />
-              Export PDF
-            </>
-          )}
         </Button>
       </div>
 

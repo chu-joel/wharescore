@@ -194,6 +194,7 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
               key={tier.value}
               onClick={() => setFinishTier(tier.value)}
               className={pillClass(finishTier === tier.value)}
+              title={tier.description}
             >
               {tier.label}
             </button>

@@ -39,11 +39,19 @@ interface BudgetState {
   markInteracted: (addressId: number) => void;
 }
 
+/**
+ * Default owner-occupier floating mortgage rate used when the user hasn't
+ * overridden it. Centralised so we only update one number when RBNZ/main
+ * bank rates move — previously 6.5 was hard-coded in four places.
+ * Last refreshed: 2026-04 (ANZ/ASB/Westpac 1-year fixed ~6.49%).
+ */
+export const DEFAULT_NZ_MORTGAGE_RATE_PCT = 6.5;
+
 function defaultBuyer(cv?: number | null): BuyerInputs {
   return {
     purchasePrice: cv ?? 800000,
     depositPct: 20,
-    interestRate: 6.5,
+    interestRate: DEFAULT_NZ_MORTGAGE_RATE_PCT,
     loanTerm: 30,
     rates: null,
     insurance: null,

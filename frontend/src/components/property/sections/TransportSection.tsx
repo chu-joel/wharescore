@@ -121,7 +121,9 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Bus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.bus_stops_800m}</p>
-                  <p className="text-xs text-muted-foreground">Bus</p>
+                  <p className="text-xs text-muted-foreground">
+                    {liveability.bus_stops_800m === 1 ? 'Bus stop' : 'Bus stops'}
+                  </p>
                 </div>
               </div>
             )}
@@ -130,7 +132,9 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <TrainFront className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.rail_stops_800m}</p>
-                  <p className="text-xs text-muted-foreground">Rail</p>
+                  <p className="text-xs text-muted-foreground">
+                    {liveability.rail_stops_800m === 1 ? 'Train station' : 'Train stations'}
+                  </p>
                 </div>
               </div>
             )}
@@ -139,7 +143,9 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <Ship className="h-4 w-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.ferry_stops_800m}</p>
-                  <p className="text-xs text-muted-foreground">Ferry</p>
+                  <p className="text-xs text-muted-foreground">
+                    {liveability.ferry_stops_800m === 1 ? 'Ferry terminal' : 'Ferry terminals'}
+                  </p>
                 </div>
               </div>
             )}
@@ -148,7 +154,9 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 <CableCar className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                 <div>
                   <p className="text-sm font-bold tabular-nums">{liveability.cable_car_stops_800m}</p>
-                  <p className="text-xs text-muted-foreground">Cable car</p>
+                  <p className="text-xs text-muted-foreground">
+                    {liveability.cable_car_stops_800m === 1 ? 'Cable-car stop' : 'Cable-car stops'}
+                  </p>
                 </div>
               </div>
             )}

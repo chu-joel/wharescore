@@ -55,6 +55,30 @@ export function formatDecibels(db: number): string {
 }
 
 /**
+ * Returns a best-guess per-unit CV for a property. When the raw `capital_value`
+ * is almost certainly a whole-building figure (multi-unit address with a
+ * multi-million CV) we divide by `unit_count` to produce a per-unit estimate
+ * so downstream components (mortgage calc, yield, CTA headlines) don't
+ * render absurd numbers like "$469,735/month" off an $80M "unit".
+ *
+ * The $5M ceiling is empirical — very few genuine per-unit CVs in NZ exceed
+ * it, and it comfortably covers single-unit dwellings in the most expensive
+ * suburbs.
+ */
+export function effectivePerUnitCv(
+  capitalValue: number | null | undefined,
+  opts: { isMultiUnit: boolean; unitCount: number | null | undefined },
+): number | null {
+  if (capitalValue == null) return null;
+  const units = opts.unitCount ?? 1;
+  const looksBuildingLevel = opts.isMultiUnit && units > 1 && capitalValue > 5_000_000;
+  if (looksBuildingLevel) {
+    return Math.round(capitalValue / units);
+  }
+  return capitalValue;
+}
+
+/**
  * "$1.2M" / "$850k" / "$920" — compact NZD for headlines and pills.
  * Switches to millions at ≥ $1,000,000 so very large values (whole-building CVs)
  * never print as "$80800k". Use formatCurrency() when you need exact digits.

@@ -29,7 +29,7 @@ export function AppFooter() {
         ))}
       </nav>
       <p className="mt-4 text-center text-xs">
-        &copy; 2026 WhareScore. Not financial or legal advice. Data is indicative only.
+        &copy; {new Date().getFullYear()} WhareScore. Not financial or legal advice. Data is indicative only.
       </p>
     </footer>
   );

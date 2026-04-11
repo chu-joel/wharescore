@@ -21,6 +21,12 @@ export function BuildingInfoBanner({
   const [expanded, setExpanded] = useState(false);
   const hasSiblings = siblingValuations && siblingValuations.length >= 2;
 
+  // When we don't have per-unit sibling valuations the backend may have
+  // returned a building-level CV. The card up top estimates a per-unit CV
+  // by dividing, but we surface that caveat inline so users don't assume
+  // the figure is a council-verified unit valuation.
+  const hasPerUnitCv = hasSiblings;
+
   return (
     <div className="flex items-start gap-3 rounded-lg p-3 bg-piq-primary/5">
       <Info className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
@@ -29,7 +35,9 @@ export function BuildingInfoBanner({
           Unit in a {unitCount}-unit building
         </p>
         <p className="text-xs text-muted-foreground">
-          Valuations &amp; rates are for this unit. Risk &amp; neighbourhood data covers the whole building.
+          {hasPerUnitCv
+            ? 'Valuations & rates are for this unit. Risk & neighbourhood data covers the whole building.'
+            : 'Council records don\u2019t have a per-unit valuation for this address, so the CV shown is an estimate (building total ÷ units). Risk & neighbourhood data covers the whole building.'}
         </p>
 
         {hasSiblings && (

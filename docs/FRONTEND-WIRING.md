@@ -17,7 +17,7 @@
 |---|---|---|---|
 | `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header | No |
 | `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | 0. Header | No |
-| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV calc — client override ignores `cv_is_per_unit` when the value is >$5M on a multi-unit address; land/building area pills are hidden for multi-unit) | No |
+| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV via `effectivePerUnitCv` helper — ignores `cv_is_per_unit` when the value is >$5M on a multi-unit address; land/building area pills hidden for multi-unit). Same helper used by MonthlyCostEstimate, BuyerBudgetCalculator, InvestmentMetrics, HostedExecutiveSummary, QuestionSummary, ReportCTABanner — don't read `report.property.capital_value` directly in new components. | No |
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | 0. Header (elevation pill + slope pill) | No |
 | `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | 1. VERDICT (renter only) — overall verdict + rent/market power/healthy homes/mould risk/sun sections | No |
 | `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type | No |

@@ -31,6 +31,7 @@ import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
 import { usePdfExportStore } from '@/stores/pdfExportStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { toast } from 'sonner';
 
 interface HoverInfo {
   x: number;
@@ -497,6 +498,22 @@ export function MapContainer() {
                 ? { top: 60, bottom: 240, left: 20, right: 20 }
                 : { top: 80, bottom: 40, left: 20, right: 20 },
               duration: 400,
+            });
+            return;
+          }
+        }
+
+        // Tap fell on a non-address feature (POI, transit stop, hazard zone,
+        // etc.). Before the fix these clicks were silently dropped. Now we
+        // surface the feature's own label in a toast so users can at least
+        // see what they tapped on — particularly important on mobile where
+        // hover tooltips don't exist.
+        for (const f of features) {
+          const info = getFeatureLabel(f);
+          if (info) {
+            toast(info.label, {
+              description: info.sublabel,
+              duration: 3500,
             });
             return;
           }
@@ -1098,9 +1115,12 @@ export function MapContainer() {
         </div>
       )}
 
-      {/* Zoom hint — contextual based on zoom level, positioned above mobile drawer */}
+      {/* Zoom hint — contextual based on zoom level. Positioned 16 px
+          above the mobile drawer's peek height (220 px sheet + handle
+          padding = ~240 px) so it can't overlap the drag handle; on
+          desktop it sits above the attribution bar. */}
       {(viewport.zoom <= 15 && !selectedAddress) && (
-        <div className="absolute bottom-60 sm:bottom-12 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade">
+        <div className="absolute bottom-[252px] sm:bottom-12 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs text-muted-foreground animate-slide-up-fade pointer-events-none">
           {viewport.zoom < 8
             ? 'Zoom in or search for an address to get started'
             : viewport.zoom < 11

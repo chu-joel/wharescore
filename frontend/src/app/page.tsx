@@ -200,10 +200,13 @@ function LandingPanel() {
         <div className="w-full max-w-md mb-4">
           <SearchBar />
         </div>
-        <p className="text-xs text-muted-foreground mb-8 flex items-center gap-1.5">
+        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
           <MousePointerClick className="h-3.5 w-3.5" />
           Or click any property on the map
         </p>
+        {/* First-use demo nudge — lets non-tech users see a real report
+            without having to type their address first. */}
+        <DemoAddressRow />
 
         {/* Feature highlights with icons */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 max-w-sm text-left">
@@ -224,8 +227,8 @@ function LandingPanel() {
           />
           <FeatureChip
             icon={<Search className="h-4 w-4 text-piq-accent-warm" />}
-            label="40+ risk checks"
-            detail="All free government data"
+            label="40+ checks, one report"
+            detail="Flood, quake, noise, zoning & more"
           />
         </div>
 
@@ -240,6 +243,58 @@ function LandingPanel() {
         </p>
       </div>
       <AppFooter />
+    </div>
+  );
+}
+
+/**
+ * Quick-pick demo addresses. Addresses are fetched from /search/address on
+ * click so we don't need to hard-code internal address_ids — the button
+ * runs the same search flow a user would run manually.
+ */
+const DEMO_ADDRESSES: { label: string; query: string }[] = [
+  { label: 'Ponsonby, Auckland', query: '100 Ponsonby Road, Auckland' },
+  { label: 'Wellington CBD', query: '10 Customhouse Quay, Wellington' },
+  { label: 'Christchurch CBD', query: '100 Cashel Street, Christchurch' },
+];
+
+function DemoAddressRow() {
+  const selectAddress = useSearchStore((s) => s.selectAddress);
+  const selectProperty = useMapStore((s) => s.selectProperty);
+
+  const handlePick = async (query: string) => {
+    try {
+      const res = await apiFetch<{
+        results?: { address_id: number; full_address: string; lng: number; lat: number }[];
+      }>(`/api/v1/search/address?q=${encodeURIComponent(query)}`);
+      const first = res.results?.[0];
+      if (!first) return;
+      selectAddress({
+        addressId: first.address_id,
+        fullAddress: first.full_address,
+        lng: first.lng,
+        lat: first.lat,
+      });
+      selectProperty(first.address_id, first.lng, first.lat);
+    } catch {
+      // Silent — the demo row is non-critical.
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md mb-8 text-left">
+      <p className="text-xs text-muted-foreground mb-2">Or try a sample:</p>
+      <div className="flex flex-wrap gap-2">
+        {DEMO_ADDRESSES.map((d) => (
+          <button
+            key={d.query}
+            onClick={() => handlePick(d.query)}
+            className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-piq-primary hover:bg-piq-primary/5 transition-colors"
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -326,7 +381,52 @@ function MobileLandingContent() {
         })}
       </div>
 
+      {/* Demo quick-picks so first-time mobile users have something to
+          click other than the four shortcut tiles. */}
+      <MobileDemoRow />
+
       <RecentSearches compact />
+    </div>
+  );
+}
+
+function MobileDemoRow() {
+  const selectAddress = useSearchStore((s) => s.selectAddress);
+  const selectProperty = useMapStore((s) => s.selectProperty);
+
+  const handlePick = async (query: string) => {
+    try {
+      const res = await apiFetch<{
+        results?: { address_id: number; full_address: string; lng: number; lat: number }[];
+      }>(`/api/v1/search/address?q=${encodeURIComponent(query)}`);
+      const first = res.results?.[0];
+      if (!first) return;
+      selectAddress({
+        addressId: first.address_id,
+        fullAddress: first.full_address,
+        lng: first.lng,
+        lat: first.lat,
+      });
+      selectProperty(first.address_id, first.lng, first.lat);
+    } catch {
+      /* demo row is non-critical */
+    }
+  };
+
+  return (
+    <div className="px-1">
+      <p className="text-xs text-muted-foreground mb-1.5">Or try a sample:</p>
+      <div className="flex flex-wrap gap-1.5">
+        {DEMO_ADDRESSES.map((d) => (
+          <button
+            key={d.query}
+            onClick={() => handlePick(d.query)}
+            className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground active:bg-piq-primary/10"
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -237,10 +237,14 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       onTouchMove={stopPropagation}
       onTouchEnd={stopPropagation}
     >
-      {/* Drag handle + back button */}
+      {/* Drag handle + back button. The outer container has a generous
+          vertical hit area (pt-4 + pb-3 ≈ 44px) so users can grab the
+          handle without having to hit the tiny 6px pill exactly. Touch
+          actions are handled at this level only — child buttons stop
+          propagation so their own taps don't trigger a drag. */}
       <div
         data-drawer-handle
-        className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0 cursor-grab active:cursor-grabbing select-none min-h-[44px]"
         style={{ touchAction: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -248,10 +252,11 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         onPointerCancel={onPointerUp}
       >
         <div className="w-8" /> {/* spacer */}
-        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
+        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/50" />
         {snapId === 'full' ? (
           <button
             onClick={(e) => { e.stopPropagation(); setSnapId('peek'); resetScrollAfterTransition(); }}
+            onPointerDown={(e) => e.stopPropagation()}
             className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
             aria-label="Collapse panel"
           >

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Calculator } from 'lucide-react';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
+import { DEFAULT_NZ_MORTGAGE_RATE_PCT } from '@/stores/budgetStore';
 import type { PropertyReport } from '@/lib/types';
 
 interface MonthlyCostEstimateProps {
@@ -10,11 +11,17 @@ interface MonthlyCostEstimateProps {
 }
 
 export function MonthlyCostEstimate({ report }: MonthlyCostEstimateProps) {
-  const cv = report.property.capital_value;
+  // Per-unit CV when the raw value looks like a whole-building total —
+  // prevents the mortgage calc from returning numbers like $469k/month on
+  // multi-unit apartment complexes where only a building-total CV exists.
+  const cv = effectivePerUnitCv(report.property.capital_value, {
+    isMultiUnit: !!report.property_detection?.is_multi_unit,
+    unitCount: report.property_detection?.unit_count,
+  });
   if (!cv) return null;
 
   const [depositPct, setDepositPct] = useState(20);
-  const [interestRate, setInterestRate] = useState(6.5);
+  const [interestRate, setInterestRate] = useState(DEFAULT_NZ_MORTGAGE_RATE_PCT);
 
   const purchasePrice = cv; // Using CV as proxy
   const loanAmount = purchasePrice * (1 - depositPct / 100);

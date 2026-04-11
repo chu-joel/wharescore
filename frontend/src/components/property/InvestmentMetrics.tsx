@@ -2,7 +2,7 @@
 
 import { TrendingUp } from 'lucide-react';
 import { ContextBadge } from '@/components/common/ContextBadge';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import type { PropertyReport } from '@/lib/types';
 
 interface InvestmentMetricsProps {
@@ -19,19 +19,29 @@ export function InvestmentMetrics({ report }: InvestmentMetricsProps) {
   const { market, property } = report;
   const metrics: MetricCard[] = [];
 
+  // Use per-unit CV when the raw value looks building-level so yield
+  // calculations don't divide $27k annual rent by an $80M CV and print
+  // "0.0% Below average" on every apartment in a multi-unit tower.
+  const effectiveCv = effectivePerUnitCv(property.capital_value, {
+    isMultiUnit: !!report.property_detection?.is_multi_unit,
+    unitCount: report.property_detection?.unit_count,
+  });
+
   // Gross yield
-  if (market.rent_assessment?.median && property.capital_value) {
+  if (market.rent_assessment?.median && effectiveCv) {
     const annualRent = market.rent_assessment.median * 52;
-    const grossYield = (annualRent / property.capital_value) * 100;
-    const sentiment = grossYield >= 5 ? 'positive' : grossYield >= 3.5 ? 'neutral' : 'negative';
-    metrics.push({
-      label: 'Gross Yield',
-      value: `${grossYield.toFixed(1)}%`,
-      context: {
-        text: grossYield >= 5 ? 'Strong yield' : grossYield >= 3.5 ? 'Average yield' : 'Below average',
-        sentiment,
-      },
-    });
+    const grossYield = (annualRent / effectiveCv) * 100;
+    if (grossYield >= 0.5 && grossYield <= 20) {
+      const sentiment = grossYield >= 5 ? 'positive' : grossYield >= 3.5 ? 'neutral' : 'negative';
+      metrics.push({
+        label: 'Gross Yield',
+        value: `${grossYield.toFixed(1)}%`,
+        context: {
+          text: grossYield >= 5 ? 'Strong yield' : grossYield >= 3.5 ? 'Average yield' : 'Below average',
+          sentiment,
+        },
+      });
+    }
   }
 
   // Rent CAGR 1yr
@@ -74,11 +84,15 @@ export function InvestmentMetrics({ report }: InvestmentMetricsProps) {
     });
   }
 
-  // CV
-  if (property.capital_value) {
+  // CV — show the effective (per-unit where applicable) value.
+  if (effectiveCv) {
+    const isEstimated =
+      !!report.property_detection?.is_multi_unit &&
+      (report.property_detection?.unit_count ?? 1) > 1 &&
+      property.capital_value !== effectiveCv;
     metrics.push({
-      label: 'Capital Value',
-      value: formatCurrency(property.capital_value),
+      label: isEstimated ? 'Capital Value (est. per unit)' : 'Capital Value',
+      value: formatCurrency(effectiveCv),
     });
   }
 
