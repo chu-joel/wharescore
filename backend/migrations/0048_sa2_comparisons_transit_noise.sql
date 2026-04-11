@@ -24,15 +24,37 @@ BEGIN;
 DROP MATERIALIZED VIEW IF EXISTS mv_ta_comparisons CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS mv_sa2_comparisons CASCADE;
 
+-- The previous definition used LATERAL subqueries that scanned noise_contours
+-- per SA2, taking ~280ms × 2171 SA2s = ~10 minutes. Pre-aggregate the slow
+-- joins in CTEs first so they run in a single spatial-join pass and then
+-- merge-join with sa2_boundaries.
 CREATE MATERIALIZED VIEW mv_sa2_comparisons AS
+WITH transit_per_sa2 AS (
+    -- Union of all transit stop tables, then spatial-join once against SA2.
+    SELECT sa2.sa2_code, COUNT(*)::integer AS transit_count_400m
+    FROM sa2_boundaries sa2
+    JOIN (
+        SELECT geom FROM metlink_stops
+        UNION ALL SELECT geom FROM at_stops
+        UNION ALL SELECT geom FROM transit_stops
+    ) stops ON stops.geom && sa2.geom AND ST_Within(stops.geom, sa2.geom)
+    GROUP BY sa2.sa2_code
+),
+noise_per_sa2 AS (
+    -- Single spatial join then group — 1-2 seconds instead of 10 minutes.
+    SELECT sa2.sa2_code, MAX(nc.laeq24h)::numeric AS max_noise_db
+    FROM sa2_boundaries sa2
+    JOIN noise_contours nc ON nc.geom && sa2.geom AND ST_Intersects(nc.geom, sa2.geom)
+    GROUP BY sa2.sa2_code
+)
 SELECT
     sa2.sa2_code,
     sa2.sa2_name,
     sa2.ta_name,
     dep.avg_nzdep,
     sch.school_count_1500m,
-    tr.transit_count_400m,
-    ns.max_noise_db,
+    COALESCE(tr.transit_count_400m, 0) AS transit_count_400m,
+    np.max_noise_db,
     epb.epb_count_300m
 FROM sa2_boundaries sa2
 LEFT JOIN LATERAL (
@@ -47,24 +69,8 @@ LEFT JOIN LATERAL (
     WHERE s.geom && ST_Expand(ST_Centroid(sa2.geom), 0.015)
       AND ST_DWithin(s.geom::geography, ST_Centroid(sa2.geom)::geography, 1500)
 ) sch ON true
--- transit_count_400m: total transit stops anywhere inside the SA2 polygon,
--- combining Wellington (metlink_stops), Auckland (at_stops), and regional
--- (transit_stops). Named "400m" for historical reasons but now measures the
--- whole SA2, which is a truer "how transit-rich is this suburb" signal.
-LEFT JOIN LATERAL (
-    SELECT (
-        (SELECT COUNT(*) FROM metlink_stops ms WHERE ST_Within(ms.geom, sa2.geom))
-      + (SELECT COUNT(*) FROM at_stops ats WHERE ST_Within(ats.geom, sa2.geom))
-      + (SELECT COUNT(*) FROM transit_stops ts WHERE ST_Within(ts.geom, sa2.geom))
-    )::integer AS transit_count_400m
-) tr ON true
--- max_noise_db: highest road noise level anywhere inside the SA2 polygon.
-LEFT JOIN LATERAL (
-    SELECT MAX(nc.laeq24h)::numeric AS max_noise_db
-    FROM noise_contours nc
-    WHERE nc.geom && sa2.geom
-      AND ST_Intersects(nc.geom, sa2.geom)
-) ns ON true
+LEFT JOIN transit_per_sa2 tr ON tr.sa2_code = sa2.sa2_code
+LEFT JOIN noise_per_sa2 np ON np.sa2_code = sa2.sa2_code
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::integer AS epb_count_300m
     FROM earthquake_prone_buildings e
