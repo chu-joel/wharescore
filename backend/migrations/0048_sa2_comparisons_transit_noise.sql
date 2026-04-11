@@ -28,11 +28,19 @@ DROP MATERIALIZED VIEW IF EXISTS mv_sa2_comparisons CASCADE;
 -- per SA2, taking ~280ms × 2171 SA2s = ~10 minutes. Pre-aggregate the slow
 -- joins in CTEs first so they run in a single spatial-join pass and then
 -- merge-join with sa2_boundaries.
+--
+-- ST_MakeValid is used on both sides of the noise spatial join because a few
+-- noise_contours polygons have self-intersections that trip GEOSIntersects with
+-- 'TopologyException: side location conflict'. ST_MakeValid heals them.
 CREATE MATERIALIZED VIEW mv_sa2_comparisons AS
-WITH transit_per_sa2 AS (
+WITH sa2_valid AS (
+    SELECT sa2_code, sa2_name, ta_name, ST_MakeValid(geom) AS geom
+    FROM sa2_boundaries
+),
+transit_per_sa2 AS (
     -- Union of all transit stop tables, then spatial-join once against SA2.
     SELECT sa2.sa2_code, COUNT(*)::integer AS transit_count_400m
-    FROM sa2_boundaries sa2
+    FROM sa2_valid sa2
     JOIN (
         SELECT geom FROM metlink_stops
         UNION ALL SELECT geom FROM at_stops
@@ -42,9 +50,14 @@ WITH transit_per_sa2 AS (
 ),
 noise_per_sa2 AS (
     -- Single spatial join then group — 1-2 seconds instead of 10 minutes.
+    -- ST_MakeValid on noise_contours.geom protects against corrupt polygons
+    -- around the Auckland airport footprint that otherwise raise
+    -- "side location conflict" mid-join.
     SELECT sa2.sa2_code, MAX(nc.laeq24h)::numeric AS max_noise_db
-    FROM sa2_boundaries sa2
-    JOIN noise_contours nc ON nc.geom && sa2.geom AND ST_Intersects(nc.geom, sa2.geom)
+    FROM sa2_valid sa2
+    JOIN noise_contours nc
+      ON nc.geom && sa2.geom
+     AND ST_Intersects(ST_MakeValid(nc.geom), sa2.geom)
     GROUP BY sa2.sa2_code
 )
 SELECT
