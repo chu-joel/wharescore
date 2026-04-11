@@ -172,9 +172,11 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
                 logger.debug(f"AC rates ref coord lookup failed: {e}")
 
         # Find best match — verify suburb/street + distance align with search to
-        # avoid "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe"
+        # avoid "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe".
+        # Pass the FULL comma-separated address (not the search-simplified one)
+        # so _best_match's suburb extraction can read parts[1] reliably.
         items = search_data["items"]
-        rate_key = _best_match(items, search_addr, ref_lat, ref_lng)
+        rate_key = _best_match(items, address, ref_lat, ref_lng)
         if not rate_key:
             return await _get_cached(address, conn) if conn else None
 

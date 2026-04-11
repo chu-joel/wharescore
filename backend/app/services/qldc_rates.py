@@ -63,13 +63,14 @@ async def fetch_qldc_rates(address: str, conn=None) -> dict | None:
 
         if not prop:
             return None
-        if (
-            _safe_int(prop.get("CAPITAL_VALUE")) is None
-            and _safe_int(prop.get("LAND_VALUE")) is None
-            and _safe_int(prop.get("IMPROVEMENTS_VALUE")) is None
-        ):
-            # All valuation fields null → treat as "no data" rather than returning
-            # a shell response that the frontend can't use.
+        # Treat all-null OR all-zero CV/LV/IV as "no data" and let the router
+        # 404. Unit-titled parcels in QLDC ArcGIS often have null=0 valuations
+        # because the value lives on the parent strata title — there's no
+        # useful information in such a record for the user.
+        cv = _safe_int(prop.get("CAPITAL_VALUE"))
+        lv = _safe_int(prop.get("LAND_VALUE"))
+        iv = _safe_int(prop.get("IMPROVEMENTS_VALUE"))
+        if not cv and not lv and not iv:
             return None
         return _format_response(prop)
 
