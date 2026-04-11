@@ -147,11 +147,16 @@ export function MapLayerPicker() {
         data-layer-picker-trigger
         className="shrink-0 flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border bg-background/95 backdrop-blur-sm text-muted-foreground border-border hover:bg-muted hover:text-foreground transition-all active:scale-95"
         disabled={showUpgradeModal}
+        title={activeCount > 0 ? `${activeCount} layer${activeCount === 1 ? '' : 's'} active — click to edit` : 'Browse map layers'}
+        aria-label={activeCount > 0 ? `Map layers (${activeCount} active)` : 'Map layers'}
       >
         <Layers className="h-3.5 w-3.5" />
         <span>Layers</span>
         {activeCount > 0 && (
-          <span className="flex items-center justify-center h-4.5 min-w-4.5 px-1 rounded-full bg-piq-primary text-white text-[9px] font-bold leading-none">
+          <span
+            className="flex items-center justify-center h-4.5 min-w-4.5 px-1 rounded-full bg-piq-primary text-white text-[9px] font-bold leading-none"
+            aria-hidden
+          >
             {activeCount}
           </span>
         )}

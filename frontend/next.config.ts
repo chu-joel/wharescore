@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
       { source: '/tiles/:path*', destination: 'http://localhost:3001/:path*' },
     ];
   },
+  async redirects() {
+    return [
+      // Legacy footer path before routes were renamed to /suburbs
+      { source: '/suburb-guides', destination: '/suburbs', permanent: true },
+      { source: '/suburb-guides/:slug', destination: '/suburbs/:slug', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

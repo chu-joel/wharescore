@@ -224,7 +224,7 @@ function LandingPanel() {
           />
           <FeatureChip
             icon={<Search className="h-4 w-4 text-piq-accent-warm" />}
-            label="29+ risk checks"
+            label="40+ risk checks"
             detail="All free government data"
           />
         </div>
@@ -236,7 +236,7 @@ function LandingPanel() {
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground max-w-sm">
-          Powered by 100+ NZ government open data sources. Free preview for every address.
+          Powered by 40+ official NZ government data sources. Free preview for every address.
         </p>
       </div>
       <AppFooter />
@@ -249,7 +249,7 @@ const CHIP_LAYER_GROUPS: Record<string, string[]> = {
   Hazards: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones'],
   Schools: ['school_zones'],
   'Rent Check': [], // No map layers — informational
-  '27 Layers': [], // Opens layer awareness
+  'All Layers': [], // Opens layer awareness
 };
 
 /** Compact landing content for mobile bottom sheet (peek state) */
@@ -291,7 +291,7 @@ function MobileLandingContent() {
     { label: 'Hazards', icon: ShieldAlert, color: 'text-risk-very-high', bg: 'bg-risk-very-high/10', activeBg: 'bg-risk-very-high/25 ring-1 ring-risk-very-high/30' },
     { label: 'Schools', icon: TreePine, color: 'text-piq-success', bg: 'bg-piq-success/10', activeBg: 'bg-piq-success/25 ring-1 ring-piq-success/30' },
     { label: 'Rent Check', icon: TrendingUp, color: 'text-piq-primary', bg: 'bg-piq-primary/10', activeBg: '' },
-    { label: '27 Layers', icon: Search, color: 'text-piq-accent-warm', bg: 'bg-piq-accent-warm/10', activeBg: '' },
+    { label: 'All Layers', icon: Search, color: 'text-piq-accent-warm', bg: 'bg-piq-accent-warm/10', activeBg: '' },
   ];
 
   return (

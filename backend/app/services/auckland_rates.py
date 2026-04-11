@@ -28,26 +28,19 @@ AC_API_BASE = "https://experience.aucklandcouncil.govt.nz/nextapi"
 AC_SEARCH_URL = f"{AC_API_BASE}/property"
 AC_RATES_URL = f"{AC_API_BASE}/property/{{key}}/rate-assessment"
 
-# Auckland suburb tokens that appear in result addresses. If the SEARCH address
-# contains one of these but the RESULT address contains a DIFFERENT one from the
-# set, the result is a hard mismatch (e.g. Queen Street Pukekohe vs Auckland Central).
-_SUBURB_TOKENS = {
-    "auckland central", "ponsonby", "grey lynn", "mount eden", "parnell", "newmarket",
-    "remuera", "epsom", "ellerslie", "onehunga", "penrose", "mt wellington",
-    "glen innes", "panmure", "pakuranga", "howick", "east tamaki", "botany",
-    "manurewa", "papakura", "pukekohe", "waiuku", "tuakau", "papatoetoe",
-    "otahuhu", "mangere", "otara", "avondale", "new lynn", "henderson",
-    "titirangi", "mount roskill", "royal oak", "one tree hill", "orakei",
-    "mission bay", "st heliers", "kohimarama", "devonport", "takapuna",
-    "milford", "browns bay", "albany", "silverdale", "orewa", "warkworth",
-    "waiheke", "waitakere", "massey", "hobsonville", "whenuapai",
-}
+def _extract_suburb_phrase(addr: str) -> str:
+    """Pull the suburb phrase out of a comma-separated address.
 
-
-def _extract_suburb_tokens(addr: str) -> set[str]:
-    """Return the set of known Auckland suburb phrases found in an address string."""
-    lower = addr.lower()
-    return {tok for tok in _SUBURB_TOKENS if tok in lower}
+    Auckland Council search results follow '<street>, <suburb>[, ...]'. The
+    LINZ canonical address used as the search term follows
+    '<street>, <suburb>, <city>'. We take the second comma-separated piece in
+    both cases and lowercase + strip — that's the most reliable way to compare
+    suburbs without maintaining a hardcoded suburb list.
+    """
+    parts = [p.strip() for p in addr.split(",")]
+    if len(parts) >= 2:
+        return parts[1].lower()
+    return ""
 
 
 def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -68,35 +61,41 @@ def _best_match(
     """Pick the best matching rateAccountKey from Auckland Council API results.
 
     Rules (in priority order):
-    1. Reject any result whose suburb is a KNOWN DIFFERENT Auckland suburb from the
-       one in the search address. This prevents "1 Queen Street Auckland Central"
-       matching "1 Queen Street Pukekohe".
-    2. If we have reference coordinates and the result has x/y, prefer the result
-       closest to the reference point. A distance > 2 km is a hard reject.
-    3. Fall back to word-overlap score against the search address.
+    1. Require the result's suburb (second comma-separated field of its address)
+       to equal the search address's suburb. This prevents "1 Queen Street,
+       Auckland Central" matching "1 Queen Street, Pukekohe" or
+       "1 Queen Street, Riverhead". If the search address has no parseable
+       suburb, fall through to the next rules.
+    2. Distance sort if reference coordinates and result x/y are available;
+       reject anything beyond 2 km. (AC API currently returns x/y as null in
+       most responses, so this is a future-proofing pass.)
+    3. Word-overlap score against the search address as a last resort.
     """
     if not items:
         return None
 
     search_lower = search_addr.lower()
+    search_suburb = _extract_suburb_phrase(search_addr)
     search_words = set(search_lower.split())
-    search_suburbs = _extract_suburb_tokens(search_lower)
 
-    # Pass 1: filter out cross-suburb mismatches
-    filtered: list[dict] = []
-    for item in items:
-        addr = (item.get("address") or item.get("name") or "").lower()
-        item_suburbs = _extract_suburb_tokens(addr)
-        if search_suburbs and item_suburbs and not (search_suburbs & item_suburbs):
-            # Different suburb → hard reject
+    # Pass 1: require exact suburb match.
+    candidates: list[dict] = []
+    if search_suburb:
+        for item in items:
+            addr = item.get("address") or item.get("name") or ""
+            item_suburb = _extract_suburb_phrase(addr)
+            if item_suburb and item_suburb == search_suburb:
+                candidates.append(item)
+        if not candidates:
             logger.debug(
-                f"Rejecting AC result (suburb mismatch): search={search_suburbs} item={item_suburbs}"
+                f"AC: no result matched suburb {search_suburb!r}; rejecting all "
+                f"{len(items)} candidates from {search_addr!r}"
             )
-            continue
-        filtered.append(item)
-    candidates = filtered or items  # fall back to all if filter emptied the list
+            return None
+    else:
+        candidates = list(items)
 
-    # Pass 2: distance sort if we have a reference point
+    # Pass 2: distance sort if we have a reference point AND results expose x/y.
     if ref_lat is not None and ref_lng is not None:
         scored: list[tuple[float, dict]] = []
         for item in candidates:
@@ -112,12 +111,11 @@ def _best_match(
         scored.sort(key=lambda t: t[0])
         if scored and scored[0][0] <= 2000:  # 2 km hard ceiling
             return scored[0][1].get("id")
-        # If the nearest match is > 2 km, this isn't the right property
         if scored and scored[0][0] != float("inf"):
             logger.debug(f"AC nearest result is {scored[0][0]:.0f}m away — rejecting")
             return None
 
-    # Pass 3: word-overlap fallback
+    # Pass 3: word-overlap fallback within the (suburb-filtered) candidates.
     best_key = None
     best_score = -1
     for item in candidates:

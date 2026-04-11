@@ -683,10 +683,16 @@ def enrich_with_scores(report: dict) -> dict:
         # rental_fairness: bond count as data richness signal (more bonds = more liquid market)
         bonds = all_row.get("bonds") or all_row.get("active_bonds") or 0
         indicators["rental_fairness"] = min(100, (bonds / 200) * 100) if bonds else None
-        # rental_trend: YoY% mapped to 0-100 (negative = rents falling = good for renters, bad for investors)
+        # rental_trend: YoY% mapped to 0-100 where HIGHER = more renter risk
+        # (rents rising fast). Falling rents clamp to 0 so they never show as
+        # a "risk" — the previous implementation took abs(yoy) which made a
+        # 20% fall score the same as a 20% rise, producing contradictory
+        # indicator copy ("Rents rising fast" on a property where rents were
+        # falling). Buyer-side concerns about falling yield are surfaced
+        # separately in BuyerSnapshot, not in this 0-100 score.
         yoy = all_row.get("yoy_pct")
         if yoy is not None:
-            indicators["rental_trend"] = normalize_min_max(abs(float(yoy)), 0, 20)
+            indicators["rental_trend"] = normalize_min_max(max(0.0, float(yoy)), 0, 20)
         else:
             indicators["rental_trend"] = 50  # neutral
         # market_heat: bond count relative to typical (indicates demand)

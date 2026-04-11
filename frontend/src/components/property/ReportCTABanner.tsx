@@ -5,6 +5,7 @@ import { usePdfExport } from '@/hooks/usePdfExport';
 import { SocialProof } from './SocialProof';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
+import { formatCompactCurrency } from '@/lib/format';
 
 interface ReportCTABannerProps {
   addressId: number;
@@ -40,10 +41,7 @@ function getSubheadline(persona: 'buyer' | 'renter', price: string, capitalValue
   }
   // Buyer
   if (capitalValue && capitalValue >= 100_000) {
-    const formatted = capitalValue >= 1_000_000
-      ? `$${(capitalValue / 1_000_000).toFixed(1)}M`
-      : `$${(capitalValue / 1_000).toFixed(0)}k`;
-    return `${price} to protect a ${formatted} decision`;
+    return `${price} to protect a ${formatCompactCurrency(capitalValue)} decision`;
   }
   return `${price} to protect your biggest investment`;
 }
@@ -63,8 +61,8 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
         </p>
         <p className="text-base font-bold leading-snug tracking-tight">
           {persona === 'renter'
-            ? 'Everything the landlord won\u2019t tell you'
-            : 'Everything the listing doesn\u2019t tell you'}
+            ? "Everything the landlord won't tell you"
+            : "Everything the listing doesn't tell you"}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           {getSubheadline(persona, fullPrice, capitalValue, medianRent)}
@@ -78,7 +76,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           </div>
         ))}
       </div>
-      <Button className="w-full font-semibold" size="lg" onClick={pdf.startExport} disabled={pdf.isGenerating}>
+      <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('full')} disabled={pdf.isGenerating}>
         {pdf.isGenerating ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating Report...</>
         ) : (
@@ -90,7 +88,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           <Shield className="h-3 w-3" /> Secure payment
         </span>
         <span>·</span>
-        <span>29+ risk checks</span>
+        <span>40+ risk checks</span>
         <span>·</span>
         <span>Instant delivery</span>
       </div>

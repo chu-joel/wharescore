@@ -154,6 +154,9 @@ print(result)
 | Score is 0 for a property | Not enough indicators available (need 3+ categories with 2+ indicators each) | Check `coverage` field — if too few layers have data, score can't be computed. |
 | Finding shows for wrong persona | Finding generator doesn't check persona | In `generateFindings()`, some findings are persona-specific. Check the ordering logic. |
 | CV is from parking space instead of apartment | Spatial match in council_valuations hit wrong unit | This is WHY live rates APIs exist — they match by address text, not geometry. |
+| Whole-building CV labelled as "(unit)" | `cv_is_per_unit` was set to True blindly after a live rates lookup, even when the returned value is the building total | `_fix_unit_cv` in `routers/property.py` now checks `is_multi_unit + unit_count > 1 + cv > $5M` before asserting per-unit. `PropertySummaryCard.tsx` also overrides the flag when the value clearly looks building-level. Don't reintroduce the unconditional assignment. |
+| Rental-trend score shows "Rents rising fast" on a property where rents are falling | `risk_score.py` took `abs(yoy_pct)` so a 20% drop scored the same as a 20% rise | `indicators["rental_trend"] = normalize_min_max(max(0.0, float(yoy)), 0, 20)`. Negative YoY clamps to 0 — direction is preserved. |
+| Finding count doesn't match the category breakdown (e.g. "11 things" but pills show 3 critical + 4 to watch + 2 positive = 9) | Summary line only tallied critical + warning + positive, ignoring `info` | Always sum over ALL four severities (`critical`, `warning`, `info`, `positive`) so they equal `findings.length`. |
 | Guest purchase token expired | Token only lasts 5 minutes in Redis | Guest must exchange token immediately after Stripe redirect. Can't be retried. |
 
 ---

@@ -81,7 +81,11 @@ export function SearchOverlay({ onSelect }: SearchOverlayProps) {
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm truncate">{result.full_address}</p>
-                    <p className="text-xs text-muted-foreground">{result.suburb}, {result.city}</p>
+                    {(result.suburb || result.city) && (
+                      <p className="text-xs text-muted-foreground">
+                        {[result.suburb, result.city].filter(Boolean).join(', ')}
+                      </p>
+                    )}
                   </div>
                 </button>
               </li>

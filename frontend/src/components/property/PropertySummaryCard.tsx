@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCompactCurrency } from '@/lib/format';
 import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
 
@@ -76,7 +76,7 @@ export function PropertySummaryCard({
       const displayCv = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : effectiveCV;
       if (displayCv) {
         const isEstimated = isMulti && units > 1 && !alreadyPerUnit;
-        parts.push(`${isEstimated ? '~' : 'CV: '}$${(displayCv / 1000).toFixed(0)}k${isEstimated ? ' est.' : ''}`);
+        parts.push(`${isEstimated ? '~' : 'CV: '}${formatCompactCurrency(displayCv)}${isEstimated ? ' est.' : ''}`);
       }
       if (market.rent_assessment?.median && effectiveCV) {
         const annualRent = market.rent_assessment.median * 52;
@@ -91,12 +91,13 @@ export function PropertySummaryCard({
   return (
     <Card className="rounded-xl card-elevated overflow-hidden">
       <CardContent className="p-3 sm:p-5 space-y-3 sm:space-y-4">
-        {/* Address + actions */}
-        <div className="flex items-start justify-between gap-2">
-          <div>
+        {/* Address + actions. Stack on mobile so the address isn't
+            crushed to three lines by the "Get Your Report" button. */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4 shrink-0 text-piq-primary" />
-              <h2 className="text-lg font-bold leading-tight tracking-tight">
+              <h2 className="text-lg font-bold leading-tight tracking-tight break-words">
                 {address.full_address}
               </h2>
             </div>
@@ -114,7 +115,7 @@ export function PropertySummaryCard({
               ) : null;
             })()}
           </div>
-          <div className="flex gap-1.5 shrink-0 items-center">
+          <div className="flex gap-1.5 shrink-0 items-center w-full sm:w-auto">
             {pdf.shareUrl ? (
               <Button
                 variant="default"
@@ -138,7 +139,7 @@ export function PropertySummaryCard({
                 variant="default"
                 size="sm"
                 className="h-9 gap-1.5 text-sm font-semibold bg-piq-primary hover:bg-piq-primary-dark text-white"
-                onClick={pdf.startExport}
+                onClick={() => pdf.startExport()}
                 disabled={pdf.isGenerating}
               >
                 {pdf.isGenerating ? (
@@ -173,7 +174,7 @@ export function PropertySummaryCard({
                 <p className="text-base font-semibold">{bin.label} Risk</p>
                 {coverage && (
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    {coverage.available} of {coverage.total} risk checks available
+                    {coverage.available + (coverage.bonus_features?.length ?? 0)} risk checks completed
                   </p>
                 )}
               </div>
@@ -222,7 +223,12 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
   if (effectiveCV || ratesLoading) {
     const isMulti = !!report.property_detection?.is_multi_unit;
     const units = report.property_detection?.unit_count ?? 1;
-    const alreadyPerUnit = !!property.cv_is_per_unit || cvIsLive;
+    // Don't trust a "per-unit" claim from the backend if the value itself
+    // looks building-level (e.g. a $80M "unit"). Anything over $5M on a
+    // multi-unit address almost certainly represents the whole building.
+    const looksBuildingLevel =
+      !!effectiveCV && isMulti && units > 1 && effectiveCV > 5_000_000;
+    const alreadyPerUnit = (!!property.cv_is_per_unit || cvIsLive) && !looksBuildingLevel;
     const perUnit = (isMulti && effectiveCV && units > 1 && !alreadyPerUnit) ? Math.round(effectiveCV / units) : null;
     pills.push(
       <span key="cv" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
@@ -241,20 +247,26 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
               ? <>{formatCurrency(perUnit)} <span className="text-muted-foreground ml-1">(est. per unit)</span></>
               : <>Valuation {formatCurrency(effectiveCV)}{alreadyPerUnit && <span className="text-muted-foreground ml-1">(unit)</span>}</>}
             {ratesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-            {cvIsLive && <span className="text-muted-foreground font-normal">live</span>}
+            {cvIsLive && !looksBuildingLevel && <span className="text-muted-foreground font-normal">live</span>}
           </>
         ) : null}
       </span>
     );
   }
-  if (property.land_area_sqm) {
+  // In a multi-unit building the land and building areas apply to the
+  // whole block, not the individual apartment. Showing "Land 843 m²" for
+  // a single unit is misleading, so we hide those pills in that case.
+  const hideBuildingAreas =
+    !!report.property_detection?.is_multi_unit &&
+    (report.property_detection?.unit_count ?? 1) > 1;
+  if (property.land_area_sqm && !hideBuildingAreas) {
     pills.push(
       <span key="land" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
         Land {property.land_area_sqm.toLocaleString()}m²
       </span>
     );
   }
-  if (property.building_area_sqm) {
+  if (property.building_area_sqm && !hideBuildingAreas) {
     pills.push(
       <span key="building" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
         Building {property.building_area_sqm.toLocaleString()}m²
@@ -343,7 +355,7 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
           onClick={() => setShowAllPills(!showAllPills)}
           className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium text-piq-primary hover:bg-muted transition-colors"
         >
-          {showAllPills ? 'Show less' : `Show ${hiddenPills.length} more`}
+          {showAllPills ? 'Show less' : `Show ${hiddenPills.length} more ${hiddenPills.length === 1 ? 'detail' : 'details'}`}
         </button>
       )}
     </div>

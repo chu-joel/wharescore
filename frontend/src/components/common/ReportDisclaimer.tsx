@@ -17,9 +17,9 @@ export function ReportDisclaimer() {
             {!expanded && (
               <button
                 onClick={() => setExpanded(true)}
-                className="text-piq-primary hover:underline"
+                className="text-piq-primary underline underline-offset-2 hover:no-underline font-medium"
               >
-                Full disclaimer
+                Read full disclaimer
               </button>
             )}
           </p>

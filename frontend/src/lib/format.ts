@@ -53,3 +53,24 @@ export function formatMagnitude(mag: number): string {
 export function formatDecibels(db: number): string {
   return `${Math.round(db)} dB`;
 }
+
+/**
+ * "$1.2M" / "$850k" / "$920" — compact NZD for headlines and pills.
+ * Switches to millions at ≥ $1,000,000 so very large values (whole-building CVs)
+ * never print as "$80800k". Use formatCurrency() when you need exact digits.
+ */
+export function formatCompactCurrency(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) {
+    // 1 decimal, stripped if .0 (e.g. "$80.8M", "$2M")
+    const millions = value / 1_000_000;
+    const rounded = Math.round(millions * 10) / 10;
+    const display = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
+    return `$${display}M`;
+  }
+  if (abs >= 1000) {
+    return `$${Math.round(value / 1000)}k`;
+  }
+  return `$${Math.round(value)}`;
+}

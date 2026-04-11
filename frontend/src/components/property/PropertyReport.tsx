@@ -132,6 +132,13 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {/* Beta Banner */}
         <BetaBanner />
 
+        {/* Persona toggle sits ABOVE the summary card so persona-specific
+            copy (median rent vs CV, etc.) in the card always matches the
+            tab the user has selected. Moved from below the card — users
+            were seeing a renter-flavoured headline before realising they
+            hadn't chosen their persona yet. */}
+        <PersonaToggle />
+
         {/* Summary Card + Save Button */}
         <PropertySummaryCard report={report} liveRates={liveRates} ratesLoading={ratesLoading} />
         <div className="flex items-center justify-between -mt-2">
@@ -148,9 +155,6 @@ export function PropertyReport({ addressId }: { addressId: number }) {
             <SocialProof suburbName={report.address.sa2_name} />
           )}
         </div>
-
-        {/* Persona Toggle */}
-        <PersonaToggle />
 
         {/* Earthquake-Prone Building Warning — always show (safety) */}
         {report.planning?.epb_listed && (

@@ -28,6 +28,14 @@ function getRentRatioColor(pct: number): string {
   return '#EF4444';
 }
 
+function getRentRatioMessage(pct: number): string {
+  // pct is rent / total monthly expenses, not rent / income, so the
+  // thresholds sit higher than the classic 30% affordability rule.
+  if (pct < 40) return `${Math.round(pct)}% goes to rent`;
+  if (pct <= 55) return `${Math.round(pct)}% goes to rent — tight budget`;
+  return `${Math.round(pct)}% goes to rent — over-stretched`;
+}
+
 export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) {
   const addressId = report.address.address_id;
   const medianRent = report.market.rent_assessment?.median ?? null;
@@ -118,7 +126,7 @@ export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) 
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
           style={{ backgroundColor: getRentRatioColor(rentPct) }}
         >
-          {Math.round(rentPct)}% goes to rent
+          {getRentRatioMessage(rentPct)}
         </span>
       </div>
 

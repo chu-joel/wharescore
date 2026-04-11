@@ -2,6 +2,7 @@
 
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionId } from '@/lib/reportSections';
+import { formatCompactCurrency } from '@/lib/format';
 
 export interface PreviewChip {
   label: string;
@@ -51,7 +52,11 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
         });
       }
       if (m.market_heat && m.market_heat !== 'neutral') {
-        chips.push({ label: m.market_heat, variant: m.market_heat === 'hot' || m.market_heat === 'warm' ? 'red' : 'blue' });
+        const heatLabel: Record<string, string> = { cold: 'Cold market', cool: 'Cool market', warm: 'Warm market', hot: 'Hot market' };
+        chips.push({
+          label: heatLabel[m.market_heat] ?? m.market_heat,
+          variant: m.market_heat === 'hot' || m.market_heat === 'warm' ? 'red' : 'blue',
+        });
       }
       break;
     }
@@ -72,8 +77,29 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
       break;
     }
 
-    case 'neighbourhood-improving':
+    case 'neighbourhood-improving': {
+      // Trend-focused: 1yr/5yr rent direction, recent consents, crime trend.
+      // Deliberately does NOT duplicate NZDep/crime chips shown in "neighbourhood".
+      if (m.trend?.cagr_1yr != null) {
+        chips.push({
+          label: `1yr ${m.trend.cagr_1yr > 0 ? '+' : ''}${m.trend.cagr_1yr.toFixed(1)}%`,
+          variant: m.trend.cagr_1yr > 0 ? 'green' : 'red',
+        });
+      }
+      if (m.trend?.cagr_5yr != null) {
+        chips.push({
+          label: `5yr ${m.trend.cagr_5yr > 0 ? '+' : ''}${m.trend.cagr_5yr.toFixed(1)}%`,
+          variant: m.trend.cagr_5yr > 0 ? 'green' : 'red',
+        });
+      }
+      if (p.consent_count && p.consent_count > 0) {
+        chips.push({ label: `${p.consent_count} consents`, variant: 'blue' });
+      }
+      break;
+    }
+
     case 'neighbourhood': {
+      // Snapshot of area today: deprivation + crime + schools/amenities, no trend.
       if (l.nzdep_score != null) {
         chips.push({
           label: `NZDep ${l.nzdep_score}`,
@@ -86,19 +112,15 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
           variant: l.crime_rate <= 50 ? 'green' : 'red',
         });
       }
-      if (m.trend?.cagr_5yr != null) {
-        chips.push({
-          label: `5yr ${m.trend.cagr_5yr > 0 ? '+' : ''}${m.trend.cagr_5yr.toFixed(1)}%`,
-          variant: m.trend.cagr_5yr > 0 ? 'green' : 'red',
-        });
+      if (l.school_count != null && l.school_count > 0) {
+        chips.push({ label: `${l.school_count} school${l.school_count > 1 ? 's' : ''}`, variant: 'neutral' });
       }
       break;
     }
 
     case 'true-cost': {
       if (report.property.capital_value) {
-        const cv = report.property.capital_value;
-        chips.push({ label: `Valuation $${cv >= 1000000 ? (cv / 1000000).toFixed(1) + 'M' : (cv / 1000).toFixed(0) + 'k'}`, variant: 'blue' });
+        chips.push({ label: `Valuation ${formatCompactCurrency(report.property.capital_value)}`, variant: 'blue' });
       }
       if (m.rent_assessment?.median && report.property.capital_value) {
         const grossYield = (m.rent_assessment.median * 52 / report.property.capital_value) * 100;
@@ -206,27 +228,38 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
       return parts.length > 0 ? parts.join(' · ') + '.' : 'Limited liveability data available.';
     }
 
-    case 'neighbourhood-improving':
+    case 'neighbourhood-improving': {
+      // Answers "is the area trending up or down?" — trend + development signals only.
+      const parts: string[] = [];
+      if (m.trend?.cagr_1yr != null) {
+        const dir1 = m.trend.cagr_1yr > 0 ? 'rising' : 'falling';
+        parts.push(`rents ${dir1} ${Math.abs(m.trend.cagr_1yr).toFixed(1)}%/yr (1yr)`);
+      }
+      if (m.trend?.cagr_5yr != null) {
+        const dir5 = m.trend.cagr_5yr > 0 ? 'rising' : 'falling';
+        parts.push(`${Math.abs(m.trend.cagr_5yr).toFixed(1)}%/yr over 5yr`);
+      }
+      if (p.consent_count != null && p.consent_count >= 5) {
+        parts.push(`${p.consent_count} recent consents`);
+      }
+      return parts.length > 0 ? parts.join(' · ') + '.' : 'Not enough trend data for this area yet.';
+    }
+
     case 'neighbourhood': {
+      // Answers "what's the area like right now?" — snapshot of deprivation, crime, schools.
       const parts: string[] = [];
       if (l.nzdep_score != null) parts.push(`NZDep ${l.nzdep_score}/10`);
       if (l.crime_rate != null) {
         parts.push(l.crime_rate <= 50 ? 'below-average crime' : 'above-average crime');
       }
-      if (m.trend?.cagr_5yr != null) {
-        const dir = m.trend.cagr_5yr > 0 ? 'rising' : 'falling';
-        parts.push(`rents ${dir} ${Math.abs(m.trend.cagr_5yr).toFixed(1)}%/yr`);
-      }
-      if (p.consent_count != null && p.consent_count >= 5) {
-        parts.push(`${p.consent_count} recent consents`);
-      }
+      if (l.school_count != null) parts.push(`${l.school_count} schools nearby`);
       return parts.length > 0 ? parts.join(' · ') + '.' : 'Limited neighbourhood data.';
     }
 
     case 'true-cost': {
       const parts: string[] = [];
       if (report.property.capital_value) {
-        parts.push(`Valuation $${(report.property.capital_value / 1000).toFixed(0)}k`);
+        parts.push(`Valuation ${formatCompactCurrency(report.property.capital_value)}`);
       }
       if (m.rent_assessment?.median) {
         const annualRent = m.rent_assessment.median * 52;

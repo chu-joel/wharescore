@@ -54,11 +54,13 @@ export function AppHeader() {
     router.push('/');
   }
 
-  // Always show search bar in header
+  // Hide header search on the desktop landing page — the panel has its own prominent search.
+  // Keep it everywhere else (mobile home, any page with a selection, static pages).
+  const isDesktopLanding = isHome && !selectedAddress;
   const showHeaderSearch = true;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-background/95 backdrop-blur-sm">
+    <header className="fixed top-0 left-0 right-0 z-[60] h-14 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="flex h-full items-center gap-2 px-3 sm:px-4">
         {/* Left: Logo or Back button */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -98,12 +100,14 @@ export function AppHeader() {
           )}
         </div>
 
-        {/* Center: Search bar (visible on home page when no selection) */}
+        {/* Center: Search bar. Hidden on desktop landing (panel has its own search) to avoid duplicates. */}
         {showHeaderSearch && (
-          <div className="flex-1 max-w-lg mx-auto">
+          <div className={`flex-1 max-w-lg mx-auto${isDesktopLanding ? ' md:hidden' : ''}`}>
             <SearchBar compact />
           </div>
         )}
+        {/* Spacer on desktop landing so right-side buttons keep their position. */}
+        {isDesktopLanding && <div className="hidden md:block flex-1" />}
 
         {/* Spacer when no search */}
         {!showHeaderSearch && <div className="flex-1" />}
@@ -143,7 +147,7 @@ export function AppHeader() {
                   <UserCircle className="h-5 w-5" />
                 </button>
                 {showAccountMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1 z-[60]">
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-background shadow-lg py-1 z-[70]">
                     <div className="px-3 py-2 border-b border-border">
                       <p className="text-sm font-medium truncate">{session.user?.name || 'Account'}</p>
                       {session.user?.email && (

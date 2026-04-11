@@ -134,7 +134,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
         </Button>
         <Button
           variant="outline"
-          onClick={pdf.startExport}
+          onClick={() => pdf.startExport()}
           disabled={pdf.isGenerating}
           className="flex-1"
         >

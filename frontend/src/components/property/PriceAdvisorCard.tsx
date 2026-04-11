@@ -23,7 +23,7 @@ interface PriceAdvisorCardProps {
 
 type FinishTier = 'basic' | 'standard' | 'modern' | 'premium' | 'luxury';
 type Bedrooms = '1' | '2' | '3' | '4' | '5+';
-type Bathrooms = '1' | '2' | '3+';
+type Bathrooms = '1' | '2' | '3' | '4+';
 
 const BEDROOM_OPTIONS: Bedrooms[] = ['1', '2', '3', '4', '5+'];
 
@@ -35,7 +35,7 @@ const FINISH_TIERS: { value: FinishTier; label: string; description: string }[] 
   { value: 'luxury', label: 'Luxury', description: 'Architect-designed, top-of-the-line appliances.' },
 ];
 
-const BATHROOM_OPTIONS: Bathrooms[] = ['1', '2', '3+'];
+const BATHROOM_OPTIONS: Bathrooms[] = ['1', '2', '3', '4+'];
 
 const ASKING_VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   'well-below': {

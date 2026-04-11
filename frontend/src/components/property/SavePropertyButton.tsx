@@ -82,13 +82,20 @@ export function SavePropertyButton({ addressId, fullAddress }: SavePropertyButto
     }
   };
 
+  const tip = saved
+    ? 'Click to remove from your saved properties'
+    : isSignedIn
+      ? 'Save this property to My Reports'
+      : 'Sign in to save this property to My Reports';
+
   return (
     <button
       onClick={handleSave}
       disabled={loading}
       className="flex items-center gap-1.5 rounded-full px-3 py-2.5 min-h-[44px] text-xs font-medium transition-all hover:bg-muted"
-      aria-label={saved ? 'Remove from saved properties' : 'Save this property'}
+      aria-label={tip}
       aria-pressed={saved}
+      title={tip}
     >
       <Heart
         className={`h-4 w-4 transition-colors ${

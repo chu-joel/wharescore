@@ -114,7 +114,7 @@ export function ReportUpsell({ addressId, feature, hiddenCount, criticalCount, w
       <Button
         size="sm"
         className="w-full font-semibold text-xs"
-        onClick={pdf.startExport}
+        onClick={() => pdf.startExport('full')}
         disabled={pdf.isGenerating}
       >
         {pdf.isGenerating ? (

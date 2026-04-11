@@ -176,7 +176,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
                 </div>
                 {liveability.peak_trips_per_hour != null && (
                   <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    ~{Math.round(liveability.peak_trips_per_hour)} services/hr
+                    {Math.round(liveability.peak_trips_per_hour)} services/hr at peak
                   </span>
                 )}
               </div>
@@ -261,18 +261,18 @@ function TravelTimeRow({ tt }: { tt: TransitTravelTime }) {
   const routeLabel = tt.routes?.[0]?.replace(/\s*\(bus\)$/i, '') ?? '';
 
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+    <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 gap-3">
       <div className="flex items-center gap-2.5 min-w-0">
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="text-sm truncate">{tt.destination}</span>
       </div>
-      <div className="flex items-center gap-2 shrink-0 ml-2">
+      <div className="flex items-center gap-3 shrink-0">
         {routeLabel && (
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded max-w-[72px] truncate">
             {routeLabel}
           </span>
         )}
-        <span className="text-sm font-bold tabular-nums w-12 text-right">
+        <span className="text-sm font-bold tabular-nums min-w-[56px] text-right">
           {minutes} min
         </span>
       </div>

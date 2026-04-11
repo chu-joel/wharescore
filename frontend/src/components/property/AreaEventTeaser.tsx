@@ -15,7 +15,10 @@ function sourceLabel(source: string): string {
     case 'metservice': return 'weather warning';
     case 'nema': return 'emergency alert';
     case 'volcano': return 'volcanic alert';
-    default: return 'event';
+    case 'council': return 'council hazard record';
+    case 'gns': return 'GNS hazard record';
+    case 'open_meteo': return 'extreme weather event';
+    default: return 'other alert';
   }
 }
 

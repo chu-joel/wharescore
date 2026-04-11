@@ -22,7 +22,9 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
 
   if (report.liveability.nzdep_score != null) {
     rows.push({
-      label: 'Deprivation (NZDep)',
+      // NZDep is 1–10 where 10 = most deprived. Surfacing that inline
+      // avoids users assuming it's a percentile or letter-grade.
+      label: 'Deprivation (NZDep 1–10, 10 = most deprived)',
       property: report.liveability.nzdep_score,
       suburb: suburb?.avg_nzdep ?? null,
       city: city?.avg_nzdep ?? null,
@@ -32,7 +34,7 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
 
   if (report.liveability.school_count != null) {
     rows.push({
-      label: 'Schools nearby',
+      label: 'Schools within 1.5 km',
       property: report.liveability.school_count,
       suburb: suburb?.school_count_1500m ?? null,
       city: city?.school_count_1500m ?? null,
@@ -42,7 +44,7 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
 
   if (report.liveability.transit_count != null) {
     rows.push({
-      label: 'Transit stops',
+      label: 'Transit stops within 400 m',
       property: report.liveability.transit_count,
       suburb: suburb?.transit_count_400m ?? null,
       city: city?.transit_count_400m ?? null,
@@ -51,11 +53,14 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
   }
 
   if (report.environment.noise_db != null) {
+    // Match NoiseLevelGauge (and the rest of the noise UI) which rounds
+    // to whole decibels — prevents "66dB here, 69dB two sections down"
+    // on the same report.
     rows.push({
       label: 'Road noise',
-      property: report.environment.noise_db,
-      suburb: suburb?.max_noise_db ?? null,
-      city: city?.max_noise_db ?? null,
+      property: Math.round(report.environment.noise_db),
+      suburb: suburb?.max_noise_db != null ? Math.round(suburb.max_noise_db) : null,
+      city: city?.max_noise_db != null ? Math.round(city.max_noise_db) : null,
       lowerIsBetter: true,
       unit: 'dB',
     });
@@ -63,7 +68,7 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
 
   if (report.hazards.epb_count != null) {
     rows.push({
-      label: 'Earthquake-prone buildings',
+      label: 'Earthquake-prone buildings within 300 m',
       property: report.hazards.epb_count,
       suburb: suburb?.epb_count_300m ?? null,
       city: city?.epb_count_300m ?? null,
@@ -91,8 +96,9 @@ function contextLabel(property: number, avg: number, lowerIsBetter: boolean): st
   const pct = avg !== 0 ? Math.abs(diff / avg) * 100 : 0;
   if (pct < 10) return 'Typical for the area';
   const direction = diff > 0 ? 'higher' : 'lower';
-  const good = lowerIsBetter ? (diff < 0) : (diff > 0);
-  return `${Math.round(pct)}% ${direction} than average${good ? '' : ''}`;
+  const good = lowerIsBetter ? diff < 0 : diff > 0;
+  const tag = good ? 'better' : 'worse';
+  return `${Math.round(pct)}% ${direction} than average (${tag})`;
 }
 
 function formatVal(v: number | null, unit?: string): string {

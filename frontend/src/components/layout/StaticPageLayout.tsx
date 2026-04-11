@@ -38,17 +38,31 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to map
           </Link>
+          {/* Inline nav to other static pages so visitors who land here
+              directly (e.g. from search) can reach the rest of the site
+              without bouncing back through the map. */}
+          <nav className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground flex-1 justify-center">
+            {STATIC_PAGES.filter((p) => p.href !== pathname).slice(0, 4).map((p) => (
+              <Link
+                key={p.href}
+                href={p.href}
+                className="hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                {p.label}
+              </Link>
+            ))}
+          </nav>
           <button
             onClick={toggleDark}
-            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

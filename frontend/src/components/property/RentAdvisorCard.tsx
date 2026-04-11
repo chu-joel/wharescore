@@ -14,7 +14,7 @@ interface RentAdvisorCardProps {
 }
 
 type FinishTier = 'basic' | 'standard' | 'modern' | 'premium' | 'luxury';
-type Bathrooms = '1' | '2' | '3+';
+type Bathrooms = '1' | '2' | '3' | '4+';
 
 const FINISH_TIERS: { value: FinishTier; label: string; description: string }[] = [
   { value: 'basic', label: 'Basic', description: 'Dated kitchen/bathroom, older carpets, basic fittings.' },
@@ -24,7 +24,7 @@ const FINISH_TIERS: { value: FinishTier; label: string; description: string }[] 
   { value: 'luxury', label: 'Luxury', description: 'Architect-designed, top-of-the-line appliances.' },
 ];
 
-const BATHROOM_OPTIONS: Bathrooms[] = ['1', '2', '3+'];
+const BATHROOM_OPTIONS: Bathrooms[] = ['1', '2', '3', '4+'];
 
 const VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   'below-market': {

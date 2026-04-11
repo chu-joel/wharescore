@@ -262,10 +262,12 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         )}
       </div>
 
-      {/* Scrollable content — hidden overflow when mini to prevent stuck scroll */}
+      {/* Scrollable content — hidden overflow when mini to prevent stuck scroll.
+          Extra bottom padding so the floating "Get Your Report" FAB at bottom-left
+          (roughly 56px tall + safe-area) never obscures the last sections of the report. */}
       <div
         ref={contentRef}
-        className={`flex-1 px-2 pb-3 ${snapId === 'mini' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
+        className={`flex-1 px-2 pt-1 pb-24 ${snapId === 'mini' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
         style={{ touchAction: snapId === 'mini' ? 'none' : 'pan-y' }}
       >
         <h2 className="sr-only">Property Details</h2>

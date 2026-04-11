@@ -4,7 +4,26 @@ import { useState } from 'react';
 import { Sparkles, MapPin, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const PREVIEW_LENGTH = 200;
+const PREVIEW_LENGTH = 220;
+
+/**
+ * Truncate to the nearest sentence boundary near PREVIEW_LENGTH so the
+ * teaser doesn't end mid-sentence. Falls back to word-boundary if no
+ * sentence end is reachable.
+ */
+function truncatePreview(text: string, target = PREVIEW_LENGTH): string {
+  if (text.length <= target) return text;
+  // Look for sentence end (., !, ?) between target-60 and target+60.
+  const searchStart = Math.max(0, target - 60);
+  const searchEnd = Math.min(text.length, target + 60);
+  const window = text.slice(searchStart, searchEnd);
+  const match = window.match(/[.!?](\s|$)/);
+  if (match && match.index != null) {
+    return text.slice(0, searchStart + match.index + 1);
+  }
+  // Fallback: word boundary at target.
+  return text.slice(0, target).replace(/\s+\S*$/, '') + '…';
+}
 
 interface AISummaryCardProps {
   summary: string | null;
@@ -85,9 +104,7 @@ function ExpandableCard({
   onToggle: () => void;
 }) {
   const needsTruncation = text.length > PREVIEW_LENGTH;
-  const displayText = !needsTruncation || expanded
-    ? text
-    : text.slice(0, PREVIEW_LENGTH).replace(/\s+\S*$/, '') + '…';
+  const displayText = !needsTruncation || expanded ? text : truncatePreview(text);
 
   return (
     <div className="rounded-xl border border-piq-primary/15 bg-piq-primary/5 dark:bg-piq-primary/10 p-4">

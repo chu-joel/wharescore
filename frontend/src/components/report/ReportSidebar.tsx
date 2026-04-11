@@ -10,7 +10,7 @@ interface ReportSidebarProps {
 }
 
 const BEDROOM_OPTIONS = ['1', '2', '3', '4', '5+'];
-const BATHROOM_OPTIONS = ['1', '2', '3+'];
+const BATHROOM_OPTIONS = ['1', '2', '3', '4+'];
 const FINISH_TIERS = [
   { value: 'basic', label: 'Basic', desc: 'Dated kitchen/bathroom' },
   { value: 'standard', label: 'Standard', desc: 'Clean, no frills' },

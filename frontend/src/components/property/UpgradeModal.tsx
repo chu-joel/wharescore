@@ -68,7 +68,7 @@ const FINISH_TIERS = [
   { value: 'luxury', label: 'Luxury' },
 ] as const;
 
-const BATHROOM_OPTIONS = ['1', '2', '3+'] as const;
+const BATHROOM_OPTIONS = ['1', '2', '3', '4+'] as const;
 
 function InputReadinessTip({ persona }: { persona: string }) {
   const { required, optional, allRequiredFilled } = useInputReadiness(persona);

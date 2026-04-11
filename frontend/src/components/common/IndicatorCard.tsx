@@ -14,6 +14,25 @@ function badgeVariant(rating: string) {
   return 'destructive' as const;
 }
 
+function ratingLabel(rating: string): string {
+  // The score runs 0 (safest) → 100 (highest risk). These labels make
+  // that direction explicit on the badge so users don't have to infer.
+  switch (rating) {
+    case 'very-low':
+      return 'Low risk';
+    case 'low':
+      return 'Low risk';
+    case 'moderate':
+      return 'Moderate';
+    case 'high':
+      return 'High risk';
+    case 'very-high':
+      return 'High risk';
+    default:
+      return rating;
+  }
+}
+
 function RiskIcon({ rating }: { rating: string }) {
   if (rating === 'very-low' || rating === 'low') {
     return <Shield className="w-3.5 h-3.5 text-risk-very-low shrink-0" />;
@@ -265,7 +284,7 @@ export function IndicatorCard({ indicator }: IndicatorCardProps) {
           <span className="text-sm font-semibold">{indicator.name}</span>
         </div>
         <Badge variant={badgeVariant(indicator.rating)} className="text-xs sm:text-xs shrink-0">
-          {indicator.value}
+          {ratingLabel(indicator.rating)}
         </Badge>
       </div>
       {/* Plain-English description — replaces numeric score bar */}

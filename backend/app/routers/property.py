@@ -153,15 +153,31 @@ async def _fix_unit_cv(report: dict, address_id: int) -> None:
             from ..services.hdc_rates import fetch_hdc_rates
             rates_data = await fetch_hdc_rates(full_address)
 
-        # Apply CV from rates API (generic handler)
+        # Apply CV from rates API (generic handler).
+        #
+        # Trust the rates API to be per-unit ONLY when it passes a sanity
+        # check for multi-unit buildings: if this property is flagged as
+        # multi-unit AND the returned CV is above a single-unit-plausible
+        # ceiling (~$5M), we treat the CV as building-level and let the
+        # frontend divide by unit_count to produce a per-unit estimate.
+        # This prevents the whole-building CV (e.g. $80.8M for a CBD
+        # apartment block) from being shown as "(unit)" in the report card.
         if rates_data and rates_data.get("current_valuation"):
             cv_data = rates_data["current_valuation"]
             live_cv = cv_data.get("capital_value")
             if live_cv and report.get("property"):
+                detection = report.get("property_detection") or {}
+                is_multi = bool(detection.get("is_multi_unit"))
+                unit_count = int(detection.get("unit_count") or 1)
+                per_unit_ceiling = 5_000_000
+                looks_building_level = (
+                    is_multi and unit_count > 1 and float(live_cv) > per_unit_ceiling
+                )
                 report["property"]["capital_value"] = live_cv
                 report["property"]["land_value"] = cv_data.get("land_value") or 0
                 report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
-                report["property"]["cv_is_per_unit"] = True
+                # Only assert per-unit when the value is plausible for one unit.
+                report["property"]["cv_is_per_unit"] = not looks_building_level
     except Exception:
         pass  # non-critical — fall back to SQL report CV
     report["_cv_from_rates"] = True
@@ -630,14 +646,23 @@ async def get_earthquake_timeline(request: Request, address_id: int):
 @limiter.limit("10/minute")
 async def get_property_rates(request: Request, address_id: int):
     """Fetch live council rates/valuation for a property.
-    Hits the council API, caches result, and updates council_valuations in DB.
-    Returns null if no rates service exists for this city."""
 
-    # 1. Redis cache (1h — shorter than report cache since rates can change)
+    Caches in Redis for 1h, dispatches to all 25 council services via the
+    unified _fetch_rates_for_address router, and updates council_valuations
+    with the live CV so the next report read picks it up.
+
+    Returns 404 (not 200 null) when no rates service supports the city —
+    previously this handler had a hand-rolled if/elif chain that only listed
+    11 councils and emitted a literal `null` body for the 14 missing ones."""
+
+    # 1. Redis cache (1h)
     cache_key = f"rates:{address_id}"
     cached = await cache_get(cache_key)
     if cached:
-        return orjson.loads(cached)
+        cached_obj = orjson.loads(cached)
+        if cached_obj is None:
+            raise HTTPException(404, "No rates data available for this address")
+        return cached_obj
 
     # 2. Get address info
     async with db.pool.connection() as conn:
@@ -646,63 +671,30 @@ async def get_property_rates(request: Request, address_id: int):
             [address_id],
         )
         row = cur.fetchone()
-    if not row:
-        raise HTTPException(404, "Address not found")
+        if not row:
+            raise HTTPException(404, "Address not found")
 
-    full_address = row["full_address"] or ""
-    city = (row["town_city"] or "").lower()
+        full_address = row["full_address"] or ""
+        city = row["town_city"] or ""
 
-    # 3. Dispatch to city-specific rates service
-    rates_data = None
-    try:
-        async def _fetch():
-            if "wellington" in city:
-                from ..services.rates import fetch_wcc_rates
-                async with db.pool.connection() as c:
-                    return await fetch_wcc_rates(full_address, c)
-            elif "auckland" in city:
-                from ..services.auckland_rates import fetch_auckland_rates
-                async with db.pool.connection() as c:
-                    return await fetch_auckland_rates(full_address, c)
-            elif city == "lower hutt":
-                from ..services.hcc_rates import fetch_hcc_rates
-                return await fetch_hcc_rates(full_address)
-            elif city == "porirua":
-                from ..services.pcc_rates import fetch_pcc_rates
-                return await fetch_pcc_rates(full_address)
-            elif "kapiti" in city or city in ("paraparaumu", "waikanae", "otaki", "paekakariki", "raumati"):
-                from ..services.kcdc_rates import fetch_kcdc_rates
-                return await fetch_kcdc_rates(full_address)
-            elif "horowhenua" in city or city in ("levin", "foxton", "shannon"):
-                from ..services.hdc_rates import fetch_hdc_rates
-                return await fetch_hdc_rates(full_address)
-            elif "hamilton" in city:
-                from ..services.hamilton_rates import fetch_hamilton_rates
-                return await fetch_hamilton_rates(full_address)
-            elif "dunedin" in city:
-                from ..services.dcc_rates import fetch_dcc_rates
-                return await fetch_dcc_rates(full_address)
-            elif "christchurch" in city:
-                from ..services.ccc_rates import fetch_ccc_rates
-                async with db.pool.connection() as c:
-                    return await fetch_ccc_rates(full_address, c)
-            elif city == "new plymouth":
-                from ..services.taranaki_rates import fetch_taranaki_rates
-                return await fetch_taranaki_rates(full_address)
-            elif city in ("richmond", "motueka", "takaka", "mapua", "brightwater", "wakefield"):
-                from ..services.tasman_rates import fetch_tasman_rates
-                return await fetch_tasman_rates(full_address)
-            return None
-        rates_data = await asyncio.wait_for(_fetch(), timeout=15.0)
-    except asyncio.TimeoutError:
-        logger.warning(f"Rates fetch timed out for {address_id}")
-    except Exception as e:
-        logger.warning(f"Rates fetch failed for {address_id}: {e}")
+        # 3. Dispatch via the unified rates router (25 councils)
+        from .rates import _fetch_rates_for_address
+        rates_data = None
+        try:
+            rates_data = await asyncio.wait_for(
+                _fetch_rates_for_address(full_address, city, address_id, conn),
+                timeout=15.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Rates fetch timed out for {address_id}")
+        except Exception as e:
+            logger.warning(f"Rates fetch failed for {address_id}: {e}")
 
     if not rates_data:
-        # Cache null result too (avoid hammering API)
-        await cache_set(cache_key, b"null", ex=3600)
-        return None
+        # Cache the miss for 5 min so we don't hammer the API. Stored as
+        # JSON null and translated to 404 on the next hit (above).
+        await cache_set(cache_key, b"null", ex=300)
+        raise HTTPException(404, "No rates data available for this address")
 
     # 4. Update council_valuations with fresh CV from live API
     cv_data = rates_data.get("current_valuation") or {}
@@ -712,7 +704,6 @@ async def get_property_rates(request: Request, address_id: int):
     if cv:
         try:
             async with db.pool.connection() as conn:
-                # Update the council_valuations row that contains this address
                 await conn.execute(
                     """
                     UPDATE council_valuations cv

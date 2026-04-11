@@ -93,7 +93,7 @@ export function HostedMethodology() {
 
           <SubSection title="Data Sources">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              This report draws on 12+ government open data sources including LINZ Property Titles &
+              This report draws on 40+ official government data sources including LINZ Property Titles &
               Valuations, GWRC Hazard Maps, MBIE Earthquake-Prone Buildings Register, NZTA Road Noise,
               MBIE Tenancy Bond Data, Stats NZ NZDep Index, NZ Police Crime Victimisations, GTFS Public
               Transport Feeds, MoE School Directory, LAWA Water & Air Quality, NIWA Climate Projections,

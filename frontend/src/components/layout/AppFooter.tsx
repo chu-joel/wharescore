@@ -14,7 +14,7 @@ export function AppFooter() {
   return (
     <footer className="bg-muted/50 px-4 py-6 text-sm text-muted-foreground">
       <p className="text-center">
-        WhareScore combines data from 12+ NZ government sources.
+        WhareScore combines data from 40+ official NZ government sources.
       </p>
       <Separator className="my-4" />
       <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">

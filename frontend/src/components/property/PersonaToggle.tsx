@@ -15,7 +15,10 @@ export function PersonaToggle() {
   const setPersona = usePersonaStore((s) => s.setPersona);
 
   return (
-    <div className="flex rounded-xl border border-border bg-muted/40 p-1 gap-1">
+    // Sticky inside the scrolling report container so the toggle stays in
+    // view as users scroll through long reports — on mobile especially
+    // this lets them switch renter/buyer without scrolling back to the top.
+    <div className="sticky top-0 z-10 flex rounded-xl border border-border bg-muted/90 backdrop-blur-sm p-1 gap-1 -mx-0.5">
       {OPTIONS.map(({ value, label, Icon }) => {
         const active = hydrated && persona === value;
         return (

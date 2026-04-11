@@ -25,7 +25,15 @@ interface ReportConfirmState {
   addressId: number | null;
   selectedTier: 'quick' | 'full';
   onConfirm: ((tier: 'quick' | 'full') => void) | null;
-  show: (addressId: number, onConfirm: (tier: 'quick' | 'full') => void) => void;
+  /**
+   * Open the modal. Pass `initialTier` to preselect Quick or Full —
+   * important so clicking "Get Full Report — $9.99" doesn't land users on the Free tier.
+   */
+  show: (
+    addressId: number,
+    onConfirm: (tier: 'quick' | 'full') => void,
+    initialTier?: 'quick' | 'full',
+  ) => void;
   close: () => void;
   setSelectedTier: (tier: 'quick' | 'full') => void;
 }
@@ -35,7 +43,13 @@ export const useReportConfirmStore = create<ReportConfirmState>((set) => ({
   addressId: null,
   selectedTier: 'quick',
   onConfirm: null,
-  show: (addressId, onConfirm) => set({ open: true, addressId, onConfirm }),
+  show: (addressId, onConfirm, initialTier) =>
+    set({
+      open: true,
+      addressId,
+      onConfirm,
+      selectedTier: initialTier ?? 'quick',
+    }),
   close: () => set({ open: false, onConfirm: null }),
   setSelectedTier: (tier) => set({ selectedTier: tier }),
 }));
@@ -50,15 +64,16 @@ const FINISH_TIERS = [
   { value: 'premium', label: 'Premium', desc: 'High-end finishes, designer kitchen' },
   { value: 'luxury', label: 'Luxury', desc: 'Architect-designed, top-of-the-line' },
 ] as const;
-const BATHROOM_OPTIONS = ['1', '2', '3+'] as const;
+const BATHROOM_OPTIONS = ['1', '2', '3', '4+'] as const;
 const LOAN_TERMS = [15, 20, 25, 30] as const;
 
 /* ── Pill button ────────────────────────────────────────── */
-function Pill({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+function Pill({ selected, onClick, children, title }: { selected: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors min-h-[36px] flex items-center ${
         selected
           ? 'bg-piq-primary text-white border-piq-primary'
@@ -184,7 +199,7 @@ function RenterFields({ addressId }: { addressId: number }) {
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
           <div className="flex flex-wrap gap-1.5">
             {FINISH_TIERS.map((t) => (
-              <Pill key={t.value} selected={finishTier === t.value} onClick={() => setFinishTier(t.value)}>
+              <Pill key={t.value} selected={finishTier === t.value} onClick={() => setFinishTier(t.value)} title={t.desc}>
                 {t.label}
               </Pill>
             ))}
@@ -394,7 +409,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
           <div className="flex flex-wrap gap-1.5">
             {FINISH_TIERS.map((t) => (
-              <Pill key={t.value} selected={buyerFinishTier === t.value} onClick={() => setBuyerFinishTier(t.value)}>
+              <Pill key={t.value} selected={buyerFinishTier === t.value} onClick={() => setBuyerFinishTier(t.value)} title={t.desc}>
                 {t.label}
               </Pill>
             ))}
@@ -407,22 +422,17 @@ function BuyerFields({ addressId }: { addressId: number }) {
         </div>
       </div>
 
-      {/* Asking price — syncs with purchase price */}
-      <NumberField
-        label="Asking / purchase price"
-        value={buyerAskingPrice}
-        onChange={(v) => { setBuyerAskingPrice(v); if (v) updateBuyer(addressId, { purchasePrice: v }); }}
-        prefix="$"
-        placeholder="e.g. 850000"
-      />
-
-      {/* Purchase details */}
+      {/* Purchase details. Previously had a separate "Asking / purchase
+          price" field above — removed because it was visually identical
+          to "Purchase price" here and the two auto-synced to the same
+          underlying value, which confused users about which to fill. */}
       <div className="grid grid-cols-2 gap-3">
         <NumberField
           label="Purchase price"
           value={b.purchasePrice}
           onChange={(v) => { updateBuyer(addressId, { purchasePrice: v ?? 0 }); setBuyerAskingPrice(v); }}
           prefix="$"
+          placeholder="e.g. 850000"
         />
         <NumberField
           label="Deposit"

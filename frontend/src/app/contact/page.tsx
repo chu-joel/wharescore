@@ -51,18 +51,34 @@ export default function ContactPage() {
         <div className="rounded-lg border p-4">
           <p className="font-medium">Data Corrections</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            If you notice incorrect data in a report, please email us or submit feedback with the property
-            address and the specific data point that seems wrong. Our data comes from government
-            sources, so corrections may need to be made upstream.
+            If you notice incorrect data in a report, the fastest path is the
+            in-app feedback button (bottom-right of any report page) or{' '}
+            <a
+              href="mailto:hello@wharescore.co.nz?subject=Data%20correction"
+              className="text-primary hover:underline"
+            >
+              email hello@wharescore.co.nz
+            </a>{' '}
+            with the property address and the data point that looks wrong.
+            Our data comes from government sources, so corrections may need
+            to be made upstream.
           </p>
         </div>
 
         <div className="rounded-lg border p-4">
           <p className="font-medium">Coverage Requests</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            WhareScore currently has the best coverage for Wellington, Auckland, and Christchurch.
-            If you search for an address outside our coverage area, you can sign up to be notified
-            when we expand to your region.
+            WhareScore currently has the best coverage for Wellington, Auckland,
+            and Christchurch. If you search for an address outside our coverage
+            area you&rsquo;ll see a &ldquo;Notify me when available&rdquo; form,
+            or you can{' '}
+            <a
+              href="mailto:hello@wharescore.co.nz?subject=Coverage%20request"
+              className="text-primary hover:underline"
+            >
+              email us the region you&rsquo;d like to see covered
+            </a>
+            .
           </p>
         </div>
       </section>

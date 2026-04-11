@@ -17,7 +17,12 @@ interface PdfExportState {
   error: string | null;
   /** Pending token for after confirm modal */
   _pendingToken: string | null;
-  startExport: (addressId: number, token?: string | null) => void;
+  /**
+   * Kick off the export flow. `preferredTier` decides which tier is preselected
+   * in the review modal — pass 'full' when the user clicked a paid CTA so
+   * they don't land on the free option and have to switch manually.
+   */
+  startExport: (addressId: number, token?: string | null, preferredTier?: 'quick' | 'full') => void;
   /** Internal: called after user confirms in the review modal */
   _doExport: (addressId: number, token?: string | null, reportTier?: 'quick' | 'full') => void;
 }
@@ -31,7 +36,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
   error: null,
   _pendingToken: null,
 
-  startExport: (addressId: number, token?: string | null) => {
+  startExport: (addressId: number, token?: string | null, preferredTier?: 'quick' | 'full') => {
     const state = get();
     if (state.isGenerating) return;
 
@@ -50,14 +55,18 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       if (gate.showUpgradeModal) gate.setShowUpgradeModal(false);
       set({ _pendingToken: token ?? null });
       const hasFullCredits = (gate.credits?.fullCredits ?? 0) > 0 || gate.credits?.plan === 'pro';
-      useReportConfirmStore.getState().show(addressId, (tier: 'quick' | 'full') => {
-        if (tier === 'full' && !hasFullCredits) {
-          // No credits for Full → show UpgradeModal to purchase
-          gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
-        } else {
-          get()._doExport(addressId, get()._pendingToken, tier);
-        }
-      });
+      useReportConfirmStore.getState().show(
+        addressId,
+        (tier: 'quick' | 'full') => {
+          if (tier === 'full' && !hasFullCredits) {
+            // No credits for Full → show UpgradeModal to purchase
+            gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+          } else {
+            get()._doExport(addressId, get()._pendingToken, tier);
+          }
+        },
+        preferredTier,
+      );
       return;
     }
 

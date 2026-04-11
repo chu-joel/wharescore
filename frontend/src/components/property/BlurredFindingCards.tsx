@@ -13,9 +13,12 @@ import { useHostedReport } from '@/components/report/HostedReportContext';
 export function BlurredFindingCards({
   findings,
   addressId,
+  totalCount,
 }: {
   findings: Finding[];
   addressId: number;
+  /** Total finding count (hidden + shown). Used so the CTA always shows the correct grand total. */
+  totalCount: number;
 }) {
   const hosted = useHostedReport();
   // Hide blurred cards on Full hosted reports (user has paid for all findings)
@@ -63,11 +66,13 @@ export function BlurredFindingCards({
         </p>
         {(criticalCount > 0 || warningCount > 0) && (
           <p className="text-xs mt-0.5">
+            Including{' '}
             {criticalCount > 0 && (
               <span className="text-red-600 dark:text-red-400 font-medium">
-                {criticalCount} critical{' '}
+                {criticalCount} critical
               </span>
             )}
+            {criticalCount > 0 && warningCount > 0 && <span> and </span>}
             {warningCount > 0 && (
               <span className="text-amber-600 dark:text-amber-400 font-medium">
                 {warningCount} to watch
@@ -76,7 +81,7 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          {isHostedQuick ? 'Upgrade to Full Report' : `See all ${findings.length + 2} findings`}
+          {isHostedQuick ? 'Upgrade to Full Report' : `See all ${totalCount} findings`}
         </p>
         {!isHostedQuick && (
           <p className="text-[10px] text-muted-foreground mt-0.5">In the full report</p>

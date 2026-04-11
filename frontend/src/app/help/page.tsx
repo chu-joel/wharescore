@@ -9,7 +9,7 @@ export const metadata = {
 const FAQ = [
   {
     q: 'What is WhareScore?',
-    a: 'WhareScore is a property intelligence tool for New Zealand. We aggregate 100+ government open data sources to show you risk scores, hazard exposure, neighbourhood quality, and fair rent analysis for any NZ address.',
+    a: 'WhareScore is a property intelligence tool for New Zealand. We aggregate 40+ official government data sources to show you risk scores, hazard exposure, neighbourhood quality, and fair rent analysis for any NZ address.',
   },
   {
     q: 'How are risk scores calculated?',
@@ -17,7 +17,7 @@ const FAQ = [
   },
   {
     q: 'Where does the data come from?',
-    a: 'All data comes from official New Zealand government sources: LINZ (addresses, parcels, titles), GeoNet (earthquakes), GNS Science (active faults, landslides), MBIE (rental bonds), Waka Kotahi (crashes, road noise), Stats NZ (deprivation, census), Heritage NZ, NIWA (coastal erosion), MfE (climate projections), plus council data from Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson. Over 100 datasets in total.',
+    a: 'All data comes from official New Zealand government sources: LINZ (addresses, parcels, titles), GeoNet (earthquakes), GNS Science (active faults, landslides), MBIE (rental bonds), Waka Kotahi (crashes, road noise), Stats NZ (deprivation, census), Heritage NZ, NIWA (coastal erosion), MfE (climate projections), plus council data from Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson. Over 40 datasets in total.',
   },
   {
     q: 'How accurate is the fair rent estimate?',

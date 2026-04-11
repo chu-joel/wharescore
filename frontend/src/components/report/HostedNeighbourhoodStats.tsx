@@ -225,7 +225,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               <div className="rounded-lg bg-piq-primary/5 border border-piq-primary/20 p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold">~{Math.round(peakTrips)} services/hr at peak</p>
+                    <p className="text-sm font-semibold">{Math.round(peakTrips)} services/hr at peak</p>
                     {nearestStopName && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Nearest stop: {nearestStopName}

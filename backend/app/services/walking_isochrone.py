@@ -217,35 +217,51 @@ async def count_stops_in_isochrone(
         feature = iso["features"][0]
         geojson_str = json.dumps(feature["geometry"])
 
-        # Count stops within the actual walking polygon
+        # Count stops within the actual walking polygon. Includes transit_stops
+        # (regional GTFS for ChCh, Queenstown, Hamilton, Dunedin, Tauranga,
+        # Palmerston North, Rotorua, Napier, Whangarei) alongside metlink_stops
+        # (Wellington) and at_stops (Auckland). transit_stops uses text mode_type
+        # values, the other two use GTFS integer route_types.
         cur = await conn.execute(
             """
             WITH iso AS (
                 SELECT ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326) AS geom
             )
             SELECT
-                (SELECT COUNT(*)::int FROM metlink_stops ms, iso
-                 WHERE ST_Within(ms.geom, iso.geom)
-                ) + (SELECT COUNT(*)::int FROM at_stops ats, iso
-                 WHERE ST_Within(ats.geom, iso.geom)
+                (
+                  (SELECT COUNT(*)::int FROM metlink_stops ms, iso
+                   WHERE ST_Within(ms.geom, iso.geom))
+                + (SELECT COUNT(*)::int FROM at_stops ats, iso
+                   WHERE ST_Within(ats.geom, iso.geom))
+                + (SELECT COUNT(*)::int FROM transit_stops ts, iso
+                   WHERE ST_Within(ts.geom, iso.geom))
                 ) AS total_stops,
 
-                (SELECT COUNT(*)::int FROM metlink_stops ms, iso
-                 WHERE ST_Within(ms.geom, iso.geom) AND 3 = ANY(ms.route_types)
-                ) + (SELECT COUNT(*)::int FROM at_stops ats, iso
-                 WHERE ST_Within(ats.geom, iso.geom) AND 3 = ANY(ats.route_types)
+                (
+                  (SELECT COUNT(*)::int FROM metlink_stops ms, iso
+                   WHERE ST_Within(ms.geom, iso.geom) AND 3 = ANY(ms.route_types))
+                + (SELECT COUNT(*)::int FROM at_stops ats, iso
+                   WHERE ST_Within(ats.geom, iso.geom) AND 3 = ANY(ats.route_types))
+                + (SELECT COUNT(*)::int FROM transit_stops ts, iso
+                   WHERE ST_Within(ts.geom, iso.geom) AND ts.mode_type = 'bus')
                 ) AS bus_stops,
 
-                (SELECT COUNT(*)::int FROM metlink_stops ms, iso
-                 WHERE ST_Within(ms.geom, iso.geom) AND 2 = ANY(ms.route_types)
-                ) + (SELECT COUNT(*)::int FROM at_stops ats, iso
-                 WHERE ST_Within(ats.geom, iso.geom) AND 2 = ANY(ats.route_types)
+                (
+                  (SELECT COUNT(*)::int FROM metlink_stops ms, iso
+                   WHERE ST_Within(ms.geom, iso.geom) AND 2 = ANY(ms.route_types))
+                + (SELECT COUNT(*)::int FROM at_stops ats, iso
+                   WHERE ST_Within(ats.geom, iso.geom) AND 2 = ANY(ats.route_types))
+                + (SELECT COUNT(*)::int FROM transit_stops ts, iso
+                   WHERE ST_Within(ts.geom, iso.geom) AND ts.mode_type = 'train')
                 ) AS rail_stops,
 
-                (SELECT COUNT(*)::int FROM metlink_stops ms, iso
-                 WHERE ST_Within(ms.geom, iso.geom) AND 4 = ANY(ms.route_types)
-                ) + (SELECT COUNT(*)::int FROM at_stops ats, iso
-                 WHERE ST_Within(ats.geom, iso.geom) AND 4 = ANY(ats.route_types)
+                (
+                  (SELECT COUNT(*)::int FROM metlink_stops ms, iso
+                   WHERE ST_Within(ms.geom, iso.geom) AND 4 = ANY(ms.route_types))
+                + (SELECT COUNT(*)::int FROM at_stops ats, iso
+                   WHERE ST_Within(ats.geom, iso.geom) AND 4 = ANY(ats.route_types))
+                + (SELECT COUNT(*)::int FROM transit_stops ts, iso
+                   WHERE ST_Within(ts.geom, iso.geom) AND ts.mode_type = 'ferry')
                 ) AS ferry_stops
             """,
             [geojson_str],

@@ -33,6 +33,43 @@ function toRatingBin(score: number): RatingBin {
   return getRatingBin(score).rating;
 }
 
+// --- Indicator display labels — overrides the naive title-case for abbreviations ---
+// Keys are backend indicator keys; values are the user-facing label.
+// Anything not listed falls through to snake_case → Title Case.
+const INDICATOR_LABELS: Record<string, string> = {
+  nzdep: 'NZDep',
+  cbd_proximity: 'CBD Proximity',
+  epb: 'Earthquake-Prone Buildings',
+  air_quality: 'Air Quality',
+  water_quality: 'Water Quality',
+  contaminated_land: 'Contaminated Land',
+  school_zone: 'School Zoning',
+  transit_access: 'Transit Access',
+  commute_frequency: 'Commute Frequency',
+  rail_proximity: 'Rail Proximity',
+  bus_density: 'Bus Density',
+  road_safety: 'Road Safety',
+  rental_fairness: 'Rental Fairness',
+  rental_trend: 'Rental Trend',
+  market_heat: 'Market Heat',
+  zone_permissiveness: 'Zoning',
+  height_limit: 'Height Limit',
+  resource_consents: 'Resource Consents',
+  coastal_erosion: 'Coastal Erosion',
+  ground_shaking: 'Ground Shaking',
+  fault_zone: 'Fault Zone',
+  slope_failure: 'Slope Failure',
+  overland_flow: 'Overland Flow Path',
+  aircraft_noise: 'Aircraft Noise',
+  landslide_susceptibility: 'Landslide Susceptibility',
+};
+
+function indicatorLabel(key: string): string {
+  if (INDICATOR_LABELS[key]) return INDICATOR_LABELS[key];
+  // Fallback: snake_case → Title Case.
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // --- Indicator → category mapping ---
 const INDICATOR_CATEGORIES: Record<string, string> = {
   flood: 'risk', tsunami: 'risk', liquefaction: 'risk', earthquake: 'risk',
@@ -99,7 +136,7 @@ function buildCategories(
     score,
     rating: toRatingBin(score),
     indicators: (indicatorsByCategory[name] ?? []).map((ind) => ({
-      name: ind.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      name: indicatorLabel(ind.name),
       score: ind.score,
       rating: toRatingBin(ind.score),
       value: `${Math.round(ind.score)}/100`,

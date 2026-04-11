@@ -33,12 +33,11 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
   const warningCount = findings.filter(f => f.severity === 'warning').length;
+  const infoCount = findings.filter(f => f.severity === 'info').length;
   const positiveCount = findings.filter(f => f.severity === 'positive').length;
 
   const freeFindings = findings.slice(0, maxFree);
   const hiddenFindings = findings.slice(maxFree);
-  const hiddenCritical = hiddenFindings.filter(f => f.severity === 'critical').length;
-  const hiddenWarning = hiddenFindings.filter(f => f.severity === 'warning').length;
 
   return (
     <div className="space-y-3">
@@ -49,7 +48,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         </h3>
       </div>
 
-      {/* Summary line */}
+      {/* Summary line — must sum to findings.length */}
       <p className="text-xs text-muted-foreground">
         {criticalCount > 0 && (
           <span className="text-red-600 dark:text-red-400 font-medium">
@@ -59,6 +58,11 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         {warningCount > 0 && (
           <span className="text-amber-600 dark:text-amber-400 font-medium">
             {warningCount} to watch{' '}
+          </span>
+        )}
+        {infoCount > 0 && (
+          <span className="text-piq-primary font-medium">
+            {infoCount} info{' '}
           </span>
         )}
         {positiveCount > 0 && (
@@ -85,6 +89,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         <BlurredFindingCards
           findings={hiddenFindings}
           addressId={addressId ?? report.address.address_id}
+          totalCount={findings.length}
         />
       )}
     </div>

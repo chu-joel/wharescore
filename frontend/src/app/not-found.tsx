@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { Home, Search } from 'lucide-react';
 
+export const metadata = {
+  title: 'Page not found | WhareScore',
+  description: 'The page you are looking for does not exist or has been moved.',
+  robots: { index: false, follow: false },
+};
+
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">

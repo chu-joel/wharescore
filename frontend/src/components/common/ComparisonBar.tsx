@@ -107,14 +107,16 @@ function getContextInsight(
     return { sentence: `${diffCount} fewer than typical for ${area}`, sentiment };
   }
 
-  // Generic fallback with percentage
+  // Generic fallback with percentage and an explicit good/concern tag so
+  // readers don't have to infer direction from colour alone.
   const pctRound = Math.round(pctDiff);
+  const tag = isGood ? 'better' : 'worse';
   if (isMore) {
     const qualifier = lowerIsBetter ? 'higher' : 'more';
-    return { sentence: `${pctRound}% ${qualifier} than ${area} average`, sentiment };
+    return { sentence: `${pctRound}% ${qualifier} than ${area} average (${tag})`, sentiment };
   }
   const qualifier = lowerIsBetter ? 'lower' : 'less';
-  return { sentence: `${pctRound}% ${qualifier} than ${area} average`, sentiment };
+  return { sentence: `${pctRound}% ${qualifier} than ${area} average (${tag})`, sentiment };
 }
 
 const SENTIMENT_STYLES: Record<Sentiment, string> = {

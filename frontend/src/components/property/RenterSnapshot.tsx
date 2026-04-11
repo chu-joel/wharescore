@@ -67,7 +67,7 @@ export function RenterSnapshot({ report }: Props) {
       id: 'rent',
       icon: DollarSign,
       title: `$${median}/wk median rent`,
-      detail: `${range}${range && bondCount > 0 ? ' · ' : ''}${bondCount > 0 ? `${bondCount} recent bonds` : ''}. That's ${Math.round(yearlyRent / 1000)}k/year.`,
+      detail: `${range}${range && bondCount > 0 ? ' · ' : ''}${bondCount > 0 ? `${bondCount} recent bonds` : ''}. That's $${Math.round(yearlyRent).toLocaleString('en-NZ')}/year.`,
       verdict: median <= 500 ? 'good' : median <= 700 ? 'ok' : 'caution',
     });
   }
@@ -136,8 +136,8 @@ export function RenterSnapshot({ report }: Props) {
     sections.push({
       id: 'healthy-homes',
       icon: Home,
-      title: `Healthy Homes: ${hhFlags.length} area${hhFlags.length > 1 ? 's' : ''} flagged`,
-      detail: `Environmental factors may affect ${hhFlags.join(' and ')}. Ask for the compliance statement before signing.`,
+      title: `Healthy Homes: ${hhFlags.join(' and ')} flagged`,
+      detail: `Environmental factors here may affect ${hhFlags.join(' and ')}. Ask for the Healthy Homes compliance statement before signing.`,
       verdict: hhFlags.length >= 2 ? 'caution' : 'ok',
     });
   }
@@ -159,7 +159,7 @@ export function RenterSnapshot({ report }: Props) {
       id: 'dampness',
       icon: Droplets,
       title: 'Higher dampness risk',
-      detail: `${dampFactors.join(', ')} — check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals has dampness issues.`,
+      detail: `${dampFactors.join(', ')} — check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals have dampness issues.`,
       verdict: dampFactors.length >= 3 ? 'warning' : 'caution',
     });
   } else if (dampFactors.length === 1) {
@@ -205,6 +205,10 @@ export function RenterSnapshot({ report }: Props) {
   else if (maxScore >= 2 || cautionCount >= 2) overall = 'caution';
   else if (cautionCount >= 1) overall = 'ok';
   else overall = 'good';
+
+  // Sort sections so concerns come first, then neutral, then good.
+  // Prevents "good" rows appearing under a "watch out for" header and looking like warnings.
+  sections.sort((a, b) => verdictScores[b.verdict] - verdictScores[a.verdict]);
 
   const config = VERDICT_CONFIG[overall];
   const VerdictIcon = config.icon;
