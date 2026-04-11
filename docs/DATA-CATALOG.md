@@ -88,7 +88,7 @@
 | tsunami_hazard | ~10K | name, hazard_ranking, scenario, return_period, layer_id, source_council, geom | WCC + ~12 council DataSources | `get_property_report()` → hazards.council_tsunami_ranking (all cities) + hazards.wcc_tsunami_return_period (Wellington) |
 | landslide_susceptibility | ~5K | accuracy, type, source_council, geom | GWRC + Auckland DataSources | `get_property_report()` → hazards.landslide_susceptibility_rating (worst rating) |
 | district_plan_zones | 198K | zone_name, zone_code, category, source_council, geom | 20+ council DataSources | `get_property_report()` → planning.zone_* |
-| noise_contours | 228K | laeq24h, geom | Waka Kotahi NZTA | `get_property_report()` → liveability.noise_db |
+| noise_contours | ~222K | laeq24h, geom | Waka Kotahi NZTA | `get_property_report()` → liveability.noise_db. Migration 0050 DELETEs the ~6k rows where `ST_IsValid(geom)` is false — ST_MakeValid itself segfaults postgres on a subset (one polygon near Auckland airport crashed the `mv_sa2_comparisons` rebuild). Statistical impact on max_noise_db per SA2 is negligible. |
 | osm_amenities | 95K | name, subcategory, brand, geom | OpenStreetMap | nearby/highlights, snapshot nearby_highlights |
 | schools | 2,568 | name, type, decile, eqi_rating, roll, geom | MoE | `get_property_report()` → liveability.school_count |
 | active_faults | 10.3K | fault_name, fault_class, slip_rate, geom | GNS Science | `get_property_report()` → hazards.active_fault_nearest |

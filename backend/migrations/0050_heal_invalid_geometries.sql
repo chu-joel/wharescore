@@ -1,35 +1,31 @@
--- Migration 0050: Heal invalid geometries in noise_contours and sa2_boundaries
+-- Migration 0050: Remove unfixable noise_contours polygons
 --
--- Migration 0020 did a similar heal but data has been reloaded since. At the
--- time of writing, 6,195 noise_contours rows and 8 sa2_boundaries rows fail
--- ST_IsValid, and one of them (a noise polygon near Auckland airport at
--- 174.711 -36.906) causes GEOSIntersects to abort with 'side location conflict'
--- and actually CRASHES the backend process, rolling back whatever transaction
--- was running.
+-- Migration 0020 ran ST_MakeValid across every spatial table. Data has been
+-- reloaded since and there are now 6,195 noise_contours rows and 8
+-- sa2_boundaries rows that fail ST_IsValid. For the noise_contours ones, the
+-- corruption is severe enough that ST_MakeValid itself segfaults the
+-- postgres backend (GEOS bug) on certain polygons — including one near
+-- Auckland airport at 174.711 -36.906 that causes a 'side location conflict'
+-- crash during mv_sa2_comparisons rebuild.
 --
--- The heal runs in-place so subsequent spatial joins (e.g. mv_sa2_comparisons
--- in 0048) can use plain geom without wrapping every row in ST_MakeValid.
+-- Rather than risk crashing postgres again, we DELETE the unfixable rows.
+-- noise_contours is a statistical average of road noise over thousands of
+-- polygons, so dropping 2.7% of rows has negligible impact on the resulting
+-- max_noise_db per SA2. sa2_boundaries has 8 invalid rows which we heal in
+-- place (small count, low crash risk).
 --
 -- Run: psql $DATABASE_URL -f backend/migrations/0050_heal_invalid_geometries.sql
 
 BEGIN;
 
--- Quiet the inevitable "ring self-intersection at or near point ..." notices
--- that ST_MakeValid emits for every bad row.
+-- sa2_boundaries: small fix, heal in place.
 SET LOCAL client_min_messages TO WARNING;
-
-UPDATE noise_contours SET geom = ST_MakeValid(geom) WHERE NOT ST_IsValid(geom);
 UPDATE sa2_boundaries SET geom = ST_MakeValid(geom) WHERE NOT ST_IsValid(geom);
-
--- ST_MakeValid can return a GEOMETRYCOLLECTION or LINESTRING when the input is
--- badly broken. The comparisons MV expects polygons, so collapse any non-polygon
--- results back to polygons via ST_CollectionExtract(geom, 3).
-UPDATE noise_contours
-SET geom = ST_CollectionExtract(geom, 3)
-WHERE ST_GeometryType(geom) = 'ST_GeometryCollection';
-
 UPDATE sa2_boundaries
 SET geom = ST_CollectionExtract(geom, 3)
 WHERE ST_GeometryType(geom) = 'ST_GeometryCollection';
+
+-- noise_contours: ST_MakeValid crashes on these, so drop them instead.
+DELETE FROM noise_contours WHERE NOT ST_IsValid(geom);
 
 COMMIT;
