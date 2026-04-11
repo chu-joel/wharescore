@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import re
 import urllib.parse
 
@@ -27,21 +28,101 @@ AC_API_BASE = "https://experience.aucklandcouncil.govt.nz/nextapi"
 AC_SEARCH_URL = f"{AC_API_BASE}/property"
 AC_RATES_URL = f"{AC_API_BASE}/property/{{key}}/rate-assessment"
 
+# Auckland suburb tokens that appear in result addresses. If the SEARCH address
+# contains one of these but the RESULT address contains a DIFFERENT one from the
+# set, the result is a hard mismatch (e.g. Queen Street Pukekohe vs Auckland Central).
+_SUBURB_TOKENS = {
+    "auckland central", "ponsonby", "grey lynn", "mount eden", "parnell", "newmarket",
+    "remuera", "epsom", "ellerslie", "onehunga", "penrose", "mt wellington",
+    "glen innes", "panmure", "pakuranga", "howick", "east tamaki", "botany",
+    "manurewa", "papakura", "pukekohe", "waiuku", "tuakau", "papatoetoe",
+    "otahuhu", "mangere", "otara", "avondale", "new lynn", "henderson",
+    "titirangi", "mount roskill", "royal oak", "one tree hill", "orakei",
+    "mission bay", "st heliers", "kohimarama", "devonport", "takapuna",
+    "milford", "browns bay", "albany", "silverdale", "orewa", "warkworth",
+    "waiheke", "waitakere", "massey", "hobsonville", "whenuapai",
+}
 
-def _best_match(items: list[dict], search_addr: str) -> str | None:
+
+def _extract_suburb_tokens(addr: str) -> set[str]:
+    """Return the set of known Auckland suburb phrases found in an address string."""
+    lower = addr.lower()
+    return {tok for tok in _SUBURB_TOKENS if tok in lower}
+
+
+def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    r = 6371000.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lng2 - lng1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def _best_match(
+    items: list[dict],
+    search_addr: str,
+    ref_lat: float | None = None,
+    ref_lng: float | None = None,
+) -> str | None:
     """Pick the best matching rateAccountKey from Auckland Council API results.
-    Compares the result address against the search address to avoid suburb mismatches
-    (e.g. '1 Queen Street Auckland Central' matching Pukekohe)."""
+
+    Rules (in priority order):
+    1. Reject any result whose suburb is a KNOWN DIFFERENT Auckland suburb from the
+       one in the search address. This prevents "1 Queen Street Auckland Central"
+       matching "1 Queen Street Pukekohe".
+    2. If we have reference coordinates and the result has x/y, prefer the result
+       closest to the reference point. A distance > 2 km is a hard reject.
+    3. Fall back to word-overlap score against the search address.
+    """
     if not items:
         return None
+
     search_lower = search_addr.lower()
     search_words = set(search_lower.split())
-    best_key = None
-    best_score = -1
+    search_suburbs = _extract_suburb_tokens(search_lower)
+
+    # Pass 1: filter out cross-suburb mismatches
+    filtered: list[dict] = []
     for item in items:
         addr = (item.get("address") or item.get("name") or "").lower()
+        item_suburbs = _extract_suburb_tokens(addr)
+        if search_suburbs and item_suburbs and not (search_suburbs & item_suburbs):
+            # Different suburb → hard reject
+            logger.debug(
+                f"Rejecting AC result (suburb mismatch): search={search_suburbs} item={item_suburbs}"
+            )
+            continue
+        filtered.append(item)
+    candidates = filtered or items  # fall back to all if filter emptied the list
+
+    # Pass 2: distance sort if we have a reference point
+    if ref_lat is not None and ref_lng is not None:
+        scored: list[tuple[float, dict]] = []
+        for item in candidates:
+            ix, iy = item.get("x"), item.get("y")
+            if ix is None or iy is None:
+                scored.append((float("inf"), item))
+                continue
+            try:
+                d = _haversine_m(ref_lat, ref_lng, float(iy), float(ix))
+            except (TypeError, ValueError):
+                d = float("inf")
+            scored.append((d, item))
+        scored.sort(key=lambda t: t[0])
+        if scored and scored[0][0] <= 2000:  # 2 km hard ceiling
+            return scored[0][1].get("id")
+        # If the nearest match is > 2 km, this isn't the right property
+        if scored and scored[0][0] != float("inf"):
+            logger.debug(f"AC nearest result is {scored[0][0]:.0f}m away — rejecting")
+            return None
+
+    # Pass 3: word-overlap fallback
+    best_key = None
+    best_score = -1
+    for item in candidates:
+        addr = (item.get("address") or item.get("name") or "").lower()
         addr_words = set(addr.replace(",", " ").split())
-        # Score = number of matching words
         score = len(search_words & addr_words)
         if score > best_score:
             best_score = score
@@ -75,10 +156,27 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
             # Fall back to cache
             return await _get_cached(address, conn) if conn else None
 
-        # Find best match — verify suburb/street aligns with search to avoid
-        # "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe"
+        # Look up the requested address's coordinates so _best_match can reject
+        # results that are far away (e.g. "1 Queen Street Pukekohe" when the user
+        # asked for "1 Queen Street Auckland Central").
+        ref_lat, ref_lng = None, None
+        if conn:
+            try:
+                cur = await conn.execute(
+                    "SELECT ST_Y(geom) AS lat, ST_X(geom) AS lng FROM addresses "
+                    "WHERE full_address = %s LIMIT 1",
+                    [address],
+                )
+                row = cur.fetchone()
+                if row and row.get("lat") is not None and row.get("lng") is not None:
+                    ref_lat, ref_lng = float(row["lat"]), float(row["lng"])
+            except Exception as e:
+                logger.debug(f"AC rates ref coord lookup failed: {e}")
+
+        # Find best match — verify suburb/street + distance align with search to
+        # avoid "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe"
         items = search_data["items"]
-        rate_key = _best_match(items, search_addr)
+        rate_key = _best_match(items, search_addr, ref_lat, ref_lng)
         if not rate_key:
             return await _get_cached(address, conn) if conn else None
 

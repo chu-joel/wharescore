@@ -1453,13 +1453,27 @@ def _load_council_wfs(
 
 
 def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland flood prone areas."""
+    """Auckland flood prone areas. The AC 'Flood_Prone_Areas' FeatureServer has
+    no human-readable name field — only FPA_ID (numeric), depth, and volume — so
+    we synthesize a descriptive label from the 100-year ARI depth instead of
+    leaking OBJECTIDs into hazards.flood_extent_label."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0"
+
+    def _label(a: dict) -> str:
+        depth = a.get("Depth100y")
+        try:
+            d = float(depth) if depth is not None else None
+        except (TypeError, ValueError):
+            d = None
+        if d is None or d <= 0:
+            return "Flood Prone Area (100-yr ARI)"
+        return f"Flood Prone Area ({d:.1f}m depth, 100-yr ARI)"
+
     return _load_council_arcgis(
         conn, log, url, "flood_hazard", "auckland",
         ["name", "hazard_ranking", "hazard_type"],
         lambda a: (
-            _clean(a.get("FPA_ID")) or "Flood Prone Area",
+            _label(a),
             "High" if (a.get("Depth100y") or 0) > 0.5 else "Medium" if (a.get("Depth100y") or 0) > 0 else "Low",
             "Flood Prone",
         ),
@@ -1557,10 +1571,46 @@ def _fetch_arcgis_with_domains(base_url: str, max_per_page: int = 1000) -> list[
     return all_features
 
 
+def _fetch_arcgis_coded_value_domains(base_url: str) -> dict[str, dict]:
+    """Return a dict {field_name: {code: name}} built from a FeatureServer layer's
+    metadata. ArcGIS FeatureServer publishes coded-value domains under
+    layer.fields[].domain.codedValues even though query responses return raw codes
+    (returnDomainValues=true is unreliable on FeatureServer)."""
+    try:
+        meta = json.loads(_fetch_url(f"{base_url}?f=json"))
+    except Exception as e:
+        logger.warning(f"Could not fetch ArcGIS layer metadata for {base_url}: {e}")
+        return {}
+    out: dict[str, dict] = {}
+    for field in meta.get("fields", []):
+        domain = field.get("domain") or {}
+        if domain.get("type") != "codedValue":
+            continue
+        mapping = {cv.get("code"): cv.get("name") for cv in domain.get("codedValues", [])}
+        # Store under the field name; keys are typically ints but also register
+        # stringified keys for safety since some ArcGIS servers return codes as
+        # strings.
+        combined = {}
+        for k, v in mapping.items():
+            combined[k] = v
+            combined[str(k)] = v
+        out[field["name"]] = combined
+    return out
+
+
 def load_auckland_plan_zones(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland Unitary Plan base zones."""
+    """Auckland Unitary Plan base zones. The FeatureServer exposes ZONE and
+    GROUPZONE as numeric codes (e.g. 35 = 'Business - City Centre Zone'), so we
+    read the coded-value domains from the layer metadata and resolve them before
+    inserting."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Unitary_Plan_Base_Zone/FeatureServer/0"
     _progress(log, "Fetching Auckland Unitary Plan zones...")
+    domains = _fetch_arcgis_coded_value_domains(url)
+    zone_lookup = domains.get("ZONE") or {}
+    group_lookup = domains.get("GROUPZONE") or {}
+    if not zone_lookup:
+        logger.warning("Auckland plan zones: ZONE coded-value domain missing; zone names will fall back to raw codes")
+
     features = _fetch_arcgis_with_domains(url, 2000)
     council = "auckland"
     cur = conn.cursor()
@@ -1574,12 +1624,31 @@ def load_auckland_plan_zones(conn: psycopg.Connection, log: Callable = None) -> 
         wkt = _mp_wkt(geom)
         if not wkt:
             continue
-        zone_name = _clean(a.get("ZONE")) or _clean(a.get("NAME"))
-        group = _clean(a.get("GROUPZONE"))
+        raw_zone = a.get("ZONE")
+        raw_group = a.get("GROUPZONE")
+        # Resolve codes → human names. Doubles like 35.0 also need to hit the
+        # lookup, so try the int form too.
+        def _resolve(lookup: dict, code):
+            if code is None:
+                return None
+            if code in lookup:
+                return lookup[code]
+            try:
+                return lookup.get(int(code))
+            except (TypeError, ValueError):
+                return None
+
+        zone_name = _resolve(zone_lookup, raw_zone) or _clean(a.get("NAME"))
+        group_name = _resolve(group_lookup, raw_group)
+        # Fall back to the raw code only as a last resort so the report doesn't
+        # render integers.
+        if not zone_name and raw_zone is not None:
+            zone_name = str(raw_zone)
+        zone_code = str(int(raw_zone)) if isinstance(raw_zone, (int, float)) and raw_zone is not None else (str(raw_zone) if raw_zone is not None else "")
         cur.execute(
             "INSERT INTO district_plan_zones (zone_name, zone_code, category, source_council, geom) "
             "VALUES (%s, %s, %s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), 2193), 4326))",
-            (zone_name, str(a.get("ZONE", "")), group, council, wkt),
+            (zone_name, zone_code, group_name, council, wkt),
         )
         count += 1
     conn.commit()
@@ -5187,8 +5256,12 @@ DATA_SOURCES: list[DataSource] = [
     # ══════════════════════════════════════════════════════════
     DataSource("chch_plan_zones", "Christchurch District Plan Zones",
         ["district_plan_zones"],
+        # Use the GCSPCombined MapServer, not GCSP FeatureServer — the
+        # FeatureServer has a stale snapshot with null ZoneType/ZoneCode at
+        # Central City addresses (e.g. Cathedral Square), while the MapServer
+        # layer is up-to-date and returns 'City centre zone' / 'CCZ' correctly.
         lambda conn, log=None: _load_council_arcgis(conn, log,
-            "https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/0",
+            "https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSPCombined/MapServer/0",
             "district_plan_zones", "christchurch",
             ["zone_name", "zone_code", "category"],
             lambda a: (_clean(a.get("ZoneType")), _clean(a.get("ZoneCode")), None))),

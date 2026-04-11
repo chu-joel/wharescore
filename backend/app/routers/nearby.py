@@ -228,7 +228,11 @@ async def nearby_consents(
     address_id: int,
     radius: int = Query(500, le=2000),
 ):
-    """Granted resource consents within radius, last 2 years."""
+    """Granted resource consents within radius.
+    Note: commencement_date is stored as raw text from ArcGIS (epoch ms for GWRC,
+    text for ECan) so we can't filter by it server-side. We return recent-looking
+    consents sorted by distance. Status match uses ILIKE to tolerate casing variants
+    ("Granted", "granted", "GRANTED") — mirrors the report SQL in migration 0022."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
@@ -240,8 +244,7 @@ async def nearby_consents(
             FROM resource_consents rc, addr
             WHERE rc.geom && ST_Expand(addr.geom, %s * 0.00001)
               AND ST_DWithin(rc.geom::geography, addr.geom::geography, %s)
-              AND rc.status IN ('Granted', 'Active')
-              AND rc.commencement_date >= CURRENT_DATE - interval '2 years'
+              AND rc.status ILIKE '%%granted%%'
             ORDER BY distance_m
             LIMIT 30
             """,

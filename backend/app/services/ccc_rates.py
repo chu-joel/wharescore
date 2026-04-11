@@ -30,6 +30,12 @@ async def fetch_ccc_rates(address: str, conn=None) -> dict | None:
     """Fetch property data from CCC ArcGIS via spatial query.
     Since CCC has no address field, we look up the address coordinates
     from our DB and do a spatial query against the CCC point layer.
+
+    CBD parcels can have multiple CCC records within 50 m (overlapping towers,
+    stratum estates, shared-driveway splits). We ask ArcGIS to return the result
+    geometry and pick the point closest to our address, not an arbitrary first
+    feature. If the nearest record has a null CapitalValue, return None rather
+    than emit a useless all-null response.
     """
     try:
         if not conn:
@@ -44,9 +50,9 @@ async def fetch_ccc_rates(address: str, conn=None) -> dict | None:
         if not row or not row.get("lng"):
             return None
 
-        lng, lat = row["lng"], row["lat"]
+        lng, lat = float(row["lng"]), float(row["lat"])
 
-        # Spatial query: find the nearest CCC rating unit
+        # Spatial query — return geometry so we can rank by true distance.
         params = {
             "geometry": f"{lng},{lat}",
             "geometryType": "esriGeometryPoint",
@@ -55,7 +61,8 @@ async def fetch_ccc_rates(address: str, conn=None) -> dict | None:
             "units": "esriSRUnit_Meter",
             "inSR": "4326",
             "outFields": OUT_FIELDS,
-            "returnGeometry": "false",
+            "returnGeometry": "true",
+            "outSR": "4326",
             "f": "json",
         }
         url = f"{CCC_PROPERTIES_URL}?{urllib.parse.urlencode(params)}"
@@ -64,12 +71,39 @@ async def fetch_ccc_rates(address: str, conn=None) -> dict | None:
         if not data or not data.get("features"):
             return None
 
-        prop = data["features"][0]["attributes"]
+        prop = _pick_nearest(data["features"], lat, lng)
+        if prop is None:
+            return None
+        # If this CCC record has no CV, treat as a miss rather than return nulls.
+        if _safe_int(prop.get("CapitalValue")) is None:
+            return None
         return _format_response(prop)
 
     except Exception as e:
         logger.warning(f"CCC ArcGIS error for {address}: {e}")
         return None
+
+
+def _pick_nearest(features: list[dict], lat: float, lng: float) -> dict | None:
+    """Return the attributes dict of the feature whose point is closest to (lat, lng)."""
+    import math
+
+    def d(f: dict) -> float:
+        g = f.get("geometry") or {}
+        fx, fy = g.get("x"), g.get("y")
+        if fx is None or fy is None:
+            return float("inf")
+        # Simple equirectangular — CCC features are all within a few km of lat,
+        # which is more than precise enough for ranking.
+        dx = (float(fx) - lng) * math.cos(math.radians(lat))
+        dy = float(fy) - lat
+        return dx * dx + dy * dy
+
+    sorted_feats = sorted(features, key=d)
+    if not sorted_feats:
+        return None
+    nearest = sorted_feats[0]
+    return nearest.get("attributes") or None
 
 
 def _format_response(prop: dict) -> dict:
