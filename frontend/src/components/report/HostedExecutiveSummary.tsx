@@ -57,20 +57,35 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
     stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
   }
 
+  // Skip "Use" when the value is literally "Unknown" — showing a prominent "Unknown" cell
+  // undermines confidence in the rest of the card.
   const buildingUse = String(rawProp.building_use ?? '');
-  if (buildingUse) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Use', value: buildingUse });
+  if (buildingUse && buildingUse.toLowerCase() !== 'unknown') {
+    stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Use', value: buildingUse });
+  }
 
   const titleType = String(rawProp.title_type ?? '');
   const titleNo = String(rawProp.title_no ?? '');
-  if (titleType) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
+  if (titleType && titleType.toLowerCase() !== 'unknown') {
+    stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title', value: titleType });
+  }
   if (titleNo && persona === 'buyer') stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Title Ref', value: titleNo });
 
+  // Estate description is raw legal jargon (e.g. "Stratum in Freehold, 1/1, Unit 3 and Accessory
+  // Unit A3 DP 85559"). Collapsed into the details accordion below instead of the big stat grid
+  // so it doesn't dominate the card for renters who can't act on it.
   const estateDesc = String(rawProp.estate_description ?? '');
-  if (estateDesc) stats.push({ icon: <Building2 className="h-3.5 w-3.5" />, label: 'Estate', value: estateDesc });
 
+  // Zone display: the zone category often duplicates the tail of the zone name (e.g.
+  // "High Density Residential Zone" + "Zone"). Only show the category parenthetically when
+  // it adds real information.
   const zoneName = String(rawPlan.zone_name ?? '');
   const zoneCategory = String(rawPlan.zone_category ?? '');
-  const zoneDisplay = zoneCategory && zoneCategory !== zoneName ? `${zoneName} (${zoneCategory})` : zoneName;
+  const categoryIsRedundant =
+    !zoneCategory ||
+    zoneCategory === zoneName ||
+    zoneName.toLowerCase().includes(zoneCategory.toLowerCase());
+  const zoneDisplay = categoryIsRedundant ? zoneName : `${zoneName} (${zoneCategory})`;
   if (zoneName) stats.push({ icon: <MapPin className="h-3.5 w-3.5" />, label: 'Zone', value: zoneDisplay });
 
   const transitStops = report.liveability?.transit_count;
@@ -210,18 +225,25 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         )}
 
         {/* ── Rent / Yield context ── */}
-        {persona === 'renter' && medianRent && (
+        {/* Renter: show the PERSONALISED fair-band for this bedroom count / condition, not the
+            area all-beds median (which was previously labelled "Market rent estimate" and sat
+            adjacent to a different number in the Rent Advisor below). */}
+        {persona === 'renter' && rentBand?.baseline && rentBand.bandLow > 0 && (
           <div className="rounded-lg border border-border bg-piq-primary/5 p-3 mb-5">
             <p className="text-sm">
-              <span className="font-medium text-muted-foreground">Market rent estimate: </span>
-              <span className="font-bold text-piq-primary">${medianRent}/wk</span>
-              <span className="text-muted-foreground"> for this area</span>
+              <span className="font-medium text-muted-foreground">Fair rent for a {storeBedrooms ?? ''}-bed here: </span>
+              <span className="font-bold text-piq-primary">${rentBand.bandLow}–${rentBand.bandHigh}/wk</span>
               {market?.trend?.cagr_1yr != null && (
                 <span className={`ml-2 text-xs font-medium ${market.trend!.cagr_1yr! >= 0 ? 'text-piq-accent-warm' : 'text-piq-success'}`}>
-                  {market.trend!.cagr_1yr! >= 0 ? '+' : ''}{market.trend!.cagr_1yr!.toFixed(1)}%/yr
+                  {market.trend!.cagr_1yr! >= 0 ? '+' : ''}{market.trend!.cagr_1yr!.toFixed(1)}%/yr area trend
                 </span>
               )}
             </p>
+            {medianRent && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Area all-sizes median: ${medianRent}/wk · {rentBand.baseline.bond_count} recent bonds in {snapshot.meta.sa2_name}
+              </p>
+            )}
           </div>
         )}
         {persona === 'buyer' && rentBand?.baseline && rentBand.bandLow > 0 && (
@@ -250,6 +272,18 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
               {areaProfile}
             </p>
           </div>
+        )}
+
+        {/* ── Estate / title description (collapsed by default) ── */}
+        {estateDesc && (
+          <details className="text-xs text-muted-foreground group">
+            <summary className="cursor-pointer select-none hover:text-foreground transition-colors">
+              Title &amp; estate details
+            </summary>
+            <p className="mt-1.5 font-mono leading-relaxed break-words">
+              {estateDesc}
+            </p>
+          </details>
         )}
       </div>
     </div>

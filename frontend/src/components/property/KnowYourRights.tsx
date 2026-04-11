@@ -5,6 +5,8 @@ import type { PropertyReport } from '@/lib/types';
 
 interface Props {
   report: PropertyReport;
+  /** User's actual weekly rent from the sidebar input. Bond max is computed from this first, falling back to area median. */
+  userRent?: number | null;
 }
 
 interface RightItem {
@@ -19,10 +21,15 @@ interface RightItem {
  * Shows rights the tenant may not know about, personalized to the property.
  * Based on Residential Tenancies Act 1986 (as amended 2024).
  */
-export function KnowYourRights({ report }: Props) {
+export function KnowYourRights({ report, userRent }: Props) {
   const hazards = report.hazards;
   const market = report.market;
   const medianRent = market?.rent_assessment?.median;
+  // Prefer the user's own rent (from sidebar input) over the area median so the bond max reflects what they're actually paying.
+  const rentForBond = (userRent && userRent > 0) ? userRent : medianRent;
+  const bondSource: 'user' | 'median' | null = (userRent && userRent > 0)
+    ? 'user'
+    : (medianRent ? 'median' : null);
 
   const rights: RightItem[] = [];
 
@@ -35,13 +42,14 @@ export function KnowYourRights({ report }: Props) {
   });
 
   // Bond maximum
-  if (medianRent) {
-    const maxBond = medianRent * 4;
-    const maxPetBond = medianRent * 2;
+  if (rentForBond) {
+    const maxBond = rentForBond * 4;
+    const maxPetBond = rentForBond * 2;
+    const basisLabel = bondSource === 'user' ? 'your rent' : 'the area median';
     rights.push({
       icon: DollarSign,
       title: `Your bond cannot exceed $${maxBond.toLocaleString()}`,
-      detail: `At $${medianRent}/wk, the maximum bond is 4 weeks ($${maxBond.toLocaleString()}). Pet bond: up to 2 extra weeks ($${maxPetBond.toLocaleString()}) from Dec 2025. Verify your bond was lodged at tenancy.govt.nz within 23 working days.`,
+      detail: `At $${rentForBond}/wk (${basisLabel}), the maximum bond is 4 weeks ($${maxBond.toLocaleString()}). Pet bond: up to 2 extra weeks ($${maxPetBond.toLocaleString()}) from Dec 2025. Verify your bond was lodged at tenancy.govt.nz within 23 working days.`,
       source: 'RTA s19',
     });
   }

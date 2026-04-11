@@ -17,10 +17,17 @@ interface RiskHazardsSectionProps {
 }
 
 export function RiskHazardsSection({ category, hazards, environment, persona }: RiskHazardsSectionProps) {
-  const available = category.indicators.filter((i) => i.is_available);
+  // Crime has its own dedicated CrimeCard inside the NeighbourhoodSection — suppress
+  // the short "Crime — Higher than average" indicator here so the same information
+  // doesn't show up twice on the same report.
+  const available = category.indicators.filter(
+    (i) => i.is_available && !i.name.toLowerCase().includes('crime'),
+  );
   const critical = available.filter((i) => i.score >= 60);
   const normal = available.filter((i) => i.score < 60);
-  const unavailable = category.indicators.filter((i) => !i.is_available);
+  const unavailable = category.indicators.filter(
+    (i) => !i.is_available && !i.name.toLowerCase().includes('crime'),
+  );
   const isRenter = persona === 'renter';
 
   if (available.length === 0) {

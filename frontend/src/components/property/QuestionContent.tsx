@@ -32,6 +32,8 @@ import { KnowYourRights } from './KnowYourRights';
 import { PriceAdvisorCard } from './PriceAdvisorCard';
 import { useHostedReport } from '@/components/report/HostedReportContext';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useHostedReportStore } from '@/stores/hostedReportStore';
+import { useRentInputStore } from '@/stores/rentInputStore';
 
 interface QuestionContentProps {
   questionId: QuestionId;
@@ -48,6 +50,11 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
   const hosted = useHostedReport();
   const storePersona = usePersonaStore((s) => s.persona);
   const persona = personaProp ?? storePersona;
+  // Resolve the user's weekly rent from whichever store is authoritative in this context
+  // so KnowYourRights bond max + RenterBudgetCalculator seed + FlatmateFriendly all agree.
+  const hostedWeeklyRent = useHostedReportStore((s) => s.weeklyRent);
+  const onScreenWeeklyRent = useRentInputStore((s) => s.weeklyRent);
+  const userWeeklyRent = hosted ? hostedWeeklyRent : onScreenWeeklyRent;
   if (locked && !hosted) {
     return (
       <ReportUpsell
@@ -179,7 +186,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
             detection={report.property_detection}
           />
           <FlatmateFriendly report={report} />
-          <RenterBudgetCalculator report={report} />
+          <RenterBudgetCalculator report={report} userRent={userWeeklyRent} />
         </div>
       );
     }
@@ -284,7 +291,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
           {/* Landlord checklist is FREE — high-value conversion hook */}
           <LandlordChecklist report={report} />
           {/* Know Your Rights — FREE, builds trust */}
-          <KnowYourRights report={report} />
+          <KnowYourRights report={report} userRent={userWeeklyRent} />
           {/* Detailed renter checklist behind paywall */}
           <PremiumGate label="Full personalised checklist with cost estimates" trigger="default">
             <RenterChecklistContent report={report} />

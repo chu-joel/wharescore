@@ -24,10 +24,15 @@ export function HostedSchools({ rawReport }: Props) {
 
   if (schools.length === 0 && inZone.length === 0) return null;
 
-  // Separate in-zone from other
+  // In-zone schools are already shown above in HostedSchoolZones (with the green enrolment-zone
+  // banner). This component now only lists OTHER nearby schools so the two sections stop
+  // duplicating the same rows on the Full report.
   const inZoneNames = new Set(inZone.map(s => s.name));
-  const inZoneSchools = schools.filter(s => s.in_zone || inZoneNames.has(s.name));
-  const otherSchools = schools.filter(s => !s.in_zone && !inZoneNames.has(s.name)).slice(0, 6);
+  const otherSchools = schools
+    .filter(s => !s.in_zone && !inZoneNames.has(s.name))
+    .slice(0, 8);
+
+  if (otherSchools.length === 0) return null;
 
   const eqiColor = (eqi: number) => {
     if (eqi <= 440) return 'text-piq-success';
@@ -39,31 +44,16 @@ export function HostedSchools({ rawReport }: Props) {
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <GraduationCap className="h-5 w-5 text-piq-primary" />
-        <h3 className="text-lg font-bold">Schools</h3>
+        <h3 className="text-lg font-bold">Other Nearby Schools</h3>
       </div>
       <div className="px-5 pb-5 space-y-4">
-        {/* In-zone schools */}
-        {inZoneSchools.length > 0 && (
-          <div>
-            <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 px-3 py-1.5 mb-2">
-              <span className="text-xs font-semibold text-green-700 dark:text-green-400">
-                In-zone for {inZoneSchools.length} school{inZoneSchools.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <SchoolTable schools={inZoneSchools} highlight eqiColor={eqiColor} />
-          </div>
-        )}
-
-        {/* Other nearby schools */}
-        {otherSchools.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2">Other Nearby Schools</h4>
-            <SchoolTable schools={otherSchools} eqiColor={eqiColor} />
-          </div>
-        )}
-
         <p className="text-xs text-muted-foreground">
-          Source: Ministry of Education. EQI = Education Quality Indicator (lower is better).
+          Schools within 1.5&nbsp;km that you&apos;re <strong>not</strong> in the enrolment zone for. You can still apply
+          out-of-zone if they have spare places.
+        </p>
+        <SchoolTable schools={otherSchools} eqiColor={eqiColor} />
+        <p className="text-xs text-muted-foreground">
+          Source: Ministry of Education. EQI = Education Quality Indicator (lower is better). Deciles were retired in 2023.
         </p>
       </div>
     </div>
@@ -80,7 +70,7 @@ function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; high
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xs font-medium truncate">{s.name}</p>
-                <p className="text-xs text-muted-foreground">{s.type || 'School'}{s.decile ? ` · Decile ${s.decile}` : ''}</p>
+                <p className="text-xs text-muted-foreground">{s.type || 'School'}</p>
               </div>
               <span className="text-xs text-muted-foreground shrink-0">{Math.round(s.distance_m)} m</span>
             </div>
@@ -94,7 +84,6 @@ function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; high
             <tr className="border-b border-border">
               <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">School</th>
               <th className="text-left py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Type</th>
-              <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Decile</th>
               <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">EQI</th>
               <th className="text-center py-1.5 pr-2 text-xs font-semibold text-piq-primary uppercase tracking-wider">Roll</th>
               <th className="text-right py-1.5 text-xs font-semibold text-piq-primary uppercase tracking-wider">Distance</th>
@@ -105,7 +94,6 @@ function SchoolTable({ schools, highlight, eqiColor }: { schools: School[]; high
               <tr key={s.name} className={`border-b border-border/50 last:border-0 ${highlight ? 'bg-green-50/50 dark:bg-green-950/5' : ''}`}>
                 <td className="py-2 pr-2 font-medium text-xs">{s.name}</td>
                 <td className="py-2 pr-2 text-xs text-muted-foreground">{s.type || '\u2013'}</td>
-                <td className="py-2 pr-2 text-center text-xs text-muted-foreground">{s.decile ?? '\u2013'}</td>
                 <td className="py-2 pr-2 text-center">
                   {s.eqi ? (
                     <span className={`text-xs font-semibold ${eqiColor(s.eqi)}`}>{s.eqi}</span>

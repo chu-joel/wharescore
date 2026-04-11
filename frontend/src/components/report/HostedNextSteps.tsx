@@ -26,7 +26,7 @@ export function HostedNextSteps({ persona, report }: Props) {
   const hasHighCrime = (report.liveability?.crime_rate ?? 0) > 70;
 
   const renterCards: ActionCard[] = [
-    { level: 'essential', title: 'Healthy Homes Check', description: 'Request compliance statement — legal requirement since 2021' },
+    { level: 'essential', title: 'Healthy Homes Check', description: 'Request the signed compliance statement — legally required since July 2025' },
     { level: 'essential', title: 'Contents Insurance', description: 'Get quotes — check hazard exclusions for this area' },
     { level: 'recommended', title: 'Visit at Different Times', description: 'Check noise, parking, safety at day and night' },
     { level: 'recommended', title: 'Test Your Commute', description: 'Peak hour transit/drive to work from this address' },

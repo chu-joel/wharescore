@@ -31,12 +31,17 @@ export function HostedInfrastructure({ rawReport }: Props) {
   // Sort by distance, take top 8
   const sorted = [...projects].sort((a, b) => (a.distance_km ?? 99) - (b.distance_km ?? 99)).slice(0, 8);
 
+  const showing = sorted.length;
+  const total = projects.length;
+
   return (
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <Construction className="h-5 w-5 text-piq-primary" />
         <h3 className="text-lg font-bold">Infrastructure Projects</h3>
-        <span className="text-xs text-muted-foreground ml-auto">{projects.length} within 5km</span>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {showing < total ? `Showing ${showing} of ${total} within 5 km` : `${total} within 5 km`}
+        </span>
       </div>
       <div className="px-5 pb-5 space-y-2">
         {sorted.map((p, i) => (

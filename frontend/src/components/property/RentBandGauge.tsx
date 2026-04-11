@@ -50,6 +50,21 @@ export function RentBandGauge({
 
   return (
     <div className="space-y-2">
+      {/* Legend — placed ABOVE the gauge so users read the key before interpreting the numbers. */}
+      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-1.5 rounded-sm bg-piq-primary/20 border border-piq-primary/30" />
+          Fair range
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-1.5 rounded-sm bg-piq-primary/6 border border-piq-primary/15" />
+          Possible range
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: markerColor }} />
+          Your rent
+        </span>
+      </div>
       {/* Bar */}
       <div className="relative h-7 bg-muted rounded-full overflow-visible">
         {/* Outer band (±3% deviation) */}
@@ -110,22 +125,6 @@ export function RentBandGauge({
             Enter your rent to compare
           </span>
         )}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-1.5 rounded-sm bg-piq-primary/20 border border-piq-primary/30" />
-          Fair range
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-1.5 rounded-sm bg-piq-primary/6 border border-piq-primary/15" />
-          Possible range
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: markerColor }} />
-          Your rent
-        </span>
       </div>
     </div>
   );

@@ -48,7 +48,9 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         </h3>
       </div>
 
-      {/* Summary line — must sum to findings.length */}
+      {/* Summary line — must sum to findings.length. Vocabulary matches FindingCard badges
+          (Critical / Watch / Note / Good) so the summary and individual cards speak the
+          same language. */}
       <p className="text-xs text-muted-foreground">
         {criticalCount > 0 && (
           <span className="text-red-600 dark:text-red-400 font-medium">
@@ -62,12 +64,12 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         )}
         {infoCount > 0 && (
           <span className="text-piq-primary font-medium">
-            {infoCount} info{' '}
+            {infoCount} note{infoCount === 1 ? '' : 's'}{' '}
           </span>
         )}
         {positiveCount > 0 && (
           <span className="text-green-600 dark:text-green-400 font-medium">
-            {positiveCount} positive{' '}
+            {positiveCount} good{' '}
           </span>
         )}
         {criticalCount === 0 && warningCount === 0 && (

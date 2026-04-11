@@ -28,9 +28,21 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
   const positiveDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh > 0);
   const negativeDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh < 0);
 
-  // Rental overview by dwelling type
+  // Rental overview by dwelling type — sort by dwelling type then by bedroom count so rows
+  // come out House/Flat/Apartment grouped, then 1→2→3→4→5+→All within each group. Previously
+  // the backend returned them unordered which produced a scrambled table.
   const rawMarket = (snapshot.report.market ?? {}) as Record<string, unknown>;
-  const rentalOverview = (rawMarket.rental_overview ?? []) as { dwelling_type: string; beds: string | null; median: number; bond_count: number }[];
+  const rentalOverviewRaw = (rawMarket.rental_overview ?? []) as { dwelling_type: string; beds: string | null; median: number; bond_count: number }[];
+  const BEDS_ORDER: Record<string, number> = { '1': 1, '2': 2, '3': 3, '4': 4, '5+': 5 };
+  const TYPE_ORDER: Record<string, number> = { 'House': 1, 'Townhouse': 2, 'Flat': 3, 'Apartment': 4, 'Unit': 5, 'Room': 6 };
+  const rentalOverview = [...rentalOverviewRaw].sort((a, b) => {
+    const ta = TYPE_ORDER[a.dwelling_type] ?? 99;
+    const tb = TYPE_ORDER[b.dwelling_type] ?? 99;
+    if (ta !== tb) return ta - tb;
+    const ba = a.beds == null || a.beds === 'All' ? 98 : (BEDS_ORDER[a.beds] ?? 97);
+    const bb = b.beds == null || b.beds === 'All' ? 98 : (BEDS_ORDER[b.beds] ?? 97);
+    return ba - bb;
+  });
 
   return (
     <div className="rounded-xl border border-border bg-card card-elevated p-4 space-y-4">
@@ -110,10 +122,14 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
         </div>
       )}
 
-      {/* Area context */}
+      {/* Area context — these are SUBURB-LEVEL stats (from comparisons.suburb), not property-
+          level. The heading and sub-line make that explicit so the numbers here (22 stops, NZDep 6,
+          70 dB) don't look like this property's own stats — which frequently differ from the
+          personalised values shown elsewhere in the report. */}
       {rentBand.baseline.area_context.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-1.5">About {snapshot.meta.sa2_name}</h4>
+          <h4 className="text-sm font-semibold text-muted-foreground mb-0.5">About {snapshot.meta.sa2_name} (suburb average)</h4>
+          <p className="text-xs text-muted-foreground/70 mb-1.5">These are area-level numbers for context — your specific property&apos;s stats are in the sections above.</p>
           <div className="grid grid-cols-2 gap-1">
             {rentBand.baseline.area_context.map((ctx: RentAreaContext) => (
               <div key={ctx.factor} className="flex items-center gap-1.5 text-xs text-muted-foreground">

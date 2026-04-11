@@ -40,13 +40,19 @@ export function QuickActions({ snapshot, persona }: Props) {
     return true;
   });
 
-  // Take top 3 by severity priority
-  const severityOrder = { critical: 0, important: 1, advisory: 2 };
-  const top3 = [...filtered]
-    .sort((a, b) => (severityOrder[a.severity as keyof typeof severityOrder] ?? 3) - (severityOrder[b.severity as keyof typeof severityOrder] ?? 3))
-    .slice(0, 3);
+  // Take top items by severity priority. Always include all critical + important items,
+  // then fill with advisory up to 5 total so a Quick report with one critical item still
+  // shows context (previously a single-critical property rendered as "Before You Move In —
+  // Contaminated Land" with no other advice, making Quick look empty next to Full).
+  const severityOrder: Record<string, number> = { critical: 0, important: 1, advisory: 2 };
+  const sorted = [...filtered].sort(
+    (a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3),
+  );
+  const criticalAndImportant = sorted.filter(r => r.severity === 'critical' || r.severity === 'important');
+  const advisories = sorted.filter(r => r.severity !== 'critical' && r.severity !== 'important');
+  const top = [...criticalAndImportant, ...advisories].slice(0, 5);
 
-  if (top3.length === 0) return null;
+  if (top.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
@@ -57,7 +63,7 @@ export function QuickActions({ snapshot, persona }: Props) {
         </h3>
       </div>
       <div className="px-5 pb-5 space-y-2">
-        {top3.map((rec, i) => {
+        {top.map((rec, i) => {
           const Icon = SEVERITY_ICON[rec.severity as keyof typeof SEVERITY_ICON] || Circle;
           const color = SEVERITY_COLOR[rec.severity as keyof typeof SEVERITY_COLOR] || 'text-muted-foreground';
           return (

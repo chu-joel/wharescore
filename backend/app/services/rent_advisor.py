@@ -497,19 +497,22 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
 
     context: list[dict] = []
 
-    # NZDep (1=least deprived, 10=most deprived)
+    # NZDep (1=least deprived, 10=most deprived). These describe the SUBURB AVERAGE,
+    # not this specific property — the audit flagged that users were reading the suburb
+    # figures here as this property's own deprivation score, which is typically different
+    # (a single meshblock can diverge substantially from its suburb average).
     if sa2.get("avg_nzdep") is not None:
         nzdep = round(float(sa2["avg_nzdep"]))
         city_nzdep = round(float(ta["avg_nzdep"])) if ta and ta.get("avg_nzdep") else 5
         if nzdep <= 3:
             direction = "up"
-            desc = f"NZDep {nzdep} — less deprived than city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep} — less deprived than city avg ({city_nzdep})"
         elif nzdep >= 8:
             direction = "down"
-            desc = f"NZDep {nzdep} — more deprived than city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep} — more deprived than city avg ({city_nzdep})"
         else:
             direction = "neutral"
-            desc = f"NZDep {nzdep} — similar to city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep} — similar to city avg ({city_nzdep})"
         context.append({
             "factor": "deprivation",
             "label": "Deprivation",
@@ -520,22 +523,23 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Transit
+    # Transit — this is the suburb-wide average of stops within 400m, not stops within 400m
+    # of this specific property (which is reported elsewhere in liveability.transit_stops_400m).
     if sa2.get("transit_count_400m") is not None:
         tc = sa2["transit_count_400m"]
         city_tc = ta["transit_count_400m"] if ta and ta.get("transit_count_400m") else 0
         if tc >= 10:
             direction = "up"
-            desc = f"{tc} stops within 400m — excellent access"
+            desc = f"Suburb avg {tc} stops within 400m — excellent access"
         elif tc >= 3:
             direction = "up"
-            desc = f"{tc} stops within 400m — good access"
+            desc = f"Suburb avg {tc} stops within 400m — good access"
         elif tc >= 1:
             direction = "neutral"
-            desc = f"{tc} stop{'s' if tc > 1 else ''} within 400m — limited access"
+            desc = f"Suburb avg {tc} stop{'s' if tc > 1 else ''} within 400m — limited access"
         else:
             direction = "down"
-            desc = "No transit stops within 400m"
+            desc = "Suburb average: no transit stops within 400m"
         context.append({
             "factor": "transit",
             "label": "Transit",
@@ -546,19 +550,19 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Schools
+    # Schools — also a suburb-wide average, not this property's own count.
     if sa2.get("school_count_1500m") is not None:
         sc = sa2["school_count_1500m"]
         city_sc = ta["school_count_1500m"] if ta and ta.get("school_count_1500m") else 0
         if sc >= 5:
             direction = "up"
-            desc = f"{sc} schools within 1.5km — above average"
+            desc = f"Suburb avg {sc} schools within 1.5km — above average"
         elif sc >= 2:
             direction = "neutral"
-            desc = f"{sc} schools within 1.5km"
+            desc = f"Suburb avg {sc} schools within 1.5km"
         else:
             direction = "down"
-            desc = f"{sc} school{'s' if sc != 1 else ''} within 1.5km — below average"
+            desc = f"Suburb avg {sc} school{'s' if sc != 1 else ''} within 1.5km — below average"
         context.append({
             "factor": "schools",
             "label": "Schools",
@@ -569,18 +573,20 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Noise
+    # Noise — this is the MAX road noise recorded anywhere in the suburb, not the noise
+    # at this property. Prefix "Suburb peak" so renters don't read it as a measurement
+    # for their specific address.
     if sa2.get("max_noise_db") is not None:
         noise = sa2["max_noise_db"]
         if noise >= 65:
             direction = "down"
-            desc = f"{noise} dB — noisy area"
+            desc = f"Suburb peak {noise} dB — noisy area"
         elif noise >= 55:
             direction = "neutral"
-            desc = f"{noise} dB — moderate noise"
+            desc = f"Suburb peak {noise} dB — moderate noise"
         else:
             direction = "up"
-            desc = f"Below 55 dB — quiet area"
+            desc = "Suburb peak below 55 dB — quiet area"
             noise = 50  # default for display
         context.append({
             "factor": "noise",

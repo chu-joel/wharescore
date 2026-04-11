@@ -45,7 +45,7 @@ export function CategoryRadar({ categories }: CategoryRadarProps) {
     <div className="rounded-xl border border-border bg-card p-4 card-elevated">
       <p className="text-sm font-bold">Property Profile</p>
       <p className="text-xs text-muted-foreground mb-2">
-        Lower is better — higher scores indicate more risk
+        Each axis is a risk score (0–100). Smaller web = lower overall risk.
       </p>
       <ResponsiveContainer width="100%" height={240}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">

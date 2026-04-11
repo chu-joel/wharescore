@@ -27,44 +27,67 @@ export function QuickVerdict({ snapshot, persona, rentBand, userRent }: Props) {
   return <BuyerVerdict snapshot={snapshot} />;
 }
 
+// Map the full-report rent verdict keys (below-market / fair / slightly-high / high / very-high)
+// to a compact label + color. Previously this used mis-named keys ("below", "above") that never fired,
+// so the verdict badge was always blank.
+const VERDICT_MAP: Record<string, { label: string; color: string }> = {
+  'below-market': { label: 'Below market', color: 'text-emerald-600 dark:text-emerald-400' },
+  'fair': { label: 'Fair', color: 'text-emerald-600 dark:text-emerald-400' },
+  'slightly-high': { label: 'Slightly high', color: 'text-amber-600 dark:text-amber-400' },
+  'high': { label: 'High', color: 'text-red-600 dark:text-red-400' },
+  'very-high': { label: 'Well above market', color: 'text-red-600 dark:text-red-400' },
+};
+
 function RenterVerdict({ rentBand, userRent }: { rentBand: Props['rentBand']; userRent: number | null }) {
   const { baseline, bandLow, bandHigh, bandLowOuter, bandHighOuter, verdict } = rentBand;
   if (!baseline || !bandLow) return null;
 
-  const displayRent = userRent || baseline.raw_median;
+  // The fair rent headline should show the MIDPOINT of the fair band for THIS property
+  // (bedrooms + condition + hazards), not the area all-beds median. Previously this
+  // rendered the area median which was frequently below the fair-band floor, confusing renters.
+  const fairMid = Math.round((bandLow + bandHigh) / 2);
 
-  const verdictColor = verdict === 'below' || verdict === 'fair'
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : verdict === 'above'
-    ? 'text-amber-600 dark:text-amber-400'
-    : verdict === 'well above'
-    ? 'text-red-600 dark:text-red-400'
-    : 'text-muted-foreground';
-
-  const verdictLabel = verdict === 'below' ? 'Below market' : verdict === 'fair' ? 'Fair' : verdict === 'above' ? 'Above market' : verdict === 'well above' ? 'Well above market' : 'Market rate';
+  const v = verdict ? VERDICT_MAP[verdict] : null;
+  const hasUserRent = userRent && userRent > 0;
 
   return (
     <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <DollarSign className="h-5 w-5 text-piq-primary" />
         <h3 className="text-lg font-bold">Rent Verdict</h3>
-        {verdict && (
-          <span className={`ml-auto text-sm font-semibold ${verdictColor}`}>{verdictLabel}</span>
+        {v && hasUserRent && (
+          <span className={`ml-auto text-sm font-semibold ${v.color}`}>{v.label}</span>
         )}
       </div>
       <div className="px-5 pb-5 space-y-4">
         <div className="text-center">
-          <p className="text-3xl font-bold tabular-nums">${Math.round(baseline.raw_median)}</p>
-          <p className="text-xs text-muted-foreground">estimated fair rent /week</p>
+          <p className="text-3xl font-bold tabular-nums">${fairMid}</p>
+          <p className="text-xs text-muted-foreground">
+            estimated fair rent /week
+            <span className="block mt-0.5 text-muted-foreground/70">Fair band: ${bandLow}–${bandHigh}/wk</span>
+          </p>
         </div>
-        <RentBandGauge
-          bandLow={bandLow}
-          bandHigh={bandHigh}
-          bandLowOuter={bandLowOuter}
-          bandHighOuter={bandHighOuter}
-          userRent={displayRent}
-          rawMedian={baseline.raw_median}
-        />
+        {hasUserRent ? (
+          <RentBandGauge
+            bandLow={bandLow}
+            bandHigh={bandHigh}
+            bandLowOuter={bandLowOuter}
+            bandHighOuter={bandHighOuter}
+            userRent={userRent}
+            rawMedian={baseline.raw_median}
+          />
+        ) : (
+          // No user-entered rent yet — skip the "Your rent" gauge (which previously rendered
+          // a fake default) and show the suburb band with a prompt to upgrade for interactivity.
+          <div className="rounded-lg bg-muted/40 border border-dashed border-border p-3 text-center">
+            <p className="text-xs text-muted-foreground">
+              Upgrade to the Full Report to enter your own rent and see a personalised fairness verdict.
+            </p>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground text-center">
+          Area median: ${Math.round(baseline.raw_median)}/wk · {baseline.bond_count} recent bonds
+        </p>
       </div>
     </div>
   );

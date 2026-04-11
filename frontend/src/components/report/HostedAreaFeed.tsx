@@ -57,8 +57,11 @@ function mmiDescription(mmi: number): string {
   return 'Extreme';
 }
 
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toLocaleDateString('en-NZ', {
+function formatDate(timestamp: string | null | undefined): string {
+  if (!timestamp) return 'Unknown';
+  const d = new Date(timestamp);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleDateString('en-NZ', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
 }
@@ -199,6 +202,17 @@ interface TopEvent {
 
 function pickTopEvents(events: AreaFeedEvent[], weatherHistory: ReportSnapshot['weather_history']): TopEvent[] {
   const tops: TopEvent[] = [];
+  // Dedup keys so the same storm/quake can't appear twice across the feed + weather history.
+  // Previous behaviour produced pairs like "159km/h wind gusts" (from snapshot) and a near-
+  // identical NEMA/MetService feed entry next to it. Keying on headline + date filters that out.
+  const seen = new Set<string>();
+  const pushIfFresh = (ev: TopEvent) => {
+    if (!ev.dateStr || ev.dateStr === 'Unknown') return;
+    const key = `${ev.headline}|${ev.dateStr}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    tops.push(ev);
+  };
 
   // Sort feed events by severity then date
   const sorted = [...events].sort((a, b) => {
@@ -212,7 +226,7 @@ function pickTopEvents(events: AreaFeedEvent[], weatherHistory: ReportSnapshot['
   // Find biggest earthquake
   const quake = sorted.find(e => e.magnitude != null);
   if (quake) {
-    tops.push({
+    pushIfFresh({
       headline: `M${quake.magnitude!.toFixed(1)}`,
       subline: 'quake',
       detail: quake.distance_km != null ? `${quake.distance_km < 1 ? '<1' : quake.distance_km.toFixed(0)}km` : '',
@@ -226,7 +240,7 @@ function pickTopEvents(events: AreaFeedEvent[], weatherHistory: ReportSnapshot['
   if (weatherHistory?.length) {
     const rain = [...weatherHistory].sort((a, b) => (b.precipitation_mm ?? 0) - (a.precipitation_mm ?? 0))[0];
     if (rain?.precipitation_mm && rain.precipitation_mm > 0) {
-      tops.push({
+      pushIfFresh({
         headline: `${rain.precipitation_mm.toFixed(0)}mm`,
         subline: rain.severity ? `${rain.severity} rain` : 'rainfall',
         detail: rain.title || '',
@@ -238,7 +252,7 @@ function pickTopEvents(events: AreaFeedEvent[], weatherHistory: ReportSnapshot['
 
     const wind = [...weatherHistory].sort((a, b) => (b.wind_gust_kmh ?? 0) - (a.wind_gust_kmh ?? 0))[0];
     if (wind?.wind_gust_kmh && wind.wind_gust_kmh > 0 && wind !== rain) {
-      tops.push({
+      pushIfFresh({
         headline: `${wind.wind_gust_kmh.toFixed(0)}km/h`,
         subline: 'wind gusts',
         detail: wind.title || '',
@@ -253,7 +267,7 @@ function pickTopEvents(events: AreaFeedEvent[], weatherHistory: ReportSnapshot['
   for (const evt of sorted) {
     if (tops.length >= 3) break;
     if (evt.magnitude != null && quake) continue; // already have quake
-    tops.push({
+    pushIfFresh({
       headline: evt.title.split(' ')[0] || evt.type,
       subline: evt.title,
       detail: evt.distance_km != null ? `${evt.distance_km.toFixed(0)}km` : '',

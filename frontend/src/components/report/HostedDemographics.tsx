@@ -69,16 +69,23 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
     ? Math.round(((demo.population_2023 - demo.population_2018) / demo.population_2018) * 100)
     : null;
 
-  // Commute mode percentages
+  // Commute mode percentages — include an "Other" bucket so the bars always sum to 100%
+  // (previously the five named modes totalled only ~89% with no visible remainder).
   const commuteTotal = commute?.total_stated || 0;
-  const commuteModes = commuteTotal > 0 ? [
+  const commuteModesRaw = commuteTotal > 0 ? [
     { label: 'Drive', value: Math.round(((commute?.drive_private || 0) + (commute?.drive_company || 0)) / commuteTotal * 100), color: 'bg-blue-400' },
     { label: 'WFH', value: Math.round((commute?.work_at_home || 0) / commuteTotal * 100), color: 'bg-green-400' },
     { label: 'Bus', value: Math.round((commute?.public_bus || 0) / commuteTotal * 100), color: 'bg-yellow-400' },
     { label: 'Walk', value: Math.round((commute?.walk_or_jog || 0) / commuteTotal * 100), color: 'bg-purple-400' },
     { label: 'Train', value: Math.round((commute?.train || 0) / commuteTotal * 100), color: 'bg-red-400' },
     { label: 'Cycle', value: Math.round((commute?.bicycle || 0) / commuteTotal * 100), color: 'bg-teal-400' },
-  ].filter(m => m.value > 0) : [];
+  ] : [];
+  const commuteSum = commuteModesRaw.reduce((a, m) => a + m.value, 0);
+  const otherPct = commuteTotal > 0 ? Math.max(0, 100 - commuteSum) : 0;
+  const commuteModes = commuteModesRaw.filter(m => m.value > 0);
+  if (otherPct > 0) {
+    commuteModes.push({ label: 'Other', value: otherPct, color: 'bg-slate-400' });
+  }
 
   // Ethnicity breakdown
   const ethTotal = demo?.ethnicity_total || 0;
@@ -181,7 +188,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
               Household Income
             </h3>
             <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center mb-3">
-              <div className="text-2xl font-bold text-green-700">${fmt(hh.income_median)}</div>
+              <div className="text-2xl font-bold text-green-700 tabular-nums">${fmt(hh.income_median)}</div>
               <div className="text-xs text-green-600">Median Household Income</div>
             </div>
             {incomeBars.length > 0 && <BarChart items={incomeBars} />}

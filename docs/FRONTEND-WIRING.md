@@ -107,7 +107,7 @@ Rendered when `report_tier === 'quick'`. **Free with sign-in.** Single-column, n
 | `report.hazards` | QuickHazardSummary | New (traffic lights) |
 | `school_zones` | HostedSchoolZones | Yes |
 | `nearby_highlights` | HostedNearbyHighlights | Yes |
-| `recommendations` | QuickActions | New (top 3 only) |
+| `recommendations` | QuickActions | Shows all critical + important items first, then fills with advisory up to 5 total (was hard-capped at 3, which left renters with a lone "Contaminated Land" bullet on sparse properties). |
 | — | QuickUpgradeBanner | POST /report/{token}/upgrade → uses credit if available (instant reload), else Stripe checkout |
 
 ---

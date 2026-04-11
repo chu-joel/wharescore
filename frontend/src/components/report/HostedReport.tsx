@@ -79,6 +79,12 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   const generatedDate = new Date(snapshot.meta.generated_at).toLocaleDateString('en-NZ', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
+  const generatedTimeLabel = (() => {
+    const d = new Date(snapshot.meta.generated_at);
+    if (Number.isNaN(d.getTime())) return null;
+    const hour = d.getHours();
+    return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  })();
 
   const [copied, setCopied] = useState(false);
   const handleShare = async () => {
@@ -119,7 +125,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <a href="/" className="flex items-center gap-1.5 text-piq-primary font-bold text-sm tracking-tight shrink-0 hover:opacity-80 transition-opacity" title="Back to WhareScore">
+            <a href="/" className="flex items-center gap-1.5 text-piq-primary font-bold text-sm tracking-tight shrink-0 hover:opacity-80 transition-opacity min-h-[44px]" title="Back to WhareScore" aria-label="Back to WhareScore home">
               <ArrowLeft className="h-3.5 w-3.5" />
               WhareScore
             </a>
@@ -127,14 +133,14 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snapshot.meta.full_address}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={handleShare} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors" title="Copy link to clipboard">
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] justify-center" title="Copy link to clipboard" aria-label="Share — copy report link">
               <Share2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
                 {copied ? 'Copied!' : 'Share'}
               </span>
               {copied && <span className="text-xs text-piq-primary font-medium sm:hidden">Copied!</span>}
             </button>
-            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors" title="Print or save as PDF using your browser's print dialog">
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-piq-primary text-white text-xs font-medium hover:bg-piq-primary/90 transition-colors min-h-[44px] min-w-[44px] justify-center" title="Print or save as PDF using your browser's print dialog" aria-label="Print report">
               <Printer className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Print</span>
             </button>
@@ -153,7 +159,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             {persona === 'renter' ? 'Renter Report' : 'Buyer Report'}
           </div>
 
-          <h1 className="hidden sm:block text-2xl sm:text-3xl font-bold tracking-tight">{snapshot.meta.full_address}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">{snapshot.meta.full_address}</h1>
           <p className="text-sm text-muted-foreground">{snapshot.meta.sa2_name} · {snapshot.meta.ta_name}</p>
 
           {hasScores && bin && (
@@ -193,12 +199,12 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
 
           <p className="text-xs text-muted-foreground">
             <Calendar className="h-3 w-3 inline mr-1" />
-            Generated {generatedDate}
+            Generated {generatedDate}{generatedTimeLabel ? ` (${generatedTimeLabel})` : ''}
           </p>
 
           {/* First-visit orientation */}
           <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-            Your personalised property intelligence report. Scroll down to explore, or use the tabs to jump between property details and area insights.
+            Your personalised property intelligence report. Scroll down to explore, or switch between <strong>Your Property</strong> and <strong>The Area</strong> using the tabs below.
           </p>
         </div>
 
@@ -267,10 +273,10 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 <HostedAreaFeed feed={areaFeed} snapshot={snapshot} />
               </div>
 
-              {/* Mobile sidebar */}
-              <div className="lg:hidden print:hidden pb-6">
+              {/* Mobile sidebar (inline copy, hidden on lg+). Screen readers ignore the floating copy on mobile via aria-hidden below. */}
+              <div className="lg:hidden print:hidden pb-6" aria-label="Adjust inputs">
                 <div className="rounded-xl border border-border bg-card card-elevated overflow-hidden">
-                  <ReportSidebar snapshot={snapshot} rentBand={rentBand} />
+                  <ReportSidebar snapshot={snapshot} rentBand={rentBand} instanceId="mobile" />
                 </div>
               </div>
 
@@ -303,7 +309,8 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 <HostedPriceAdvisor snapshot={snapshot} persona={persona} />
               </div>
 
-              {snapshot.hpi_data?.length > 0 && (
+              {/* HPI chart is a buyer signal — renters have no price exposure. Keep it off the renter report. */}
+              {persona === 'buyer' && snapshot.hpi_data?.length > 0 && (
                 <div className="pb-6">
                   <HostedHPIChart snapshot={snapshot} />
                 </div>
@@ -331,7 +338,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                     <LandlordChecklist report={report} />
                   </div>
                   <div className="pb-6">
-                    <KnowYourRights report={report} />
+                    <KnowYourRights report={report} userRent={store.weeklyRent} />
                   </div>
                 </>
               )}
@@ -430,9 +437,9 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
         </div>
       </div>
 
-      {/* ═══ DESKTOP SIDEBAR (floating) ═══ */}
-      <div className="hidden lg:block fixed top-[49px] right-0 w-80 h-[calc(100vh-49px)] border-l border-border bg-background overflow-y-auto print:hidden">
-        <ReportSidebar snapshot={snapshot} rentBand={rentBand} />
+      {/* ═══ DESKTOP SIDEBAR (floating, hidden below lg) ═══ */}
+      <div className="hidden lg:block fixed top-[49px] right-0 w-80 h-[calc(100vh-49px)] border-l border-border bg-background overflow-y-auto print:hidden" aria-label="Adjust inputs">
+        <ReportSidebar snapshot={snapshot} rentBand={rentBand} instanceId="desktop" />
       </div>
 
       </div> {/* end lg:pr-80 wrapper */}

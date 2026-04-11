@@ -12,6 +12,8 @@ import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 
 interface RenterBudgetCalculatorProps {
   report: PropertyReport;
+  /** User-entered weekly rent (from the sidebar input). Seeds the calculator on first view; respected over area median. */
+  userRent?: number | null;
 }
 
 const SEGMENT_COLORS = {
@@ -36,20 +38,36 @@ function getRentRatioMessage(pct: number): string {
   return `${Math.round(pct)}% goes to rent — over-stretched`;
 }
 
-export function RenterBudgetCalculator({ report }: RenterBudgetCalculatorProps) {
+export function RenterBudgetCalculator({ report, userRent }: RenterBudgetCalculatorProps) {
   const addressId = report.address.address_id;
   const medianRent = report.market.rent_assessment?.median ?? null;
+  // Seed the calculator with the user's own weekly rent when available. This keeps the
+  // "X% goes to rent" ratio aligned with what the user actually pays instead of the
+  // area median, which was the complaint in the UX audit.
+  const seedRent = (userRent && userRent > 0) ? userRent : medianRent;
 
   const hydrated = useStoreHydrated();
-  const { getEntry, updateRenter } = useBudgetStore();
+  const { getEntry, updateRenter, syncRenter } = useBudgetStore();
   // Seed the buyer-side default with a per-unit CV when applicable so a
   // later persona flip doesn't end up with a building-total purchase price.
   const seedCv = effectivePerUnitCv(report.property.capital_value, {
     isMultiUnit: !!report.property_detection?.is_multi_unit,
     unitCount: report.property_detection?.unit_count,
   });
-  const entry = getEntry(addressId, seedCv, medianRent);
+  const entry = getEntry(addressId, seedCv, seedRent);
   const r = entry.renter;
+
+  // If the user later changes the sidebar rent, propagate that into the calculator's
+  // slider too — unless the user has already interacted with the calculator directly.
+  // syncRenter does NOT flip hasInteracted, so analytics remain accurate.
+  useEffect(() => {
+    if (!userRent || userRent <= 0) return;
+    const current = useBudgetStore.getState().entries[addressId];
+    if (!current || current.hasInteracted) return;
+    if (current.renter.weeklyRent !== userRent) {
+      syncRenter(addressId, { weeklyRent: userRent });
+    }
+  }, [userRent, addressId, syncRenter]);
 
   const [overridesOpen, setOverridesOpen] = useState(false);
   const [incomeOpen, setIncomeOpen] = useState(false);

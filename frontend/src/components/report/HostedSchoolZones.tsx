@@ -18,8 +18,17 @@ interface Props {
   snapshot: ReportSnapshot;
 }
 
+// Private schools (Catholic, independent, integrated) often have country-wide enrolment
+// zones — a Wellington property is technically "in zone" for a Hutt or Upper Hutt private
+// school 25 km away, which is nonsense in context. Drop anything further than this threshold
+// so the "In School Enrolment Zones" list stays relevant to the renter.
+const IN_ZONE_DISTANCE_CAP_M = 5000;
+
 export function HostedSchoolZones({ snapshot }: Props) {
-  const zones = (snapshot.school_zones ?? []) as SchoolZone[];
+  const zonesRaw = (snapshot.school_zones ?? []) as SchoolZone[];
+
+  // Keep only zones within the relevance cap; if we have no distance we trust the join.
+  const zones = zonesRaw.filter((z) => z.distance_m == null || z.distance_m <= IN_ZONE_DISTANCE_CAP_M);
 
   if (zones.length === 0) return null;
 

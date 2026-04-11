@@ -241,17 +241,28 @@ export function HostedTerrain({ snapshot }: Props) {
               )}
 
               {/* Aspect */}
-              {aspectLabel !== 'flat' && aspectLabel !== 'unknown' && (
-                <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Faces
-                  </p>
-                  <p className="text-xl font-bold mt-1 capitalize">{aspectLabel}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {aspectLabel.includes('north') ? 'Best sun' : aspectLabel.includes('south') ? 'Limited sun' : 'Partial sun'}
-                  </p>
-                </div>
-              )}
+              {aspectLabel !== 'flat' && aspectLabel !== 'unknown' && (() => {
+                // For multi-unit dwellings (apartments, townhouses, units in a block) the
+                // parcel's aspect is largely meaningless — surrounding buildings dominate
+                // the actual light the unit gets. Flag that up front instead of claiming
+                // "Limited sun" based on raster-derived parcel geometry.
+                const detection = (snapshot as unknown as { report?: { property_detection?: { is_multi_unit?: boolean } } }).report?.property_detection;
+                const isMultiUnit = !!detection?.is_multi_unit;
+                const sunLabel = isMultiUnit
+                  ? 'Urban unit — verify'
+                  : aspectLabel.includes('north')
+                    ? 'Best sun'
+                    : aspectLabel.includes('south')
+                      ? 'Limited sun'
+                      : 'Partial sun';
+                return (
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Faces</p>
+                    <p className="text-xl font-bold mt-1 capitalize">{aspectLabel}</p>
+                    <p className="text-xs text-muted-foreground">{sunLabel}</p>
+                  </div>
+                );
+              })()}
 
               {/* Landslide risk from slope */}
               {landslideRisk && landslideRisk.slope_risk_score != null && (
@@ -274,7 +285,9 @@ export function HostedTerrain({ snapshot }: Props) {
                 </div>
               )}
 
-              {/* Wind exposure */}
+              {/* Wind exposure — keep the exposure label on its own line and treat the
+                  relative position as a parenthesised qualifier so the card doesn't read
+                  as "Wind moderate mid slope" in plain-text dumps. */}
               {windExposure !== 'unknown' && (
                 <div className="rounded-lg border border-border p-3 text-center">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
@@ -292,7 +305,7 @@ export function HostedTerrain({ snapshot }: Props) {
                     {windExposure.replace('_', ' ')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {relativePos !== 'unknown' ? relativePos.replace('-', ' ') : 'wind exposure'}
+                    {relativePos !== 'unknown' ? `(${relativePos.replace('-', ' ')})` : 'wind exposure'}
                   </p>
                 </div>
               )}
@@ -427,25 +440,25 @@ export function HostedTerrain({ snapshot }: Props) {
                   : ' (straight-line estimate)'}
               </p>
 
-              {/* Mode breakdown */}
+              {/* Mode breakdown — show the noun ("stops") so users don't read "17 bus" as "17 bus lines". */}
               {(busStops > 0 || railStops > 0 || ferryStops > 0) && (
                 <div className="flex flex-wrap gap-2">
                   {busStops > 0 && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
                       <Bus className="h-3.5 w-3.5" />
-                      {busStops} bus
+                      {busStops} bus stop{busStops === 1 ? '' : 's'}
                     </span>
                   )}
                   {railStops > 0 && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
                       <TrainFront className="h-3.5 w-3.5" />
-                      {railStops} rail
+                      {railStops} rail stop{railStops === 1 ? '' : 's'}
                     </span>
                   )}
                   {ferryStops > 0 && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs font-medium">
                       <Ship className="h-3.5 w-3.5" />
-                      {ferryStops} ferry
+                      {ferryStops} ferry stop{ferryStops === 1 ? '' : 's'}
                     </span>
                   )}
                 </div>

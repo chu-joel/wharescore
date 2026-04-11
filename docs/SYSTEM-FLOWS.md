@@ -292,6 +292,31 @@ and produced contradictory "Rents rising fast" copy on falling-rent
 properties. Buyer-side concerns about falling yield live in
 `BuyerSnapshot`, not in this 0-100 score.
 
+### Rental fairness (market depth) inversion
+`rental_fairness` is a market-depth signal keyed on bond count for the
+suburb's ALL/ALL rental_overview row. The convention for risk scores is
+HIGHER = MORE RISK, so a thick rental market (many bonds, lots of listings
+to compare against) must produce a LOW score. The formula is
+`round(100 * (1 - min(1, bonds/200)))`: 0 bonds → 100 (thin market, high
+risk), 200+ bonds → 0 (thick market, low risk). A previous version had
+this inverted, which caused properties in busy Wellington/Auckland suburbs
+with 180+ bonds to show "Rental Fairness: High risk — limited rental
+market activity" — the exact opposite of reality. The IndicatorCard copy
+text in `frontend/src/components/common/IndicatorCard.tsx` keys off this
+same HIGHER=WORSE convention, so flipping one without the other breaks it.
+
+### Rent advisor area_context label convention
+`rent_advisor._get_area_context()` returns suburb-level context items
+(NZDep, transit stops 400m, schools 1.5km, max noise dB) sourced from
+`mv_sa2_comparisons`. These describe the SUBURB AVERAGE, not this specific
+property — a single meshblock can diverge substantially. Every description
+string is prefixed "Suburb avg …"/"Suburb NZDep avg …"/"Suburb peak …" so
+the Full report's HostedRentAdvisor "About {sa2_name}" block can't be
+mistaken for the property's own stats (which often differ from the suburb
+average and are reported elsewhere in `liveability.*`). If you add a new
+context item, follow the same prefix convention and include the matching
+`ctx.direction` (up/down/neutral) + `ctx.is_area_wide_hazard` flag.
+
 ### Rental CAGR sanitisation
 `transformReport.transformMarket` in the frontend runs every CAGR through
 `sanitiseCagr` before handing it to the UI. 1yr values outside ±25% and

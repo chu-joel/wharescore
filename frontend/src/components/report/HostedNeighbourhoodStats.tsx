@@ -225,7 +225,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               <div className="rounded-lg bg-piq-primary/5 border border-piq-primary/20 p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold">{Math.round(peakTrips)} services/hr at peak</p>
+                    <p className="text-sm font-semibold">{Math.round(peakTrips)} services/hr at the nearest stop</p>
                     {nearestStopName && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Nearest stop: {nearestStopName}
@@ -255,8 +255,13 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {travelTimes.slice(0, 8).map((t) => (
                     <div key={t.destination} className="flex justify-between py-1.5 text-xs">
                       <span className="font-medium">{t.destination}</span>
-                      <span className="text-muted-foreground">
-                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
+                      <span className="text-muted-foreground tabular-nums">
+                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min
+                        {t.routes?.length
+                          ? <span className="ml-1.5 px-1.5 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-semibold">{t.routes[0]}</span>
+                          : t.route
+                            ? <span className="ml-1.5 px-1.5 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-semibold">{t.route}</span>
+                            : null}
                       </span>
                     </div>
                   ))}
@@ -272,8 +277,13 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {travelTimesPm.slice(0, 8).map((t) => (
                     <div key={t.destination} className="flex justify-between py-1.5 text-xs">
                       <span className="font-medium">{t.destination}</span>
-                      <span className="text-muted-foreground">
-                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min{t.routes?.length ? ` · ${t.routes[0]}` : t.route ? ` · ${t.route}` : ''}
+                      <span className="text-muted-foreground tabular-nums">
+                        {Math.round(t.minutes ?? t.travel_time_min ?? 0)} min
+                        {t.routes?.length
+                          ? <span className="ml-1.5 px-1.5 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-semibold">{t.routes[0]}</span>
+                          : t.route
+                            ? <span className="ml-1.5 px-1.5 py-0.5 rounded bg-piq-primary/10 text-piq-primary text-[11px] font-semibold">{t.route}</span>
+                            : null}
                       </span>
                     </div>
                   ))}
@@ -639,10 +649,13 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
           </div>
         )}
 
-        {/* Comparison benchmarks */}
+        {/* Comparison benchmarks — columns show suburb and city AVERAGES (not this property's
+            own values). Heading makes that clear so renters don't mistake the suburb avg
+            transit/deprivation numbers for their specific property's stats. */}
         {(suburbAvg || cityAvg) && (
           <div className="pt-3">
-            <h4 className="text-sm font-semibold mb-2">How This Property Compares</h4>
+            <h4 className="text-sm font-semibold mb-0.5">Area Benchmarks</h4>
+            <p className="text-xs text-muted-foreground/70 mb-2">Suburb vs city averages — use as context alongside the property-specific numbers above.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>

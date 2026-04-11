@@ -7,6 +7,8 @@ import type { ReportSnapshot } from '@/lib/types';
 interface ReportSidebarProps {
   snapshot: ReportSnapshot;
   rentBand: ReturnType<typeof import('@/stores/hostedReportStore').computeRentBand>;
+  /** Unique id per instance so the mobile + desktop copies don't clash on input/label htmlFor */
+  instanceId?: string;
 }
 
 const BEDROOM_OPTIONS = ['1', '2', '3', '4', '5+'];
@@ -54,16 +56,18 @@ const VERDICT_LABELS: Record<string, { text: string; color: string }> = {
   'very-high': { text: 'Very high', color: 'text-risk-high' },
 };
 
-export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
+export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: ReportSidebarProps) {
   const store = useHostedReportStore();
   const persona = snapshot.meta.persona;
   const selectedFinish = FINISH_TIERS.find(t => t.value === store.finishTier);
+  const rentInputId = `rent-input-${instanceId}`;
+  const priceInputId = `price-input-${instanceId}`;
 
   return (
     <div className="p-4 space-y-5">
       <div>
-        <h3 className="text-sm font-bold mb-1">Property details</h3>
-        <p className="text-xs text-muted-foreground">Adjust to match this property — the analysis updates automatically.</p>
+        <h3 className="text-sm font-bold mb-1">Your details</h3>
+        <p className="text-xs text-muted-foreground">Adjust to match this property — estimates update as you type.</p>
       </div>
 
       {/* Bedrooms */}
@@ -126,29 +130,35 @@ export function ReportSidebar({ snapshot, rentBand }: ReportSidebarProps) {
       {/* Rent input (renter) / Asking price (buyer) */}
       {persona === 'renter' ? (
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Your weekly rent</label>
+          <label htmlFor={rentInputId} className="text-xs text-muted-foreground mb-1.5 block">Your weekly rent</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
             <input
+              id={rentInputId}
               type="number"
+              inputMode="numeric"
               value={store.weeklyRent ?? ''}
               onChange={(e) => store.setWeeklyRent(e.target.value ? parseInt(e.target.value) : null)}
               placeholder="e.g. 550"
-              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
+              aria-label="Your weekly rent"
+              className="w-full min-h-[44px] rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
             />
           </div>
         </div>
       ) : (
         <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Asking / purchase price</label>
+          <label htmlFor={priceInputId} className="text-xs text-muted-foreground mb-1.5 block">Asking / purchase price</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
             <input
+              id={priceInputId}
               type="number"
+              inputMode="numeric"
               value={store.askingPrice ?? ''}
               onChange={(e) => store.setAskingPrice(e.target.value ? parseInt(e.target.value) : null)}
               placeholder="e.g. 850000"
-              className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
+              aria-label="Asking or purchase price"
+              className="w-full min-h-[44px] rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
             />
           </div>
         </div>

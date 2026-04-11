@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
 
 interface Props {
@@ -9,10 +9,17 @@ interface Props {
 
 interface HHRow {
   area: string;
-  status: 'ok' | 'flagged' | 'unknown';
+  status: 'flagged' | 'unverified';
   label: string;
   whatToCheck: string;
 }
+
+// The Healthy Homes Standards (heating / insulation / ventilation / moisture / draught-stopping)
+// cannot be verified from public data — a renter has to check these at viewing or demand the
+// compliance statement. Previous copy said "No issues detected" with a green tick, which
+// misleadingly implied verification. We now show "Not verified" for every area we can't measure
+// from data, and only flag Moisture / Draught when hazard/wind data gives us a reason to.
+const UNVERIFIED_LABEL = 'Not verified — ask at viewing';
 
 export function HostedHealthyHomes({ report }: Props) {
   const hazards = (report as unknown as Record<string, unknown>).hazards as Record<string, unknown> | undefined;
@@ -22,40 +29,42 @@ export function HostedHealthyHomes({ report }: Props) {
   const hasFlood = !!(hazards.flood_zone || hazards.flood || hazards.flood_extent_label);
   const highLiquefaction = String(hazards.liquefaction_zone || hazards.liquefaction || '').toLowerCase().includes('high');
   const coastalErosion = !!(hazards.coastal_erosion || hazards.coastal_erosion_exposure || hazards.coastal_exposure);
+  const moistureFlagged = hasFlood || highLiquefaction || coastalErosion;
+  const windFlagged = windZone === 'H' || windZone === 'VH' || windZone === 'HIGH' || windZone === 'VERY HIGH';
 
   const rows: HHRow[] = [
     {
       area: 'Heating',
-      status: 'unknown',
-      label: 'No issues detected',
+      status: 'unverified',
+      label: UNVERIFIED_LABEL,
       whatToCheck: 'Fixed heater capable of ≥1.5kW in main living area',
     },
     {
       area: 'Insulation',
-      status: 'unknown',
-      label: 'No issues detected',
+      status: 'unverified',
+      label: UNVERIFIED_LABEL,
       whatToCheck: 'Ceiling ≥R2.9, underfloor ≥R1.3',
     },
     {
       area: 'Ventilation',
-      status: 'unknown',
-      label: 'No issues detected',
+      status: 'unverified',
+      label: UNVERIFIED_LABEL,
       whatToCheck: 'Extractor fans in kitchen & bathroom vent to outside',
     },
     {
       area: 'Moisture',
-      status: (hasFlood || highLiquefaction || coastalErosion) ? 'flagged' : 'unknown',
-      label: (hasFlood || highLiquefaction || coastalErosion)
-        ? `⚠ Flagged — ${[hasFlood && 'flood zone', highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
-        : 'No issues detected',
+      status: moistureFlagged ? 'flagged' : 'unverified',
+      label: moistureFlagged
+        ? `⚠ Area hazard — ${[hasFlood && 'flood zone', highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
+        : UNVERIFIED_LABEL,
       whatToCheck: 'No visible mould, condensation, or rising damp',
     },
     {
       area: 'Draught',
-      status: (windZone === 'H' || windZone === 'VH' || windZone === 'HIGH' || windZone === 'VERY HIGH') ? 'flagged' : 'unknown',
-      label: (windZone === 'H' || windZone === 'VH' || windZone === 'HIGH' || windZone === 'VERY HIGH')
-        ? `⚠ Flagged — Wind zone ${windZone} — higher draught risk`
-        : 'No issues detected',
+      status: windFlagged ? 'flagged' : 'unverified',
+      label: windFlagged
+        ? `⚠ Wind zone ${windZone} — higher draught risk`
+        : UNVERIFIED_LABEL,
       whatToCheck: 'Window and door seals intact, no draughts',
     },
   ];
@@ -67,12 +76,13 @@ export function HostedHealthyHomes({ report }: Props) {
       <div className="px-5 pt-5 pb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold">Healthy Homes Assessment</h3>
         {flaggedCount > 0 && (
-          <span className="text-xs text-piq-accent-warm font-medium">{flaggedCount} flagged</span>
+          <span className="text-xs text-piq-accent-warm font-medium">{flaggedCount} area flagged</span>
         )}
       </div>
       <div className="px-5 pb-5">
         <p className="text-xs text-muted-foreground mb-3">
-          Landlords must comply with Healthy Homes Standards. Check these areas during viewing.
+          The Healthy Homes Standards can only be verified in person. Use this as a checklist at the viewing
+          and ask your landlord for the signed compliance statement (legally required since July 2025).
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -94,8 +104,8 @@ export function HostedHealthyHomes({ report }: Props) {
                         {row.label}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-piq-success text-xs">
-                        <CheckCircle className="h-3.5 w-3.5" />
+                      <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+                        <HelpCircle className="h-3.5 w-3.5" />
                         {row.label}
                       </span>
                     )}

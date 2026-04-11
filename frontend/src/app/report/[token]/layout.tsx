@@ -12,8 +12,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
 
   try {
+    // Revalidate every 60s so a Quick → Full upgrade reflects in the page title promptly.
+    // Reports are noindex so crawl latency is not a concern; this mainly affects link previews.
     const res = await fetch(`${API_BASE}/api/v1/report/${encodeURIComponent(token)}`, {
-      next: { revalidate: 86400 }, // Cache 24h — snapshots are immutable
+      next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error('not found');
     const snapshot = await res.json();
@@ -22,12 +24,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const suburb = snapshot?.meta?.sa2_name || '';
     const city = snapshot?.meta?.ta_name || '';
     const score = snapshot?.report?.scores?.composite;
-    const tier = snapshot?.report_tier === 'quick' ? 'Quick' : 'Full';
+    const isQuick = snapshot?.report_tier === 'quick';
+    // Full reports say "Report" (the default); only Quick is branded separately.
+    const tierPrefix = isQuick ? 'Quick Report' : 'Report';
 
     const locationParts = [suburb, city].filter(Boolean).join(', ');
     const scoreStr = score != null ? ` Score: ${Math.round(score)}/100.` : '';
-    const title = `${tier} Report — ${address}`;
-    const description = `WhareScore ${tier} Report for ${address}${locationParts ? ` in ${locationParts}` : ''}.${scoreStr} Hazards, schools, transit, market data and more.`;
+    const title = `${tierPrefix} — ${address}`;
+    const description = `WhareScore ${tierPrefix.toLowerCase()} for ${address}${locationParts ? ` in ${locationParts}` : ''}.${scoreStr} Hazards, schools, transit, market data and more.`;
 
     return {
       title,

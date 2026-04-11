@@ -36,6 +36,8 @@ interface BudgetState {
   getEntry: (addressId: number, cv?: number | null, medianRent?: number | null) => BudgetEntry;
   updateBuyer: (addressId: number, partial: Partial<BuyerInputs>) => void;
   updateRenter: (addressId: number, partial: Partial<RenterInputs>) => void;
+  /** Sync without flipping hasInteracted — used by parent components to push external inputs. */
+  syncRenter: (addressId: number, partial: Partial<RenterInputs>) => void;
   markInteracted: (addressId: number) => void;
 }
 
@@ -167,6 +169,20 @@ export const useBudgetStore = create<BudgetState>()(
             entries: {
               ...s.entries,
               [addressId]: { ...entry, renter: { ...entry.renter, ...partial }, hasInteracted: true },
+            },
+          };
+        }),
+
+      // Like updateRenter but does NOT flip hasInteracted. Used for automatic sync
+      // from the hosted-report sidebar rent input so the budget slider stays in sync
+      // without misreporting user interaction to analytics.
+      syncRenter: (addressId, partial) =>
+        set((s) => {
+          const entry = s.entries[addressId] ?? defaultEntry();
+          return {
+            entries: {
+              ...s.entries,
+              [addressId]: { ...entry, renter: { ...entry.renter, ...partial } },
             },
           };
         }),
