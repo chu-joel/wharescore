@@ -213,7 +213,12 @@ Hardcoded in `account.py` `_PROMO_CODES` dict:
 
 ### Report export flow (tiered: Quick free, Full $9.99)
 ```
-User clicks Generate Report → usePdfExport.startExport()
+User clicks Generate Report → usePdfExport.startExport(preferredTier?)
+  → Callers originating from a paid CTA (ReportCTABanner, ReportUpsell,
+    BlurredFindingCards) pass preferredTier='full'. That flows through
+    pdfExportStore.startExport → useReportConfirmStore.show(id, cb, 'full')
+    so the modal opens with Full preselected. Pass nothing (or 'quick')
+    from generic "Get Your Report" buttons and the modal stays on Quick.
   → Pro user? → ReportConfirmModal(tier=full) → generate
   → Signed-in with credits? → ReportConfirmModal (choose Quick free or Full with credit)
   → Signed-in without credits? → ReportConfirmModal (Quick free only; Full → UpgradeModal)
@@ -278,6 +283,14 @@ Weighted geometric mean. Requires 3+ categories with scores. Market dropped if n
 - Liquefaction Very High → 95/100
 - Active fault within 200m → 80/100
 - Slope failure Very High → 90/100
+
+### Rental trend sign handling
+`rental_trend` uses `normalize_min_max(max(0.0, yoy_pct), 0, 20)` — negative
+(falling) rents clamp to 0 so they never register as a "risk". A previous
+version took `abs(yoy)` which made a 20% fall score the same as a 20% rise
+and produced contradictory "Rents rising fast" copy on falling-rent
+properties. Buyer-side concerns about falling yield live in
+`BuyerSnapshot`, not in this 0-100 score.
 
 ### NULL vs 0 handling
 Indicators where NULL raw data means "no data for this location" (not "confirmed safe") are **omitted entirely** when the source field is NULL. This prevents showing "0/100 Low risk" when we simply don't have data. Affected indicators: flood, tsunami, coastal_erosion, liquefaction, slope_failure, wind, air_quality. Council-specific data and terrain/waterway fallbacks still set these indicators when available. Earthquake (GeoNet national), wildfire (always has station data), and EPB (count-based) are always set.

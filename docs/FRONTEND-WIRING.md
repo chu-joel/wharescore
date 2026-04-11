@@ -17,12 +17,12 @@
 |---|---|---|---|
 | `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header | No |
 | `property.capital_value, .land_value, .building_area_sqm, .title_ref` | PropertySummaryCard | 0. Header | No |
-| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV calc) | No |
+| `property.cv_is_per_unit, property_detection.is_multi_unit, .unit_count` | PropertySummaryCard | 0. Header (per-unit CV calc — client override ignores `cv_is_per_unit` when the value is >$5M on a multi-unit address; land/building area pills are hidden for multi-unit) | No |
 | `terrain.elevation_m, .slope_degrees, .slope_category` | PropertySummaryCard | 0. Header (elevation pill + slope pill) | No |
 | `market.rent_assessment.*, market.trend.*, market.market_heat, hazards.*, environment.wind_zone, terrain.aspect_label, terrain.is_depression` | RenterSnapshot | 1. VERDICT (renter only) — overall verdict + rent/market power/healthy homes/mould risk/sun sections | No |
 | `hazards.*, planning.*, market.trend.*, terrain.elevation_m, property_detection.*` | BuyerSnapshot | 1. VERDICT (buyer only) — insurability, building era risk, renovation potential, climate/managed retreat, capital growth, title type | No |
 | `comparisons.suburb.*, comparisons.city.*, liveability.nzdep_score, .school_count, .transit_count, environment.noise_db, hazards.epb_count` | ComparisonBars | 1b. COMPARISON — property vs suburb vs city horizontal bar charts with contextual labels | No |
-| All hazards + liveability + planning | KeyFindings | 2. EVIDENCE — key findings | First 2 free |
+| All hazards + liveability + planning | KeyFindings | 2. EVIDENCE — key findings. Summary line must sum to `findings.length` — include `info` count alongside critical/warning/positive. BlurredFindingCards takes an explicit `totalCount` prop for the "See all N findings" CTA. | First 2 free |
 | `hazards.*, environment.*, planning.epb_listed, terrain.*, address.city, address.ta` | LandlordChecklist | 3. ACTION (renter hero) — personalized "What to ask the landlord" with climate zone insulation R-values, heating kW, HH compliance, dampness, aspect, elevation, wind, noise, construction type | No |
 | `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | 3. ACTION (buyer hero) — "We've covered X of Y due diligence checks. Here's what you still need" with costs and property-specific notes | No |
 | `market.rent_assessment.median, hazards.earthquake_count, hazards.active_fault_nearest` | KnowYourRights | 3. ACTION (inside renter checklist accordion) — bond max, rent increase rules, modification rights, fibre rights, HH compliance, quiet enjoyment, letting fee ban | No |
