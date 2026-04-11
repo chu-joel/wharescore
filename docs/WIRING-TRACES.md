@@ -91,6 +91,9 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | `liveability.school_count` | schools | SQL count within 1500m | National (MoE) | Yes |
 | `liveability.nzdep_score` | nzdep + meshblocks | SQL spatial join meshblock → nzdep | National (Stats NZ) | Yes |
 | `liveability.crime_rate` | crime | SQL aggregate by SA2 | National (NZ Police) | Yes |
+| `liveability.crime_area_unit` | mv_crime_density + SA2 fallback | Fuzzy match SA2/suburb → police area_unit; fallback to `v_sa2_name` (0051) so the field is never NULL when SA2 is known | National (NZ Police) | Yes |
+| `liveability.crime_victimisations` | mv_crime_density / mv_crime_ta | Matched area_unit count, fallback to `median_victimisations_per_au` (per-neighbourhood typical, not whole-TA) | National (NZ Police) | Yes |
+| `liveability.crime_percentile` | mv_crime_density / mv_crime_ta_ranked | Matched area_unit percentile, fallback to `ta_percentile` (from 0045) | National (NZ Police) | Yes |
 | `liveability.noise_db` | noise_contours | SQL MAX within property | National (NZTA) | Yes (road noise). Airport noise via aircraft_noise_overlay (select cities) |
 | `liveability.cbd_distance_m` | cbd_points | SQL distance to nearest | 20 cities in cbd_points table | Yes (for listed cities) |
 | `liveability.nearest_train_m` | transit_stops | SQL nearest WHERE location_type=1 | National (if station exists nearby) | Limited |
@@ -119,7 +122,9 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 
 | Report field | Table | Query step | All cities? |
 |---|---|---|---|
-| `planning.zone_name` | district_plan_zones | SQL spatial intersect | 20+ councils with plan zone DataSources |
+| `planning.zone_name` | district_plan_zones | SQL spatial intersect, prefers rows with non-null name/code/category (0051) | 20+ councils with plan zone DataSources |
+| `planning.zone_code` | district_plan_zones | Same row as zone_name. May be NULL for councils whose ArcGIS feed has no distinct short code (e.g. QLDC) | Councils with a short zone code in the feed |
+| `planning.zone_category` | district_plan_zones | Same row as zone_name. Populated directly for Auckland (GROUPZONE domain), derived from zone_name text for CHC / QLDC / other councils via `_derive_zone_category()` in data_loader.py | All councils loaded |
 | `planning.heritage_count` | heritage_sites | SQL count within 500m | National (Heritage NZ) + council-specific |
 | `planning.notable_tree_count_50m` | notable_trees | SQL count within 50m | Select councils only |
 | `planning.resource_consents_500m_2yr` | resource_consents | SQL count within 500m | Wellington region only (GWRC) |
@@ -144,9 +149,9 @@ These fields ONLY have data for Wellington region properties. Tables were rename
 | `report.terrain.aspect_label` | srtm_elevation (raster) | `_overlay_terrain_data()` → `ST_Aspect()` → compass label | Same | Yes |
 | `report.terrain.aspect_degrees` | srtm_elevation (raster) | `_overlay_terrain_data()` → `ST_Aspect()` raw degrees | Same | Yes |
 | `report.terrain.ruggedness` | srtm_elevation (raster) | `_overlay_terrain_data()` → TRI on 3×3 window | Same | Yes |
-| `report.walking_reach.bus` | transit_stops + Valhalla | `_overlay_terrain_data()` → Valhalla 10-min walk isochrone → `count_transit_in_polygon()` | Valhalla + GTFS | 12 GTFS cities |
-| `report.walking_reach.rail` | transit_stops + Valhalla | Same, mode_type filter | Same | Cities with rail |
-| `report.walking_reach.ferry` | transit_stops + Valhalla | Same, mode_type filter | Same | Cities with ferry |
+| `report.walking_reach.bus` | metlink_stops + at_stops + transit_stops + Valhalla | `_overlay_terrain_data()` → Valhalla 10-min walk isochrone → `ST_Within()` over all three stop tables; falls back to 800m radius with the same three-table union when Valhalla is unreachable | Valhalla + GTFS | Wellington, Auckland, 10 regional cities |
+| `report.walking_reach.rail` | Same three stop tables + Valhalla | Same, mode_type filter | Same | Cities with rail |
+| `report.walking_reach.ferry` | Same three stop tables + Valhalla | Same, mode_type filter | Same | Cities with ferry |
 
 **Why terrain is in the live report:** `_overlay_terrain_data()` in `property.py` calls Valhalla for elevation/slope and walking isochrone, available in both free on-screen and paid hosted reports. Falls back gracefully if Valhalla is unavailable.
 

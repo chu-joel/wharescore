@@ -206,6 +206,40 @@ def _clean(val) -> str | None:
     return None if s in ("", "None", "null", "Null") else s
 
 
+def _derive_zone_category(zone_name: str | None) -> str | None:
+    """Infer a category label ('Residential', 'Business', etc.) from a zone name
+    when the council's ArcGIS feed doesn't expose a separate category/group field.
+    Used by loaders like CHC and QLDC that only give us one descriptive string.
+    Keywords are checked in specificity order so 'Rural Residential' wins over
+    plain 'Rural' and 'Mixed Use' beats 'Business'."""
+    if not zone_name:
+        return None
+    n = zone_name.lower()
+    if "rural residential" in n or "lifestyle" in n:
+        return "Rural Residential"
+    if "mixed use" in n:
+        return "Mixed Use"
+    if "city centre" in n or "town centre" in n or "metropolitan centre" in n or "local centre" in n or "neighbourhood centre" in n:
+        return "Centre"
+    if "residential" in n:
+        return "Residential"
+    if "business" in n or "commercial" in n or "office" in n or "retail" in n:
+        return "Business"
+    if "industrial" in n:
+        return "Industrial"
+    if "rural" in n or "countryside" in n:
+        return "Rural"
+    if "open space" in n or "recreation" in n or "reserve" in n or "park" in n:
+        return "Open Space"
+    if "special" in n or "precinct" in n or "activity area" in n:
+        return "Special Purpose"
+    if "future urban" in n or "future development" in n:
+        return "Future Urban"
+    if "coastal" in n or "marine" in n or "waterfront" in n or "harbour" in n:
+        return "Coastal"
+    return None
+
+
 # ═══════════════════════════════════════════════════════════════
 # DATA SOURCE REGISTRY
 # ═══════════════════════════════════════════════════════════════
@@ -5260,11 +5294,17 @@ DATA_SOURCES: list[DataSource] = [
         # FeatureServer has a stale snapshot with null ZoneType/ZoneCode at
         # Central City addresses (e.g. Cathedral Square), while the MapServer
         # layer is up-to-date and returns 'City centre zone' / 'CCZ' correctly.
+        # CCC's feed has no explicit ZoneGroup, so derive the category from
+        # the zone name text (same approach as QLDC, etc).
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSPCombined/MapServer/0",
             "district_plan_zones", "christchurch",
             ["zone_name", "zone_code", "category"],
-            lambda a: (_clean(a.get("ZoneType")), _clean(a.get("ZoneCode")), None))),
+            lambda a: (
+                _clean(a.get("ZoneType")),
+                _clean(a.get("ZoneCode")),
+                _derive_zone_category(_clean(a.get("ZoneType"))),
+            ))),
     DataSource("chch_tsunami", "Christchurch Tsunami Inundation",
         ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -6613,13 +6653,21 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
     DataSource("qldc_zones", "Queenstown-Lakes Operative Zones",
         ["plan_zones"],
+        # QLDC's operative plan layer exposes `ZONE` (the full zone name like
+        # "High Density Residential Zone") and sometimes `Zone_Name`, but no
+        # separate short code or category field. Previously we stored the
+        # same string in zone_code AND zone_name, which left the report
+        # showing "High Density Residential Zone" as the zone_code. Now we
+        # leave zone_code NULL unless the feed actually has a distinct
+        # abbreviation, and derive category from the zone name text.
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.qldc.govt.nz/server/rest/services/DistrictPlan/Operative_District_Plan/MapServer/37",
             "district_plan_zones", "queenstown_lakes",
-            ["zone_name", "zone_code"],
+            ["zone_name", "zone_code", "category"],
             lambda a: (
                 _clean(a.get("Zone_Name")) or _clean(a.get("ZONE")) or "Zone",
-                _clean(a.get("ZONE")),
+                _clean(a.get("Zone_Code")) or _clean(a.get("ZONE_CODE")),
+                _derive_zone_category(_clean(a.get("Zone_Name")) or _clean(a.get("ZONE"))),
             ))),
     DataSource("rotorua_zones", "Rotorua Zoning",
         ["plan_zones"],

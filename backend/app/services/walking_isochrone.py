@@ -277,7 +277,11 @@ async def count_stops_in_isochrone(
             "isochrone_geojson": feature["geometry"],
         }
 
-    # Fallback: simple radius
+    # Fallback: simple radius. Same mode math as the isochrone path above —
+    # metlink_stops (Wellington) + at_stops (Auckland) + transit_stops
+    # (regional GTFS for Christchurch, Queenstown, Hamilton, Dunedin, Tauranga,
+    # Palmerston North, Rotorua, Napier, Whangarei). Before this included
+    # transit_stops, CHC/ZQN always returned 0 whenever Valhalla was down.
     radius_m = minutes * 80  # ~80m per minute at 5km/h
     logger.info("Using %dm radius fallback for %d-min walk", radius_m, minutes)
 
@@ -290,6 +294,9 @@ async def count_stops_in_isochrone(
             ) + (SELECT COUNT(*)::int FROM at_stops ats
              WHERE ats.geom && ST_Expand(a.geom, %s / 111320.0)
                AND ST_DWithin(ats.geom::geography, a.geom::geography, %s)
+            ) + (SELECT COUNT(*)::int FROM transit_stops ts
+             WHERE ts.geom && ST_Expand(a.geom, %s / 111320.0)
+               AND ST_DWithin(ts.geom::geography, a.geom::geography, %s)
             ) AS total_stops,
 
             (SELECT COUNT(*)::int FROM metlink_stops ms
@@ -300,6 +307,10 @@ async def count_stops_in_isochrone(
              WHERE ats.geom && ST_Expand(a.geom, %s / 111320.0)
                AND ST_DWithin(ats.geom::geography, a.geom::geography, %s)
                AND 3 = ANY(ats.route_types)
+            ) + (SELECT COUNT(*)::int FROM transit_stops ts
+             WHERE ts.geom && ST_Expand(a.geom, %s / 111320.0)
+               AND ST_DWithin(ts.geom::geography, a.geom::geography, %s)
+               AND ts.mode_type = 'bus'
             ) AS bus_stops,
 
             (SELECT COUNT(*)::int FROM metlink_stops ms
@@ -310,6 +321,10 @@ async def count_stops_in_isochrone(
              WHERE ats.geom && ST_Expand(a.geom, %s / 111320.0)
                AND ST_DWithin(ats.geom::geography, a.geom::geography, %s)
                AND 2 = ANY(ats.route_types)
+            ) + (SELECT COUNT(*)::int FROM transit_stops ts
+             WHERE ts.geom && ST_Expand(a.geom, %s / 111320.0)
+               AND ST_DWithin(ts.geom::geography, a.geom::geography, %s)
+               AND ts.mode_type = 'train'
             ) AS rail_stops,
 
             (SELECT COUNT(*)::int FROM metlink_stops ms
@@ -320,11 +335,15 @@ async def count_stops_in_isochrone(
              WHERE ats.geom && ST_Expand(a.geom, %s / 111320.0)
                AND ST_DWithin(ats.geom::geography, a.geom::geography, %s)
                AND 4 = ANY(ats.route_types)
+            ) + (SELECT COUNT(*)::int FROM transit_stops ts
+             WHERE ts.geom && ST_Expand(a.geom, %s / 111320.0)
+               AND ST_DWithin(ts.geom::geography, a.geom::geography, %s)
+               AND ts.mode_type = 'ferry'
             ) AS ferry_stops
         FROM addresses a
         WHERE a.address_id = %s
         """,
-        [radius_m] * 16 + [address_id],
+        [radius_m] * 24 + [address_id],
     )
     counts = cur.fetchone()
 
