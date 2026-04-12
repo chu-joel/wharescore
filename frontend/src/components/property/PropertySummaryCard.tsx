@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Download, Loader2, Eye, ExternalLink } from 'lucide-react';
+import { MapPin, Download, Loader2, Eye, ExternalLink, BookmarkPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency, formatCompactCurrency } from '@/lib/format';
 import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useSession } from 'next-auth/react';
 
 import type { PropertyReport } from '@/lib/types';
 import type { LiveRates } from '@/hooks/usePropertyRates';
@@ -62,6 +63,8 @@ export function PropertySummaryCard({
   const cvIsLive = !!liveCV;
 
   const pdf = usePdfExport(address.address_id, persona);
+  const { status: sessionStatus } = useSession();
+  const isAuthenticated = sessionStatus === 'authenticated';
 
   // Persona-specific headline metric
   const personaHeadline = (() => {
@@ -158,17 +161,24 @@ export function PropertySummaryCard({
                 <ExternalLink className="h-3.5 w-3.5" /> View Report
               </Button>
             ) : (
+              // The header CTA mirrors the ReportCTABanner intent: unauth
+              // users get the low-friction "Save free report" primary (which
+              // kicks a Google sign-in, then auto-generates Quick on return);
+              // signed-in users see "Generate Report" and pick Quick/Full in
+              // the confirm modal.
               <Button
                 variant="default"
                 size="sm"
                 className="h-9 gap-1.5 text-sm font-semibold bg-piq-primary hover:bg-piq-primary-dark text-white"
-                onClick={() => pdf.startExport()}
+                onClick={() => pdf.startExport(isAuthenticated ? undefined : 'quick')}
                 disabled={pdf.isGenerating}
               >
                 {pdf.isGenerating ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {isAuthenticated ? 'Generating…' : 'Saving…'}</>
+                ) : isAuthenticated ? (
+                  <><Download className="h-4 w-4" /> Generate Report</>
                 ) : (
-                  <><Download className="h-4 w-4" /> Get Your Report</>
+                  <><BookmarkPlus className="h-4 w-4" /> Save free report</>
                 )}
               </Button>
             )}

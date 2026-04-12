@@ -1,7 +1,7 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { Download, Loader2, FileCheck, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Download, Loader2, FileCheck, ShieldAlert, ExternalLink, BookmarkPlus } from 'lucide-react';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useEffect, useState, useRef } from 'react';
 import { isConsentBannerVisible } from '@/components/common/AnalyticsConsent';
@@ -9,6 +9,7 @@ import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useReportConfirmStore } from './ReportConfirmModal';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface FloatingReportButtonProps {
   addressId: number;
@@ -27,6 +28,8 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const showUpgradeModal = useDownloadGateStore((s) => s.showUpgradeModal);
   const showConfirmModal = useReportConfirmStore((s) => s.open);
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
+  const isSignedIn = isAuthenticated || sessionStatus === 'authenticated';
 
   useEffect(() => {
     const id = 'floating-report-btn';
@@ -60,7 +63,9 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     } else if (pdf.downloadUrl) {
       window.open(pdf.downloadUrl, '_blank', 'noopener,noreferrer');
     } else if (!pdf.isGenerating) {
-      pdf.startExport();
+      // Unauth → low-friction "quick" path (Google sign-in → auto Quick
+      // Report). Auth → normal flow with tier selector in confirm modal.
+      pdf.startExport(isSignedIn ? undefined : 'quick');
     }
   };
 
@@ -70,20 +75,27 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     }
   };
 
-  // Contextual CTA copy based on report data
-  let ctaText = 'Get Your Report';
-  let ctaIcon = <Download className="h-5 w-5" />;
-  const hasCredits = isAuthenticated && credits && credits.plan !== 'free';
+  // Contextual CTA copy based on auth state and report data.
+  //   - Unauth: primary action is "Save free report" (one-tap Google sign-in).
+  //   - Auth  : primary action is "Generate Report" (confirm modal picks tier).
+  // We still surface the risk count in place of the generic label when the
+  // report actually has critical/warning findings — users notice "3 risks
+  // found" more than a neutral CTA, so we let urgency override the verb.
+  let ctaText = isSignedIn ? 'Generate Report' : 'Save free report';
+  let ctaIcon: React.ReactNode = isSignedIn
+    ? <Download className="h-5 w-5" />
+    : <BookmarkPlus className="h-5 w-5" />;
+  const hasCredits = isSignedIn && credits && credits.plan !== 'free';
 
   if (!pdf.isGenerating && !pdf.shareUrl && !pdf.downloadUrl) {
-    if (hasCredits) {
-      ctaText = 'Get Your Report';
-    } else if (riskCount && riskCount >= 3) {
+    if (riskCount && riskCount >= 3) {
       ctaText = `${riskCount} risks found`;
       ctaIcon = <ShieldAlert className="h-5 w-5" />;
     } else if (riskCount && riskCount >= 1) {
       ctaText = `${riskCount} risk${riskCount > 1 ? 's' : ''} found`;
       ctaIcon = <ShieldAlert className="h-5 w-5" />;
+    } else if (hasCredits) {
+      ctaText = 'Generate Report';
     }
   }
 

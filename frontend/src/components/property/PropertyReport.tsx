@@ -39,7 +39,9 @@ import { usePersonaStore } from '@/stores/personaStore';
 import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
-import { useRouter } from 'next/navigation';
+import { usePdfExport } from '@/hooks/usePdfExport';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 
 /** How many findings to show for free before gating */
@@ -73,6 +75,24 @@ export function PropertyReport({ addressId }: { addressId: number }) {
       return () => clearTimeout(t);
     }
   }, [addressId, report]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After the "Save free report" OAuth round-trip, the callbackUrl carries
+  // an `autoSave=<addressId>` query param. When we detect it on a signed-in
+  // session, auto-launch the Quick Report flow so the user doesn't have to
+  // hunt for the button again.
+  const searchParams = useSearchParams();
+  const { status: sessionStatus } = useSession();
+  const pdfAuto = usePdfExport(addressId, persona);
+  useEffect(() => {
+    const autoId = searchParams?.get('autoSave');
+    if (!autoId || Number(autoId) !== addressId) return;
+    if (sessionStatus !== 'authenticated') return;
+    // Clear the param so a refresh doesn't re-trigger.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('autoSave');
+    window.history.replaceState({}, '', url.toString());
+    pdfAuto.startExport('quick');
+  }, [searchParams, sessionStatus, addressId, pdfAuto]);
 
   const handleSearchAnother = () => {
     clearSelection();

@@ -324,6 +324,35 @@ context item, follow the same prefix convention and include the matching
 samples regularly throw out 30+% YoY moves that aren't real) and nulled
 so the cards render "—" instead of "1yr -31.3%".
 
+### Dual-CTA conversion funnel (save vs buy)
+Anonymous users who land on a property report see two CTAs, not one:
+
+- **Primary** — "Save free report (sign in)" → `pdf.startExport('quick')` →
+  `pdfExportStore.startExport` calls `signIn(undefined, { callbackUrl: ... })`
+  with an `autoSave=<addressId>` query param. After Google OAuth returns to
+  the same property page, `PropertyReport.tsx` detects the param and kicks
+  `startExport('quick')` automatically. The user ends up on the hosted Quick
+  report with a saved account — no forgotten link, no dead traffic.
+- **Secondary** — "Or buy the Full Report — $9.99" → `pdf.startExport('full')`
+  → `UpgradeModal` → Stripe guest-checkout (no account required). After
+  payment, `payment-success/page.tsx` detects `useSession() === 'unauthenticated'`
+  and surfaces a "Claim this report — create a free account" prompt. The
+  hosted link is still sent via email regardless.
+
+Signed-in users see a single primary CTA ("Generate Report"). The
+`ReportConfirmModal` picks Quick vs Full after the click — no funnel split
+at the button level.
+
+The three CTA surfaces that implement this are:
+1. `PropertySummaryCard` header button (compact)
+2. `ReportCTABanner` mid-report banner (full hero with features list)
+3. `FloatingReportButton` FAB (sticky bottom-left on desktop/mobile)
+
+All three route through `pdf.startExport(preferredTier)` where `preferredTier`
+is `'quick'` for the free path and `'full'` for the paid path. The store is
+the only place that decides "sign in first" vs "guest checkout" — the
+buttons just declare intent.
+
 ### Schools indicator fallback (EQI missing)
 `school_quality_score` was collapsing to 100 ("no schools nearby") any
 time the feed returned schools without an EQI value joined — this

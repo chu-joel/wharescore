@@ -2,15 +2,18 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowRight, Loader2, BookmarkPlus } from 'lucide-react';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { showPaymentToast } from '@/components/common/PaymentToast';
+import { useSession, signIn } from 'next-auth/react';
 
 type Stage = 'waiting' | 'generating' | 'fallback';
 
 export default function PaymentSuccessPage() {
   const { getToken } = useAuthToken();
   const setUser = useDownloadGateStore((s) => s.setUser);
+  const { status: sessionStatus } = useSession();
+  const isGuest = sessionStatus === 'unauthenticated';
   const [plan, setPlan] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>('waiting');
   const [addressId, setAddressId] = useState<number | null>(null);
@@ -210,6 +213,31 @@ export default function PaymentSuccessPage() {
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Confirming payment...
+          </div>
+        )}
+
+        {/* Guest checkout — prompt account creation so the purchase isn't
+            lost the next time the user loses their hosted report link. We
+            don't block access (the link is always emailed), but an account
+            gives them My Reports + cross-device access. */}
+        {isGuest && stage !== 'generating' && (
+          <div className="rounded-xl border border-piq-primary/30 bg-piq-primary/5 p-4 mb-4 text-left">
+            <div className="flex items-start gap-3">
+              <BookmarkPlus className="h-5 w-5 text-piq-primary shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Claim this report — create a free account</p>
+                <p className="text-xs text-muted-foreground">
+                  So you can find it again on any device, re-open the interactive version, and get a dashboard of every property you research.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => signIn(undefined, { callbackUrl: '/account' })}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-piq-primary px-3 text-xs font-semibold text-white hover:bg-piq-primary-dark transition-colors"
+                >
+                  Create account (one tap)
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

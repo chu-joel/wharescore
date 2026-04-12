@@ -70,8 +70,31 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       return;
     }
 
-    // Not signed in → UpgradeModal (sign-in prompt + purchase options)
-    gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+    // Not signed in.
+    //   - preferredTier === 'full' → send to the purchase/guest-checkout flow
+    //     (UpgradeModal). Serious buyers don't have to sign up first; a guest
+    //     Stripe session converts straight to a hosted Full report, and the
+    //     success page prompts account creation after payment.
+    //   - preferredTier === 'quick' or unset → nudge the low-friction path:
+    //     sign in (Google OAuth one-tap) and then auto-generate a free
+    //     Quick Report on return. NextAuth's `signIn` round-trips the
+    //     `callbackUrl` so we can come back to the same property page.
+    if (preferredTier === 'full') {
+      gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+      return;
+    }
+    // Stash the intent on the URL so we auto-kick the Quick export after
+    // the OAuth round-trip lands back here.
+    const here = typeof window !== 'undefined' ? new URL(window.location.href) : null;
+    if (here) {
+      here.searchParams.set('autoSave', String(addressId));
+      // Lazy import to keep this store tree-shakable for non-browser paths
+      import('next-auth/react').then(({ signIn }) => {
+        signIn(undefined, { callbackUrl: here.toString() });
+      });
+    } else {
+      gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
+    }
   },
 
   _doExport: async (addressId: number, _token?: string | null, reportTier?: 'quick' | 'full') => {

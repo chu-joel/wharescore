@@ -1,11 +1,12 @@
 'use client';
-import { Download, AlertTriangle, Home, DollarSign, Bus, Map, Sparkles, Loader2, Shield } from 'lucide-react';
+import { Download, AlertTriangle, Home, DollarSign, Bus, Map, Sparkles, Loader2, Shield, BookmarkPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { SocialProof } from './SocialProof';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { formatCompactCurrency } from '@/lib/format';
+import { useSession } from 'next-auth/react';
 
 interface ReportCTABannerProps {
   addressId: number;
@@ -52,6 +53,8 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
   const fullPrice = isPro ? '$4.99' : '$9.99';
   const pdf = usePdfExport(addressId, persona);
   const contents = persona === 'renter' ? RENTER_CONTENTS : BUYER_CONTENTS;
+  const { status: sessionStatus } = useSession();
+  const isAuthenticated = sessionStatus === 'authenticated';
 
   return (
     <div className="rounded-xl border border-piq-primary/20 bg-gradient-to-br from-piq-primary/8 via-piq-primary/3 to-transparent p-5 space-y-4 card-elevated">
@@ -76,13 +79,39 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           </div>
         ))}
       </div>
-      <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('full')} disabled={pdf.isGenerating}>
-        {pdf.isGenerating ? (
-          <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating Report...</>
-        ) : (
-          <><Download className="h-4 w-4 mr-1.5" /> Get Full Report — {fullPrice}</>
-        )}
-      </Button>
+      {/* Dual-CTA for signed-out users: the primary action is the free
+          "save & sign in" path (captures 95% of browsers), and the paid
+          Full Report sits underneath as a deliberate secondary link for
+          buyers who already know they want it. Signed-in users see a
+          single primary button — the ReportConfirmModal lets them pick
+          Quick (free) vs Full ($9.99) after they click. */}
+      {isAuthenticated ? (
+        <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('full')} disabled={pdf.isGenerating}>
+          {pdf.isGenerating ? (
+            <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating report…</>
+          ) : (
+            <><Download className="h-4 w-4 mr-1.5" /> Generate Full Report — {fullPrice}</>
+          )}
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('quick')} disabled={pdf.isGenerating}>
+            {pdf.isGenerating ? (
+              <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Saving report…</>
+            ) : (
+              <><BookmarkPlus className="h-4 w-4 mr-1.5" /> Save free report — sign in</>
+            )}
+          </Button>
+          <button
+            type="button"
+            onClick={() => pdf.startExport('full')}
+            disabled={pdf.isGenerating}
+            className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 py-1 transition-colors disabled:opacity-50"
+          >
+            Or skip ahead — buy the Full Report ({fullPrice})
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Shield className="h-3 w-3" /> Secure payment
