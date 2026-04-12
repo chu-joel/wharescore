@@ -4,6 +4,9 @@ import { Lock, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { Finding } from './FindingCard';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { useHostedReport } from '@/components/report/HostedReportContext';
+import { usePdfExport } from '@/hooks/usePdfExport';
+import { usePersonaStore } from '@/stores/personaStore';
+import { useSession } from 'next-auth/react';
 
 /**
  * Shows blurred/ghosted versions of hidden findings.
@@ -25,13 +28,40 @@ export function BlurredFindingCards({
   // Show them on Quick hosted reports (teaser for upgrade)
   if (hosted && hosted.snapshot.report_tier !== 'quick') return null;
   const isHostedQuick = !!hosted && hosted.snapshot.report_tier === 'quick';
-  const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
-  const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
+  const persona = usePersonaStore((s) => s.persona);
+  const pdf = usePdfExport(addressId, persona);
+  const { status: sessionStatus } = useSession();
+  const isAuthenticated = sessionStatus === 'authenticated';
 
   if (findings.length === 0) return null;
 
   const criticalCount = findings.filter((f) => f.severity === 'critical').length;
   const warningCount = findings.filter((f) => f.severity === 'warning').length;
+
+  // What the CTA should do:
+  //   - On a hosted Quick report → scroll to the in-page upgrade banner
+  //     (the user's already signed in and has a saved Quick, so the next
+  //     step really is the paid upgrade).
+  //   - On the free on-screen report, authenticated or not → kick the
+  //     Quick-Report save flow. The remaining findings are ungated inside
+  //     Quick, so signing in and generating Quick literally is "see all
+  //     findings". Sending users to UpgradeModal here was wrong: the
+  //     paywall pitched Full as the only way to see findings when Quick
+  //     already unlocks them for free.
+  const handleReveal = () => {
+    if (isHostedQuick) {
+      document.getElementById('upgrade-banner')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    pdf.startExport('quick');
+  };
+
+  // CTA wording reflects the actual action we're about to take.
+  const ctaLabel = isHostedQuick
+    ? 'Upgrade to Full Report'
+    : isAuthenticated
+      ? `Generate your report to see all ${totalCount}`
+      : `Sign in free to see all ${totalCount}`;
 
   return (
     <div className="relative">
@@ -49,13 +79,7 @@ export function BlurredFindingCards({
 
       {/* Overlay — the conversion point */}
       <button
-        onClick={() => {
-          if (isHostedQuick) {
-            document.getElementById('upgrade-banner')?.scrollIntoView({ behavior: 'smooth' });
-          } else {
-            setShowUpgradeModal(true, 'risk', { riskCount: criticalCount + warningCount });
-          }
-        }}
+        onClick={handleReveal}
         className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
       >
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-background shadow-lg border border-border mb-2 group-hover:scale-110 transition-transform">
@@ -81,10 +105,10 @@ export function BlurredFindingCards({
           </p>
         )}
         <p className="text-xs text-piq-primary font-semibold mt-2 group-hover:underline">
-          {isHostedQuick ? 'Upgrade to Full Report' : `See all ${totalCount} findings`}
+          {ctaLabel}
         </p>
-        {!isHostedQuick && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">In the full report</p>
+        {!isHostedQuick && !isAuthenticated && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">Free — one-tap Google sign-in</p>
         )}
       </button>
     </div>

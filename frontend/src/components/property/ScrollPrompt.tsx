@@ -134,7 +134,7 @@ function getPromptVariant(report: PropertyReport, price: string): PromptVariant 
   return {
     icon: TrendingUp,
     iconColor: 'text-piq-primary',
-    message: 'Get the full 27-indicator analysis with AI insights and personalised recommendations.',
+    message: 'Get the full 40+ risk-check analysis with AI insights and personalised recommendations.',
     cta: `Download full report — ${price}`,
   };
 }

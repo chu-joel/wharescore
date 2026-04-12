@@ -430,10 +430,19 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Free Quick Report — sign in prompt for logged-out users */}
+        {/* Free Quick Report — sign in prompt for logged-out users.
+            Round-trips through the same `autoSave=<addressId>` callbackUrl
+            that the on-report "Save free report" button uses, so after
+            OAuth the user lands back on the property with Quick generating
+            automatically — no re-hunting for the button. */}
         {!isSignedIn && (
           <button
-            onClick={() => signIn()}
+            onClick={() => {
+              if (typeof window === 'undefined') { signIn(); return; }
+              const url = new URL(window.location.href);
+              if (targetAddressId) url.searchParams.set('autoSave', String(targetAddressId));
+              signIn(undefined, { callbackUrl: url.toString() });
+            }}
             className="w-full rounded-lg border-2 border-dashed border-piq-primary/30 bg-piq-primary/5 p-3 text-center transition-all hover:border-piq-primary/60 hover:bg-piq-primary/10"
           >
             <p className="text-sm font-semibold text-piq-primary">Sign in for a free Quick Report</p>
@@ -560,7 +569,7 @@ export function UpgradeModal() {
 
         {!isAuthenticated && !loading && !targetAddressId && (
           <p className="text-center text-xs text-muted-foreground">
-            You&apos;ll be asked to sign in before purchase.
+            Guest checkout — create an account after payment to save your report.
           </p>
         )}
 
