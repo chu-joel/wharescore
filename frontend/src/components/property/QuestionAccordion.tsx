@@ -86,12 +86,8 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
                     <span className="text-sm font-semibold">{q.question}</span>
                     {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                   </div>
-                  {summaryText && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {summaryText}
-                    </p>
-                  )}
-                  {chips.length > 0 && (
+                  {/* Chips communicate the same data as the text summary; prefer chips when we have them. */}
+                  {chips.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {chips.map((chip) => (
                         <span
@@ -102,7 +98,11 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
                         </span>
                       ))}
                     </div>
-                  )}
+                  ) : summaryText ? (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {summaryText}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </AccordionTrigger>

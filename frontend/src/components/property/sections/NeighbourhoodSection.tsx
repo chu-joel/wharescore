@@ -59,12 +59,16 @@ export function NeighbourhoodSection({ category, liveability, addressId, persona
         </div>
       )}
 
-      {/* Crime card */}
-      <CrimeCard
-        percentile={liveability.crime_rate}
-        victimisations={liveability.crime_victimisations}
-        cityMedian={liveability.crime_city_median}
-      />
+      {/* Crime card — buyers only. Renters already see this in the
+          "Is it safe?" section above, so rendering it twice in the
+          same report is noise. */}
+      {!isRenter && (
+        <CrimeCard
+          percentile={liveability.crime_rate}
+          victimisations={liveability.crime_victimisations}
+          cityMedian={liveability.crime_city_median}
+        />
+      )}
 
       {/* Indicator cards grid — buyers only */}
       {!isRenter && (

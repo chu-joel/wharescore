@@ -6,7 +6,6 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
 import { RentComparisonFlow } from '@/components/property/RentComparisonFlow';
 import { RentAdvisorCard } from '@/components/property/RentAdvisorCard';
-import { PriceAdvisorCard } from '@/components/property/PriceAdvisorCard';
 import { RentHistoryChart } from '@/components/property/RentHistoryChart';
 import { usePersonaStore } from '@/stores/personaStore';
 import { HPITrendChart } from '@/components/property/HPITrendChart';
@@ -36,8 +35,10 @@ export function MarketSection({ addressId, category, market, property, detection
       {/* Market Heat Badge */}
       {market.market_heat && <MarketHeatBadge heat={market.market_heat} />}
 
-      {/* Council Valuation */}
-      {(() => {
+      {/* Council Valuation — buyers only. Renters see CV in the hero
+          pill already and the breakdown (land + improvements) is not
+          relevant to a tenancy decision. */}
+      {persona === 'buyer' && (() => {
         const effectiveCv = effectivePerUnitCv(property.capital_value, {
           isMultiUnit: !!detection?.is_multi_unit,
           unitCount: detection?.unit_count,
@@ -101,20 +102,17 @@ export function MarketSection({ addressId, category, market, property, detection
         />
       )}
 
-      {/* Persona-aware advisor section — skip API-calling components in hosted mode */}
-      {!hosted && (
-        persona === 'buyer' ? (
-          <PriceAdvisorCard addressId={addressId} />
-        ) : (
-          <>
-            <RentComparisonFlow
-              addressId={addressId}
-              market={market}
-              detection={detection}
-            />
-            <RentAdvisorCard addressId={addressId} />
-          </>
-        )
+      {/* Renter-only advisor section — buyers get PriceAdvisorCard in
+          the dedicated `true-cost` accordion so we don't render it twice. */}
+      {!hosted && persona === 'renter' && (
+        <>
+          <RentComparisonFlow
+            addressId={addressId}
+            market={market}
+            detection={detection}
+          />
+          <RentAdvisorCard addressId={addressId} />
+        </>
       )}
 
       {/* Trend data */}
@@ -154,12 +152,13 @@ export function MarketSection({ addressId, category, market, property, detection
       {/* Rent History — skip in hosted mode (calls API) */}
       {!hosted && <RentHistoryChart addressId={addressId} />}
 
-      {/* HPI — gated on free UI, shown in hosted */}
-      {!hosted ? (
+      {/* HPI — buyer-only. A national house price index has no bearing
+          on a rental decision, so renters don't see it. */}
+      {!hosted && persona === 'buyer' && (
         <PremiumGate label="NZ House Price Index trend" trigger="market">
           <HPITrendChart />
         </PremiumGate>
-      ) : null}
+      )}
 
       {/* Indicator cards */}
       {category.indicators.length > 0 && (

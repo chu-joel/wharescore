@@ -9,7 +9,6 @@ export type QuestionId =
   | 'safety'
   | 'rent-fair'
   | 'daily-life'
-  | 'neighbourhood-improving'
   | 'renter-checklist'
   | 'deal-breakers'
   | 'true-cost'
@@ -55,17 +54,13 @@ const RENTER_QUESTIONS: QuestionSection[] = [
     iconBg: 'bg-amber-100 dark:bg-amber-900/30',
   },
   {
-    id: 'neighbourhood-improving',
-    question: 'Is the neighbourhood improving?',
-    dataSources: ['liveability', 'planning', 'market'],
-    icon: 'TrendingUp',
-    iconColor: 'text-emerald-600',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
-  },
-  {
+    // Previously split across "Is the neighbourhood improving?" and
+    // "What's the neighbourhood like?". Two near-identical accordions
+    // bloated the report and users didn't know which to read first, so
+    // trajectory + area snapshot now live under one question.
     id: 'neighbourhood',
     question: "What's the neighbourhood like?",
-    dataSources: ['liveability', 'environment'],
+    dataSources: ['liveability', 'environment', 'planning', 'market'],
     icon: 'TreePine',
     iconColor: 'text-piq-success',
     iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',

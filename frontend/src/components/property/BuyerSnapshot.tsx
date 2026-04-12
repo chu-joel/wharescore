@@ -4,14 +4,6 @@ import {
   Shield,
   AlertTriangle,
   CheckCircle,
-  Building2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  HardHat,
-  Flame,
-  Waves,
-  ThermometerSnowflake,
 } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
 
@@ -55,8 +47,6 @@ export function BuyerSnapshot({ report }: Props) {
   const sections: SnapshotSection[] = [];
   const hazards = report.hazards;
   const planning = report.planning;
-  const property = report.property;
-  const terrain = report.terrain;
 
   // === INSURABILITY ASSESSMENT ===
   if (hazards) {
@@ -157,7 +147,6 @@ export function BuyerSnapshot({ report }: Props) {
   }
 
   // === CLIMATE / MANAGED RETREAT RISK ===
-  const elevation = terrain?.elevation_m;
   const coastalElev = hazards?.coastal_elevation_cm;
   const isCoastal = coastalElev != null && coastalElev < 500;
   const isVeryLow = coastalElev != null && coastalElev < 200;
@@ -209,9 +198,6 @@ export function BuyerSnapshot({ report }: Props) {
   }
 
   // === TITLE TYPE (cross-lease warning) ===
-  const titleRef = property.title_ref;
-  // Cross-leases in NZ typically have title refs containing "CL" or the property detection may indicate
-  // For now, check if multi-unit on a shared title
   const isMultiUnit = report.property_detection?.is_multi_unit;
   const unitCount = report.property_detection?.unit_count ?? 0;
   if (isMultiUnit && unitCount >= 2) {

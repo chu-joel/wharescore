@@ -77,27 +77,6 @@ export function getPreviewChips(questionId: QuestionId, report: PropertyReport):
       break;
     }
 
-    case 'neighbourhood-improving': {
-      // Trend-focused: 1yr/5yr rent direction, recent consents, crime trend.
-      // Deliberately does NOT duplicate NZDep/crime chips shown in "neighbourhood".
-      if (m.trend?.cagr_1yr != null) {
-        chips.push({
-          label: `1yr ${m.trend.cagr_1yr > 0 ? '+' : ''}${m.trend.cagr_1yr.toFixed(1)}%`,
-          variant: m.trend.cagr_1yr > 0 ? 'green' : 'red',
-        });
-      }
-      if (m.trend?.cagr_5yr != null) {
-        chips.push({
-          label: `5yr ${m.trend.cagr_5yr > 0 ? '+' : ''}${m.trend.cagr_5yr.toFixed(1)}%`,
-          variant: m.trend.cagr_5yr > 0 ? 'green' : 'red',
-        });
-      }
-      if (p.consent_count && p.consent_count > 0) {
-        chips.push({ label: `${p.consent_count} consents`, variant: 'blue' });
-      }
-      break;
-    }
-
     case 'neighbourhood': {
       // Snapshot of area today: deprivation + crime + schools/amenities, no trend.
       if (l.nzdep_score != null) {
@@ -232,23 +211,6 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
       if (l.school_count != null) parts.push(`${l.school_count} schools`);
       if (e.noise_db != null) parts.push(`${Math.round(e.noise_db)}dB road noise`);
       return parts.length > 0 ? parts.join(' · ') + '.' : 'Limited liveability data available.';
-    }
-
-    case 'neighbourhood-improving': {
-      // Answers "is the area trending up or down?" — trend + development signals only.
-      const parts: string[] = [];
-      if (m.trend?.cagr_1yr != null) {
-        const dir1 = m.trend.cagr_1yr > 0 ? 'rising' : 'falling';
-        parts.push(`rents ${dir1} ${Math.abs(m.trend.cagr_1yr).toFixed(1)}%/yr (1yr)`);
-      }
-      if (m.trend?.cagr_5yr != null) {
-        const dir5 = m.trend.cagr_5yr > 0 ? 'rising' : 'falling';
-        parts.push(`${Math.abs(m.trend.cagr_5yr).toFixed(1)}%/yr over 5yr`);
-      }
-      if (p.consent_count != null && p.consent_count >= 5) {
-        parts.push(`${p.consent_count} recent consents`);
-      }
-      return parts.length > 0 ? parts.join(' · ') + '.' : 'Not enough trend data for this area yet.';
     }
 
     case 'neighbourhood': {

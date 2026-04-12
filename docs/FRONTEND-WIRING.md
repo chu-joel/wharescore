@@ -31,21 +31,25 @@
 | `hazards.contamination_count` | ContaminatedLandCard | 5. DEEP DIVE | No |
 | `hazards.landslide_nearest, .landslide_count_500m` | LandslideDetailCard | 5. DEEP DIVE (buyers only) | No |
 | `environment.climate_temp_change, .climate_precip_change_pct` | ClimateForecastCard | 5. DEEP DIVE (buyers only) | No |
-| `liveability.crime_rate, .crime_city_median` | CrimeCard | 5. DEEP DIVE "neighbourhood" — humanized: "Safer than X% of areas" (no raw victimisation count) | No |
-| `liveability.nzdep_score` | NeighbourhoodSection | 5. DEEP DIVE "neighbourhood" | No |
+| `liveability.crime_rate, .crime_city_median` | CrimeCard | 5. DEEP DIVE — buyers: inside "neighbourhood" via NeighbourhoodSection. Renters: inside "safety" only (hidden from neighbourhood to avoid duplication). Humanized: "Safer than X% of areas" (no raw victimisation count). | No |
+| `liveability.nzdep_score` | NeighbourhoodSection | 5. DEEP DIVE "neighbourhood" — CrimeCard hidden for renters (already in safety). Buyers see full indicator grid + CrimeCard. | No |
 | `liveability.cbd_distance_m, .nearest_train_m` | TransportSection | 5. DEEP DIVE "daily life" — persona-aware: renters see distances/commute only; buyers also see indicator grid | No |
 | `walking_reach.bus, .rail, .ferry` | TransportSection | 5. DEEP DIVE "daily life" | No |
 | `liveability.transit_travel_times[]` | TransportSection | 5. DEEP DIVE "daily life" | Top 3 free, rest gated |
 | `terrain.aspect_label` | SunAspectCard | 5. DEEP DIVE "daily life" (renter only) | No |
 | `hazards.aircraft_noise_name, .aircraft_noise_dba, .aircraft_noise_category` | NoiseLevelGauge | 5. DEEP DIVE "daily life" — aircraft noise shown prominently alongside road noise | No |
-| `property.capital_value, .land_value` | MarketSection | 5. DEEP DIVE "rent fair" / "investment" | No |
-| `market.market_heat, .trend.cagr_*` | MarketSection | 5. DEEP DIVE | No |
+| `property.capital_value, .land_value` | MarketSection | 5. DEEP DIVE "investment" (buyer only — CV card hidden for renters). PriceAdvisorCard removed from MarketSection; buyers get it in `true-cost` only to avoid duplication. | No |
+| `market.market_heat, .trend.cagr_*` | MarketSection | 5. DEEP DIVE — HPI chart hidden for renters (not relevant to rental decisions) | No |
 | `property_detection.detected_bedrooms, .is_multi_unit, .detected_type, property.building_area_sqm` | FlatmateFriendly | 5. DEEP DIVE "rent fair" (renter only) | No |
 | `planning.zone_name, .zone_category, .height_limit, overlays` | PlanningSection | 5. DEEP DIVE "restrictions" (buyers). The "Category" row is hidden when `zone_category` equals `zone_name` or is the literal string "Zone" (WCC ArcGIS feed returns that for MRZ). EPB checklist row asks "This building on the EPB register? Yes — listed / No" instead of the old "Earthquake-prone building / Not listed" phrasing. | No |
 | `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | 6. Below fold (compact mode) | No |
 | (live API call) | AISummaryCard | 6. Below fold (after accordion) | No |
 
-**Default expanded accordion sections:** Renters: `rent-fair`, `daily-life`. Buyers: `deal-breakers`, `true-cost`.
+**Renter accordion sections:** `rent-fair`, `safety`, `daily-life`, `neighbourhood` (merges old `neighbourhood-improving` + `neighbourhood`), `renter-checklist` (hero, skipped from accordion). Default expanded: `rent-fair`, `daily-life`.
+
+**Buyer accordion sections:** `deal-breakers`, `investment`, `true-cost`, `daily-life`, `neighbourhood`, `restrictions`, `buyer-checklist` (hero, skipped). Default expanded: `deal-breakers`, `true-cost`.
+
+**Accordion trigger deduplication:** When preview chips are present, the text summary is hidden (they showed identical information). Chips use color-coded pills; text shown as fallback only when no chips exist.
 
 ### Hosted report (`/report/{token}`, component: `HostedReport.tsx`)
 

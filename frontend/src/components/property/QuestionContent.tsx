@@ -242,29 +242,27 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
       );
     }
 
-    // ── Renter Q4: Neighbourhood trajectory ──
-    // TrajectoryIndicator free (summary), crime trend sparkline is premium
-    case 'neighbourhood-improving': {
-      return (
-        <div className="space-y-4">
-          <TrajectoryIndicator report={report} />
-          <PremiumGate label="Crime trend chart" trigger="risk">
-            <CrimeTrendSparkline addressId={report.address.address_id} />
-          </PremiumGate>
-        </div>
-      );
-    }
-
     // ── Neighbourhood overview ──
-    // For buyers: trajectory + crime + full section (buyers don't have 'neighbourhood-improving')
-    // For renters: only the section (trajectory + crime already shown in 'neighbourhood-improving')
+    // One neighbourhood question per persona now: trajectory + snapshot
+    // + amenities in a single accordion. Renters previously had a split
+    // "Is the neighbourhood improving?" section; that's been merged here.
     case 'neighbourhood': {
       const livCat = findCategory(report, 'liveability');
       const isRenter = persona === 'renter';
       return (
         <div className="space-y-4">
-          {!isRenter && <TrajectoryIndicator report={report} />}
-          {!isRenter && <CrimeTrendSparkline addressId={report.address.address_id} />}
+          <TrajectoryIndicator report={report} />
+          {/* Crime trend chart is part of the buyer's free experience
+              but sits behind the paywall for renters — matches the old
+              neighbourhood-improving gating before the two sections
+              were merged. */}
+          {isRenter ? (
+            <PremiumGate label="Crime trend chart" trigger="risk">
+              <CrimeTrendSparkline addressId={report.address.address_id} />
+            </PremiumGate>
+          ) : (
+            <CrimeTrendSparkline addressId={report.address.address_id} />
+          )}
           {livCat && (
             <NeighbourhoodSection
               category={livCat}

@@ -158,10 +158,13 @@ export function ComparisonBars({ report }: ComparisonBarsProps) {
 
           return (
             <div key={row.label} className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">{row.label}</span>
+              {/* Stack label + insight on narrow viewports — on a 360px
+                  phone the two were colliding and the insight text
+                  wrapped under the label in a single cramped row. */}
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                <span className="text-xs font-medium leading-tight">{row.label}</span>
                 {insight && (
-                  <span className="text-[10px] text-muted-foreground">{insight}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">{insight}</span>
                 )}
               </div>
 

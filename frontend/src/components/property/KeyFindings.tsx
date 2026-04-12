@@ -44,7 +44,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-piq-primary" />
         <h3 className="text-sm font-bold">
-          {findings.length} {findings.length === 1 ? 'thing' : 'things'} to know about this property
+          {findings.length} {findings.length === 1 ? 'thing' : 'things'} to know about this {persona === 'renter' ? 'rental' : 'property'}
         </h3>
       </div>
 

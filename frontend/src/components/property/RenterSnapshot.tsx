@@ -2,7 +2,6 @@
 
 import {
   DollarSign,
-  Handshake,
   Home,
   Droplets,
   Sun,
