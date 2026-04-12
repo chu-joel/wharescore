@@ -68,7 +68,7 @@ export function BudgetSlider({ label, value, min, max, step, onChange, format = 
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
             onBlur={handleSave}
-            className="w-24 h-6 px-2 text-xs font-medium tabular-nums text-right rounded border border-piq-primary bg-background focus:outline-none focus:ring-1 focus:ring-piq-primary"
+            className="w-24 h-7 md:h-6 px-2 text-base md:text-xs font-medium tabular-nums text-right rounded border border-piq-primary bg-background focus:outline-none focus:ring-1 focus:ring-piq-primary"
           />
         ) : (
           <button

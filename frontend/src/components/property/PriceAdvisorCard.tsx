@@ -168,7 +168,7 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
             value={askingPrice || ''}
             onChange={(e) => setAskingPrice(e.target.value ? parseInt(e.target.value) : null)}
             placeholder="e.g. 850000"
-            className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-sm tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
+            className="w-full rounded-lg border border-border bg-background pl-7 pr-3 py-2 text-base md:text-sm tabular-nums focus:border-piq-primary focus:ring-1 focus:ring-piq-primary/30 outline-none"
           />
         </div>
       </div>

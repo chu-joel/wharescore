@@ -45,6 +45,8 @@
 | `coverage.available, .total, .per_category, .bonus_features` | DataLayersAccordion | 6. Below fold (compact mode) | No |
 | (live API call) | AISummaryCard | 6. Below fold (after accordion) | No |
 
+**Mobile input zoom rule:** any raw `<input type="text|number">` in on-screen report components must use `text-base md:text-sm` (or larger at mobile). Safari zooms on focus when the computed font-size is < 16px. PriceAdvisorCard, BuyerBudgetCalculator, RenterBudgetCalculator, BudgetSlider inline editors all follow this pattern. The shared `<Input>` primitive (`components/ui/input.tsx`) already bakes this in — prefer it over raw `<input>` where possible.
+
 **Renter accordion sections:** `rent-fair`, `safety`, `daily-life`, `neighbourhood` (merges old `neighbourhood-improving` + `neighbourhood`), `renter-checklist` (hero, skipped from accordion). Default expanded: `rent-fair`, `daily-life`.
 
 **Buyer accordion sections:** `deal-breakers`, `investment`, `true-cost`, `daily-life`, `neighbourhood`, `restrictions`, `buyer-checklist` (hero, skipped). Default expanded: `deal-breakers`, `true-cost`.

@@ -319,7 +319,7 @@ function OverrideInput({
             onChange={(e) => setInputVal(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
             onBlur={handleSave}
-            className="flex-1 h-7 px-2 text-xs rounded border border-border bg-background"
+            className="flex-1 h-8 md:h-7 px-2 text-base md:text-xs rounded border border-border bg-background"
             placeholder={`$${defaultValue} (total)`}
           />
         </div>
