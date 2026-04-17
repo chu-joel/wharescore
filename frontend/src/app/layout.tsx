@@ -120,13 +120,13 @@ export default function RootLayout({
               {
                 "@context": "https://schema.org",
                 "@type": "SiteNavigationElement",
-                name: ["About", "Help & FAQ", "Contact", "Sign In", "My Reports"],
+                name: ["About", "Suburb Guides", "Help & FAQ", "Contact", "Changelog"],
                 url: [
                   `${siteUrl}/about`,
+                  `${siteUrl}/suburbs`,
                   `${siteUrl}/help`,
                   `${siteUrl}/contact`,
-                  `${siteUrl}/signin`,
-                  `${siteUrl}/account`,
+                  `${siteUrl}/changelog`,
                 ],
               },
             ]),
