@@ -118,6 +118,19 @@
 
 ---
 
+## Seeded service accounts
+<!-- UPDATE: When adding a service account for tooling (verify, iterate, smoke tests, etc.), add a row here. -->
+
+Service accounts are seeded rows in `users` + `report_credits` used by automated tooling to exercise authenticated endpoints without Stripe. Each is documented here so the row's intent is legible and revocable.
+
+| clerk_id | plan | credit_type | daily_limit | monthly_limit | Purpose | Seeded by |
+|----------|------|-------------|-------------|---------------|---------|-----------|
+| `verify-dev-service-account` | pro | pro | 20 | 200 | `/verify` + `/iterate` skills use this account via `backend/scripts/mint-dev-jwt.py` to mint 1-hour HS256 JWTs against `AUTH_SECRET`. Bypasses Stripe, exercises authed endpoints, generates test reports. Caps protect against runaway generation. | migration `0053_verify_dev_user.sql` |
+
+**Revoke:** a follow-up migration can `UPDATE users SET plan='free' WHERE clerk_id='verify-dev-service-account'` — or set `daily_limit=0` in `report_credits`. Rotating `AUTH_SECRET` invalidates every user's JWT; don't use that as a revocation mechanism.
+
+---
+
 ## DataSources by Region
 <!-- UPDATE: When adding a DataSource to data_loader.py, add it to the appropriate region section below. -->
 
