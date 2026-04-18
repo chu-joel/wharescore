@@ -6,7 +6,15 @@ Outputs a fair-rent band (low–high) rather than a single point estimate.
 """
 from __future__ import annotations
 
-from .market import blend_sa2_tla, market_confidence_stars
+from datetime import date
+
+from .market import (
+    REVALUATION_DATES,
+    blend_sa2_tla,
+    cv_uncertainty,  # noqa: F401 — re-exported for parity with price_advisor
+    estimate_percentile,
+    market_confidence_stars,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -669,10 +677,11 @@ async def compute_rent_advice(
              WHERE a2.gd2000_xcoord = a.gd2000_xcoord
                AND a2.gd2000_ycoord = a.gd2000_ycoord
                AND a2.address_lifecycle = 'Current') AS unit_count,
-            cv.capital_value, cv.land_value
+            cv.capital_value, cv.land_value, cv.valuation_date, cv.council
         FROM addresses a
         LEFT JOIN LATERAL (
-            SELECT capital_value, land_value FROM council_valuations cv
+            SELECT capital_value, land_value, valuation_date, council
+            FROM council_valuations cv
             WHERE ST_Contains(cv.geom, a.geom) LIMIT 1
         ) cv ON true
         WHERE a.address_id = %s
@@ -1222,9 +1231,14 @@ async def compute_rent_advice(
         product_low *= 1 + adj["pct_low"] / 100
         product_high *= 1 + adj["pct_high"] / 100
 
-    # Widen the inner band by 1% each side for natural variance
-    band_low = round(raw_median * min(product_low, product_high) * 0.99)
-    band_high = round(raw_median * max(product_low, product_high) * 1.01)
+    # Inner-band natural-variance pad. Derived from the SA2's log-normal
+    # dispersion (bonds_detailed.log_std_dev_weekly_rent) so thin/volatile
+    # SA2s get a wider pad and tight SA2s a narrower one. Clamp to [0.5%, 3%]
+    # so a missing sigma falls back to roughly the old ±1% behaviour.
+    sigma = baseline.get("sigma")
+    inner_pad = max(0.005, min(0.03, float(sigma) * 0.5)) if sigma else 0.01
+    band_low = round(raw_median * min(product_low, product_high) * (1 - inner_pad))
+    band_high = round(raw_median * max(product_low, product_high) * (1 + inner_pad))
 
     # --- IQR guardrails ---
     # Use bond quartiles to reality-check band width.
@@ -1308,7 +1322,27 @@ async def compute_rent_advice(
         ]
 
     # --- Confidence ---
-    stars = market_confidence_stars(baseline["bond_count"], None, None)
+    # CV age: prefer per-property valuation_date; fall back to REVALUATION_DATES
+    # by TA/council so properties in councils with NULL valuation_date still get
+    # a reasonable confidence rating instead of defaulting to "unknown = stale".
+    cv_age_months: int | None = None
+    val_date = prop.get("valuation_date") if prop else None
+    if not val_date:
+        for key in (sa2.get("ta_name"), (prop or {}).get("council", "")):
+            if not key:
+                continue
+            for reval_key, reval_date_str in REVALUATION_DATES.items():
+                k1 = reval_key.lower()
+                k2 = key.lower()
+                if k1 in k2 or k2 in k1:
+                    val_date = date.fromisoformat(reval_date_str)
+                    break
+            if val_date:
+                break
+    if val_date and isinstance(val_date, date):
+        cv_age_months = (date.today() - val_date).days // 30
+
+    stars = market_confidence_stars(baseline["bond_count"], cv_age_months, None)
 
     # Reduce confidence when estimate is far outside observed quartile range
     if iqr and iqr > 0:
@@ -1320,6 +1354,15 @@ async def compute_rent_advice(
     cat_order = {"hazard": 0, "location": 1, "property": 2}
     adjustments.sort(key=lambda a: (cat_order.get(a.get("category", ""), 3), -abs(a["pct_high"])))
 
+    # Where does the user's rent fall in the SA2 log-normal distribution?
+    # Surfaces alongside the band so "fair" rents still get a specific position
+    # (e.g. 72nd percentile = fair but top of market).
+    percentile = (
+        estimate_percentile(weekly_rent, raw_median, sigma)
+        if weekly_rent is not None and sigma
+        else None
+    )
+
     return {
         "verdict": verdict,
         "band_low": band_low,
@@ -1329,6 +1372,8 @@ async def compute_rent_advice(
         "raw_median": round(raw_median),
         "your_rent": weekly_rent,
         "difference_pct": diff_pct,
+        "percentile": round(percentile * 100, 1) if percentile is not None else None,
+        "cv_age_months": cv_age_months,
         "adjustments": adjustments,
         "area_context": area_context,
         "factors_analysed": factors_analysed,
