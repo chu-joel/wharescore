@@ -493,6 +493,56 @@ When adding a tiered rec (different advice for different value ranges), compute 
 
 ---
 
+## Extension Badge Flow
+
+The WhareScore Badge browser extension (MV3, Chrome) adds a floating WhareScore card to NZ property-listing pages. It is a pure annotation tool — it NEVER captures or forwards host-page attributes (bedrooms, price, photos, agent info, descriptions). See `extension/` for the code and `EXTENSION-BRIEF.md` for the authoritative spec.
+
+### Golden path (8 steps)
+
+1. **Content script mounts** on `homes.co.nz/address/*`, `oneroof.co.nz/property/*`, or `realestate.co.nz/*/residential/sale/*`.
+2. **Gate check** — `getPauseUntil()` + `getSiteToggles()` + cached `/status` kill-switch. Silent return if paused or site disabled.
+3. **Extract address** — site-specific extractor (`extension/src/lib/extractors.ts`) pulls the listing address from JSON-LD → `<h1>` → `<title>` / `og:title` fallback. Polls DOM for up to 3s so Angular-hydrated SPAs get a chance to render. Returns `null` silently if not found.
+4. **Fetch short-lived JWT** — `GET /api/auth/token` on the WhareScore frontend mints a 5-minute HS256 JWT. Content script caches it for ~4 minutes in `chrome.storage.session`. CORS matches `chrome-extension://[a-z]{32}`. 401 → Level 0 (anon) mode.
+5. **POST `/api/v1/extension/badge`** — body = `{source_site, address_text, source_url?}`. `source_url` is path-only (query + fragment stripped) and is used ONLY for persona inference. Headers include `X-WhareScore-Extension: 1` and Bearer JWT when signed in. 401 → one-shot token refresh + retry.
+6. **Backend** — `extension.py` normalises the address, calls `search_service`, applies the exact-match acceptance rule (suburb + road + number must all match), fetches the report via the 24 h Redis cache (falls back to `get_property_report()`), runs `enrich_with_scores`, determines tier (`resolve_plan` → anon / free / pro) and persona (stored `users.persona` → URL hint), then shapes the tiered payload via `select_findings_for_badge` + `compute_price_band` + `extract_pro_fields`.
+7. **Tier gating (strict)**:
+   - **anon**: 2 severity-ranked generic findings. No price, no estimates, all capabilities false.
+   - **free**: 2 persona-tailored findings + wide `price_band` (CV × HPI, ±15%). `capabilities.save` + `capabilities.watchlist` true.
+   - **pro**: full persona-ranked findings list + `price_estimate` (precise + confidence + comps) + `rent_estimate` (+ yield) + `walk_score` + `schools`. All capabilities true.
+8. **Render** — Shadow-DOM badge at the bottom-right. Draggable header (position remembered per site), dismissible × (7-day per-address memory), Esc to close, Save button (free + pro), "View full report" link. Prefers-reduced-motion respected.
+
+### Finding selection (shared helper)
+
+`backend/app/services/report_html.py::select_findings_for_badge(report, persona, max_count)` is the single source of truth for ranked-findings output. It is called by:
+
+- `POST /api/v1/extension/badge` (for the 2 badge findings / full pro list).
+- `GET /api/v1/property/{id}/report` — pre-computes `report.ranked_findings.{renter, buyer, generic}` so the on-screen KeyFindings component shows the same top-2 as the extension badge (no client-side round trip when the persona toggle changes).
+
+Ranking formula: `relevance = relative_severity_vs_SA2 × persona_weight × non_obvious_bonus` (Phase 1 uses insight-level as the severity proxy; Phase 1.1 will wire true SA2-median comparison). Rules: drop findings at-or-below SA2 median; drop info-level findings that read as suburb context; weight non-obvious (photo-invisible) signals 2×; persona tables (`_RENTER_WEIGHTS`, `_BUYER_WEIGHTS`, `_GENERIC_WEIGHTS`) steer which keywords win.
+
+### Persona detection
+
+Precedence: `users.persona` (if signed in) → URL path (`/rent/` or `/rental/` → renter; `/sale/` or `/for-sale/` → buyer) → `None` (anon badge uses the generic weights).
+
+### Auth CORS
+
+- `frontend/src/app/api/auth/token/route.ts` — Route Handler echoes back the `Origin` header when it matches `^chrome-extension://[a-z]{32}$`, plus `Access-Control-Allow-Credentials: true` so the NextAuth session cookie travels with the request.
+- `backend/app/main.py` — adds `allow_origin_regex = settings.EXTENSION_ORIGIN_REGEX` to the global CORS middleware when `CORS_ALLOW_EXTENSIONS=True`. Also adds `X-WhareScore-Extension` + `X-WhareScore-Extension-Version` to `allow_headers`.
+
+### Rate limiting
+
+`backend/app/routers/extension.py::_badge_limit(key)` is a dynamic provider — authenticated callers (key prefix `user:`) get 60/min, anon callers get 30/min. The key function is `deps.user_or_ip_key(request)` which verifies the JWT before prefixing.
+
+### Privacy guardrails (Chrome Web Store 2026)
+
+- No `cookies` permission in the manifest. Host-site cookies are never read.
+- Request body schema is ONLY `{source_site, address_text, source_url?}` — Pydantic rejects anything else.
+- Host-page attributes (bedrooms, price, photos, agent info) are never captured, transmitted, or stored.
+- Privacy policy (`frontend/src/app/extension/privacy/page.tsx`) contains the verbatim Limited Use affirmation.
+- Telemetry event `extension_badge_rendered` stores `{address_id, source_site, tier, persona, ambiguous}` — never raw address text.
+
+---
+
 ## Infrastructure
 
 ### Docker services (production)

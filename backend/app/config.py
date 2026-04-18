@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     MAPBOX_ACCESS_TOKEN: str = ""
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    # Chrome extensions send Origin: chrome-extension://<id>. allow_origins is
+    # exact-match only, so we need a regex. Dev accepts any extension id; prod
+    # should be pinned to the published Chrome Web Store id via env var.
+    CORS_ALLOW_EXTENSIONS: bool = True
+    EXTENSION_ORIGIN_REGEX: str = r"^chrome-extension://[a-z]{32}$"
     ADMIN_EMAILS: str = ""  # Comma-separated list of admin email addresses
     ENVIRONMENT: str = "development"  # "production" enables HSTS, bot UA blocking
 

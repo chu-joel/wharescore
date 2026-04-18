@@ -68,15 +68,17 @@ async def security_headers(request: Request, call_next):
         )
     return response
 
-# 3. CORS — strict origin list
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_methods=["GET", "POST", "PATCH", "PUT"],
-    allow_headers=["Content-Type", "Authorization"],
-    allow_credentials=True,
-    max_age=3600 if settings.ENVIRONMENT == "production" else 0,
-)
+# 3. CORS — strict origin list + optional chrome-extension regex.
+_cors_kwargs: dict = {
+    "allow_origins": settings.CORS_ORIGINS,
+    "allow_methods": ["GET", "POST", "PATCH", "PUT"],
+    "allow_headers": ["Content-Type", "Authorization", "X-WhareScore-Extension", "X-WhareScore-Extension-Version"],
+    "allow_credentials": True,
+    "max_age": 3600 if settings.ENVIRONMENT == "production" else 0,
+}
+if settings.CORS_ALLOW_EXTENSIONS:
+    _cors_kwargs["allow_origin_regex"] = settings.EXTENSION_ORIGIN_REGEX
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 # 4. Bot detection — block scrapers, detect scraping patterns
 from .middleware.bot_detection import bot_detection_middleware
@@ -164,3 +166,6 @@ app.include_router(events.router, prefix="/api/v1")
 
 from .routers import auth_otp
 app.include_router(auth_otp.router)
+
+from .routers import extension
+app.include_router(extension.router, prefix="/api/v1")

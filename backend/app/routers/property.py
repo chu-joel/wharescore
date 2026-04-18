@@ -493,6 +493,21 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     # (terrain-inferred flood/wind boosts and event-history boosts need these fields)
     report = enrich_with_scores(report)
 
+    # Persona-ranked top findings for the free on-screen tier AND the extension
+    # badge (single source of truth — same helper as /api/v1/extension/badge).
+    # Both personas are pre-computed so the frontend persona-toggle doesn't
+    # have to round-trip.
+    try:
+        from ..services.report_html import select_findings_for_badge
+        report["ranked_findings"] = {
+            "renter": select_findings_for_badge(report, persona="renter", max_count=2),
+            "buyer":  select_findings_for_badge(report, persona="buyer",  max_count=2),
+            "generic": select_findings_for_badge(report, persona=None,    max_count=2),
+        }
+    except Exception as _e:
+        # Finding ranking is advisory — never block a report render on it.
+        logger.warning(f"ranked_findings failed for {address_id}: {_e}")
+
     # Tag fast responses so the frontend knows terrain is pending
     if fast:
         report["_terrain_pending"] = True

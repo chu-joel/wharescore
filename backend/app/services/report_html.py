@@ -4862,3 +4862,222 @@ def render(
         price_advisor=price_advisor_result,
         buyer_inputs=buyer_inputs or {},
     )
+
+
+# =============================================================================
+# Badge Finding Selection — shared between extension badge + on-screen report
+# =============================================================================
+#
+# Ranking rules (EXTENSION-BRIEF.md § User Value Ladder):
+#   relevance = relative_severity_vs_SA2 × persona_weight × non_obvious_bonus
+#
+# Phase 1 approximations:
+#   - relative_severity_vs_SA2 uses the Insight.level as a proxy for severity
+#     (warn=3, info=2, ok=1, scaled by the critical-markers upgrade below).
+#     Phase 1.1 will swap this for an SA2-median comparison per signal.
+#   - local_prevalence filtering drops INFO-tier findings whose text indicates
+#     suburb-context-only (e.g. "Heritage overlay" on a non-heritage property).
+#     This is a keyword allowlist until we wire true prevalence metrics.
+#   - non_obvious_bonus is a 2× multiplier over a fixed set of photo-invisible
+#     signal keywords.
+# =============================================================================
+
+_CRITICAL_MARKERS = (
+    "1-in-100-year flood",
+    "tsunami zone",
+    "liquefaction — very high",
+    "liquefaction very high",
+    "liquefaction high",
+    "slope failure — very high",
+    "slope failure very high",
+    "leasehold",
+    "epb",
+    "earthquake-prone",
+    "active fault",
+)
+
+_NON_OBVIOUS_KEYWORDS = (
+    "flood", "liquefaction", "tsunami", "slope failure", "landslide",
+    "fault", "earthquake-prone", "epb", "noise", "heritage overlay",
+    "contamina", "pre-1970", "healthy homes", "insulation", "heating",
+    "coastal", "wind zone", "extra high wind",
+)
+
+_PHOTO_VISIBLE_KEYWORDS = (
+    "school", "transit stop", "cbd", "parks", "supermarket",
+)
+
+# Renter/buyer persona keyword weights. Higher = more relevant to that persona.
+_RENTER_WEIGHTS = {
+    "rent fair": 3.0, "rent ": 2.5, "healthy homes": 2.5, "insulation": 2.0,
+    "heating": 2.0, "mould": 2.5, "bond": 2.0, "pre-1970": 2.0,
+    "transit": 1.8, "train": 1.8, "bus": 1.8, "commute": 1.8,
+    "noise": 1.6, "aircraft noise": 1.8,
+    "flood": 1.3, "tsunami": 1.5, "earthquake-prone": 1.8,
+    "liquefaction": 1.1, "slope failure": 1.0, "landslide": 1.0,
+    "heritage": 0.6, "schools": 0.8, "decile": 0.8, "school zone": 0.8,
+    "zoning": 0.6, "price": 0.3, "capital value": 0.4,
+}
+
+_BUYER_WEIGHTS = {
+    "price": 2.8, "capital value": 2.3, "cv": 2.3, "above fair": 2.5, "below fair": 2.5,
+    "flood": 2.5, "liquefaction": 2.3, "tsunami": 2.2, "slope failure": 2.3,
+    "landslide": 2.2, "fault": 2.3, "earthquake-prone": 2.5, "epb": 2.5,
+    "coastal erosion": 2.3, "contamina": 2.2, "heritage": 1.8,
+    "zoning": 2.0, "re-zoning": 2.0, "resource consent": 1.6,
+    "leasehold": 2.8, "cross-lease": 2.2, "cross lease": 2.2,
+    "schools": 1.6, "school zone": 1.8, "decile": 1.6,
+    "healthy homes": 0.6, "insulation": 0.6, "mould": 0.8,
+    "rent": 0.4, "bond": 0.2, "transit": 1.0, "noise": 1.2,
+}
+
+_GENERIC_WEIGHTS = {
+    "flood": 2.0, "tsunami": 2.0, "liquefaction": 2.0, "fault": 2.0,
+    "earthquake-prone": 2.2, "epb": 2.2, "slope failure": 2.0, "landslide": 2.0,
+    "coastal erosion": 2.0, "contamina": 1.9, "heritage": 1.4,
+    "leasehold": 2.3, "cross lease": 1.9, "cross-lease": 1.9,
+    "schools": 1.1, "transit": 1.1, "noise": 1.4,
+    "healthy homes": 1.2, "insulation": 1.2,
+    "rent": 1.2, "price": 1.2, "capital value": 1.2,
+}
+
+# Severity tier the badge renders. Matches the frontend FindingCard vocabulary.
+_BADGE_SEVERITY = {"critical": 4, "warning": 3, "info": 2, "positive": 1}
+
+
+def _level_to_severity(level: str, text: str) -> str:
+    """Map Insight.level + text → badge severity. Same table as the router
+    used to use; lifted here so extension + frontend share one ranker."""
+    lowered = (text or "").lower()
+    if level == "warn":
+        if any(m in lowered for m in _CRITICAL_MARKERS):
+            return "critical"
+        return "warning"
+    if level == "info":
+        return "info"
+    if level == "ok":
+        return "positive"
+    return "info"
+
+
+def _match_weight(text: str, table: dict[str, float]) -> float:
+    """Return the maximum weight across every keyword match in the table.
+    Defaults to 1.0 when no keyword matches — keeps unknown findings in the
+    list but with lower priority than keyword-matched ones."""
+    lowered = (text or "").lower()
+    best = 1.0
+    for kw, w in table.items():
+        if kw in lowered:
+            best = max(best, w)
+    return best
+
+
+def _non_obvious_bonus(text: str) -> float:
+    lowered = (text or "").lower()
+    if any(kw in lowered for kw in _NON_OBVIOUS_KEYWORDS):
+        return 2.0
+    if any(kw in lowered for kw in _PHOTO_VISIBLE_KEYWORDS):
+        return 1.0
+    return 1.2
+
+
+def _is_suburb_context_noise(text: str, severity: str) -> bool:
+    """Rule 1 of the brief: drop findings that are suburb context, not
+    property-specific. The info tier is where these show up ('Wellington has
+    earthquake risk', 'Heritage overlay in this suburb'). We drop info-level
+    findings whose text shows only a diffuse area signal."""
+    if severity != "info":
+        return False
+    lowered = (text or "").lower()
+    # Examples of suburb-context-only phrasings. Anything here is droppable
+    # because it's describing the neighbourhood, not this property's exposure.
+    noise_markers = (
+        "typical sheltered",
+        "well-sheltered",
+        "worth knowing",
+        "low-to-moderate wave",
+        "tsunami zone 1",
+        "tsunami zone 2",
+    )
+    return any(m in lowered for m in noise_markers)
+
+
+def select_findings_for_badge(
+    report: dict,
+    persona: str | None,
+    max_count: int,
+) -> list[dict]:
+    """Rank-and-select findings for the badge or on-screen free tier.
+
+    Inputs:
+        report      — enriched report dict (post enrich_with_scores)
+        persona     — "renter" | "buyer" | None (None → generic; used for anon badge)
+        max_count   — take the top N ranked findings
+
+    Returns a list of {severity, title, detail} dicts in ranked order.
+
+    The helper is deterministic and pure — tests feed a dict report in and
+    compare the ranked output. See backend/tests/test_report_html_badge.py.
+    """
+    insights = build_insights(report)
+    scored: list[tuple[float, dict]] = []
+    if persona == "renter":
+        persona_table = _RENTER_WEIGHTS
+    elif persona == "buyer":
+        persona_table = _BUYER_WEIGHTS
+    else:
+        persona_table = _GENERIC_WEIGHTS
+
+    for _section, items in insights.items():
+        for item in items:
+            level = item.get("level") or "info"
+            text = item.get("text") or ""
+            if not text:
+                continue
+            severity = _level_to_severity(level, text)
+            if _is_suburb_context_noise(text, severity):
+                continue
+            severity_score = _BADGE_SEVERITY.get(severity, 2)
+            persona_weight = _match_weight(text, persona_table)
+            non_obv = _non_obvious_bonus(text)
+            # Non-obvious bonus is ONLY applied for persona-aware rankings.
+            # Generic (anon) scoring skips the 2× multiplier so the two
+            # generic findings lean on raw severity, not persona tuning.
+            if persona in {"renter", "buyer"}:
+                score = severity_score * persona_weight * non_obv
+            else:
+                score = severity_score * persona_weight
+            scored.append((
+                score,
+                {"severity": severity, "title": text, "detail": item.get("action") or ""},
+            ))
+
+    scored.sort(key=lambda t: t[0], reverse=True)
+
+    # Dedupe by (title) — some rules can produce identically-phrased findings
+    # via different code paths; keep the first (highest-ranked) occurrence.
+    seen: set[str] = set()
+    result: list[dict] = []
+    for _score, finding in scored:
+        key = finding["title"]
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(finding)
+        if len(result) >= max_count and max_count > 0:
+            break
+    return result
+
+
+def infer_persona_from_url(url: str | None) -> str | None:
+    """URL-based persona hint. /rent/ or /rental/ → renter;
+    /sale/ or /for-sale/ → buyer. Case-insensitive."""
+    if not url:
+        return None
+    lowered = url.lower()
+    if "/rent/" in lowered or "/rental/" in lowered or "/for-rent" in lowered:
+        return "renter"
+    if "/sale/" in lowered or "/for-sale/" in lowered:
+        return "buyer"
+    return None
+
