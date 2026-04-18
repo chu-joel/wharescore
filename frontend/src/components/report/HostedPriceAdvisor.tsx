@@ -4,7 +4,7 @@ import { AlertTriangle, Shield } from 'lucide-react';
 import { PriceBandGauge } from '@/components/property/PriceBandGauge';
 import { useHostedReportStore } from '@/stores/hostedReportStore';
 import { formatCurrency } from '@/lib/format';
-import type { ReportSnapshot, PriceAdvisorResult, PriceMethodologyStep, HazardCostFlag } from '@/lib/types';
+import type { ReportSnapshot, PriceAdvisorResult, PriceMethodologyStep, HazardCostFlag, PriceAdjustment } from '@/lib/types';
 
 interface HostedPriceAdvisorProps {
   snapshot: ReportSnapshot;
@@ -104,6 +104,46 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
               {pa.cv_age_months ? ` CV is ${pa.cv_age_months} months old.` : ''}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Adjustments — what moved the estimate from baseline */}
+      {pa.adjustments && pa.adjustments.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-muted-foreground mb-2">What moved your estimate</h4>
+          <div className="space-y-2.5">
+            {pa.adjustments.map((adj: PriceAdjustment) => {
+              const isNegative = adj.pct_high < 0;
+              const toneClass = isNegative ? 'text-piq-accent-warm' : 'text-piq-success';
+              const dotClass = isNegative ? 'bg-piq-accent-warm' : 'bg-piq-success';
+              const pctLabel = `${adj.pct_low > 0 ? '+' : ''}${adj.pct_low}% to ${adj.pct_high > 0 ? '+' : ''}${adj.pct_high}%`;
+              const fmtDollar = (v: number) => {
+                const abs = Math.abs(v);
+                const sign = v >= 0 ? '+' : '-';
+                if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+                if (abs >= 1_000) return `${sign}$${Math.round(abs / 1000)}K`;
+                return `${sign}$${abs}`;
+              };
+              const dollarLabel = `${fmtDollar(adj.dollar_low)} to ${fmtDollar(adj.dollar_high)}`;
+              return (
+                <div key={adj.factor} className="flex items-start gap-2 text-xs">
+                  <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} aria-hidden />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium text-foreground truncate">{adj.label}</span>
+                      <span className={`font-semibold tabular-nums shrink-0 ${toneClass}`}>{pctLabel}</span>
+                    </div>
+                    {adj.reason && (
+                      <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
+                        <span className="truncate">{adj.reason}</span>
+                        <span className={`tabular-nums shrink-0 opacity-80 ${toneClass}`}>{dollarLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
