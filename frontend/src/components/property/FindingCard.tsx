@@ -197,6 +197,74 @@ export function generateFindings(report: {
     }
   }
 
+  // Compound hazard rules (slope+liq, tsunami evac feasibility, saturated slope)
+  // mirror backend build_insights — keep these in sync if you change one path.
+  const slopeLow = (h.slope_failure || '').toLowerCase();
+  const slopeIsHigh = slopeLow.includes('high'); // catches "high" and "very high"
+  const slopeIsMedOrHigh = slopeIsHigh || slopeLow.includes('moderate') || slopeLow.includes('medium');
+  const liqHigh = [h.liquefaction_zone, h.gwrc_liquefaction, h.council_liquefaction].some(
+    v => typeof v === 'string' && v.toLowerCase().includes('high')
+  );
+
+  // 2.1 — Compounding seismic vulnerability (slope HIGH + liquefaction HIGH).
+  if (slopeIsHigh && liqHigh) {
+    findings.push({
+      headline: 'Double seismic vulnerability — slope failure AND liquefaction both High',
+      interpretation:
+        'A single significant earthquake can trigger both ground-failure modes here. Combined geotech + slope-stability assessment costs $5,000–$8,000 (vs $2,000–$3,000 for one alone). Get this BEFORE going unconditional.',
+      severity: 'critical',
+      category: 'Hazards',
+      source: 'Combined Slope + Liquefaction Mapping',
+    });
+  }
+
+  // 2.3 — Tsunami evacuation feasibility (zone + low elevation + flat surrounding terrain).
+  // Renters care as much as buyers — this is a life-safety finding.
+  const tsunamiSignal =
+    (typeof h.tsunami_zone === 'string' && (h.tsunami_zone === '1' || h.tsunami_zone === 'Red' || h.tsunami_zone === '2')) ||
+    h.wcc_tsunami_return_period === '1:100yr' ||
+    h.wcc_tsunami_return_period === '1:500yr' ||
+    h.council_tsunami_ranking === 'High' ||
+    h.council_tsunami_ranking === 'Medium';
+  const coastalCm = h.coastal_elevation_cm;
+  const terrainElev = terrain?.elevation_m;
+  if (
+    tsunamiSignal &&
+    coastalCm != null && coastalCm <= 300 &&
+    terrainElev != null && terrainElev <= 5
+  ) {
+    findings.push({
+      headline: `Tsunami zone on low, flat ground — only 5–20 min evacuation window`,
+      interpretation:
+        `${Math.round(coastalCm)}cm above MHWS, ${terrainElev.toFixed(1)}m elevation. Walk the route to high ground (≥15m) BEFORE you sign — every 100m of horizontal distance is roughly a minute of your evacuation budget. Long-or-strong shake = move immediately, don't wait for the alert.`,
+      severity: 'critical',
+      category: 'Hazards',
+      source: 'Tsunami Zone + Terrain Analysis',
+    });
+  }
+
+  // 2.10 — Saturated slope. Slip-prone slope + nearby surface water = #1 NZ slip trigger.
+  // Buyer-relevant only — renters can't act on geotech findings.
+  const waterwayClose = terrain?.nearest_waterway_m != null && terrain.nearest_waterway_m <= 50;
+  const hasSurfaceWater =
+    h.overland_flow_within_50m === true ||
+    terrain?.is_depression === true ||
+    waterwayClose;
+  if (slopeIsMedOrHigh && hasSurfaceWater) {
+    const triggers: string[] = [];
+    if (h.overland_flow_within_50m) triggers.push('overland flow path within 50m');
+    if (terrain?.is_depression) triggers.push('natural depression');
+    if (waterwayClose) triggers.push(`waterway ${terrain?.nearest_waterway_m}m away`);
+    findings.push({
+      headline: 'Slip-susceptible slope with surface water nearby',
+      interpretation:
+        `${triggers.join(' · ')}. Rainfall-saturated soil is the #1 slip trigger in NZ — Auckland Anniversary 2023 and Cyclone Gabrielle hit slopes with this profile hardest. Get geotech assessment that explicitly covers drainage, retaining walls, and any geotextile treatments.`,
+      severity: 'warning',
+      category: 'Hazards',
+      source: 'Slope + Terrain + Waterway Analysis',
+    });
+  }
+
   if (h.landslide_count_500m && h.landslide_count_500m > 0) {
     const nearest = h.landslide_nearest;
     const triggerText = nearest?.trigger === 'Rainfall' ? 'rainfall-triggered' : nearest?.trigger === 'Earthquake' ? 'earthquake-triggered' : 'documented';
@@ -492,6 +560,22 @@ export function generateFindings(report: {
       severity: solarGood ? 'positive' : 'info',
       category: 'Liveability',
       source: 'Council Building Solar Radiation',
+    });
+  }
+
+  // 2.19 — Healthcare desert. Both GP AND pharmacy ≥2km is a daily-life tax for
+  // elderly, daily-medication users, families, and car-free households. Existing
+  // gp_far rule uses GP only; combining with pharmacy makes the message specific.
+  const gpDist = l.nearest_gp?.distance_m;
+  const pharmacyDist = l.nearest_pharmacy?.distance_m;
+  if (gpDist != null && gpDist >= 2000 && pharmacyDist != null && pharmacyDist >= 2000) {
+    findings.push({
+      headline: `Healthcare 20+ min walk away — both GP and pharmacy`,
+      interpretation:
+        `Nearest GP ${Math.round(gpDist)}m, nearest pharmacy ${Math.round(pharmacyDist)}m. Daily medication users, elderly, and car-free households should plan for pharmacy delivery and confirm the nearest GP is taking new enrolments — many practices are capped.`,
+      severity: 'info',
+      category: 'Liveability',
+      source: 'OSM Amenities',
     });
   }
 

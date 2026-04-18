@@ -354,6 +354,9 @@ export interface LiveabilityData {
   // Walking reach (10-min walk via Valhalla)
   walking_reach_10min: number | null;
   walking_reach_method: string | null;
+  // Nearest essentials (OSM amenities; SQL returns {name, distance_m, latitude, longitude})
+  nearest_gp: { name: string; distance_m: number } | null;
+  nearest_pharmacy: { name: string; distance_m: number } | null;
 }
 
 export interface TransitTravelTime {

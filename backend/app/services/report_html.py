@@ -698,6 +698,88 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Ask about drainage and retaining wall maintenance during inspection.",
         ).to_dict())
 
+    # ── Compound Hazard Rules (Section 2 — combinations the data supports) ───
+
+    # 2.1 — Compounding seismic vulnerability. A site that's both slope-prone AND
+    # liquefaction-prone can fail two ways in a single quake; the geotech bill
+    # to assess both is meaningfully higher than for either alone.
+    _slope_high = "high" in slope_failure  # catches "high" and "very high"
+    _liq_sources = [
+        str(hazards.get("liquefaction") or "").lower(),
+        str(hazards.get("gwrc_liquefaction") or "").lower(),
+        str(hazards.get("council_liquefaction") or "").lower(),
+    ]
+    _liq_high = any("high" in s for s in _liq_sources)
+    if _slope_high and _liq_high:
+        result["hazards"].append(Insight(
+            "warn",
+            "Double seismic vulnerability — slope failure AND liquefaction are both rated High here. "
+            "A single significant earthquake can trigger both ground-failure modes.",
+            "Combined geotechnical + slope-stability assessment costs $5,000–$8,000, not the usual $2,000–$3,000. "
+            "Get this BEFORE going unconditional, not after.",
+        ).to_dict())
+
+    # 2.3 — Tsunami evacuation feasibility. Mapped tsunami zone is one signal;
+    # being on low, flat ground with the nearest high ground far away is what
+    # makes the evacuation window genuinely tight.
+    _tsunami_signal = (
+        (isinstance(hazards.get("tsunami_zone_class"), (int, float)) and hazards.get("tsunami_zone_class") >= 2)
+        or (hazards.get("wcc_tsunami_return_period") in ("1:100yr", "1:500yr"))
+        or (hazards.get("council_tsunami_ranking") in ("High", "Medium"))
+    )
+    _coastal_cm = hazards.get("coastal_elevation_cm")
+    try:
+        _coastal_cm_f = float(_coastal_cm) if _coastal_cm is not None else None
+    except (TypeError, ValueError):
+        _coastal_cm_f = None
+    _terrain_elev_m = (report.get("terrain") or {}).get("elevation_m")
+    try:
+        _terrain_elev_m_f = float(_terrain_elev_m) if _terrain_elev_m is not None else None
+    except (TypeError, ValueError):
+        _terrain_elev_m_f = None
+    if _tsunami_signal and _coastal_cm_f is not None and _coastal_cm_f <= 300 and _terrain_elev_m_f is not None and _terrain_elev_m_f <= 5:
+        result["hazards"].append(Insight(
+            "warn",
+            f"Tsunami zone on low, flat ground — {int(_coastal_cm_f)}cm above MHWS, {_terrain_elev_m_f:.1f}m elevation. "
+            "A local tsunami gives 5–20 minutes' warning.",
+            "Walk the evacuation route to high ground (≥15m elevation) BEFORE you sign — at average walking pace, "
+            "every 100m of horizontal distance is roughly a minute lost from your evacuation budget. "
+            "Long or strong shaking = move immediately, don't wait for the official alert.",
+        ).to_dict())
+
+    # 2.10 — Saturated slope. A slope-prone site is materially more dangerous when
+    # it also has a water source nearby (overland flow, depression, waterway) because
+    # rainfall-saturated soil is the #1 NZ slip trigger (NZ Fire Service / GNS).
+    _slope_med_or_high = ("medium" in slope_failure) or _slope_high
+    _terrain_block = report.get("terrain") or {}
+    _waterway_m = _terrain_block.get("nearest_waterway_m")
+    try:
+        _waterway_m_f = float(_waterway_m) if _waterway_m is not None else None
+    except (TypeError, ValueError):
+        _waterway_m_f = None
+    _has_surface_water = (
+        bool(hazards.get("overland_flow_within_50m"))
+        or bool(_terrain_block.get("is_depression"))
+        or (_waterway_m_f is not None and _waterway_m_f <= 50)
+    )
+    if _slope_med_or_high and _has_surface_water:
+        _trigger_parts = []
+        if hazards.get("overland_flow_within_50m"):
+            _trigger_parts.append("overland flow path within 50m")
+        if _terrain_block.get("is_depression"):
+            _trigger_parts.append("natural depression collects water")
+        if _waterway_m_f is not None and _waterway_m_f <= 50:
+            _trigger_parts.append(f"waterway {int(_waterway_m_f)}m away")
+        _trigger_text = " · ".join(_trigger_parts)
+        result["hazards"].append(Insight(
+            "warn",
+            f"Slip-susceptible slope with surface water nearby ({_trigger_text}). "
+            "Rainfall-saturated soil is the most common slip trigger in NZ.",
+            "Geotech assessment should specifically cover subfloor drainage, cut-slope retaining walls, "
+            "and any geotextile treatments — ask the builder's report to document them. "
+            "Recent NZ events (Auckland 2023, Cyclone Gabrielle) hit slopes like this hardest.",
+        ).to_dict())
+
     # ── Regional Hazard Rules (from source_council-based layers) ────────────
 
     gs_severity = str(hazards.get("ground_shaking_severity") or "").lower()
@@ -1403,6 +1485,32 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "",
             ).to_dict())
 
+    # 2.19 — Healthcare desert. Both GP and pharmacy ≥2km is a real daily-life
+    # tax for elderly, daily-medication users, families, and car-free households.
+    # Existing gp_far rule fires on GP distance only — combining with pharmacy
+    # makes the message specific (it's not just "no GP", it's "no healthcare").
+    _gp = live.get("nearest_gp")
+    _ph = live.get("nearest_pharmacy")
+    _gp_dist_m = None
+    _ph_dist_m = None
+    if isinstance(_gp, dict):
+        try:
+            _gp_dist_m = float(_gp.get("distance_m")) if _gp.get("distance_m") is not None else None
+        except (TypeError, ValueError):
+            pass
+    if isinstance(_ph, dict):
+        try:
+            _ph_dist_m = float(_ph.get("distance_m")) if _ph.get("distance_m") is not None else None
+        except (TypeError, ValueError):
+            pass
+    if _gp_dist_m is not None and _gp_dist_m >= 2000 and _ph_dist_m is not None and _ph_dist_m >= 2000:
+        result["liveability"].append(Insight(
+            "info",
+            f"Healthcare 20+ minutes' walk away — nearest GP {int(_gp_dist_m)}m, nearest pharmacy {int(_ph_dist_m)}m.",
+            "Daily medication users, elderly, and car-free households should plan for pharmacy delivery services "
+            "and confirm GP enrolment is open at your nearest practice (some are capped).",
+        ).to_dict())
+
     # ── Market Rules ──────────────────────────────────────────────────────────
 
     rental_list = (market.get("rental_overview") or [])
@@ -1456,6 +1564,23 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "info",
                 f"{cagr_5yr:.1f}% annualised rental growth over 5 years — ahead of CPI.",
                 "",
+            ).to_dict())
+
+        # 2.13 — Supply relief. When yoy_pct is rising AND there's significant
+        # construction pipeline nearby, rent pressure should ease as units land.
+        # The only positive market signal we currently produce for the renter
+        # persona — important for retention.
+        _consents_count = planning.get("resource_consents_500m_2yr")
+        try:
+            _consents_count_i = int(_consents_count) if _consents_count is not None else 0
+        except (TypeError, ValueError):
+            _consents_count_i = 0
+        if yoy_pct is not None and yoy_pct >= 5 and _consents_count_i >= 15:
+            result["market"].append(Insight(
+                "ok",
+                f"Rents rising {yoy_pct:+.1f}% YoY, but {_consents_count_i} resource consents granted within 500m in 2 years — significant new supply pipeline.",
+                "Renters: expect rent pressure to ease as units land — useful leverage at your next renewal. "
+                "Buyers: short-term construction disruption, medium-term amenity uplift; weigh the timing.",
             ).to_dict())
 
     # ── Planning Rules ────────────────────────────────────────────────────────
@@ -1805,6 +1930,37 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     elif "medium" in sf:
         if not _is_disabled("slope_failure_moderate"):
             recs.append(_make("slope_failure_moderate"))
+
+    # 2.1 — Compounding seismic vulnerability (slope + liquefaction both High).
+    # Fires IN ADDITION to slope_failure_high or liquefaction_high — the combined
+    # geotech assessment cost ($5k–$8k) is the new information.
+    _slope_high_rec = "high" in sf
+    _liq_high_rec = any(
+        "high" in str(hazards.get(k) or "").lower()
+        for k in ("liquefaction", "gwrc_liquefaction", "council_liquefaction")
+    )
+    if _slope_high_rec and _liq_high_rec and not _is_disabled("compounding_seismic"):
+        recs.append(_make("compounding_seismic"))
+
+    # 2.10 — Saturated slope (slope medium+ + nearby surface water).
+    # Fires IN ADDITION to the slope_failure rec — adds the drainage-focused
+    # action checklist that a generic slope report wouldn't necessarily include.
+    _slope_med_or_high_rec = ("medium" in sf) or _slope_high_rec
+    _terrain_for_rec = report.get("terrain") or {}
+    _waterway_for_rec = _terrain_for_rec.get("nearest_waterway_m")
+    try:
+        _waterway_close = (
+            _waterway_for_rec is not None and float(_waterway_for_rec) <= 50
+        )
+    except (TypeError, ValueError):
+        _waterway_close = False
+    _surface_water = (
+        bool(hazards.get("overland_flow_within_50m"))
+        or bool(_terrain_for_rec.get("is_depression"))
+        or _waterway_close
+    )
+    if _slope_med_or_high_rec and _surface_water and not _is_disabled("saturated_slope"):
+        recs.append(_make("saturated_slope"))
 
     # C. ENVIRONMENT
     if noise_db is not None and noise_db >= 65:

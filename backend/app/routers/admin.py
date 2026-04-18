@@ -312,6 +312,40 @@ DEFAULT_RECOMMENDATIONS = [
             "Check the LIM for any recorded slips or drainage requirements on the property.",
         ],
     },
+    {
+        "id": "compounding_seismic",
+        "severity": "critical",
+        "title": "Combined Slope + Liquefaction Risk",
+        "category": "hazards",
+        "default_actions": [
+            "This site is rated High for both slope failure AND liquefaction. A single significant earthquake "
+            "can trigger both ground-failure modes simultaneously — they compound, they don't average out.",
+            "Commission a combined geotechnical + slope-stability assessment from a chartered engineer. "
+            "Budget $5,000–$8,000, not the usual $2,000–$3,000 for a single-hazard report.",
+            "The assessment should explicitly cover: foundation type adequacy on liquefiable ground, "
+            "slope stability under saturated conditions, and any prior remediation or strengthening on the site.",
+            "Get this BEFORE going unconditional. EQC covers natural disaster damage but private insurance "
+            "loadings on combined-hazard sites can be material — get insurance quotes alongside the geotech.",
+            "Christchurch 2011 demonstrated how compounding hazards behave — the combined-mode failures were "
+            "the costliest and slowest to remediate.",
+        ],
+    },
+    {
+        "id": "saturated_slope",
+        "severity": "important",
+        "title": "Slope + Surface Water — Drainage Focus",
+        "category": "hazards",
+        "default_actions": [
+            "This site combines slip-prone slope with active surface water (overland flow path, depression, "
+            "or nearby waterway). Rainfall-saturated soil is the #1 NZ slip trigger — Auckland Anniversary 2023, "
+            "Cyclone Gabrielle, and the Wellington 2013 storm all hit slopes with this profile hardest.",
+            "Geotechnical assessment should specifically cover subfloor drainage, cut-slope retaining wall condition, "
+            "and any geotextile or drainage treatments on the site. Generic slope reports often miss the water angle.",
+            "The builder's report must document drainage adequacy: are gutters/downpipes sized for intense rainfall? "
+            "Where does roof water discharge? Is the subfloor ventilated or persistently damp?",
+            "Check the LIM for any council-required drainage maintenance or stormwater conditions on the title.",
+        ],
+    },
     # ── ENVIRONMENT ───────────────────────────────────────────────────────────
     {
         "id": "noise_high",

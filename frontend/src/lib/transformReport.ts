@@ -177,6 +177,13 @@ function transformLiveability(raw: any): LiveabilityData {
     // Walking reach (10-min walk via Valhalla)
     walking_reach_10min: raw.walking_reach_10min ?? null,
     walking_reach_method: raw.walking_reach_method ?? null,
+    // Nearest essentials — preserve the {name, distance_m} shape from SQL
+    nearest_gp: raw.nearest_gp && typeof raw.nearest_gp === 'object'
+      ? { name: raw.nearest_gp.name ?? '', distance_m: Number(raw.nearest_gp.distance_m) || 0 }
+      : null,
+    nearest_pharmacy: raw.nearest_pharmacy && typeof raw.nearest_pharmacy === 'object'
+      ? { name: raw.nearest_pharmacy.name ?? '', distance_m: Number(raw.nearest_pharmacy.distance_m) || 0 }
+      : null,
   };
 }
 
