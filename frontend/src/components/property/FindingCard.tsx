@@ -95,6 +95,7 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
  * Optionally accepts a persona to reorder findings by relevance.
  */
 export function generateFindings(report: {
+  property?: import('@/lib/types').PropertyInfo;
   hazards: import('@/lib/types').HazardData;
   environment: import('@/lib/types').EnvironmentData;
   liveability: import('@/lib/types').LiveabilityData;
@@ -104,12 +105,38 @@ export function generateFindings(report: {
   event_history?: import('@/lib/types').PropertyReport['event_history'];
 }, persona?: 'renter' | 'buyer'): Finding[] {
   const findings: Finding[] = [];
+  const prop = report.property;
   const h = report.hazards;
   const e = report.environment;
   const l = report.liveability;
   const p = report.planning;
   const terrain = report.terrain;
   const eventHist = report.event_history;
+
+  // --- Tenure (title type) ---
+  const titleType = (prop?.title_type || '').toLowerCase();
+  const estate = (prop?.estate_description || '').toLowerCase();
+  const isLeasehold = titleType.includes('leasehold') || estate.includes('leasehold');
+  const isCrossLease = titleType.includes('cross lease') || titleType.includes('cross-lease') || estate.includes('cross lease') || estate.includes('cross-lease');
+  if (isLeasehold) {
+    findings.push({
+      headline: 'Leasehold title — you own the building, not the land',
+      interpretation:
+        'Ground rent typically reviews every 7–21 years and can jump 20–50%. Mortgage options are narrower — some banks won\'t lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.',
+      severity: 'critical',
+      category: 'Planning',
+      source: 'LINZ Property Titles',
+    });
+  } else if (isCrossLease) {
+    findings.push({
+      headline: 'Cross-lease title — shared land ownership',
+      interpretation:
+        'You share the land with the other flats and must agree to any structural change outside the flat plan. Ensure the as-built structure matches the flats plan — unapproved additions (decks, extensions) are a common pitfall and can block sale or refinance.',
+      severity: 'warning',
+      category: 'Planning',
+      source: 'LINZ Property Titles',
+    });
+  }
 
   // --- Critical findings (hazards) ---
 
@@ -414,6 +441,32 @@ export function generateFindings(report: {
       category: 'Hazards',
       source: 'District Plan / GNS Active Faults',
     });
+  } else if (h.active_fault_nearest && h.active_fault_nearest.distance_m != null) {
+    // National GNS Active Faults — only fires when no council-specific fault_zone_name is already flagged
+    const af = h.active_fault_nearest;
+    const dist = af.distance_m;
+    const distStr = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`;
+    const slip = af.slip_rate_mm_yr;
+    if (dist <= 200 && slip != null && slip >= 1.0) {
+      findings.push({
+        headline: `Active fault (${af.name}) within ${distStr} — direct rupture risk`,
+        interpretation:
+          `Slip rate ${slip} mm/yr. Fault rupture can cause 1–6m of surface offset — this is a ground-splitting risk, not a shaking risk. MBIE/GNS guidelines discourage building in this setback. Check the title for any fault-avoidance consent notice before offer.`,
+        severity: 'critical',
+        category: 'Hazards',
+        source: 'GNS Active Faults Database',
+      });
+    } else if (dist <= 2000) {
+      const slipStr = slip != null ? ` Slip rate ${slip} mm/yr.` : '';
+      findings.push({
+        headline: `${af.name} active fault ${distStr} away`,
+        interpretation:
+          `Proximity to an active fault increases expected shaking intensity during an earthquake.${slipStr} Modern foundations and code-compliant seismic design significantly mitigate this — check the building consent file.`,
+        severity: 'warning',
+        category: 'Hazards',
+        source: 'GNS Active Faults Database',
+      });
+    }
   }
 
   if (h.wcc_tsunami_return_period && h.wcc_tsunami_return_period !== '1:1000yr') {
@@ -482,14 +535,28 @@ export function generateFindings(report: {
   }
 
   if (l.transit_count && l.transit_count >= 5) {
-    findings.push({
-      headline: `${l.transit_count} transit stops within 400m`,
-      interpretation:
-        'Excellent public transport access. Multiple bus stops nearby means good frequency and route options for commuting.',
-      severity: 'positive',
-      category: 'Liveability',
-      source: 'Metlink GTFS',
-    });
+    const peak = l.peak_trips_per_hour;
+    if (peak != null && peak <= 3) {
+      // Many stops, sparse services — don't mis-sell as "excellent transit"
+      findings.push({
+        headline: `${l.transit_count} transit stops within 400m, but only ${Math.round(peak)} trips/hour at peak`,
+        interpretation:
+          'Stops aren\'t services. Frequency this low means at most one bus every 20 minutes at rush hour. Check the actual routes on your region\'s journey planner (AT/Metlink/ECan) against your commute before treating this as good transit.',
+        severity: 'info',
+        category: 'Liveability',
+        source: 'GTFS Transit Data',
+      });
+    } else {
+      const peakStr = peak != null ? ` Peak service: ${Math.round(peak)} trips/hour.` : '';
+      findings.push({
+        headline: `${l.transit_count} transit stops within 400m`,
+        interpretation:
+          `Excellent public transport access. Multiple bus stops nearby means good frequency and route options for commuting.${peakStr}`,
+        severity: 'positive',
+        category: 'Liveability',
+        source: 'GTFS Transit Data',
+      });
+    }
   }
 
   if (l.nzdep_score && l.nzdep_score <= 3) {
@@ -613,6 +680,31 @@ export function generateFindings(report: {
       category: 'Liveability',
       source: 'Terrain Analysis (SRTM 30m)',
     });
+  }
+
+  // --- Aspect (solar orientation) — only when the site has meaningful slope ---
+  const aspect = terrain?.aspect_label;
+  const slope = terrain?.slope_degrees;
+  if (aspect && aspect !== 'unknown' && aspect !== 'flat' && slope != null && slope >= 3) {
+    if (['north', 'northeast', 'northwest'].includes(aspect)) {
+      findings.push({
+        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing — good winter sun`,
+        interpretation:
+          `In NZ's southern hemisphere, a ${aspect}-facing slope captures maximum winter sun. That means warmer, drier interiors, lower heating costs, and solar panels perform well.`,
+        severity: 'positive',
+        category: 'Liveability',
+        source: 'Terrain Analysis (SRTM 30m)',
+      });
+    } else if (['south', 'southeast', 'southwest'].includes(aspect)) {
+      findings.push({
+        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing — limited winter sun`,
+        interpretation:
+          'South-facing sites receive significantly less direct sun in winter. Heating costs are typically 10–20% higher than a north-facing equivalent, and moisture/mould risk is elevated if ventilation and heating aren\'t adequate.',
+        severity: 'info',
+        category: 'Liveability',
+        source: 'Terrain Analysis (SRTM 30m)',
+      });
+    }
   }
 
   // --- Waterway proximity findings ---

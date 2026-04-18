@@ -100,6 +100,8 @@ export interface PropertyInfo {
   cv_valuation_id: string | null;
   cv_address: string | null;
   cv_is_per_unit?: boolean;
+  title_type: string | null;
+  estate_description: string | null;
 }
 
 // --- Scores ---
@@ -258,10 +260,11 @@ export interface HazardData {
   // GNS Active Faults (national)
   active_fault_nearest: {
     name: string;
-    class: string;
+    type?: string | null;
+    class?: string | null;
+    fault_type?: string | null;
     slip_rate_mm_yr: number | null;
-    recurrence_interval: string;
-    fault_type: string;
+    recurrence_interval?: string | null;
     distance_m: number;
   } | null;
   fault_avoidance_zone: {

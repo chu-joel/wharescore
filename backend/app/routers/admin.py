@@ -137,7 +137,7 @@ DEFAULT_RECOMMENDATIONS = [
             "This property is in a low-probability flood zone (0.2% AEP / 1-in-500-year event). Lower risk than 1% zones, but still mapped.",
             "Notify your mortgage broker — some lenders require flood insurance for any mapped zone.",
             "Check your insurer's position on this zone classification — most will cover it, but premiums may differ.",
-            "Climate change projections suggest increased rainfall intensity in NZ — a 0.2% zone today may become a 1% zone within 30 years.",
+            "{climate_precip_line}",
         ],
     },
     {
@@ -230,6 +230,7 @@ DEFAULT_RECOMMENDATIONS = [
         "category": "hazards",
         "default_actions": [
             "This area experiences {wildfire_days}+ Very High to Extreme fire danger days per year, typically between December and March.",
+            "{wildfire_trend_line}",
             "Check home and contents insurance covers wildfire damage explicitly — most policies do, but confirm there are no bush/scrub exclusions.",
             "Maintain a 10-metre vegetation-free or low-fuel buffer zone around the house. Remove dead branches, leaf litter, and dry scrub.",
             "Clear gutters of leaf litter and dry debris regularly, especially before summer.",
@@ -370,11 +371,12 @@ DEFAULT_RECOMMENDATIONS = [
         "category": "environment",
         "default_actions": [
             "A contaminated site ({contam_name}, category: {contam_category}) is within {contam_distance_m}m of this property.",
+            "{contam_severity_note}",
             "Commission a Preliminary Site Investigation (Phase 1 Environmental Site Assessment) from a suitably qualified environmental consultant. Cost: $1,500-$3,000.",
-            "Check the Greater Wellington Regional Council Selected Land Use Register (SLUR) for full site history and contamination category at gw.govt.nz.",
+            "Check the regional council Selected Land Use Register (SLUR) or equivalent for the full site history and contamination category.",
             "HAIL (Hazardous Activities and Industries List) sites are categorised under the NES for Assessing and Managing Contaminants in Soil — the category determines what land-use changes trigger further investigation.",
             "If the contaminated site is uphill or upstream of this property, groundwater migration is possible — raise this with your environmental assessor.",
-            "Your lender may require environmental clearance before approving the mortgage, particularly for sites within 100m of known contamination.",
+            "Your lender may require environmental clearance before approving the mortgage, particularly for Category A sites within 500m.",
             "If buying to develop or subdivide: NES contaminated land rules may require a Detailed Site Investigation (DSI) before resource consent is granted.",
         ],
     },

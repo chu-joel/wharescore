@@ -529,6 +529,29 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         "planning": [],
     }
 
+    # ── Tenure / Title Rules ──────────────────────────────────────────────────
+    title_type = str(prop.get("title_type") or "").lower()
+    estate_desc = str(prop.get("estate_description") or "").lower()
+    is_leasehold = "leasehold" in title_type or "leasehold" in estate_desc
+    is_cross_lease = (
+        "cross lease" in title_type or "cross-lease" in title_type
+        or "cross lease" in estate_desc or "cross-lease" in estate_desc
+    )
+    if is_leasehold:
+        result["planning"].append(Insight(
+            "warn",
+            "Leasehold title — you own the building, not the land. Ground rent reviews (typically every 7–21 years) can jump 20–50%.",
+            "Ask for current ground rent, next review date, and lessor identity. Not every bank lends on leasehold; "
+            "confirm mortgage eligibility before unconditional. A property lawyer should review the ground lease clauses.",
+        ).to_dict())
+    elif is_cross_lease:
+        result["planning"].append(Insight(
+            "info",
+            "Cross-lease title — shared land ownership with the other flats. Any structural change outside the flat plan needs co-owner consent.",
+            "Compare as-built to the flats plan. Unapproved additions (decks, extensions, garages) are the most common "
+            "cross-lease pitfall and routinely block sale or refinance until remedied.",
+        ).to_dict())
+
     # ── Hazard Rules ──────────────────────────────────────────────────────────
 
     flood = str(hazards.get("flood") or "").lower()
@@ -706,6 +729,38 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "District Plan rules restrict building in fault avoidance zones. Check if resource consent "
             "is required for modifications. Surface rupture cannot be mitigated by building design.",
         ).to_dict())
+    else:
+        # GNS national active fault — falls back when no council-specific fault_zone_name is set
+        af = hazards.get("active_fault_nearest")
+        if isinstance(af, dict) and af.get("name") and af.get("distance_m") is not None:
+            try:
+                af_dist = float(af.get("distance_m"))
+            except (TypeError, ValueError):
+                af_dist = None
+            try:
+                af_slip = float(af.get("slip_rate_mm_yr")) if af.get("slip_rate_mm_yr") is not None else None
+            except (TypeError, ValueError):
+                af_slip = None
+            af_dist_str = (
+                f"{int(af_dist)}m" if af_dist is not None and af_dist < 1000
+                else f"{(af_dist / 1000):.1f}km" if af_dist is not None
+                else "nearby"
+            )
+            if af_dist is not None and af_dist <= 200 and af_slip is not None and af_slip >= 1.0:
+                result["hazards"].append(Insight(
+                    "warn",
+                    f"Within 200m of the **{af['name']}** active fault (slip rate {af_slip} mm/yr) — direct surface-rupture risk.",
+                    "Fault rupture can cause 1–6m of ground offset — not mitigable by building design. "
+                    "Check the title for any fault-avoidance consent notice and confirm MBIE/GNS setback compliance before offer.",
+                ).to_dict())
+            elif af_dist is not None and af_dist <= 2000:
+                slip_str = f" Slip rate {af_slip} mm/yr." if af_slip is not None else ""
+                result["hazards"].append(Insight(
+                    "info",
+                    f"Nearest active fault: **{af['name']}**, {af_dist_str} away.{slip_str}",
+                    "Proximity to an active fault raises expected earthquake shaking at this site. "
+                    "Modern code-compliant design mitigates this — verify the building consent file and any seismic assessments.",
+                ).to_dict())
 
     wcc_tsunami = hazards.get("wcc_tsunami_return_period")
     if wcc_tsunami and wcc_tsunami in ("1:100yr", "1:500yr"):
@@ -1015,6 +1070,29 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "",
         ).to_dict())
 
+    # Aspect / solar orientation — only meaningful when the site has slope.
+    # In NZ (southern hemisphere) north-facing captures winter sun; south-facing is shaded.
+    aspect_label = terrain.get("aspect_label")
+    slope_deg = terrain.get("slope_degrees")
+    try:
+        slope_deg_f = float(slope_deg) if slope_deg is not None else None
+    except (TypeError, ValueError):
+        slope_deg_f = None
+    if aspect_label and aspect_label not in ("unknown", "flat") and slope_deg_f is not None and slope_deg_f >= 3:
+        if aspect_label in ("north", "northeast", "northwest"):
+            result["liveability"].append(Insight(
+                "ok",
+                f"{aspect_label.capitalize()}-facing slope — captures winter sun, warmer and drier interiors, solar panels perform well.",
+                "",
+            ).to_dict())
+        elif aspect_label in ("south", "southeast", "southwest"):
+            result["liveability"].append(Insight(
+                "info",
+                f"{aspect_label.capitalize()}-facing slope — limited winter sun. Heating costs typically 10–20% higher than a north-facing equivalent.",
+                "Confirm heating capacity is adequate for the main living area and that bedrooms have ventilation. "
+                "South-facing sites need good insulation and moisture control to avoid mould in winter.",
+            ).to_dict())
+
     # ── Waterway Proximity Rules ─────────────────────────────────────────────
     waterway_m = terrain.get("nearest_waterway_m")
     waterway_name = terrain.get("nearest_waterway_name")
@@ -1157,19 +1235,51 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             contam_dist = float(contam_dist)
         except (TypeError, ValueError):
             contam_dist = None
-    if contam_dist is not None and contam_dist <= 200:
+    if contam_dist is not None and contam_dist <= 500:
         name = env.get("contam_nearest_name", "unknown site")
         cat = env.get("contam_nearest_category", "")
         cat_exp = ANZECC_EXPLANATIONS.get(str(cat).upper(), "")
         count_2km = env.get("contam_count_2km")
         count_str = f" {count_2km} contaminated sites within 2km." if count_2km is not None else ""
         cat_str = f" (ANZECC Category {cat} — {cat_exp})" if cat and cat_exp else ""
-        result["environment"].append(Insight(
-            "warn",
-            f"Contaminated site {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
-            "ANZECC categories indicate likely historic use. Check GWRC SLUR register for full site history. "
-            "For purchase: a Phase 1 Environmental Site Assessment (~$1,500–3,000) is standard practice and may be required by your lender.",
-        ).to_dict())
+        # Severity tracks the ANZECC hazard class used in risk_score.py:98 — Cat A
+        # covers chemical/refuelling/metal-extraction/explosives sites, which carry
+        # real groundwater-plume and soil-disturbance risk. Cat D (cemetery, general
+        # waste) is almost always regulatory listing only.
+        # Real values in contaminated_land.anzecc_category are full HAIL activity
+        # strings: "Chemical manufacture, application and bulk storage", "Vehicle
+        # refuelling, service and repair", "Cemeteries and waste recycling,
+        # treatment and disposal", etc. These keywords catch those verbatim.
+        HIGH_RISK_KEYWORDS = ("chemical", "metal extraction", "explosives", "vehicle refuelling", "refuelling", "petrol", "fuel")
+        cat_lower = str(cat).lower()
+        name_lower = str(name).lower()
+        is_high = any(k in cat_lower or k in name_lower for k in HIGH_RISK_KEYWORDS) or str(cat).upper() == "A"
+        is_cemetery_waste = (
+            "cemeter" in cat_lower or "cemeter" in name_lower
+            or "waste" in cat_lower or "landfill" in cat_lower
+        )
+        if is_high and contam_dist <= 500:
+            result["environment"].append(Insight(
+                "warn",
+                f"High-hazard contaminated site {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
+                "ANZECC Category A covers former petrol stations, chemical plants, galvanisers. Groundwater plumes can travel "
+                "300–2,000m. A Phase-1 Environmental Site Assessment (~$1,500–3,000) should explicitly address the pathway "
+                "from this site to yours, not just proximity. Lender may require clearance before mortgage.",
+            ).to_dict())
+        elif contam_dist <= 200 and is_cemetery_waste:
+            result["environment"].append(Insight(
+                "info",
+                f"Contaminated-land register entry {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
+                "Cemeteries and closed landfills carry a regulatory listing but rarely have active soil/water-contact exposure. "
+                "Still worth a LIM disclosure check if you plan earthworks or food gardens.",
+            ).to_dict())
+        elif contam_dist <= 200:
+            result["environment"].append(Insight(
+                "warn",
+                f"Contaminated site {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
+                "Check the regional council SLUR register for full site history. For purchase: a Phase 1 Environmental Site "
+                "Assessment (~$1,500–3,000) is standard practice and may be required by your lender.",
+            ).to_dict())
 
     climate_change = env.get("climate_temp_change")
     if climate_change is not None:
@@ -1250,6 +1360,11 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             transit = int(transit)
         except (TypeError, ValueError):
             transit = None
+    peak_trips_raw = live.get("peak_trips_per_hour")
+    try:
+        peak_trips = float(peak_trips_raw) if peak_trips_raw is not None else None
+    except (TypeError, ValueError):
+        peak_trips = None
     if transit is not None:
         if transit <= 2:
             result["liveability"].append(Insight(
@@ -1257,11 +1372,21 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"Only {transit} transit stop{'s' if transit != 1 else ''} within 400m — car-dependent location.",
                 "Factor in vehicle running costs. Check bus frequency before committing if car-free.",
             ).to_dict())
-        elif transit >= 10:
+        elif transit >= 10 and (peak_trips is None or peak_trips >= 6):
+            peak_str = f" Peak service: {int(peak_trips)} trips/hour." if peak_trips is not None else ""
             result["liveability"].append(Insight(
                 "ok",
-                f"{transit} public transport stops within 400m — excellent transit access.",
+                f"{transit} public transport stops within 400m — excellent transit access.{peak_str}",
                 "",
+            ).to_dict())
+        elif transit >= 5 and peak_trips is not None and peak_trips <= 3:
+            # Many stops, sparse services — the count-only rule reads "excellent"
+            # and mis-sells the commute. Surface the frequency caveat explicitly.
+            result["liveability"].append(Insight(
+                "info",
+                f"{transit} stops within 400m, but peak service at the busiest stop runs only {peak_trips:.0f} trips/hour.",
+                "Stops aren't services. Check the actual routes on your region's journey planner (AT/Metlink/ECan) "
+                "against your commute before treating this as a 'good transit' location.",
             ).to_dict())
 
     train_dist = live.get("nearest_train_distance_m")
@@ -1483,15 +1608,81 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     heritage_count = _int(planning.get("heritage_count_500m"))
     footprint = _float(prop.get("building_footprint_sqm"))
 
+    # Contamination severity note — tracks the ANZECC hazard class used in
+    # risk_score.py:98. Cat A (chemical/refuelling/metal/explosives) is the only
+    # class that typically triggers a mandatory Phase-1 ESA for lenders.
+    _contam_name_lower = str(env.get("contam_nearest_name") or "").lower()
+    _contam_cat_lower = str(env.get("contam_nearest_category") or "").lower()
+    _HIGH_RISK_CONTAM = ("chemical", "metal extraction", "explosives", "refuelling", "petrol", "fuel")
+    _is_high_contam = (
+        any(k in _contam_cat_lower or k in _contam_name_lower for k in _HIGH_RISK_CONTAM)
+        or str(env.get("contam_nearest_category") or "").upper() == "A"
+    )
+    _is_cemetery_waste = (
+        "cemeter" in _contam_cat_lower or "cemeter" in _contam_name_lower
+        or "waste" in _contam_cat_lower or "landfill" in _contam_cat_lower
+    )
+    if _is_high_contam:
+        contam_severity_note = (
+            "This is a high-hazard category site (chemical / refuelling / metals / explosives). "
+            "Groundwater plumes can travel 300–2,000m. A Phase-1 ESA is effectively mandatory for mortgage approval."
+        )
+    elif _is_cemetery_waste:
+        contam_severity_note = (
+            "This is a low-hazard register entry (cemetery or closed landfill). "
+            "These rarely have active soil or groundwater exposure. Informational — LIM check is usually sufficient."
+        )
+    else:
+        contam_severity_note = (
+            "Severity depends on the historic land use. Treat as moderate hazard until the Phase-1 ESA clarifies."
+        )
+
+    # Climate precipitation projection — used in flood_minor rec so users see
+    # how the rainfall-intensity trajectory reshapes a low-probability flood zone.
+    # Value is % change in annual precipitation by 2041-2060 (SSP2-4.5) and is
+    # genuinely bidirectional in NZ: northern/eastern sites dry slightly, southern/
+    # western sites wet. So we compose a directional sentence instead of a single
+    # placeholder number.
+    climate_precip_pct = _float(env.get("climate_precip_change_pct"))
+    if climate_precip_pct is not None and climate_precip_pct >= 5:
+        climate_precip_line = (
+            f"Climate projections for this SA2 show annual rainfall rising {climate_precip_pct:.0f}% by 2041-2060 "
+            f"(SSP2-4.5) — at that trajectory, today's 0.2% AEP zone is projected to behave like a 0.5-1% AEP zone "
+            f"within 20-30 years. Reclassification affects insurance and lender treatment."
+        )
+    elif climate_precip_pct is not None and climate_precip_pct <= -5:
+        climate_precip_line = (
+            f"Climate projections for this SA2 show annual rainfall falling {abs(climate_precip_pct):.0f}% by 2041-2060 "
+            f"(SSP2-4.5). Overall drying reduces average-year flood risk, but extreme storm intensity can still rise "
+            f"independently — don't treat this as a safety margin."
+        )
+    else:
+        # Small or null precipitation change — skip the climate line entirely rather
+        # than print a misleading "0% change" sentence.
+        climate_precip_line = ""
+
+    # Wildfire trend — 'Likely increasing' / 'Very likely increasing' / etc.
+    # Skip entirely when raw is missing rather than emit "No wildfire trend data"
+    # as a faux-confident bullet in the rec.
+    wildfire_trend_raw = hazards.get("wildfire_trend")
+    if wildfire_trend_raw:
+        wildfire_trend_human, _wft_class = _humanize_wildfire_trend(str(wildfire_trend_raw))
+        wildfire_trend_line = f"Trend: {wildfire_trend_human}. This shapes how much the risk compounds over your holding period."
+    else:
+        wildfire_trend_line = ""
+
     ctx = _SafeFormatDict({
         "earthquake_count": eq_count or 0,
         "wildfire_days": int(wf_days) if wf_days else 0,
+        "wildfire_trend_line": wildfire_trend_line,
         "epb_count_300m": _int(hazards.get("epb_count_300m")) or 0,
         "noise_db": int(noise_db) if noise_db else 0,
         "contam_name": env.get("contam_nearest_name", "unknown site"),
         "contam_category": env.get("contam_nearest_category", ""),
         "contam_distance_m": int(contam_dist) if contam_dist else 0,
+        "contam_severity_note": contam_severity_note,
         "climate_temp_change": f"{climate_change:.1f}" if climate_change else "0",
+        "climate_precip_line": climate_precip_line,
         "nzdep_decile": nzdep or 0,
         "crime_percentile": int(crime_pct) if crime_pct else 0,
         "total_serious_fatal_crashes": crashes_serious + crashes_fatal,
@@ -1529,13 +1720,17 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
             if extra:
                 templates.extend(extra)
 
-        # Interpolate placeholders safely
+        # Interpolate placeholders safely. Drop any action that resolves to an
+        # empty string — rec templates can carry conditional placeholders (e.g.
+        # climate_precip_line) that compute to "" when the signal isn't applicable.
         actions = []
         for t in templates:
             try:
-                actions.append(t.format_map(ctx))
+                resolved = t.format_map(ctx)
             except (KeyError, ValueError, IndexError):
-                actions.append(t)
+                resolved = t
+            if resolved and resolved.strip():
+                actions.append(resolved)
 
         return Recommendation(id=rule_id, severity=severity, title=title, actions=actions)
 

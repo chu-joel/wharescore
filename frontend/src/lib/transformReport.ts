@@ -484,6 +484,8 @@ export function transformReport(raw: any): PropertyReport {
     cv_valuation_id: rawProp.cv_valuation_id ?? null,
     cv_address: rawProp.cv_address ?? null,
     cv_is_per_unit: rawProp.cv_is_per_unit ?? false,
+    title_type: rawProp.title_type ?? null,
+    estate_description: rawProp.estate_description ?? null,
   };
 
   // Map address (backend has ta_name, frontend expects ta)
