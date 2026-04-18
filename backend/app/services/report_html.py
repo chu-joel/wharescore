@@ -780,6 +780,186 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Recent NZ events (Auckland 2023, Cyclone Gabrielle) hit slopes like this hardest.",
         ).to_dict())
 
+    # ── Section 4 Gap Findings — silent fields now surfaced ────────────────
+
+    # §4-a — Landslide nearest: use rich metadata (trigger/date/severity/damage)
+    # instead of just the count. The existing rule uses count only; a specific
+    # 2022 Cyclone Gabrielle slip 300m away is a very different signal from a
+    # 1956 minor rockfall.
+    _ln = hazards.get("landslide_nearest")
+    if isinstance(_ln, dict) and _ln.get("distance_m") is not None:
+        try:
+            _ln_dist = float(_ln.get("distance_m"))
+        except (TypeError, ValueError):
+            _ln_dist = None
+        _ln_trig = str(_ln.get("trigger") or "").strip()
+        _ln_sev = str(_ln.get("severity") or "").strip().lower()
+        _ln_date = str(_ln.get("date") or "")
+        _ln_year = _ln_date[:4] if _ln_date else ""
+        _ln_damage = str(_ln.get("damage") or "").strip()
+        _ln_name = str(_ln.get("name") or "").strip()
+        # Only fire a richer insight if we have meaningful context AND it's within
+        # 1km (further away is just noise). Recent + major gets warn; older gets info.
+        if _ln_dist is not None and _ln_dist <= 1000 and (_ln_trig or _ln_year or _ln_damage):
+            _trig_plain = {
+                "rainfall": "rainfall-triggered",
+                "earthquake": "earthquake-triggered",
+                "unknown": "documented",
+            }.get(_ln_trig.lower(), _ln_trig.lower() + "-triggered" if _ln_trig else "documented")
+            _name_str = f" near {_ln_name}" if _ln_name else ""
+            _year_str = f" in {_ln_year}" if _ln_year and _ln_year.isdigit() else ""
+            _damage_str = f" Recorded damage: {_ln_damage}." if _ln_damage else ""
+            _is_recent = _ln_year.isdigit() and int(_ln_year) >= 2015
+            _is_major = _ln_sev in ("major", "large", "significant", "severe")
+            if _is_recent and _is_major:
+                result["hazards"].append(Insight(
+                    "warn",
+                    f"Recent {_trig_plain} landslide{_name_str} {int(_ln_dist)}m away{_year_str}.{_damage_str}",
+                    "A major slip nearby within the last decade is strong evidence that the slope here is active. "
+                    "Geotechnical assessment should specifically reference this event and check whether the cause has been mitigated.",
+                ).to_dict())
+            elif _is_recent or _is_major:
+                result["hazards"].append(Insight(
+                    "info",
+                    f"{_trig_plain.capitalize()} landslide{_name_str} {int(_ln_dist)}m away{_year_str}.{_damage_str}",
+                    "Ask the builder's report to check for signs of ground movement on this property — "
+                    "cracked paths, leaning retaining walls, doors that don't close properly.",
+                ).to_dict())
+
+    # §4-b — Legacy industrial area. Count ≥10 contaminated sites within 2km
+    # means this is a historic industrial / commercial area, not just a single
+    # point source. Matters for soil-disturbance rules (NES-CS) on any earthworks.
+    _contam_count_2km = env.get("contam_count_2km")
+    try:
+        _contam_count_2km_i = int(_contam_count_2km) if _contam_count_2km is not None else 0
+    except (TypeError, ValueError):
+        _contam_count_2km_i = 0
+    if _contam_count_2km_i >= 10:
+        result["environment"].append(Insight(
+            "info",
+            f"{_contam_count_2km_i} historically contaminated sites within 2km — this is a legacy industrial or commercial area.",
+            "Even if your site is clean, the national NES-CS rules on soil disturbance apply to any earthworks "
+            "(vegetable gardens, trenching, foundation work). A Preliminary Site Investigation may be required.",
+        ).to_dict())
+
+    # §4-c — Height zoning permits significant intensification. ≥18m = ~6 storeys,
+    # which means neighbouring sites can redevelop with material loss of outlook,
+    # sun, and privacy. Relevant to both personas over a 5-10 year hold.
+    _max_h = planning.get("max_height_m")
+    try:
+        _max_h_f = float(_max_h) if _max_h is not None else None
+    except (TypeError, ValueError):
+        _max_h_f = None
+    if _max_h_f is not None and _max_h_f >= 18:
+        _storeys = int(round(_max_h_f / 3))
+        result["planning"].append(Insight(
+            "info",
+            f"Zoning permits buildings up to {_max_h_f:.0f}m ({_storeys} storeys) on this site and on neighbouring sites.",
+            "Over a 5-10 year hold, neighbour redevelopment can materially change outlook, sun access, and privacy. "
+            "Check the district/unitary plan overlays — heritage or character precinct protection will push the realistic limit lower.",
+        ).to_dict())
+
+    # §4-d — GWRC-flagged erosion-prone land. When true, the slope is categorised
+    # as too steep for standard building without specific engineering.
+    if hazards.get("on_erosion_prone_land"):
+        _min_angle = hazards.get("erosion_min_angle")
+        _angle_str = f" (mapped as ≥{_min_angle}° slope)" if _min_angle else ""
+        result["hazards"].append(Insight(
+            "warn",
+            f"On erosion-prone land{_angle_str} — slope is steep enough that standard building consent may not apply.",
+            "Any new structures, additions, or significant earthworks will likely require a slope stability report. "
+            "Existing structures: check the LIM for any engineering consent notices on the title.",
+        ).to_dict())
+
+    # §4-e — Coastal inundation scenario. Ranking High = within council-mapped
+    # inundation zone under a future-climate sea-level rise scenario (+1m to +1.5m
+    # depending on council). Material for insurance availability over a long hold.
+    _cin_rank = str(hazards.get("coastal_inundation_ranking") or "").strip()
+    _cin_scen = str(hazards.get("coastal_inundation_scenario") or "").strip()
+    if _cin_rank.lower() == "high":
+        _scen_note = f" ({_cin_scen})" if _cin_scen else ""
+        result["hazards"].append(Insight(
+            "warn",
+            f"Within council-mapped coastal inundation zone under a future sea-level rise scenario{_scen_note}.",
+            "This isn't today's flood risk — it's the projected reach of storm-surge flooding by mid-century under "
+            "worst-case sea-level rise. Insurers are progressively tightening cover in mapped zones; ask your insurer "
+            "about their coastal hazard policy before going unconditional.",
+        ).to_dict())
+
+    # §2.15 — Site-value signal. When improvements are a very small share of CV,
+    # this property is priced as land. Next buyers will likely be redevelopers,
+    # which affects both negotiating position and expected holding behaviour.
+    # Intentionally neutral wording — a character-cottage owner-occupier isn't
+    # "wrong" to buy here, they just should know the market context.
+    _imp_val = prop.get("improvements_value")
+    _cv_val = prop.get("capital_value")
+    try:
+        _imp_f = float(_imp_val) if _imp_val is not None else None
+        _cv_f = float(_cv_val) if _cv_val is not None else None
+    except (TypeError, ValueError):
+        _imp_f = _cv_f = None
+    if _imp_f is not None and _cv_f is not None and _cv_f >= 600_000 and (_imp_f / _cv_f) <= 0.15:
+        _ratio_pct = int((_imp_f / _cv_f) * 100)
+        result["market"].append(Insight(
+            "info",
+            f"Building improvements are only {_ratio_pct}% of the ${int(_cv_f):,} capital value — "
+            "this property is priced as land rather than as a house.",
+            "Most likely next buyers will be redevelopers. That affects how aggressively you should negotiate "
+            "building condition issues, and the realistic hold is until the land story plays out rather than "
+            "until the house needs its next kitchen.",
+        ).to_dict())
+
+    # §2.17 — Thin rental market with rising rents. Renter-relevant: hard to
+    # benchmark rent increases in SA2s with few active bonds. Apply a minimum-
+    # sample guard (bonds ≥10) to avoid false positives in tiny SA2s.
+    _rental_list_s2 = market.get("rental_overview") or []
+    _trends_list_s2 = market.get("trends") or []
+    _all_row = next(
+        (r for r in _rental_list_s2 if isinstance(r, dict)
+         and r.get("dwelling_type") == "ALL" and r.get("beds") == "ALL"),
+        None,
+    )
+    _all_trend_s2 = next(
+        (t for t in _trends_list_s2 if isinstance(t, dict)
+         and t.get("dwelling_type") == "ALL" and t.get("beds") == "ALL"),
+        None,
+    )
+    _bonds = _all_row.get("bonds") if _all_row else None
+    _cagr_3 = _all_trend_s2.get("cagr_3yr") if _all_trend_s2 else None
+    try:
+        _bonds_i = int(_bonds) if _bonds is not None else None
+        _cagr_3_f = float(_cagr_3) if _cagr_3 is not None else None
+    except (TypeError, ValueError):
+        _bonds_i = _cagr_3_f = None
+    if (
+        _bonds_i is not None and 10 <= _bonds_i <= 50
+        and _cagr_3_f is not None and _cagr_3_f >= 5
+    ):
+        result["market"].append(Insight(
+            "info",
+            f"Thin rental market here — only {_bonds_i} active bonds in this SA2 — with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
+            "Thin markets are harder to benchmark. If your landlord proposes a rent increase, keep TradeMe and "
+            "realestate.co.nz listings for comparable properties — you'll need them to dispute or negotiate.",
+        ).to_dict())
+
+    # §2.20 — Rates trajectory. Council rates are CV-linked. When area values
+    # have risen sharply, rates bills rise too at the next revaluation cycle.
+    # Softer wording than the original brief ("20-40%") because the actual
+    # ratepayer impact depends on council-specific rating policies.
+    _cagr_5_s2 = _all_trend_s2.get("cagr_5yr") if _all_trend_s2 else None
+    try:
+        _cagr_5_f = float(_cagr_5_s2) if _cagr_5_s2 is not None else None
+    except (TypeError, ValueError):
+        _cagr_5_f = None
+    if _cv_f is not None and _cagr_5_f is not None and _cagr_5_f >= 5:
+        result["market"].append(Insight(
+            "info",
+            f"Area rental values rose {_cagr_5_f:.1f}%/yr over 5 years — well above rates-reset triggers.",
+            "Council rates are linked to the capital value. When the whole area appreciates, the next triennial "
+            "revaluation typically pushes rates bills up noticeably (often well beyond CPI). Budget for rates to "
+            "climb, not stay flat, over your hold.",
+        ).to_dict())
+
     # ── Regional Hazard Rules (from source_council-based layers) ────────────
 
     gs_severity = str(hazards.get("ground_shaking_severity") or "").lower()

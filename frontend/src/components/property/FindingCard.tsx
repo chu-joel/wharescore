@@ -382,6 +382,21 @@ export function generateFindings(report: {
     }
   }
 
+  // §4-d — On erosion-prone land (GWRC-flagged). Slope is categorised as too
+  // steep for standard building consent without a slope-stability report.
+  if (h.on_erosion_prone_land === true) {
+    const angle = h.erosion_min_angle;
+    const angleText = angle != null ? ` (mapped as ≥${angle}° slope)` : '';
+    findings.push({
+      headline: `On erosion-prone land${angleText}`,
+      interpretation:
+        'The slope here is steep enough that standard building consent may not apply. Any new structures, additions, or significant earthworks will likely need a slope stability report. Existing structures: check the LIM for engineering consent notices on the title.',
+      severity: 'warning',
+      category: 'Hazards',
+      source: 'GWRC Erosion-Prone Land',
+    });
+  }
+
   // Coastal inundation / storm surge
   if (h.coastal_inundation_ranking || (h.coastal_elevation_cm != null && h.coastal_elevation_cm < 300)) {
     findings.push({
