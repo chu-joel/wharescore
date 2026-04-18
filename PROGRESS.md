@@ -1,6 +1,42 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-03-28 (session 70 — Two-tier report system: Quick Report + Full Report)
+**Last Updated:** 2026-04-19 (extension Phase 1 badge — backend router + extension/ MV3 package + /extension/* pages)
+
+## Latest session (2026-04-19) — WhareScore Badge Phase 1
+
+**Scope:** Badge-only, no capture (after `homes.co.nz` ToS review). See `EXTENSION-BRIEF.md`.
+
+**Shipped:**
+- `backend/app/routers/extension.py` — `POST /api/v1/extension/badge` + `GET /api/v1/extension/status`. Tier gate (anon/free/pro) with strict payload slicing; authed 60/min, anon 30/min via dynamic `_badge_limit(key)`. Exact-match address acceptance. Fire-and-forget telemetry via `track_event('extension_badge_rendered', …)` — stores `{address_id, source_site, tier, persona, ambiguous}`, never raw address text.
+- `backend/app/services/report_html.py` — `select_findings_for_badge(report, persona, max_count)` + `infer_persona_from_url(url)`. Ranking: `severity × persona_weight × non_obvious_bonus`. Dropped suburb-context noise; `_RENTER_WEIGHTS` / `_BUYER_WEIGHTS` / `_GENERIC_WEIGHTS` tables. Called by both the extension router AND `/property/{id}/report` (precomputes `report.ranked_findings.{renter,buyer,generic}` so KeyFindings matches the badge).
+- `backend/app/main.py` + `backend/app/config.py` — CORS adds `allow_origin_regex = EXTENSION_ORIGIN_REGEX` (`chrome-extension://[a-z]{32}`) behind `CORS_ALLOW_EXTENSIONS` flag; `X-WhareScore-Extension` + `-Version` added to `allow_headers`.
+- `backend/app/deps.py` — `user_or_ip_key(request)` shared rate-limit key func (user:sub for verified JWT, IP otherwise).
+- `frontend/src/app/api/auth/token/route.ts` — CORS echoes `Origin` when it matches the extension-id regex; `OPTIONS` preflight handler added.
+- `frontend/src/components/property/KeyFindings.tsx` + `frontend/src/lib/types.ts` — KeyFindings prefers `report.ranked_findings[persona]` for the free-visible slice (falls back to existing client-side `generateFindings` when absent).
+- `frontend/src/app/extension/{welcome,transparency,privacy}/page.tsx` — first-install walkthrough + plain-language summary + full privacy policy (contains verbatim Limited Use affirmation required by Chrome Web Store 2026).
+- `extension/` (new package, MV3, Vite + @crxjs): manifest (no `cookies` permission), background service worker (install → open `/extension/welcome`, `chrome.alarms` 60-min status poll), 3 content scripts (homes / oneroof / realestate — Trade Me scaffolded but gated off via `/status`), shared mount with 3-s DOM poll, Shadow-DOM badge (drag, dismiss 7-day, prefers-reduced-motion), popup (pause-24h + per-site toggles), api + storage + extractor libs. 4 vitest suites (17 tests — fixture-based extraction + api 401 retry + status poll). Build passes via `npm run build` → `extension/dist/`.
+- `backend/tests/test_extension.py` — 18 tests (pure helpers + endpoint shape for anon/free/pro + CORS preflight + status kill-switch).
+- Docs updated same commit: `FRONTEND-WIRING.md § API-endpoints`, `SYSTEM-FLOWS.md § Extension-badge-flow`, `CLAUDE.md` (File Map + Routing Table row), this PROGRESS entry.
+
+**Explicitly deferred to Phase 2 (not shipped):**
+- Trade Me extractor + fixtures — `badge_enabled: false` in `/status` until verified rendered-page HTML lands in `extension/tests/fixtures/trademe/`.
+- "Install our extension" prompt in `PropertyReport.tsx` side rail (mentioned in brief but not in Phase 1 strict criteria).
+- Firefox + Edge repackaging.
+- Chrome Web Store submission + store assets + screenshots.
+- Per-site capture integrations (Trade Me API, realestate.co.nz FeedAPI).
+- Production icons (current `extension/icons/*.png` are generated placeholders; design team to replace before CWS submission).
+- `users.ext_installed_at` column + `/extension/hello` one-shot — only required if install-attribution dashboards are prioritised.
+
+**Non-obvious gotchas for the next agent:**
+- slowapi dynamic limit providers receive the *key* (the output of `key_func`), not the request. `_badge_limit(key: str)` inspects the `user:` prefix — don't revert to a `(request)` signature or every request 500s.
+- The SAMPLE_REPORT fixture uses `tsunami_zone_class: 3` because `build_insights` only emits a tsunami finding at `>= 3`. Don't flip it back to 2 without also adjusting the ≥3-findings assertion in the pro-tier test.
+- `report.ranked_findings` is computed inside `/property/{id}/report` so the in-page KeyFindings matches the extension badge. It is *advisory* — report generation never fails on a ranker exception.
+- Badge CSS lives in `src/badge/styles.ts` as an inlined TS constant and is adopted into the shadow root via `CSSStyleSheet.replaceSync`. Do NOT add it back to `web_accessible_resources` — it is not a real file.
+- The prod domain is `wharescore.co.nz`, NOT `wharescore.com` (the brief's examples used `.com`; the live frontend uses `.co.nz` everywhere).
+
+---
+
+**Prior session (2026-03-28) — Two-tier report system: Quick Report + Full Report**
 **Rates Data:** See [`RATES-DATA.md`](RATES-DATA.md) for full council data source research, endpoints, and field mappings
 **Data Layers:** See [`DATA-LAYERS.md`](DATA-LAYERS.md) for coverage matrix, format inconsistencies, and priority gaps across all regions
 **Purpose:** Resume the proof-of-concept setup in a new context window.

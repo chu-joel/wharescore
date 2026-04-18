@@ -49,12 +49,13 @@ backend/app/
   routers/feedback.py          — User feedback submission
   routers/email_signups.py     — Email signup for region alerts
   routers/admin.py             — Admin dashboard + data management
+  routers/extension.py         — Browser-extension badge endpoints (POST /extension/badge, GET /extension/status). Tier-gated payload (anon/free/pro). No host-page attributes ever stored.
   services/data_loader.py      — 530 DataSource definitions (THE data bible)
   services/snapshot_generator.py — Snapshot generation + ALL rates API wiring (~line 309-470)
   services/rent_advisor.py     — Rent estimation engine
   services/price_advisor.py    — Price estimation (CV + HPI)
   services/risk_score.py       — 0-100 scoring
-  services/report_html.py      — Insights, recommendations, lifestyle fit
+  services/report_html.py      — Insights, recommendations, lifestyle fit, select_findings_for_badge() (shared ranker for badge + free on-screen), infer_persona_from_url()
   services/ai_summary.py       — Claude/OpenAI narratives
   services/*_rates.py          — 25 council rates API clients
   migrations/0022_*.sql        — get_property_report() SQL function
@@ -70,6 +71,20 @@ frontend/src/
   stores/*.ts                              — Zustand state (persona, inputs, budget, auth, export)
   components/map/MapContainer.tsx          — Main map (MapLibre GL + Martin tile layers)
   components/map/MapLayerPicker.tsx        — Layer toggle UI (hazards, property, schools, planning, transport)
+  app/extension/welcome/page.tsx           — First-install walkthrough for the browser extension
+  app/extension/transparency/page.tsx      — Plain-language data practices summary for the badge
+  app/extension/privacy/page.tsx           — Full privacy policy (verbatim Chrome Web Store Limited Use affirmation)
+  app/api/auth/token/route.ts              — 5-min JWT mint (CORS-echoes chrome-extension://<id> origins)
+
+extension/                                  — WhareScore Badge Chrome extension (MV3)
+  manifest.config.js                        — Host perms: wharescore.co.nz + 3 listing sites. No cookies permission.
+  src/background/service-worker.ts          — Install handler + chrome.alarms status polling
+  src/content/{homes,oneroof,realestate}.ts — Per-site content scripts (+ shared mount.ts)
+  src/badge/Badge.ts                        — Shadow-DOM badge UI (vanilla TS, draggable, dismissible)
+  src/lib/{api,extract,extractors,storage,constants}.ts — Network, DOM extraction, chrome.storage wrappers
+  src/popup/popup.{html,ts}                 — Toolbar popup (pause, per-site toggles)
+  tests/fixtures/                           — Real captured HTML per site (homes, oneroof, realestate — 2 each)
+  PRIVACY.md, README.md                     — Limited Use affirmation + selector risk register
 ```
 
 ## Data Flow
@@ -109,6 +124,7 @@ POST /property/{id}/export/pdf/start[?report_tier=quick|full]
 | Change risk scoring | `services/risk_score.py` | — |
 | Change rent/price advisor | `services/rent_advisor.py` or `price_advisor.py` | — |
 | Fix payment flow | `routers/payments.py` + `UpgradeModal.tsx` + `pdfExportStore.ts` | `docs/SYSTEM-FLOWS.md` § Payment-credit-system |
+| Build / update browser extension | `extension/src/`, `backend/app/routers/extension.py`, `backend/app/services/report_html.py` (select_findings_for_badge) | `docs/FRONTEND-WIRING.md` § API-endpoints + `docs/SYSTEM-FLOWS.md` § Extension-badge-flow |
 | Deploy | `git push origin main` | — |
 | SSH to server | `ssh wharescore@20.5.86.126` | — |
 | Run SQL on prod | `docker exec app-postgres-1 psql -U postgres -d wharescore -c "..."` | — |
@@ -146,6 +162,12 @@ POST /property/{id}/export/pdf/start[?report_tier=quick|full]
 | `docs/RECIPES.md` | "How do I add a dataset/rates API/transit city/report field step by step?" | Any implementation task | When a new recipe is needed |
 | `DATA-LAYERS.md` | "Which councils have flood/liquefaction/tsunami data loaded?" | Checking hazard coverage by region | When loading new council data |
 | `PROGRESS.md` | "What was done recently? What's next?" | Starting a new conversation | End of every session |
+
+## Knowledge Graph (blast-radius map)
+
+Before a cross-cutting change (new data field, new rates API, new report section, new hazard layer), open `graphify-out/graph.html` and search for the nearest god node — it shows every doc/file/table that change will touch. The current graph covers docs + backend + frontend + scripts + tools (2,599 nodes, 3,062 edges). Rebuild after changes with `/graphify --update`.
+
+Example: `get_property_report()` is a god node with 19 outgoing edges to DB tables + the `jsonb_build_object max 100 args` rule — any new hazard field cascades through that function, risk_score.py, property.py, and four docs.
 
 ## Doc Update Checklist (run before every commit)
 

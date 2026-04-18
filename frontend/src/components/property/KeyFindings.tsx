@@ -1,7 +1,7 @@
 'use client';
 
 import { Lightbulb } from 'lucide-react';
-import { FindingCard, generateFindings } from './FindingCard';
+import { FindingCard, generateFindings, type Finding } from './FindingCard';
 import { BlurredFindingCards } from './BlurredFindingCards';
 import type { PropertyReport } from '@/lib/types';
 import type { Persona } from '@/stores/personaStore';
@@ -16,10 +16,29 @@ interface KeyFindingsProps {
   addressId?: number;
 }
 
-export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
-  const findings = generateFindings(report, persona);
+// Coerce a backend-ranked finding into the frontend Finding shape expected by
+// FindingCard. Backend returns {severity, title, detail}; FindingCard wants
+// {headline, interpretation, severity, category, source}. Category/source are
+// cosmetic here since the card renders severity + text.
+function asFrontendFinding(
+  ranked: { severity: string; title: string; detail: string },
+): Finding {
+  const sev = ranked.severity as Finding['severity'];
+  return {
+    severity: sev === 'critical' || sev === 'warning' || sev === 'info' || sev === 'positive'
+      ? sev
+      : 'info',
+    headline: ranked.title,
+    interpretation: ranked.detail || '',
+    category: 'ranked',
+    source: 'backend',
+  };
+}
 
-  if (findings.length === 0) return (
+export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
+  const allFindings = generateFindings(report, persona);
+
+  if (allFindings.length === 0) return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-piq-primary" />
@@ -31,26 +50,46 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
     </div>
   );
 
-  const criticalCount = findings.filter(f => f.severity === 'critical').length;
-  const warningCount = findings.filter(f => f.severity === 'warning').length;
-  const infoCount = findings.filter(f => f.severity === 'info').length;
-  const positiveCount = findings.filter(f => f.severity === 'positive').length;
+  // Prefer the backend's persona-ranked top-N for the free-visible slice so
+  // the on-screen report and the browser-extension badge show the same two
+  // findings side-by-side. Falls back to the frontend ranker when absent.
+  const personaKey: 'renter' | 'buyer' = persona === 'renter' ? 'renter' : 'buyer';
+  const backendRanked = report.ranked_findings?.[personaKey];
 
-  const freeFindings = findings.slice(0, maxFree);
-  const hiddenFindings = findings.slice(maxFree);
+  let freeFindings: Finding[];
+  if (backendRanked && backendRanked.length > 0) {
+    const converted = backendRanked.map(asFrontendFinding).slice(0, maxFree);
+    // If backend returned fewer than maxFree, top up from the frontend ranker
+    // (avoid duplicates by headline).
+    if (converted.length < maxFree) {
+      const chosen = new Set(converted.map(f => f.headline));
+      const filler = allFindings.filter(f => !chosen.has(f.headline));
+      converted.push(...filler.slice(0, maxFree - converted.length));
+    }
+    freeFindings = converted;
+  } else {
+    freeFindings = allFindings.slice(0, maxFree);
+  }
+
+  const freeHeadlines = new Set(freeFindings.map(f => f.headline));
+  const hiddenFindings = allFindings.filter(f => !freeHeadlines.has(f.headline));
+
+  const criticalCount = allFindings.filter(f => f.severity === 'critical').length;
+  const warningCount = allFindings.filter(f => f.severity === 'warning').length;
+  const infoCount = allFindings.filter(f => f.severity === 'info').length;
+  const positiveCount = allFindings.filter(f => f.severity === 'positive').length;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-piq-primary" />
         <h3 className="text-sm font-bold">
-          {findings.length} {findings.length === 1 ? 'thing' : 'things'} to know about this {persona === 'renter' ? 'rental' : 'property'}
+          {allFindings.length} {allFindings.length === 1 ? 'thing' : 'things'} to know about this {persona === 'renter' ? 'rental' : 'property'}
         </h3>
       </div>
 
-      {/* Summary line — must sum to findings.length. Vocabulary matches FindingCard badges
-          (Critical / Watch / Note / Good) so the summary and individual cards speak the
-          same language. */}
+      {/* Summary line — must sum to allFindings.length. Vocabulary matches FindingCard
+          badges (Critical / Watch / Note / Good). */}
       <p className="text-xs text-muted-foreground">
         {criticalCount > 0 && (
           <span className="text-red-600 dark:text-red-400 font-medium">
@@ -91,7 +130,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         <BlurredFindingCards
           findings={hiddenFindings}
           addressId={addressId ?? report.address.address_id}
-          totalCount={findings.length}
+          totalCount={allFindings.length}
         />
       )}
     </div>

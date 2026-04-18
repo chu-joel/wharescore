@@ -76,6 +76,14 @@ export interface PropertyReport {
       distance_km: number | null;
     }>;
   };
+  /** Persona-ranked top findings from the backend badge-finding selector.
+   *  Single source of truth shared with the browser extension. KeyFindings
+   *  prefers these over generateFindings() for the free-tier visible slice. */
+  ranked_findings?: {
+    renter: Array<{ severity: string; title: string; detail: string }>;
+    buyer: Array<{ severity: string; title: string; detail: string }>;
+    generic: Array<{ severity: string; title: string; detail: string }>;
+  };
 }
 
 export interface AddressInfo {

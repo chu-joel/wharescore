@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>WhareScore Badge</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      width: 280px; margin: 0; padding: 14px 16px; color: #0f1720;
+    }
+    h1 { font-size: 14px; margin: 0 0 10px; letter-spacing: 0.02em; color: #134e4a; }
+    p { margin: 0 0 12px; font-size: 12px; color: #5a6b7b; }
+    label { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; }
+    .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-top: 1px solid rgba(15,23,32,0.08); font-size: 12px; }
+    .row:first-of-type { border-top: 0; }
+    button { font-family: inherit; font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(15,23,32,0.12); background: #fff; cursor: pointer; }
+    button.primary { background: #134e4a; color: #fff; border-color: #134e4a; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(15,23,32,0.08); font-size: 11px; color: #5a6b7b; }
+    .foot a { color: #134e4a; text-decoration: none; }
+    .foot a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>WHARESCORE BADGE</h1>
+  <p id="pauseState">Badge active on supported sites.</p>
+
+  <div class="row"><span>Pause for 24 hours</span>
+    <button id="pauseBtn" class="primary">Pause</button>
+  </div>
+  <div class="row"><span>Resume now</span>
+    <button id="resumeBtn">Resume</button>
+  </div>
+
+  <h1 style="margin-top: 14px;">SITES</h1>
+  <label><input type="checkbox" id="toggle-homes" /> homes.co.nz</label>
+  <label><input type="checkbox" id="toggle-oneroof" /> oneroof.co.nz</label>
+  <label><input type="checkbox" id="toggle-trademe" /> trademe.co.nz <span style="color:#5a6b7b;">(coming soon)</span></label>
+  <label><input type="checkbox" id="toggle-realestate" /> realestate.co.nz</label>
+
+  <div class="foot">
+    <a href="https://wharescore.co.nz/extension/transparency" target="_blank" rel="noopener noreferrer">What data do we collect?</a>
+    &nbsp;·&nbsp;
+    <a href="https://wharescore.co.nz/extension/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+  </div>
+
+  <script type="module" src="./popup.ts"></script>
+</body>
+</html>
