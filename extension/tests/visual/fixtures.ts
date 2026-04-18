@@ -45,8 +45,8 @@ export const fx_free_renter: BadgeResponse = {
   findings: [
     {
       severity: "warning",
-      title: "Rent about 12% above the SA2 median for a 2-bed unit",
-      detail: "Similar units in this suburb are $595/wk on average.",
+      title: "Rent about 12% above the suburb median for a 2-bed unit",
+      detail: "Similar units nearby are $595/wk on average.",
     },
     {
       severity: "info",
@@ -65,7 +65,7 @@ export const fx_free_buyer: BadgeResponse = {
   findings: [
     {
       severity: "warning",
-      title: "CV sits $45k above the SA2 median for similar properties",
+      title: "CV sits $45k above the median for similar homes nearby",
       detail: "Worth comparing recent comps before offering at CV.",
     },
     {
@@ -85,7 +85,7 @@ export const fx_pro_renter: BadgeResponse = {
   findings: [
     {
       severity: "warning",
-      title: "Rent about 12% above the SA2 median for a 2-bed unit",
+      title: "Rent about 12% above the suburb median for a 2-bed unit",
       detail: "$595/wk is typical for this suburb + bedroom count.",
     },
     {
@@ -134,7 +134,7 @@ export const fx_pro_buyer: BadgeResponse = {
   findings: [
     {
       severity: "warning",
-      title: "CV sits $45k above the SA2 median — worth a comps check",
+      title: "CV sits $45k above the median for similar homes nearby — worth a comps check",
       detail: "Recent comps suggest $820k–$920k market range.",
     },
     {

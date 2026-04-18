@@ -102,20 +102,43 @@ export class Badge {
       : score >= 30 ? "ws-score--mid"
       : "ws-score--low";
     const proTag = tier === "pro" ? `<span class="ws-pro-tag">PRO</span>` : "";
-    const ambiguous = data.ambiguous
-      ? `<span class="ws-ambiguous">Multiple matches</span>` : "";
-    const findingsHtml = renderFindingList(data.findings ?? [], tier);
-    const canSave = caps.save && !data.ambiguous;
     const reportUrl = data.report_url || "https://wharescore.co.nz";
+
+    // Ambiguous match: render minimal card. Per brief §Address matching step 6,
+    // findings/price/save are suppressed because they may belong to the wrong
+    // property — only the score-for-first and a "View full report" link remain.
+    if (data.ambiguous) {
+      this.card.innerHTML = `
+        <div class="ws-header">
+          <div class="ws-brand"><span class="ws-dot"></span>WHARESCORE${proTag ? ` ${proTag}` : ""}</div>
+          <button class="ws-dismiss" aria-label="Dismiss">×</button>
+        </div>
+        <div class="ws-score-row">
+          <div class="ws-score ${bandClass}">${score ?? "—"}</div>
+          <div class="ws-band">${escape(data.score_band || "")}<span class="ws-ambiguous">Multiple matches</span></div>
+        </div>
+        <div class="ws-address" title="${escape(data.full_address || "")}">${escape(data.full_address || "")}</div>
+        <div class="ws-state">Multiple addresses match — open the full report to confirm which one</div>
+        <div class="ws-footer">
+          <a class="ws-open" href="${reportUrl}" target="_blank" rel="noopener noreferrer">View full report →</a>
+        </div>
+      `;
+      this.wireHeaderControls();
+      this.applyStoredOffset();
+      return;
+    }
+
+    const findingsHtml = renderFindingList(data.findings ?? [], tier);
+    const canSave = caps.save;
 
     this.card.innerHTML = `
       <div class="ws-header">
-        <div class="ws-brand"><span class="ws-dot"></span>WHARESCORE ${proTag}</div>
+        <div class="ws-brand"><span class="ws-dot"></span>WHARESCORE${proTag ? ` ${proTag}` : ""}</div>
         <button class="ws-dismiss" aria-label="Dismiss">×</button>
       </div>
       <div class="ws-score-row">
         <div class="ws-score ${bandClass}">${score ?? "—"}</div>
-        <div class="ws-band">${escape(data.score_band || "")}${ambiguous}</div>
+        <div class="ws-band">${escape(data.score_band || "")}</div>
       </div>
       <div class="ws-address" title="${escape(data.full_address || "")}">${escape(data.full_address || "")}</div>
       <ul class="ws-findings">${findingsHtml}</ul>
@@ -255,7 +278,7 @@ function renderPriceSection(
     return `<div class="ws-state">Est. $${fmt(est.median)} (range $${fmt(est.low)}–$${fmt(est.high)})${confidence}${comps}</div>`;
   }
   if (band) {
-    return `<div class="ws-state">Rough price: $${fmt(band.low)}–$${fmt(band.high)} <span class="ws-band">(CV × HPI)</span></div>`;
+    return `<div class="ws-state">Rough price: $${fmt(band.low)}–$${fmt(band.high)} <span class="ws-band">(rough estimate)</span></div>`;
   }
   return "";
 }

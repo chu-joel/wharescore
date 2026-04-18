@@ -937,7 +937,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     ):
         result["market"].append(Insight(
             "info",
-            f"Thin rental market here — only {_bonds_i} active bonds in this SA2 — with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
+            f"Thin rental market here — only {_bonds_i} active bonds in this suburb — with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
             "Thin markets are harder to benchmark. If your landlord proposes a rent increase, keep TradeMe and "
             "realestate.co.nz listings for comparable properties — you'll need them to dispute or negotiate.",
         ).to_dict())
@@ -1951,13 +1951,13 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     climate_precip_pct = _float(env.get("climate_precip_change_pct"))
     if climate_precip_pct is not None and climate_precip_pct >= 5:
         climate_precip_line = (
-            f"Climate projections for this SA2 show annual rainfall rising {climate_precip_pct:.0f}% by 2041-2060 "
+            f"Climate projections for this area show annual rainfall rising {climate_precip_pct:.0f}% by 2041-2060 "
             f"(SSP2-4.5) — at that trajectory, today's 0.2% AEP zone is projected to behave like a 0.5-1% AEP zone "
             f"within 20-30 years. Reclassification affects insurance and lender treatment."
         )
     elif climate_precip_pct is not None and climate_precip_pct <= -5:
         climate_precip_line = (
-            f"Climate projections for this SA2 show annual rainfall falling {abs(climate_precip_pct):.0f}% by 2041-2060 "
+            f"Climate projections for this area show annual rainfall falling {abs(climate_precip_pct):.0f}% by 2041-2060 "
             f"(SSP2-4.5). Overall drying reduces average-year flood risk, but extreme storm intensity can still rise "
             f"independently — don't treat this as a safety margin."
         )
