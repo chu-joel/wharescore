@@ -164,6 +164,18 @@ if capital_value and improvements_value and capital_value > 0:
 | 8. Land-value/m² signal | Only verifiable for Auckland (`auckland_rates_cache`), WCC (`wcc_rates_cache`) in current state. Propose blocking P1 #9 rollout until at least 10 councils carry `land_area` | Land area coverage |
 | 9. Long-term: tracking error | Once QW1-3 deployed, log estimate + mid-band for every generated report; when user provides actual rent (via `rent_reports`), compute rolling MAPE | Already have `rent_reports` router |
 
+## 5. Audit findings (2026-04-18 in-session)
+
+<!-- UPDATE: When a finding is resolved or a new one emerges, edit the row. -->
+
+| # | Finding | Severity | Status |
+|---|---|---|---|
+| A | Auckland `LATESTVALUATIONDATE` live-probe: 5-row sample returns epoch-millis that `_parse_arcgis_date` correctly decodes to 2024-05-01 (matches 2024 reval cycle). `VALUATIONDATE` returns 2021-06-01 (previous cycle) — `LATESTVALUATIONDATE` is the right field. | Info | **Validated** |
+| B | Sigma inner-band formula `max(0.005, min(0.03, sigma*0.5))` hits the 3% ceiling for all sigma ≥ 0.06. Typical SA2 sigmas are 0.10–0.25, so the adaptive behaviour is effectively "always 3%" in production. Net effect: ±1% → ±3% inner band, adaptivity only visible at tails. | Cosmetic | Accepted — behavioural claim is technically correct; the clamp dominates. Revisit if users complain bands too wide. |
+| C | `percentile` and `cv_age_months` added to `compute_rent_advice` return dict but not plumbed into `snapshot_generator.py`. Live `/api/market/rent-advice` surfaces them; frozen hosted-report JSONB does not. | Low | Feature gap, not a bug. Separate follow-up PR if we want hosted reports to show rent percentile. |
+| D | `estimate_percentile` crashes on `weekly_rent=0` (`math.log(0)`). Guard in rent_advisor uses `weekly_rent is not None` not `weekly_rent > 0`. Route-layer validation enforces positive-int so unreachable in practice. | Latent | Pre-existing, not introduced this session. |
+| E | Live MAPE backtest (validation plan steps 1–4) requires Postgres access. Not runnable from this local session — needs prod SSH or a spun-up compose stack. | Blocker | Deferred. Can write a scripted backtest for prod if wanted. |
+
 ## Notes / known data gaps
 
 - `council_valuations` loader (`data_loader.py:_load_rates`) now accepts an optional `date_field` and populates `valuation_date` when passed (Auckland wired via `LATESTVALUATIONDATE`). Still does **not** store `land_area`, `floor_area`, `year_built`, or dwelling-type classification — these fields exist in most councils' ArcGIS feeds but remain unmapped.
