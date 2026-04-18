@@ -1066,52 +1066,16 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
                         "category": "property",
                     }
 
-        # Quality adjustment (uses cached SA2 median)
-        quality_adj = None
-        cv = cache["property"]["capital_value"]
-        lv = cache["property"]["land_value"]
-        if cv:
-            imp = cv - (lv or 0)
-            beds_num = int(beds.replace("+", ""))
-            rooms = beds_num + 1  # default 1 bathroom for baseline
-            if imp > 0 and rooms > 0:
-                imp_per_room = imp / rooms
-                if cache["property"]["is_multi_unit"]:
-                    sa2_med = cache["sa2_median_unit_cv"]
-                    typical_rooms = 3
-                else:
-                    sa2_med = cache["sa2_median_house_imp"]
-                    typical_rooms = 4
-
-                if sa2_med and sa2_med > 0:
-                    sa2_per_room = sa2_med / typical_rooms
-                    if sa2_per_room > 0:
-                        ratio = imp_per_room / sa2_per_room
-                        if ratio > 1.3:
-                            adj_low = _clamp((ratio - 1) * 0.1, 0.01, 0.04)
-                            adj_high = _clamp((ratio - 1) * 0.2, 0.02, 0.08)
-                            quality_adj = {
-                                "factor": "quality", "label": "Above-average build",
-                                "pct_low": round(adj_low * 100, 1), "pct_high": round(adj_high * 100, 1),
-                                "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                                "category": "property",
-                            }
-                        elif ratio < 0.7:
-                            adj_low = _clamp((ratio - 1) * 0.2, -0.08, -0.02)
-                            adj_high = _clamp((ratio - 1) * 0.1, -0.04, -0.01)
-                            quality_adj = {
-                                "factor": "quality", "label": "Below-average build",
-                                "pct_low": round(adj_low * 100, 1), "pct_high": round(adj_high * 100, 1),
-                                "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                                "category": "property",
-                            }
+        # (Removed: quality-per-room-vs-SA2 adjustment. Same denominator
+        # asymmetry as the advisors' versions — subject uses beds+1 as rooms,
+        # SA2 median divides by hardcoded 3/4, biasing by property size.
+        # The price side now relies on imp_ratio (age/renovation proxy) in
+        # compute_price_advice(); rent doesn't need a replacement.)
 
         # Combine property-fixed adjustments
         all_adjs = list(property_fixed_adjs)
         if size_adj:
             all_adjs.append(size_adj)
-        if quality_adj:
-            all_adjs.append(quality_adj)
 
         # Compute base band (without bathroom/finish/toggle adjustments)
         product_low = 1.0

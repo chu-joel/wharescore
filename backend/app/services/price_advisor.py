@@ -363,67 +363,12 @@ async def compute_price_advice(
                     "category": "property",
                 })
 
-    # Quality: improvement value per room vs SA2 average
-    if capital_value and improvements_value and improvements_value > 0 and rooms > 0:
-        imp_per_room = improvements_value / rooms
-
-        if is_multi_unit:
-            sa2_query = """
-                SELECT percentile_cont(0.5) WITHIN GROUP (
-                    ORDER BY cv.capital_value
-                ) AS median_val
-                FROM council_valuations cv, sa2_boundaries sa2
-                WHERE ST_Contains(sa2.geom, cv.geom)
-                  AND sa2.sa2_code = %s
-                  AND cv.capital_value > 0
-                  AND (cv.land_value = 0 OR cv.land_value IS NULL)
-            """
-        else:
-            sa2_query = """
-                SELECT percentile_cont(0.5) WITHIN GROUP (
-                    ORDER BY (cv.capital_value - cv.land_value)
-                ) AS median_val
-                FROM council_valuations cv, sa2_boundaries sa2
-                WHERE ST_Contains(sa2.geom, cv.geom)
-                  AND sa2.sa2_code = %s
-                  AND cv.capital_value > cv.land_value
-                  AND cv.land_value > 0
-            """
-
-        cur = await conn.execute(sa2_query, [sa2["sa2_code"]])
-        sa2_row = cur.fetchone()
-        if sa2_row and sa2_row["median_val"]:
-            typical_rooms = 3 if is_multi_unit else 4
-            sa2_per_room = float(sa2_row["median_val"]) / typical_rooms
-            if sa2_per_room > 0:
-                factors_analysed += 1
-                ratio = imp_per_room / sa2_per_room
-                if ratio > 1.3:
-                    adj_low = _clamp((ratio - 1) * 0.1, 0.01, 0.04)
-                    adj_high = _clamp((ratio - 1) * 0.2, 0.02, 0.08)
-                    adjustments.append({
-                        "factor": "quality",
-                        "label": "Above-average build",
-                        "pct_low": round(adj_low * 100, 1),
-                        "pct_high": round(adj_high * 100, 1),
-                        "dollar_low": round(estimated_value * adj_low),
-                        "dollar_high": round(estimated_value * adj_high),
-                        "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                        "category": "property",
-                    })
-                elif ratio < 0.7:
-                    adj_low = _clamp((ratio - 1) * 0.2, -0.08, -0.02)
-                    adj_high = _clamp((ratio - 1) * 0.1, -0.04, -0.01)
-                    adjustments.append({
-                        "factor": "quality",
-                        "label": "Below-average build",
-                        "pct_low": round(adj_low * 100, 1),
-                        "pct_high": round(adj_high * 100, 1),
-                        "dollar_low": round(estimated_value * adj_low),
-                        "dollar_high": round(estimated_value * adj_high),
-                        "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                        "category": "property",
-                    })
+    # (Removed: quality-per-room-vs-SA2 block. The subject used actual
+    # beds+baths as the denominator while the SA2 median used a hardcoded
+    # 3 or 4, so the ratio was systematically biased by property size —
+    # bigger homes flagged "Below-average build", smaller ones "Above-average".
+    # The imp_ratio age/renovation proxy below covers the same
+    # "above/below local norm" signal without the room-count asymmetry.)
 
     # Age / renovation proxy: improvements share of CV vs SA2 p25/p75.
     # Recent builds and renovated homes carry higher imp/CV than old or

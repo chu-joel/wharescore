@@ -781,81 +781,12 @@ async def compute_rent_advice(
                     "category": "property",
                 })
 
-    # Quality: improvement value per room vs SA2 average.
-    # Houses: (capital - land) / rooms. Apartments: capital / rooms (land=0 for units).
-    if prop and prop["capital_value"]:
-        cap = float(prop["capital_value"])
-        land = float(prop["land_value"]) if prop["land_value"] else 0
-        imp = cap - land  # improvements = CV minus land (works for both houses and units)
-        beds_num = int(bedrooms.replace("+", "")) if bedrooms != "ALL" else 3
-        baths_num = int(bathrooms.replace("+", "")) if bathrooms else 1
-        rooms = beds_num + baths_num
-
-        if imp > 0 and rooms > 0:
-            imp_per_room = imp / rooms
-
-            # SA2 median: for houses compare improvements, for units compare CV
-            if is_multi_unit:
-                # Compare unit CV/room to SA2 median unit CV/room
-                # Filter to units (land_value = 0 or NULL) in the SA2
-                sa2_query = """
-                    SELECT percentile_cont(0.5) WITHIN GROUP (
-                        ORDER BY cv.capital_value
-                    ) AS median_val
-                    FROM council_valuations cv, sa2_boundaries sa2
-                    WHERE ST_Contains(sa2.geom, cv.geom)
-                      AND sa2.sa2_code = %s
-                      AND cv.capital_value > 0
-                      AND (cv.land_value = 0 OR cv.land_value IS NULL)
-                """
-            else:
-                # Compare house improvement/room to SA2 median improvement/room
-                sa2_query = """
-                    SELECT percentile_cont(0.5) WITHIN GROUP (
-                        ORDER BY (cv.capital_value - cv.land_value)
-                    ) AS median_val
-                    FROM council_valuations cv, sa2_boundaries sa2
-                    WHERE ST_Contains(sa2.geom, cv.geom)
-                      AND sa2.sa2_code = %s
-                      AND cv.capital_value > cv.land_value
-                      AND cv.land_value > 0
-                """
-
-            cur = await conn.execute(sa2_query, [sa2["sa2_code"]])
-            sa2_row = cur.fetchone()
-            if sa2_row and sa2_row["median_val"]:
-                # Typical rooms: 4 for houses (3-bed 1-bath), 3 for units (2-bed 1-bath)
-                typical_rooms = 3 if is_multi_unit else 4
-                sa2_per_room = float(sa2_row["median_val"]) / typical_rooms
-                if sa2_per_room > 0:
-                    factors_analysed += 1
-                    ratio = imp_per_room / sa2_per_room
-                    if ratio > 1.3:
-                        adj_low = _clamp((ratio - 1) * 0.1, 0.01, 0.04)
-                        adj_high = _clamp((ratio - 1) * 0.2, 0.02, 0.08)
-                        adjustments.append({
-                            "factor": "quality",
-                            "label": "Above-average build",
-                            "pct_low": round(adj_low * 100, 1),
-                            "pct_high": round(adj_high * 100, 1),
-                            "dollar_low": round(raw_median * adj_low),
-                            "dollar_high": round(raw_median * adj_high),
-                            "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                            "category": "property",
-                        })
-                    elif ratio < 0.7:
-                        adj_low = _clamp((ratio - 1) * 0.2, -0.08, -0.02)
-                        adj_high = _clamp((ratio - 1) * 0.1, -0.04, -0.01)
-                        adjustments.append({
-                            "factor": "quality",
-                            "label": "Below-average build",
-                            "pct_low": round(adj_low * 100, 1),
-                            "pct_high": round(adj_high * 100, 1),
-                            "dollar_low": round(raw_median * adj_low),
-                            "dollar_high": round(raw_median * adj_high),
-                            "reason": f"${round(imp_per_room/1000)}K/room vs area ${round(sa2_per_room/1000)}K",
-                            "category": "property",
-                        })
+    # (Removed: quality-per-room-vs-SA2 block. Same denominator-asymmetry
+    # bug as the price advisor's equivalent block — subject used actual
+    # beds+baths, SA2 median used hardcoded 3/4, biasing bigger properties
+    # toward "Below-average" and smaller toward "Above-average". The signal
+    # is structurally covered by imp_ratio on the price side; rent is less
+    # age-sensitive, so no replacement signal is needed here.)
 
     # Finish tier
     if finish_tier and finish_tier in FINISH_TIERS:
