@@ -646,11 +646,11 @@ DEFAULT_RECOMMENDATIONS = [
         "title": "Transmission Line Proximity",
         "category": "planning",
         "default_actions": [
-            "A high-voltage transmission line is within {transmission_distance_m}m of this property.",
-            "Check the certificate of title for any Transpower easement — this restricts what you can build within the easement corridor.",
-            "Some lenders restrict loan-to-value ratio (LVR) or decline to lend on properties directly under transmission lines. Check with your broker.",
-            "If you have concerns about electromagnetic fields (EMF), you can request a measurement from the property boundary. Transpower publishes EMF information at transpower.co.nz.",
-            "Trees within the easement corridor may be subject to trimming or removal by Transpower.",
+            "A high-voltage Transpower transmission line is within {transmission_distance_m}m of this property.",
+            "{transmission_tier_line}",
+            "Check the certificate of title for any Transpower easement — easements show up as a registered interest and will be visible on the LIM.",
+            "Trees within the easement corridor may be subject to trimming or removal by Transpower. If you value specific trees on the site, check whether they sit inside the easement.",
+            "If buying to rent: tenants should be informed of the proximity, especially if children will be on site.",
         ],
     },
     {

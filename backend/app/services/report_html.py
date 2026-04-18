@@ -1906,6 +1906,37 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     else:
         noise_stack_line = ""
 
+    # 3.6 — Transmission line tier line. Current rec fires the same text for a
+    # property 15m from the line (inside easement — title-level restriction,
+    # lender LVR cap) and 195m away (awareness only). Split into three tiers:
+    #   ≤25m  easement-probable (Transpower easement corridors are typically
+    #          ~25m each side of the line centreline)
+    #   ≤100m NPSET setback-buffer (National Policy Statement on Electricity
+    #          Transmission — council may impose conditions on new builds)
+    #   ≤200m awareness-only (EMF falls off ~1/d²; no legal restriction)
+    if trans_dist is not None:
+        if trans_dist <= 25:
+            transmission_tier_line = (
+                f"Line is {int(trans_dist)}m away — within the typical Transpower easement corridor. "
+                f"The certificate of title will almost certainly carry an easement: development, tree planting, "
+                f"and building alterations inside the corridor are all restricted. Some lenders apply LVR caps "
+                f"or decline to lend altogether on easement properties."
+            )
+        elif trans_dist <= 100:
+            transmission_tier_line = (
+                f"Line is {int(trans_dist)}m away — outside the usual easement but inside the NPSET "
+                f"setback buffer. New builds and major alterations here may trigger council conditions. "
+                f"EMF measurement is available from the property boundary (Transpower publishes it on request)."
+            )
+        else:
+            transmission_tier_line = (
+                f"Line is {int(trans_dist)}m away — outside both the easement and the NPSET setback buffer. "
+                f"No legal development restriction at this distance; EMF falls off rapidly with distance. "
+                f"Informational only — Transpower's EMF info is public if you want baseline numbers."
+            )
+    else:
+        transmission_tier_line = ""
+
     # 3.11 — Maintenance line for large_footprint rec. Use improvements_value
     # (the bit that depreciates) instead of full CV when available — gives a
     # more honest annual maintenance budget. Fall back to a CV-based estimate
@@ -1941,6 +1972,7 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         "pharmacy_line": pharmacy_line,
         "noise_stack_line": noise_stack_line,
         "maintenance_line": maintenance_line,
+        "transmission_tier_line": transmission_tier_line,
         "wildfire_days": int(wf_days) if wf_days else 0,
         "wildfire_trend_line": wildfire_trend_line,
         "epb_count_300m": _int(hazards.get("epb_count_300m")) or 0,
