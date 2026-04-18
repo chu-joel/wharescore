@@ -1084,8 +1084,13 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
             product_low *= 1 + adj["pct_low"] / 100
             product_high *= 1 + adj["pct_high"] / 100
 
-        band_low = round(raw_median * min(product_low, product_high) * 0.99)
-        band_high = round(raw_median * max(product_low, product_high) * 1.01)
+        # Sigma-derived inner band pad, matching rent_advisor.py:1238-1241.
+        # Thin/volatile SA2s → wider pad; tight → narrower. Missing sigma falls
+        # back to ±1% so pre-sigma snapshots keep working.
+        sigma = baseline.get("sigma")
+        inner_pad = max(0.005, min(0.03, float(sigma) * 0.5)) if sigma else 0.01
+        band_low = round(raw_median * min(product_low, product_high) * (1 - inner_pad))
+        band_high = round(raw_median * max(product_low, product_high) * (1 + inner_pad))
         band_low_outer = round(band_low * 0.97)
         band_high_outer = round(band_high * 1.03)
 
@@ -1110,6 +1115,17 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
             "band_high_outer": band_high_outer,
             "adjustments": all_adjs,
             "area_context": full_area_context,
+            # SA2 log-normal dispersion (log_std_dev_weekly_rent from bonds_detailed).
+            # Surfaces here so the frontend can compute a user-rent percentile live
+            # against the frozen median — can't pre-compute because user's weekly_rent
+            # isn't known at snapshot time.
+            "sigma": baseline.get("sigma"),
+            # Market quartiles mirror the on-screen advisor's shape so the hosted
+            # component can show IQR context consistently with the live endpoint.
+            "market_quartiles": {
+                "lower": round(baseline["lower_quartile"]) if baseline.get("lower_quartile") else None,
+                "upper": round(baseline["upper_quartile"]) if baseline.get("upper_quartile") else None,
+            },
         }
 
     return baselines

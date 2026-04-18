@@ -40,6 +40,11 @@ REVALUATION_DATES = {
     "Tasman District": "2024-09-01",
     "Buller District": "2024-09-01",
     "Dunedin City": "2022-08-01",
+    # Extended 2026-04-18 based on council public notices + live ArcGIS probes.
+    # These are TA-wide revaluation effective dates; used only as fallback when
+    # council_valuations.valuation_date is NULL (loader unwired for that council).
+    "Hamilton City": "2024-09-01",  # Sept 2024 reval, rates from Jul 2025
+    "Kapiti Coast District": "2023-08-01",  # Confirmed by KCDC ArcGIS sample
 }
 
 
