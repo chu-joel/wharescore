@@ -35,7 +35,7 @@
 | `hazards.*, planning.*, environment.*, coverage.*, property_detection.*` | BuyerDueDiligence | 3. ACTION (buyer hero) — "We've covered X of Y due diligence checks. Here's what you still need" with costs and property-specific notes | No |
 | `market.rent_assessment.median, hazards.earthquake_count, hazards.active_fault_nearest` | KnowYourRights | 3. ACTION (inside renter checklist accordion) — bond max, rent increase rules, modification rights, fibre rights, HH compliance, quiet enjoyment, letting fee ban | No |
 | `hazards.*` (all) | RiskHazardsSection | 5. DEEP DIVE accordion "Is it Safe?" — persona-aware: renters see critical alerts + summary count only; buyers see full detail incl. fault/landslide/climate/solar | No |
-| `hazards.active_fault_nearest` | ActiveFaultDetailCard | 5. DEEP DIVE (buyers only) | No |
+| `hazards.active_fault_nearest` | ActiveFaultDetailCard | 5. DEEP DIVE (buyers only). SQL shape is `{name, type, slip_rate_mm_yr, distance_m}` — the card historically referenced fault.class / fault.fault_type / fault.recurrence_interval which the SQL never provides; those rows have been removed. `type` (a numeric fault classification code) is rendered as "Class N". | No |
 | `hazards.contamination_count` | ContaminatedLandCard | 5. DEEP DIVE | No |
 | `hazards.landslide_nearest, .landslide_count_500m` | LandslideDetailCard | 5. DEEP DIVE (buyers only) | No |
 | `environment.climate_temp_change, .climate_precip_change_pct` | ClimateForecastCard | 5. DEEP DIVE (buyers only) | No |

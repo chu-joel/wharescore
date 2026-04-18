@@ -187,7 +187,9 @@ DEFAULT_RECOMMENDATIONS = [
         "title": "Seismic Activity Awareness",
         "category": "hazards",
         "default_actions": [
-            "This area has moderate seismic activity. For older buildings, check whether seismic strengthening has been done.",
+            "This area has moderate seismic activity ({earthquake_count} M4+ quakes within 30km in the last 10 years).",
+            "{active_fault_line}",
+            "For older buildings, check whether seismic strengthening has been done. Buildings designed before NZS 4203:1976 may not meet modern earthquake standards — ask the vendor for the original consent file.",
             "Ask the vendor if any earthquake-related repairs or insurance claims have been made.",
             "Ensure your home and contents insurance includes EQC natural disaster cover (it's automatic with dwelling policies from participating insurers).",
         ],
@@ -354,6 +356,7 @@ DEFAULT_RECOMMENDATIONS = [
         "category": "environment",
         "default_actions": [
             "Measured road noise at this location is {noise_db} dB — equivalent to a busy restaurant or constant traffic. The WHO recommends below 55 dB for residential wellbeing.",
+            "{noise_stack_line}",
             "Visit the property during morning (7-9am) and evening (4-6pm) peak traffic to experience the noise firsthand.",
             "Check window glazing — double glazing reduces noise by 25-35 dB; single glazing only ~20 dB. Retrofitting double glazing costs $500-$1,200 per window.",
             "Check bedroom orientation — bedrooms facing away from the road will be significantly quieter.",
@@ -447,9 +450,9 @@ DEFAULT_RECOMMENDATIONS = [
         "title": "Crime Awareness & Security",
         "category": "liveability",
         "default_actions": [
-            "This area is in the {crime_percentile}th percentile for recorded crime victimisations. This means more crime is reported here than in {crime_percentile}% of comparable areas.",
-            "Check NZ Police crime maps at police.govt.nz/statistics for the specific types of crime in this area — property crime (burglary, theft) is more common than violent crime in most NZ suburbs.",
-            "Property crime is most relevant for insurance costs; violent crime for personal safety. Distinguish between the two when assessing.",
+            "This area is in the {crime_percentile}th percentile for recorded crime victimisations.",
+            "{crime_vics_line}",
+            "Property crime (burglary, theft) drives insurance costs; violent crime drives personal safety. The percentile alone doesn't tell you which is dominant — check the breakdown before assuming.",
             "Ensure the property has adequate security: deadbolts on exterior doors, sensor lights, visible street frontage, and secure garaging if available.",
             "Ask neighbours about their experience — they'll give you a more nuanced picture than statistics alone.",
             "If buying to rent: higher crime areas may have higher tenant turnover and more maintenance costs from break-ins.",
@@ -538,9 +541,9 @@ DEFAULT_RECOMMENDATIONS = [
         "category": "liveability",
         "default_actions": [
             "The nearest GP clinic is {gp_distance_m}m away. For regular medical appointments, you may need a vehicle.",
-            "Check if the nearest GP practice is accepting new enrolments — some Wellington practices have closed books, and you may need to go further.",
+            "{pharmacy_line}",
+            "Check if the nearest GP practice is accepting new enrolments — many NZ practices have closed books, and you may need to enrol further away.",
             "Register with a GP as soon as you move in — don't wait until you need urgent care.",
-            "Check if there is a pharmacy nearby for prescription collection.",
         ],
     },
     # ── MARKET ────────────────────────────────────────────────────────────────
@@ -550,7 +553,8 @@ DEFAULT_RECOMMENDATIONS = [
         "title": "Low Rental Yield",
         "category": "market",
         "default_actions": [
-            "Indicative gross yield is {yield_pct}% — below the 3-4% typical for Wellington. This means rental income will not cover mortgage costs at current interest rates (~6-7%).",
+            "Indicative gross yield is {yield_pct}% — below the 3-4% typical for NZ metros. This means rental income will not cover mortgage costs at current interest rates (~6-7%).",
+            "{hpi_sales_line}",
             "If purchasing as an investment: your return relies heavily on capital gains. Consider whether you expect house prices to rise in this area over your investment horizon.",
             "Compare with alternative investments — term deposits currently offer 4-5% with zero risk.",
             "For owner-occupiers: yield is less relevant, but it indicates the property may be expensive relative to the local rental market.",
@@ -695,7 +699,7 @@ DEFAULT_RECOMMENDATIONS = [
         "category": "planning",
         "default_actions": [
             "This building has a footprint of {building_footprint_sqm}m\u00b2. Larger buildings have proportionally higher maintenance costs.",
-            "Budget 1-2% of the capital value annually for maintenance. For a $1M+ property, that's $10,000-$20,000/year.",
+            "{maintenance_line}",
             "Roof replacement, exterior painting, and re-piling are the biggest cost items — check the condition of each in your builder's report.",
         ],
     },

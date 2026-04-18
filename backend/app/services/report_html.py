@@ -1796,8 +1796,151 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     else:
         wildfire_trend_line = ""
 
+    # 3.1 — Active fault detail line for earthquake_moderate rec. Names the
+    # fault and gives slip rate so users see WHICH fault and HOW active.
+    _af = hazards.get("active_fault_nearest")
+    if isinstance(_af, dict) and _af.get("name") and _af.get("distance_m") is not None:
+        try:
+            _af_dist = float(_af["distance_m"])
+        except (TypeError, ValueError):
+            _af_dist = None
+        _af_slip = _af.get("slip_rate_mm_yr")
+        _af_dist_str = (
+            f"{int(_af_dist)}m" if _af_dist is not None and _af_dist < 1000
+            else f"{(_af_dist / 1000):.1f}km" if _af_dist is not None else "nearby"
+        )
+        _af_slip_str = f", slip rate {_af_slip} mm/yr" if _af_slip is not None else ""
+        active_fault_line = (
+            f"Nearest active fault: {_af['name']}, {_af_dist_str} away{_af_slip_str}. "
+            f"Modern code-compliant design mitigates fault-driven shaking — "
+            f"verify the original consent file and any seismic assessments on record."
+        )
+    else:
+        active_fault_line = ""
+
+    # 3.3 — Crime context line. Reader-friendly comparison instead of a percentile.
+    _crime_vics = live.get("crime_victimisations")
+    _crime_med = live.get("crime_city_median_vics") or live.get("crime_city_median")
+    try:
+        _crime_vics_f = float(_crime_vics) if _crime_vics is not None else None
+        _crime_med_f = float(_crime_med) if _crime_med is not None else None
+    except (TypeError, ValueError):
+        _crime_vics_f = _crime_med_f = None
+    if _crime_vics_f is not None and _crime_med_f and _crime_med_f > 0:
+        _crime_ratio = _crime_vics_f / _crime_med_f
+        crime_vics_line = (
+            f"{int(_crime_vics_f)} recorded victimisations in this area unit vs the city median of "
+            f"{int(_crime_med_f)} — that's {_crime_ratio:.1f}× the city norm. NZ Police crime maps "
+            f"at police.govt.nz/statistics break this into property vs violent crime."
+        )
+    else:
+        crime_vics_line = ""
+
+    # 3.7 — HPI sales volume + 5yr CAGR context for yield_low rec. Yield alone
+    # under-prices the capital-gain assumption; pair it with growth + sales to
+    # show the real return picture.
+    _hpi_latest = (market.get("hpi_latest") or {}) if isinstance(market.get("hpi_latest"), dict) else {}
+    _hpi_sales = _hpi_latest.get("sales")
+    _trends_list = market.get("trends") or []
+    _all_trend = next(
+        (t for t in _trends_list if isinstance(t, dict) and t.get("dwelling_type") == "ALL" and t.get("beds") == "ALL"),
+        None,
+    )
+    _cagr_5 = _all_trend.get("cagr_5yr") if _all_trend else None
+    if _cagr_5 is not None:
+        _sales_str = f" (national sales volume last quarter: {int(_hpi_sales):,})" if _hpi_sales else ""
+        hpi_sales_line = (
+            f"5-year rental growth in this area averaged {_cagr_5:.1f}%/yr{_sales_str}. "
+            f"Yield alone doesn't price the capital-gain assumption — if growth reverts to long-run NZ "
+            f"3-4% real, this deal needs leverage or rent growth to make sense."
+        )
+    else:
+        hpi_sales_line = ""
+
+    # 3.9 — Pharmacy line for gp_far rec. Combining GP + pharmacy distance is
+    # the more useful signal than GP alone.
+    _ph = live.get("nearest_pharmacy")
+    _ph_dist_m = None
+    if isinstance(_ph, dict):
+        try:
+            _ph_dist_m = float(_ph.get("distance_m")) if _ph.get("distance_m") is not None else None
+        except (TypeError, ValueError):
+            pass
+    if _ph_dist_m is not None:
+        if _ph_dist_m >= 2000:
+            pharmacy_line = (
+                f"Pharmacy is also {int(_ph_dist_m)}m away — with neither GP nor pharmacy in walking range, "
+                f"a car or pharmacy delivery service is essential for daily medication users."
+            )
+        elif _ph_dist_m <= 500:
+            pharmacy_line = (
+                f"Pharmacy is closer ({int(_ph_dist_m)}m) — useful for repeats even when the GP visit means a drive."
+            )
+        else:
+            pharmacy_line = ""
+    else:
+        pharmacy_line = ""
+
+    # 3.10 — Noise stack: aircraft + rail vibration context for noise_high rec.
+    # Three noise datasets exist; the existing rec only speaks about road.
+    _aircraft_dba = hazards.get("aircraft_noise_dba")
+    _aircraft_name = hazards.get("aircraft_noise_name")
+    _rail_vib = env.get("in_rail_vibration_area")
+    _noise_extras = []
+    try:
+        _aircraft_dba_f = float(_aircraft_dba) if _aircraft_dba is not None else None
+    except (TypeError, ValueError):
+        _aircraft_dba_f = None
+    if _aircraft_dba_f is not None and _aircraft_dba_f >= 55:
+        _noise_extras.append(
+            f"aircraft noise overlay ({_aircraft_name or 'mapped'}, {int(_aircraft_dba_f)} dBA)"
+        )
+    if _rail_vib:
+        _noise_extras.append("rail vibration advisory area")
+    if _noise_extras:
+        noise_stack_line = (
+            f"This site also sits within {' and '.join(_noise_extras)}. Cumulative exposure can exceed "
+            f"WHO sleep-disturbance thresholds on most nights — double glazing alone may not be enough; "
+            f"factor in mechanical ventilation so windows can stay closed without overheating."
+        )
+    else:
+        noise_stack_line = ""
+
+    # 3.11 — Maintenance line for large_footprint rec. Use improvements_value
+    # (the bit that depreciates) instead of full CV when available — gives a
+    # more honest annual maintenance budget. Fall back to a CV-based estimate
+    # when improvements_value is null (only ~33% of council valuations carry it).
+    _imp_value = _float(prop.get("improvements_value"))
+    if _imp_value and _imp_value > 0:
+        _maint_low = int(_imp_value * 0.01)
+        _maint_high = int(_imp_value * 0.02)
+        maintenance_line = (
+            f"Building improvements are valued at ${int(_imp_value):,} — at 1-2% maintenance per year "
+            f"that's ${_maint_low:,}-${_maint_high:,}. Land doesn't depreciate; the improvements value "
+            f"is what actually wears out."
+        )
+    elif cv and cv > 0:
+        # Estimate building portion at ~50% of CV — typical for NZ residential where
+        # land often makes up a large share of value. Conservative range.
+        _est_imp = cv * 0.5
+        _maint_low = int(_est_imp * 0.01)
+        _maint_high = int(_est_imp * 0.02)
+        maintenance_line = (
+            f"Building improvements aren't separately valued for this property, but estimating ~50% of "
+            f"the ${int(cv):,} CV as building gives a 1-2% maintenance budget of "
+            f"${_maint_low:,}-${_maint_high:,}/year."
+        )
+    else:
+        maintenance_line = ""
+
     ctx = _SafeFormatDict({
         "earthquake_count": eq_count or 0,
+        "active_fault_line": active_fault_line,
+        "crime_vics_line": crime_vics_line,
+        "hpi_sales_line": hpi_sales_line,
+        "pharmacy_line": pharmacy_line,
+        "noise_stack_line": noise_stack_line,
+        "maintenance_line": maintenance_line,
         "wildfire_days": int(wf_days) if wf_days else 0,
         "wildfire_trend_line": wildfire_trend_line,
         "epb_count_300m": _int(hazards.get("epb_count_300m")) or 0,
@@ -3677,7 +3820,15 @@ def _build_rag_grid(
 # =============================================================================
 
 def _build_active_fault_section(hazards: dict) -> dict | None:
-    """Build active fault display data from hazard dict."""
+    """Build active fault display data from hazard dict.
+
+    SQL shape (from migration 0022/0051): active_fault_nearest is a dict with
+    keys {name, type, slip_rate_mm_yr, distance_m}. fault_avoidance_zone is a
+    bare string (zone_type) when present, NOT a dict — the SQL only joins to
+    fault_avoidance_zones.zone_type. Earlier code in this function read the
+    wrong keys (fault_name, fault_class, recurrence_interval) and treated
+    fault_avoidance_zone as a dict, so the entire box rendered empty in PDF.
+    """
     fault_nearest = hazards.get("active_fault_nearest")
     faz = hazards.get("fault_avoidance_zone")
 
@@ -3686,19 +3837,20 @@ def _build_active_fault_section(hazards: dict) -> dict | None:
 
     result: dict[str, Any] = {}
 
-    if isinstance(fault_nearest, dict) and fault_nearest.get("fault_name"):
-        result["fault_name"] = fault_nearest.get("fault_name", "Unknown Fault")
-        result["fault_class"] = fault_nearest.get("fault_class", "")
+    if isinstance(fault_nearest, dict) and fault_nearest.get("name"):
+        result["fault_name"] = fault_nearest.get("name") or "Unknown Fault"
+        # `type` from SQL is a fault classification code (e.g. "1"), not free text.
+        # Surface it under the existing template key fault_class so the PDF row stays useful.
+        result["fault_class"] = fault_nearest.get("type") or ""
         result["distance_m"] = fault_nearest.get("distance_m")
         result["slip_rate"] = fault_nearest.get("slip_rate_mm_yr")
-        result["recurrence"] = fault_nearest.get("recurrence_interval")
+        # SQL doesn't provide recurrence interval — leave None and the template skips the row.
+        result["recurrence"] = None
 
-    if isinstance(faz, dict) and faz.get("fault_name"):
+    if isinstance(faz, str) and faz.strip():
         result["in_avoidance_zone"] = True
-        result["faz_fault_name"] = faz.get("fault_name", "")
-        result["faz_zone_type"] = faz.get("zone_type", "")
-        result["faz_fault_class"] = faz.get("fault_class", "")
-        result["faz_setback_m"] = faz.get("setback_m")
+        result["faz_fault_name"] = result.get("fault_name", "")
+        result["faz_zone_type"] = faz
     else:
         result["in_avoidance_zone"] = False
 

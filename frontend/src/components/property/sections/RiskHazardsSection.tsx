@@ -139,7 +139,10 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
   );
 }
 
-/** Active Fault nearest — shows name, class, slip rate, recurrence */
+/** Active Fault nearest — shows what SQL actually delivers: name, distance, type, slip rate.
+ * Earlier version had rows for fault.class / fault.fault_type / fault.recurrence_interval which
+ * the SQL never provides — they always rendered as empty rows. Removed to keep the card clean.
+ */
 function ActiveFaultDetailCard({ fault }: {
   fault: NonNullable<HazardData['active_fault_nearest']>;
 }) {
@@ -164,28 +167,16 @@ function ActiveFaultDetailCard({ fault }: {
               : `${(fault.distance_m / 1000).toFixed(1)}km`}
           </span>
         </div>
-        {fault.class && (
+        {fault.type && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Fault class</span>
-            <span className="font-medium">{fault.class}</span>
-          </div>
-        )}
-        {fault.fault_type && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Type</span>
-            <span className="font-medium">{fault.fault_type}</span>
+            <span className="font-medium">Class {fault.type}</span>
           </div>
         )}
         {fault.slip_rate_mm_yr != null && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Slip rate</span>
             <span className="font-semibold tabular-nums">{fault.slip_rate_mm_yr} mm/yr</span>
-          </div>
-        )}
-        {fault.recurrence_interval && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Recurrence</span>
-            <span className="font-medium text-right max-w-[60%]">{fault.recurrence_interval}</span>
           </div>
         )}
       </div>
