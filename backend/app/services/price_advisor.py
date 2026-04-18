@@ -425,6 +425,74 @@ async def compute_price_advice(
                         "category": "property",
                     })
 
+    # Age / renovation proxy: improvements share of CV vs SA2 p25/p75.
+    # Recent builds and renovated homes carry higher imp/CV than old or
+    # unrenovated stock in the same SA2. Skipped when CV is stale (>36 months)
+    # because the SA2 distribution then spans multiple reval cycles and the
+    # comparison is no longer apples-to-apples. Skipped for units (land_value=0
+    # makes the ratio degenerate at 1.0).
+    if (
+        not is_multi_unit
+        and capital_value and capital_value > 0
+        and improvements_value and improvements_value > 0
+        and land_value and land_value > 0
+        and (cv_age_months is None or cv_age_months <= 36)
+    ):
+        imp_ratio = improvements_value / capital_value
+        cur = await conn.execute(
+            """
+            SELECT
+                percentile_cont(0.25) WITHIN GROUP (
+                    ORDER BY (cv.capital_value - cv.land_value)::float / cv.capital_value
+                ) AS p25,
+                percentile_cont(0.75) WITHIN GROUP (
+                    ORDER BY (cv.capital_value - cv.land_value)::float / cv.capital_value
+                ) AS p75,
+                COUNT(*)::int AS n
+            FROM council_valuations cv, sa2_boundaries sa2
+            WHERE ST_Contains(sa2.geom, cv.geom)
+              AND sa2.sa2_code = %s
+              AND cv.capital_value > cv.land_value
+              AND cv.land_value > 0
+            """,
+            [sa2["sa2_code"]],
+        )
+        sa2_imp_row = cur.fetchone()
+        if (
+            sa2_imp_row
+            and sa2_imp_row.get("n")
+            and sa2_imp_row["n"] >= 20
+            and sa2_imp_row.get("p25") is not None
+            and sa2_imp_row.get("p75") is not None
+        ):
+            p25 = float(sa2_imp_row["p25"])
+            p75 = float(sa2_imp_row["p75"])
+            if p75 > p25:
+                if imp_ratio > p75:
+                    factors_analysed += 1
+                    adjustments.append({
+                        "factor": "age_proxy",
+                        "label": "Likely recent build or renovation",
+                        "pct_low": 2.0,
+                        "pct_high": 6.0,
+                        "dollar_low": round(estimated_value * 0.02),
+                        "dollar_high": round(estimated_value * 0.06),
+                        "reason": f"Improvements {imp_ratio*100:.0f}% of CV (area p75 {p75*100:.0f}%)",
+                        "category": "property",
+                    })
+                elif imp_ratio < p25:
+                    factors_analysed += 1
+                    adjustments.append({
+                        "factor": "age_proxy",
+                        "label": "Older or unrenovated stock",
+                        "pct_low": -8.0,
+                        "pct_high": -3.0,
+                        "dollar_low": round(estimated_value * -0.08),
+                        "dollar_high": round(estimated_value * -0.03),
+                        "reason": f"Improvements {imp_ratio*100:.0f}% of CV (area p25 {p25*100:.0f}%)",
+                        "category": "property",
+                    })
+
     # Finish tier
     if finish_tier and finish_tier in FINISH_TIERS:
         factors_analysed += 1
