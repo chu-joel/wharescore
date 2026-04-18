@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 from collections import defaultdict
+from datetime import date, datetime, timezone
 from typing import Callable
 
 import psycopg
@@ -2922,6 +2923,25 @@ def _load_regional_gtfs(
     return stop_count + tt_count
 
 
+def _parse_arcgis_date(raw) -> date | None:
+    """ArcGIS esriFieldTypeDate values come as epoch-millis ints.
+    Returns a date (not datetime) since council_valuations.valuation_date is DATE.
+    Guards against epoch-0 sentinels and malformed values.
+    """
+    if raw is None:
+        return None
+    try:
+        ms = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if ms <= 0:
+        return None
+    try:
+        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).date()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 def _load_rates(
     conn: psycopg.Connection, log: Callable,
     url: str, council: str,
@@ -2930,6 +2950,7 @@ def _load_rates(
     geom_type: str = "polygon", srid: int = 2193,
     extra_where: str | None = None,
     page_size: int = 2000,
+    date_field: str | None = None,
 ) -> int:
     """Load council valuations into council_valuations table."""
     # Add council column if not exists + fix geometry to accept any type
@@ -2959,6 +2980,7 @@ def _load_rates(
         lv = a.get(lv_field)
         iv = a.get(iv_field) if iv_field else None
         addr = _clean(a.get(addr_field)) if addr_field else None
+        val_date = _parse_arcgis_date(a.get(date_field)) if date_field else None
 
         if geom_type == "point":
             x, y = geom.get("x"), geom.get("y")
@@ -2977,9 +2999,9 @@ def _load_rates(
 
         try:
             cur.execute(
-                f"INSERT INTO council_valuations (council, capital_value, land_value, improvements_value, address, geom) "
-                f"VALUES (%s, %s, %s, %s, %s, {geom_sql})",
-                (council, cv, lv, iv, addr, *geom_params),
+                f"INSERT INTO council_valuations (council, capital_value, land_value, improvements_value, address, valuation_date, geom) "
+                f"VALUES (%s, %s, %s, %s, %s, %s, {geom_sql})",
+                (council, cv, lv, iv, addr, val_date, *geom_params),
             )
             count += 1
         except Exception:
@@ -5373,7 +5395,8 @@ DATA_SOURCES: list[DataSource] = [
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,
             "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AGOL_RateAccountInfo1_gdb/FeatureServer/0",
-            "auckland", "CV", "LV", None, "FORMATTEDADDRESS", srid=3857)),
+            "auckland", "CV", "LV", None, "FORMATTEDADDRESS", srid=3857,
+            date_field="LATESTVALUATIONDATE")),
     DataSource("chch_rates", "Christchurch Rates/Valuations (186K)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,

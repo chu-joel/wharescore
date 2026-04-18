@@ -12,7 +12,7 @@ Reviewer: agent. Do-not-implement; this doc is the plan.
 
 | Signal | File:line | Strength (1-5) | Known issue |
 |---|---|---|---|
-| CV from `council_valuations` | `price_advisor.py:181-192` | 4 | `valuation_date` column not populated by loader (`data_loader.py:2980` INSERT omits it), so most councils fall back to `REVALUATION_DATES` dict which has only 7 entries |
+| CV from `council_valuations` | `price_advisor.py:181-192` | 4 | Loader now accepts `date_field` and populates `valuation_date` (auckland live; 24 others still fall through to `REVALUATION_DATES`). See P0 #1 for rollout status. |
 | CV fallback to `wcc_rates_cache` | `price_advisor.py:202-208` via `rent_advisor._get_unit_cv_from_rates` | 3 | Only WCC — Auckland units with inaccurate spatial-match CVs never consult `auckland_rates_cache` |
 | HPI adjustment (national) | `price_advisor.py:245-263` | 3 | National-only (`rbnz_housing`); Queenstown/rural diverge from national HPI considerably |
 | Yield inversion | `price_advisor.py:266-271` | 3 | `YIELD_TABLE` has 6 cities + DEFAULT; no SA2/TA specificity; could derive empirically from bond×CV data we already have |
@@ -65,7 +65,7 @@ Reviewer: agent. Do-not-implement; this doc is the plan.
 
 | # | Signal | Data source (table/field) | Exists today? | Formula sketch | Expected accuracy gain | Effort (S/M/L) | Priority |
 |---|---|---|---|---|---|---|---|
-| 1 | CV valuation_date populated | `council_valuations.valuation_date` | Column exists, loader doesn't insert (`data_loader.py:2980`) | Per-council ArcGIS attribute mapping table; UPDATE populate from source API | High — unlocks real `cv_uncertainty`, real HPI weighting, real confidence stars for 25 councils | S per council × 25, M total | P0 |
+| 1 | CV valuation_date populated | `council_valuations.valuation_date` | **SCAFFOLDED + AUCKLAND LIVE** `data_loader.py:_load_rates(..., date_field=...)` | `_load_rates` now takes an optional `date_field` param and calls `_parse_arcgis_date` (epoch-millis → `date`) before INSERT. Auckland wired via `LATESTVALUATIONDATE` (verified against the live ArcGIS schema for `AGOL_RateAccountInfo1_gdb/FeatureServer/0`). Remaining 24 councils still fall through to `REVALUATION_DATES` — each needs its ArcGIS schema probed once to identify the right date field. | High — unlocks real `cv_uncertainty`, real HPI weighting, real confidence stars for 25 councils | S per council × 25, M total | P0 — pattern done; Auckland live; 24-council rollout is mechanical follow-up |
 | 2 | `cv_uncertainty` in rent advisor | `price_advisor:cv_uncertainty(cv_age_months)` | **IMPLEMENTED** `rent_advisor.py:1328-1345` | Stars wired: `cv_age_months` now computed (with `REVALUATION_DATES` fallback) and passed into `market_confidence_stars`. Band-centre dampening via `cv_uncertainty()` is now moot — the quality-per-room adjustment it would have dampened was deleted as structurally broken. | Med — mostly better confidence score, not shift in band centre | S | P0 — done |
 | 3 | Sigma (`log_std_dev_weekly_rent`) → band width & verdict | `bonds_detailed.log_std_dev_weekly_rent` | **IMPLEMENTED** `rent_advisor.py:1238-1241, 1360-1375` | Inner band now uses `max(0.005, min(0.03, sigma × 0.5))`; falls back to 1% when sigma missing. `estimate_percentile` exposed as `percentile` in return dict. | Med — better-calibrated bands in thin and volatile SA2s | S | P0 — done |
 | 4 | `improvements_value / capital_value` ratio as age/renovation proxy | `council_valuations.improvements_value`, `capital_value` | **IMPLEMENTED** `price_advisor.py:428-494` | `imp_ratio = imp / cv`; SA2 p25/p75 of same ratio via inline subquery (houses only — land_value > 0; units skipped because their ratio is degenerate). Prop ratio > SA2 p75 → `age_proxy: recent build/reno` +2% to +6%; < SA2 p25 → `age_proxy: older/unrenovated` -8% to -3%. Skipped entirely when `cv_age_months > 36`. Requires SA2 sample `n >= 20`. Not mirrored into `rent_advisor` — depends on QW1 (`cv_age_months` plumbing into rent advisor, P0 #2). | High — directly addresses user hypothesis 1; age is the missing #1 price driver | S-M (add SA2 subquery; optionally add col to `mv_sa2_valuations`) | P0 — done |
@@ -166,7 +166,7 @@ if capital_value and improvements_value and capital_value > 0:
 
 ## Notes / known data gaps
 
-- `council_valuations` loader (`data_loader.py:2925-2993`) does **not** store `valuation_date`, `land_area`, `floor_area`, `year_built`, or dwelling-type classification. These fields exist in most councils' ArcGIS feeds but are not mapped in `_load_rates`.
+- `council_valuations` loader (`data_loader.py:_load_rates`) now accepts an optional `date_field` and populates `valuation_date` when passed (Auckland wired via `LATESTVALUATIONDATE`). Still does **not** store `land_area`, `floor_area`, `year_built`, or dwelling-type classification — these fields exist in most councils' ArcGIS feeds but remain unmapped.
 - No sales data (`reinz_sales`, `property_sales` — all **MISSING**). Biggest single gap for price accuracy and backtest.
 - `healthy_homes_compliance`, `building_consents`, `year_built` — all **MISSING** tables.
 - `schools.eqi_index` and `school_zones` exist but are under-used (count-only in advisors).

@@ -66,6 +66,29 @@ DataSource("councilname_flood", "Council Name Flood Hazard",
 
 ---
 
+## Recipe: Populate valuation_date for an existing `_load_rates` council
+
+**When:** A council's rates loader currently inserts NULL into `council_valuations.valuation_date` and you want real CV-age data for confidence stars + HPI weighting. Auckland is already done (`LATESTVALUATIONDATE`) and is the reference implementation.
+
+1. Probe the council's ArcGIS layer schema (replace URL with the one already in the DataSource entry):
+   ```
+   curl -s '{layer_url}?f=json' | jq '.fields[] | select(.type=="esriFieldTypeDate") | {name, type}'
+   ```
+2. Pick the most-recent-valuation field. Common names: `LATESTVALUATIONDATE`, `VALUATIONDATE`, `REVAL_DATE`, `LAST_VALUED`, `EFFECTIVE_DATE`. If multiple exist, prefer the one with the newest values (spot-check 2-3 rows via `/query?where=1=1&outFields=*&returnGeometry=false&resultRecordCount=3&f=json`).
+3. Sanity-check the sample values: they should be epoch-millis and cluster near the council's known revaluation cycle (check `REVALUATION_DATES` dict in `backend/app/services/market.py`). If not, you've picked the wrong field.
+4. Update the DataSource in `backend/app/services/data_loader.py` (~line 5371+) by adding `date_field="FIELDNAME"` to the `_load_rates(...)` call.
+5. Redeploy loader. Spot-check with a single-row SELECT after reload:
+   ```sql
+   SELECT valuation_date, COUNT(*) FROM council_valuations WHERE council = 'xxx'
+   GROUP BY valuation_date ORDER BY COUNT(*) DESC LIMIT 5;
+   ```
+   The mode should match the council's revaluation cycle within a few months.
+6. **No docs change needed** unless a new CV-age-dependent signal is added.
+
+**Gotchas:** ArcGIS date fields can be NULL or 0 (returned as epoch-0 = 1970-01-01). `_parse_arcgis_date` guards against `ms <= 0`. A council whose loader returns 100% NULL dates means the field doesn't exist for most rows — try a different field, or leave unwired and fall back to `REVALUATION_DATES`.
+
+---
+
 ## Recipe: Add transit (GTFS) for a new city
 
 **When:** A city has a public GTFS feed and you want travel time data.
