@@ -49,7 +49,7 @@ export const fx_free_renter: BadgeResponse = {
       detail: "Similar units nearby are $595/wk on average.",
     },
     {
-      severity: "info",
+      severity: "warning",
       title: "Built before 1978 — likely to fail Healthy Homes insulation checks",
       detail: "Ask the landlord for an HH compliance statement before signing.",
     },
@@ -70,7 +70,7 @@ export const fx_free_buyer: BadgeResponse = {
     },
     {
       severity: "warning",
-      title: "Steep slope (>15°) across 40% of the section — more than 80% of Auckland properties",
+      title: "Steep section across most of the property — steeper than 80% of Auckland sections",
       detail: "Retaining-wall maintenance and foundation complexity are likely.",
     },
   ],
@@ -97,11 +97,6 @@ export const fx_pro_renter: BadgeResponse = {
       severity: "info",
       title: "Noise-affected: within 50m of a bus route — 40% higher noise than suburb average",
       detail: "Metlink route 18 runs weekdays 5am–11pm.",
-    },
-    {
-      severity: "info",
-      title: "6 schools within 1km (top-10% of Auckland suburbs for school access)",
-      detail: "Not relevant if no school-age dependants.",
     },
     {
       severity: "positive",
@@ -139,7 +134,7 @@ export const fx_pro_buyer: BadgeResponse = {
     },
     {
       severity: "warning",
-      title: "Steep slope across 40% of section — more than 80% of Auckland properties",
+      title: "Steep section — steeper than 80% of Auckland sections",
       detail: "Higher maintenance cost; review retaining-wall consents.",
     },
     {

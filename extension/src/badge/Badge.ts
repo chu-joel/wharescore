@@ -30,6 +30,10 @@ export class Badge {
   private handlers: BadgeHandlers;
   private dragOffset: { x: number; y: number } = { x: 0, y: 0 };
   private dragState = { active: false, startX: 0, startY: 0, origX: 0, origY: 0 };
+  // Pro-tier progressive disclosure state. Both default to collapsed so the
+  // first paint stays inside the brief's 320×180 budget; user clicks reveal.
+  private _findingsExpanded = false;
+  private _marketExpanded = false;
 
   constructor(handlers: BadgeHandlers) {
     this.handlers = handlers;
@@ -128,8 +132,57 @@ export class Badge {
       return;
     }
 
-    const findingsHtml = renderFindingList(data.findings ?? [], tier);
     const canSave = caps.save;
+    const persona = data.persona ?? null;
+    const findings = data.findings ?? [];
+
+    // Pro: progressive disclosure — top 2 findings up front + chevron toggle for
+    // findings 3+, plus a single collapsible "Market & area" block for the data
+    // grid (price/rent/walk/schools). Anon/Free render as before.
+    let bodyHtml = "";
+    if (tier === "pro") {
+      const visibleFindings = this._findingsExpanded ? findings : findings.slice(0, 2);
+      const hiddenCount = Math.max(0, findings.length - 2);
+      const findingsToggle = hiddenCount > 0 ? `
+        <button class="ws-toggle ws-findings-toggle"
+          aria-expanded="${this._findingsExpanded}"
+          aria-controls="ws-findings-list">
+          ${this._findingsExpanded ? `Hide ${hiddenCount} finding${hiddenCount === 1 ? "" : "s"} ▴` : `Show ${hiddenCount} more finding${hiddenCount === 1 ? "" : "s"} ▾`}
+        </button>` : "";
+
+      const marketParts = [
+        renderPriceSection(data.price_band, data.price_estimate),
+        renderRentSection(data.rent_estimate, persona),
+        renderWalkSection(data.walk_score),
+        renderSchoolsSection(data.schools),
+      ].filter((s) => s !== "");
+      const marketInner = marketParts.join("");
+      const marketBlock = marketInner ? `
+        <button class="ws-toggle ws-market-toggle"
+          aria-expanded="${this._marketExpanded}"
+          aria-controls="ws-market-block">
+          Market & area ${this._marketExpanded ? "▴" : "▾"}
+        </button>
+        <div class="ws-market" id="ws-market-block" aria-hidden="${!this._marketExpanded}" ${this._marketExpanded ? "" : "hidden"}>
+          ${marketInner}
+        </div>` : "";
+
+      bodyHtml = `
+        <ul class="ws-findings" id="ws-findings-list">${renderFindingList(visibleFindings, tier)}</ul>
+        ${findingsToggle}
+        ${marketBlock}
+      `;
+    } else {
+      const findingsHtml = renderFindingList(findings, tier);
+      bodyHtml = `
+        <ul class="ws-findings">${findingsHtml}</ul>
+        ${renderPriceSection(data.price_band, data.price_estimate)}
+        ${renderRentSection(data.rent_estimate, persona)}
+        ${renderWalkSection(data.walk_score)}
+        ${renderSchoolsSection(data.schools)}
+        ${renderUpgradeHint(tier)}
+      `;
+    }
 
     this.card.innerHTML = `
       <div class="ws-header">
@@ -141,12 +194,7 @@ export class Badge {
         <div class="ws-band">${escape(data.score_band || "")}</div>
       </div>
       <div class="ws-address" title="${escape(data.full_address || "")}">${escape(data.full_address || "")}</div>
-      <ul class="ws-findings">${findingsHtml}</ul>
-      ${renderPriceSection(data.price_band, data.price_estimate)}
-      ${renderRentSection(data.rent_estimate)}
-      ${renderWalkSection(data.walk_score)}
-      ${renderSchoolsSection(data.schools)}
-      ${renderUpgradeHint(tier)}
+      ${bodyHtml}
       <div class="ws-footer">
         <button class="ws-btn ws-save" ${canSave ? "" : "disabled"} title="${canSave ? "" : saveTooltip(tier)}">Save</button>
         <a class="ws-open" href="${reportUrl}" target="_blank" rel="noopener noreferrer">View full report →</a>
@@ -174,6 +222,16 @@ export class Badge {
   }
 
   private wireActionButtons(data: BadgeResponse) {
+    // Pro toggles. Vanilla DOM — flip state, re-render. Cheap because the card
+    // is small and the toggles are user-driven (not animation-frame hot paths).
+    this.root.querySelector(".ws-findings-toggle")?.addEventListener("click", () => {
+      this._findingsExpanded = !this._findingsExpanded;
+      this.renderData(data);
+    });
+    this.root.querySelector(".ws-market-toggle")?.addEventListener("click", () => {
+      this._marketExpanded = !this._marketExpanded;
+      this.renderData(data);
+    });
     this.root.querySelector(".ws-save")?.addEventListener("click", async () => {
       if (data.address_id == null || !data.full_address) return;
       const btn = this.root.querySelector<HTMLButtonElement>(".ws-save");
@@ -283,9 +341,16 @@ function renderPriceSection(
   return "";
 }
 
-function renderRentSection(est: RentEstimate | null | undefined): string {
+function renderRentSection(
+  est: RentEstimate | null | undefined,
+  persona: string | null | undefined,
+): string {
   if (!est || est.median == null) return "";
-  const yld = est.yield_percent != null ? ` · ${est.yield_percent}% yield` : "";
+  // Yield is a buyer/investor signal — renters don't care about it. Hide for
+  // the renter persona; show for buyer (and unknown persona, which defaults
+  // to the fuller view).
+  const showYield = persona !== "renter" && est.yield_percent != null;
+  const yld = showYield ? ` · ${est.yield_percent}% gross yield` : "";
   return `<div class="ws-state">Rent est. $${est.median}/wk${yld}</div>`;
 }
 

@@ -263,6 +263,28 @@ def _calc_yield(median_weekly_rent: Any, capital_value: Any) -> float | None:
     return round((rent * 52.0) / cv * 100.0, 1)
 
 
+_RENTER_DROP_TITLE_MARKERS = ("school",)
+
+
+def _drop_persona_irrelevant(findings: list[dict], persona: str | None) -> list[dict]:
+    """Persona-rank cleanup: renters don't care about school catchments
+    (per brief — school proximity is a buyer signal). Strip any finding whose
+    title leads with school-related copy. Buyer path is untouched."""
+    if persona != "renter":
+        return findings
+    out: list[dict] = []
+    for f in findings:
+        title = (f.get("title") or "").lower().strip()
+        if any(title.startswith(m) for m in _RENTER_DROP_TITLE_MARKERS):
+            continue
+        # Also drop "N schools within ..." style titles that don't lead with
+        # the word but clearly are school findings.
+        if "schools within" in title or "school zone" in title or "in-zone for" in title:
+            continue
+        out.append(f)
+    return out
+
+
 def pick_findings(report: dict, tier: str, persona: str | None) -> list[dict]:
     """Tier → findings selection:
         anon: 2 generic findings, severity-ranked, persona-neutral.
@@ -272,9 +294,11 @@ def pick_findings(report: dict, tier: str, persona: str | None) -> list[dict]:
     if tier == TIER_ANON:
         return select_findings_for_badge(report, persona=None, max_count=ANON_FINDING_COUNT)
     if tier == TIER_FREE:
-        return select_findings_for_badge(report, persona=persona, max_count=FREE_FINDING_COUNT)
+        ranked = select_findings_for_badge(report, persona=persona, max_count=0)
+        return _drop_persona_irrelevant(ranked, persona)[:FREE_FINDING_COUNT]
     # pro
-    return select_findings_for_badge(report, persona=persona, max_count=0) or _all_findings(report)
+    ranked = select_findings_for_badge(report, persona=persona, max_count=0) or _all_findings(report)
+    return _drop_persona_irrelevant(ranked, persona)
 
 
 def _all_findings(report: dict) -> list[dict]:

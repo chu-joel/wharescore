@@ -101,7 +101,29 @@ export const BADGE_CSS = `
 .ws-chip--positive { background: #e3f3ee; color: var(--ws-green); }
 .ws-chip--lock     { background: #f2f2f5; color: var(--ws-muted); }
 
-.ws-footer { display: flex; gap: 8px; align-items: center; }
+.ws-footer {
+  display: flex; gap: 8px; align-items: center;
+  position: sticky; bottom: 0;
+  background: var(--ws-bg);
+  padding-top: 8px; margin-top: 4px;
+  border-top: 1px solid #f0f0f0;
+  z-index: 1;
+}
+.ws-toggle {
+  display: block; width: 100%;
+  font-size: 12px; font-weight: 600;
+  padding: 6px 8px; margin: 0 0 8px;
+  border: 1px solid var(--ws-border); border-radius: 6px;
+  background: #f7f9fa; color: var(--ws-primary);
+  cursor: pointer; text-align: left;
+}
+.ws-toggle:hover { background: #e8f1f0; border-color: var(--ws-primary); }
+.ws-toggle:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
+}
+.ws-market { display: block; }
+.ws-market[hidden] { display: none; }
 .ws-btn {
   font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px;
   border: 1px solid var(--ws-border); background: #fff; color: var(--ws-fg);
