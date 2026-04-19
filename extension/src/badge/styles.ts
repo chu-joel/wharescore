@@ -21,6 +21,8 @@ export const BADGE_CSS = `
   bottom: 16px;
   width: 320px;
   min-height: 180px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: var(--ws-bg);
   color: var(--ws-fg);
   border: 1px solid var(--ws-border);
@@ -105,8 +107,15 @@ export const BADGE_CSS = `
   border: 1px solid var(--ws-border); background: #fff; color: var(--ws-fg);
   cursor: pointer;
 }
-.ws-btn:hover:not(:disabled) { background: #f7f9fa; }
+.ws-btn:hover:not(:disabled) { background: #e8f1f0; border-color: var(--ws-primary); }
 .ws-btn:disabled { color: var(--ws-muted); cursor: not-allowed; }
+.ws-btn:focus-visible,
+.ws-open:focus-visible,
+.ws-dismiss:focus-visible {
+  outline: 2px solid var(--ws-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 .ws-btn--primary {
   background: var(--ws-primary); color: #fff; border-color: var(--ws-primary);
 }
@@ -130,5 +139,11 @@ export const BADGE_CSS = `
   display: inline-block; margin-left: 6px;
   background: #f2f2f5; color: var(--ws-muted);
   font-size: 10px; padding: 2px 6px; border-radius: 3px;
+}
+
+@media (max-width: 480px) {
+  .ws-card { max-height: 60vh; }
+  .ws-btn { padding: 12px 14px; font-size: 14px; min-height: 44px; }
+  .ws-dismiss { padding: 10px 12px; min-width: 44px; min-height: 44px; }
 }
 `;

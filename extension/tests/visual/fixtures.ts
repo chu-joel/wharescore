@@ -50,7 +50,7 @@ export const fx_free_renter: BadgeResponse = {
     },
     {
       severity: "info",
-      title: "Built 1968 — likely to fail Healthy Homes insulation checks",
+      title: "Built before 1978 — likely to fail Healthy Homes insulation checks",
       detail: "Ask the landlord for an HH compliance statement before signing.",
     },
   ],
@@ -90,7 +90,7 @@ export const fx_pro_renter: BadgeResponse = {
     },
     {
       severity: "warning",
-      title: "Built 1968 — Healthy Homes compliance not verified",
+      title: "Built before 1978 — Healthy Homes compliance not verified",
       detail: "Pre-1978 builds need retrofitted insulation and heating.",
     },
     {

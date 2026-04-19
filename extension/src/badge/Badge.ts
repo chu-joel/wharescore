@@ -310,13 +310,12 @@ function renderUpgradeHint(tier: Tier): string {
   if (tier === "free") {
     return `<div class="ws-state">
       <a href="${UPGRADE_URL}" target="_blank" rel="noopener noreferrer">Upgrade to Pro</a>
-      for price estimate, rent + yield, walk score and PDF export.
+      for price estimate, rent + yield, walk score, email alerts on similar listings, and PDF export.
     </div>`;
   }
-  return `<div class="ws-state">
-    <a href="${SIGN_IN_URL}" target="_blank" rel="noopener noreferrer">Sign in</a>
-    to save, enable watchlist, and see persona-tailored findings.
-  </div>`;
+  // Anon: the locked-row in renderFindingList already shows the sign-in CTA;
+  // a second one here would be redundant.
+  return "";
 }
 
 function saveTooltip(tier: Tier): string {
