@@ -2,6 +2,7 @@
 
 import { CheckCircle, Circle, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -82,7 +83,7 @@ export function BuyerDueDiligence({ report }: Props) {
   });
 
   // === ITEMS BUYER STILL NEEDS ===
-  const hasFlood = !!(hazards?.flood_zone || hazards?.flood_extent_label);
+  const hasFlood = isInFloodZone(hazards);
   const liqStr = String(hazards?.liquefaction_zone || '').toLowerCase();
   const isHighLiq = liqStr.includes('high') || liqStr.includes('very');
   const slopeStr = String(hazards?.slope_failure || '').toLowerCase();

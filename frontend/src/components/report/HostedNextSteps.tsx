@@ -1,6 +1,7 @@
 'use client';
 
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   persona: string;
@@ -15,7 +16,7 @@ interface ActionCard {
 
 export function HostedNextSteps({ persona, report }: Props) {
   const h = report.hazards;
-  const hasFlood = !!h.flood_zone;
+  const hasFlood = isInFloodZone(h);
   const hasLiquefaction = !!(h.liquefaction_zone && String(h.liquefaction_zone).toLowerCase().match(/moderate|high|significant/));
   const hasSlope = !!h.slope_failure;
   const needsGeotech = hasLiquefaction || hasSlope;

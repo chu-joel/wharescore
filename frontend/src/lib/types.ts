@@ -221,6 +221,7 @@ export interface HazardData {
   earthquake_max_mag: number | null;
   coastal_erosion: string | null;
   wildfire_risk: string | null;
+  wildfire_vhe_days: number | null;
   epb_count: number | null;
   slope_failure: string | null;
   contamination_count: number | null;

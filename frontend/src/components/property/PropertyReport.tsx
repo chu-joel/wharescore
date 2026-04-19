@@ -217,9 +217,6 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         {persona === 'renter' && <RenterSnapshot report={report} />}
         {persona === 'buyer' && <BuyerSnapshot report={report} />}
 
-        {/* 1b. COMPARISON — property vs suburb vs city */}
-        {report.comparisons && <ComparisonBars report={report} />}
-
         {/* 2. EVIDENCE — key findings that support the verdict */}
         <div className="section-divider">
           <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
@@ -262,7 +259,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           );
         })()}
 
-        {/* 5. DEEP DIVE — question sections for users who want more */}
+        {/* 5a. COMPARISON — property vs suburb vs city. Sits below the
+            upgrade CTA so the paywall is the first post-Action surface the
+            user sees; this is context for readers who kept scrolling. */}
+        {report.comparisons && <ComparisonBars report={report} />}
+
+        {/* 5b. DEEP DIVE — question sections for users who want more */}
         <div className="section-divider space-y-3 sm:space-y-5">
           <p className="section-heading">
             {persona === 'renter' ? 'More about this rental' : 'More about this property'}

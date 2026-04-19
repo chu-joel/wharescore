@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CircleDot, Circle } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface ChecklistItem {
   text: string;
@@ -13,7 +14,7 @@ function getItems(report: PropertyReport): ChecklistItem[] {
   const items: ChecklistItem[] = [];
   const h = report.hazards;
 
-  if (h.flood_zone) {
+  if (isInFloodZone(h)) {
     items.push({ text: 'Check contents insurance covers flood damage', severity: 'critical', reason: 'Property is in a flood zone' });
   }
   if (h.epb_rating || report.planning.epb_listed) {

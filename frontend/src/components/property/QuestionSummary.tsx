@@ -3,6 +3,7 @@
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionId } from '@/lib/reportSections';
 import { formatCompactCurrency, effectivePerUnitCv } from '@/lib/format';
+import { isInFloodZone } from '@/lib/hazards';
 
 export interface PreviewChip {
   label: string;
@@ -166,7 +167,7 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
     case 'deal-breakers': {
       const issues: string[] = [];
       if (p.epb_listed) issues.push('EPB listed');
-      if (h.flood_zone) issues.push('flood zone');
+      if (isInFloodZone(h)) issues.push('flood zone');
       if (h.tsunami_zone) issues.push('tsunami zone');
       if (h.liquefaction_zone?.toLowerCase().includes('high') || h.liquefaction_zone?.toLowerCase().includes('moderate'))
         issues.push('liquefaction risk');
@@ -270,7 +271,7 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
 
     case 'buyer-checklist': {
       const critical: string[] = [];
-      if (h.flood_zone) critical.push('flood assessment');
+      if (isInFloodZone(h)) critical.push('flood assessment');
       if (p.epb_listed) critical.push('seismic assessment');
       if (h.slope_failure?.toLowerCase().includes('high')) critical.push('geotech report');
       const prefix = critical.length > 0

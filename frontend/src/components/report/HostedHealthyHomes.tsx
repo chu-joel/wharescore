@@ -26,7 +26,7 @@ export function HostedHealthyHomes({ report }: Props) {
   if (!hazards) return null;
 
   const windZone = String(hazards.wind_zone || '').toUpperCase();
-  const hasFlood = !!(hazards.flood_zone || hazards.flood || hazards.flood_extent_label);
+  const hasFlood = !!(hazards.flood_zone || hazards.flood || hazards.flood_extent_label || hazards.flood_extent_aep || hazards.wcc_flood_type);
   const highLiquefaction = String(hazards.liquefaction_zone || hazards.liquefaction || '').toLowerCase().includes('high');
   const coastalErosion = !!(hazards.coastal_erosion || hazards.coastal_erosion_exposure || hazards.coastal_exposure);
   const moistureFlagged = hasFlood || highLiquefaction || coastalErosion;

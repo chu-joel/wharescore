@@ -2,6 +2,7 @@
 
 import { Droplets, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -39,7 +40,7 @@ export function MouldDampnessRisk({ report }: Props) {
   }
 
   // Flood zone = ground moisture
-  if (hazards?.flood_zone || hazards?.flood_extent_label) {
+  if (isInFloodZone(hazards)) {
     factors.push({
       label: 'In a flood zone',
       detail: 'Higher ground moisture. Check subfloor ventilation and look for rising damp on walls.',

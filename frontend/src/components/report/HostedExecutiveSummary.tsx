@@ -3,6 +3,7 @@
 import { AlertTriangle, MapPin, Building2, Ruler, TreePine, Bus, Navigation, Shield, Footprints, Volume2 } from 'lucide-react';
 import type { PropertyReport, ReportSnapshot } from '@/lib/types';
 import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -105,7 +106,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   // Insurance risk
   const insuranceFactors: string[] = [];
   if (hazards.tsunami_zone) insuranceFactors.push('Tsunami zone');
-  if (hazards.flood_zone) insuranceFactors.push('Flood zone');
+  if (isInFloodZone(hazards)) insuranceFactors.push('Flood zone');
   if (hazards.liquefaction_zone) insuranceFactors.push('Liquefaction');
   if (hazards.coastal_erosion) insuranceFactors.push('Coastal erosion');
   const insuranceLevel = insuranceFactors.length === 0 ? 'Low' : insuranceFactors.length <= 2 ? 'Moderate' : 'High';

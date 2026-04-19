@@ -240,13 +240,14 @@ function transformHazards(raw: any): HazardData {
 
   return {
     flood_zone: raw.flood ?? null,
-    tsunami_zone: raw.tsunami_evac_zone ?? raw.tsunami_zone_class?.toString() ?? raw.council_tsunami_ranking ?? null,
+    tsunami_zone: raw.tsunami_evac_zone ?? raw.tsunami_zone_class?.toString() ?? raw.council_tsunami_ranking ?? raw.wcc_tsunami_ranking ?? null,
     liquefaction_zone: raw.liquefaction ?? raw.council_liquefaction ?? null,
     fault_distance_m: null, // not in API
     earthquake_count: raw.earthquake_count_30km ?? null,
     earthquake_max_mag: raw.earthquake_max_mag ?? null,
-    coastal_erosion: raw.coastal_exposure ?? null,
+    coastal_erosion: raw.coastal_exposure ?? raw.coastal_erosion_exposure ?? null,
     wildfire_risk: raw.wildfire_trend ?? null,
+    wildfire_vhe_days: raw.wildfire_vhe_days ?? null,
     epb_count: raw.epb_count_300m ?? null,
     slope_failure: raw.slope_failure ?? raw.council_slope_severity ?? null,
     contamination_count: null, // see post-transform mirror below — source of truth is planning

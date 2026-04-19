@@ -1,5 +1,6 @@
 import type { PropertyReport } from '@/lib/types';
 import type { Persona } from '@/stores/personaStore';
+import { isInFloodZone } from '@/lib/hazards';
 
 export interface SectionRelevance {
   section: 'risk' | 'liveability' | 'market' | 'transport' | 'planning';
@@ -36,7 +37,7 @@ function scoreRisk(report: PropertyReport): number {
   const h = report.hazards;
   let score = 0;
 
-  if (h.flood_zone) score += 30;
+  if (isInFloodZone(h)) score += 30;
   if (h.tsunami_zone) score += 25;
   if (containsHighOrVery(h.liquefaction_zone)) score += 20;
   if (containsHighOrVery(h.slope_failure)) score += 15;

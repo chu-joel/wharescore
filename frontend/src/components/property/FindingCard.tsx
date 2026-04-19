@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { RatingBin } from '@/lib/types';
+import { isInFloodZone, floodLabel } from '@/lib/hazards';
 
 export interface Finding {
   headline: string;
@@ -140,9 +141,9 @@ export function generateFindings(report: {
 
   // --- Critical findings (hazards) ---
 
-  if (h.flood_zone) {
+  if (isInFloodZone(h)) {
     findings.push({
-      headline: `This property is in a flood zone (${h.flood_zone})`,
+      headline: `This property is in a flood zone (${floodLabel(h)})`,
       interpretation:
         'The property may be at risk of flooding during heavy rainfall events. This can affect insurance availability and premiums, and may require specific building modifications.',
       severity: 'critical',
@@ -611,7 +612,7 @@ export function generateFindings(report: {
 
   // --- Positive findings ---
 
-  if (!h.flood_zone && !h.tsunami_zone && !h.liquefaction_zone) {
+  if (!isInFloodZone(h) && !h.tsunami_zone && !h.liquefaction_zone) {
     findings.push({
       headline: 'No major natural hazards detected',
       interpretation:
@@ -738,7 +739,7 @@ export function generateFindings(report: {
   }
 
   // --- Terrain-inferred findings ---
-  if (terrain?.is_depression && !h.flood_zone) {
+  if (terrain?.is_depression && !isInFloodZone(h)) {
     const depth = terrain.depression_depth_m;
     findings.push({
       headline: `Natural low point${depth ? ` (${Math.abs(depth).toFixed(1)}m below surroundings)` : ''} — water may collect here`,
@@ -750,7 +751,7 @@ export function generateFindings(report: {
     });
   }
 
-  if (terrain?.flood_terrain_risk === 'moderate' && !terrain?.is_depression && !h.flood_zone) {
+  if (terrain?.flood_terrain_risk === 'moderate' && !terrain?.is_depression && !isInFloodZone(h)) {
     findings.push({
       headline: 'Flat, low-lying terrain — limited natural drainage',
       interpretation:

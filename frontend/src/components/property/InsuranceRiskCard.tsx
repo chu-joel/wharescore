@@ -2,6 +2,13 @@
 
 import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import {
+  isInFloodZone,
+  isInTsunamiZone,
+  hasHighCoastalErosionRisk,
+  hasHighWildfireRisk,
+  isInLandslideRisk,
+} from '@/lib/hazards';
 
 interface InsuranceRiskCardProps {
   report: PropertyReport;
@@ -22,14 +29,15 @@ function assessInsuranceRisk(report: PropertyReport): {
   const h = report.hazards;
   const p = report.planning;
 
+  const slopeStr = String(h.slope_failure ?? h.council_slope_severity ?? '').toLowerCase();
   const factors: RiskFactor[] = [
-    { label: 'Flood zone', present: !!h.flood_zone },
+    { label: 'Flood zone', present: isInFloodZone(h) },
     { label: 'Earthquake-prone building', present: !!p.epb_listed || !!h.epb_rating },
-    { label: 'High slope failure risk', present: !!h.slope_failure?.toLowerCase().includes('high') },
-    { label: 'Tsunami zone', present: !!h.tsunami_zone },
-    { label: 'Coastal erosion risk', present: !!h.coastal_erosion?.toLowerCase().includes('high') },
-    { label: 'Wildfire risk', present: !!h.wildfire_risk?.toLowerCase().includes('high') },
-    { label: 'Mapped landslide area', present: !!h.landslide_in_area },
+    { label: 'High slope failure risk', present: slopeStr.includes('high') || slopeStr.includes('very') },
+    { label: 'Tsunami zone', present: isInTsunamiZone(h) },
+    { label: 'Coastal erosion risk', present: hasHighCoastalErosionRisk(h) },
+    { label: 'Wildfire risk', present: hasHighWildfireRisk(h) },
+    { label: 'Landslide risk', present: isInLandslideRisk(h) },
   ];
 
   const activeFactors = factors.filter((f) => f.present);

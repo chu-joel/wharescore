@@ -2,6 +2,7 @@
 
 import { Shield, AlertTriangle, CircleCheck, CircleMinus } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -23,7 +24,7 @@ export function QuickHazardSummary({ report }: Props) {
   if (!h) return null;
 
   const items: HazardItem[] = [
-    { label: 'Flooding', status: h.flood_zone ? 'concern' : 'clear' },
+    { label: 'Flooding', status: isInFloodZone(h) ? 'concern' : 'clear' },
     { label: 'Earthquake', status: (h.epb_count && h.epb_count > 0) ? 'concern' : h.liquefaction_zone ? 'watch' : 'clear' },
     { label: 'Tsunami', status: h.tsunami_zone ? 'concern' : 'clear' },
     { label: 'Slope / Landslide', status: h.slope_failure ? 'concern' : 'clear' },

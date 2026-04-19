@@ -1,6 +1,7 @@
 'use client';
 
 import { ClipboardCheck, ExternalLink } from 'lucide-react';
+import { isInFloodZone } from '@/lib/hazards';
 
 export interface Action {
   title: string;
@@ -115,7 +116,7 @@ export function generateActions(report: {
   });
 
   // --- Flood zone ---
-  if (h.flood_zone) {
+  if (isInFloodZone(h)) {
     actions.push({
       title: 'Check flood insurance availability and cost',
       description:

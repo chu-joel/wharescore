@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CircleCheck, CircleMinus } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -40,7 +41,7 @@ export function HostedAtAGlance({ report }: Props) {
 
   // Insurance — derive from actual hazard data fields (not indicator search, which can miss)
   const hazards = report.hazards;
-  const insuranceFactors = [hazards?.flood_zone, hazards?.tsunami_zone, hazards?.liquefaction_zone, hazards?.coastal_erosion].filter(Boolean).length;
+  const insuranceFactors = [isInFloodZone(hazards), hazards?.tsunami_zone, hazards?.liquefaction_zone, hazards?.coastal_erosion].filter(Boolean).length;
   const insuranceStatus: GlanceStatus = insuranceFactors === 0 ? 'good' : insuranceFactors <= 2 ? 'moderate' : 'concern';
 
   // Noise — derive from real environment / aircraft data, not from a risk indicator score which

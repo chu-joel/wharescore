@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CircleDot, Circle } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone, floodLabel } from '@/lib/hazards';
 
 interface ChecklistItem {
   text: string;
@@ -16,8 +17,8 @@ function getItems(report: PropertyReport): ChecklistItem[] {
   const p = report.planning;
 
   // Critical — driven by report data
-  if (h.flood_zone) {
-    items.push({ text: 'Get flood risk assessment', severity: 'critical', reason: `Property is in flood zone: ${h.flood_zone}`, estimatedCost: '$500–$2,000' });
+  if (isInFloodZone(h)) {
+    items.push({ text: 'Get flood risk assessment', severity: 'critical', reason: `Property is in flood zone: ${floodLabel(h)}`, estimatedCost: '$500–$2,000' });
   }
   if (p.epb_listed || h.epb_rating) {
     items.push({ text: 'Request seismic assessment', severity: 'critical', reason: 'Building is earthquake-prone', estimatedCost: '$2,000–$10,000' });

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import type { PropertyReport } from '@/lib/types';
+import { isInFloodZone } from '@/lib/hazards';
 import { useBudgetStore, buyerMonthly, affordabilityRatio, NZ_DEFAULTS } from '@/stores/budgetStore';
 import { BudgetSlider } from './BudgetSlider';
 import { BudgetBreakdownChart } from './BudgetBreakdownChart';
@@ -28,7 +29,7 @@ const SEGMENT_COLORS = {
 function countHazards(report: PropertyReport): number {
   const h = report.hazards;
   let count = 0;
-  if (h.flood_zone) count++;
+  if (isInFloodZone(h)) count++;
   if (h.landslide_in_area) count++;
   if (h.tsunami_zone) count++;
   if (h.slope_failure?.toLowerCase().includes('high')) count++;

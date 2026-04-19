@@ -148,8 +148,12 @@ function deriveWatchItems(snapshot: ReportSnapshot): WatchItem[] {
     });
   }
 
-  // Flood zone
-  const floodZone = hazards.flood_zone as string | null;
+  // Flood zone — any of the three flood fields counts (GWRC flood_zones,
+  // regional flood extent, or WCC District Plan overlay).
+  const floodZone = (hazards.flood_zone
+    ?? hazards.flood_extent_label
+    ?? hazards.flood_extent_aep
+    ?? hazards.wcc_flood_type) as string | null;
   if (floodZone && floodZone !== 'none' && floodZone !== 'None' && floodZone !== 'Low') {
     items.push({
       icon: <Droplets className="h-5 w-5" />,
