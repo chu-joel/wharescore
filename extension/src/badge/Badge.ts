@@ -336,7 +336,7 @@ function renderPriceSection(
     return `<div class="ws-state">Est. $${fmt(est.median)} (range $${fmt(est.low)}–$${fmt(est.high)})${confidence}${comps}</div>`;
   }
   if (band) {
-    return `<div class="ws-state">Rough price: $${fmt(band.low)}–$${fmt(band.high)} <span class="ws-band">(rough estimate)</span></div>`;
+    return `<div class="ws-state">Rough price: $${fmt(band.low)}–$${fmt(band.high)}</div>`;
   }
   return "";
 }

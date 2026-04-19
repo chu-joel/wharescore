@@ -70,7 +70,7 @@ export const fx_free_buyer: BadgeResponse = {
     },
     {
       severity: "warning",
-      title: "Steep section across most of the property — steeper than 80% of Auckland sections",
+      title: "Steep section — steeper than 80% of Auckland sections",
       detail: "Retaining-wall maintenance and foundation complexity are likely.",
     },
   ],
@@ -96,7 +96,7 @@ export const fx_pro_renter: BadgeResponse = {
     {
       severity: "info",
       title: "Noise-affected: within 50m of a bus route — 40% higher noise than suburb average",
-      detail: "Metlink route 18 runs weekdays 5am–11pm.",
+      detail: "AT bus route 110 runs weekdays 5am–11pm.",
     },
     {
       severity: "positive",
@@ -140,11 +140,11 @@ export const fx_pro_buyer: BadgeResponse = {
     {
       severity: "warning",
       title: "Active fault trace within 500m — closer than 98% of Auckland properties",
-      detail: "Wairoa North fault. Not a red flag, but factor into insurance premium.",
+      detail: "Wairoa North fault — factor into insurance premium.",
     },
     {
       severity: "info",
-      title: "Zoned Terrace Housing & Apartment Building (THAB) — potential redevelopment",
+      title: "Zoned for up to 6 storeys — neighbours could redevelop",
       detail: "Up to 6 storeys permitted without resource consent.",
     },
     {
