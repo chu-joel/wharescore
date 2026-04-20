@@ -187,14 +187,29 @@ async def download_saved_report(
 async def list_saved_properties(user_id: str = Depends(require_user)):
     """List the signed-in user's saved property bookmarks.
     Returns up to 50 most-recent saves for display on /account and
-    for client-side merge with localStorage on sign-in."""
+    for client-side merge with localStorage on sign-in.
+
+    full_address falls back to the live address string when the
+    saved row is empty or holds the legacy "Saved property"
+    placeholder from the early localStorage-migration code path.
+    This means users see the actual street address on /account
+    regardless of when or how the save happened.
+    """
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
-            SELECT address_id, full_address, saved_at::text AS saved_at
-            FROM saved_properties
-            WHERE user_id = %s
-            ORDER BY saved_at DESC
+            SELECT
+                sp.address_id,
+                COALESCE(
+                    NULLIF(NULLIF(sp.full_address, ''), 'Saved property'),
+                    a.full_address,
+                    ''
+                ) AS full_address,
+                sp.saved_at::text AS saved_at
+            FROM saved_properties sp
+            LEFT JOIN addresses a ON a.address_id = sp.address_id
+            WHERE sp.user_id = %s
+            ORDER BY sp.saved_at DESC
             LIMIT 50
             """,
             [user_id],

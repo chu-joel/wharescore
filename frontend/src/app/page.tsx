@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -42,19 +42,31 @@ export default function Home() {
 
   const hasSelection = !!selectedAddress || !!selectedSuburb;
 
-  // Sync URL with selected property
+  // Sync URL with selected property.
+  //
+  // CRITICAL: this effect must NOT strip the ?address param on the
+  // first mount. The restore-from-URL effect below reads that param
+  // to rehydrate the selection when the user arrives from an
+  // external link (e.g. saved-properties list on /account, shared
+  // deep link, browser back). If we strip here before they get to
+  // read, the user bounces to a blank landing page despite having
+  // clicked a property link. Gate the `else` branch behind a ref
+  // so only explicit user-initiated deselection (back button,
+  // "search another") clears the URL.
+  const hasMountedRef = useRef(false);
   useEffect(() => {
     if (selectedAddress) {
       const url = new URL(window.location.href);
       url.searchParams.set('address', String(selectedAddress.addressId));
       window.history.replaceState(null, '', url.toString());
-    } else {
+    } else if (hasMountedRef.current) {
       const url = new URL(window.location.href);
       if (url.searchParams.has('address')) {
         url.searchParams.delete('address');
         window.history.replaceState(null, '', url.toString());
       }
     }
+    hasMountedRef.current = true;
   }, [selectedAddress]);
 
   // Restore selection from URL on first load
