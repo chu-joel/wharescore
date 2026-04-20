@@ -26,7 +26,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, X, MapPin } from 'lucide-react';
 import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePersonaStore } from '@/stores/personaStore';
@@ -89,11 +89,13 @@ const STEPS: Step[] = [
   },
   {
     id: 'scroll',
-    // Spotlight on the whole report panel. Uses `main` as a close-enough
-    // anchor that exists on all breakpoints.
-    target: 'body',
+    // Special sentinel resolved by readRect() to the current
+    // PropertyReport scroll container — so the spotlight cutout
+    // lands on the panel being scrolled, and the rest of the page
+    // (map / sidebar chrome) dims around it.
+    target: 'report-panel',
     title: 'Scroll to explore the report',
-    body: 'Score, key findings, recommended actions, then the deep-dive accordion. We\'ll scroll through for you so you can see what\'s in there — watch the panel on the right.',
+    body: 'Score, key findings, recommended actions, then the deep-dive accordion. Watch as we scroll through so you can see what\'s in there.',
     advance: 'auto-timer',
     // Timing inside the scroll-report-down onEnter block:
     //   0.8s  →  scroll down ~420px (reveals findings + action card)
@@ -130,6 +132,14 @@ const STEPS: Step[] = [
 
 function readRect(selector: string): DOMRect | null {
   if (typeof document === 'undefined') return null;
+  // Sentinel: `'report-panel'` resolves to the PropertyReport scroll
+  // container (ancestor of `[data-tour="persona-toggle"]`). Used by
+  // the scroll demo step so the cutout spotlights the panel being
+  // scrolled, dimming the rest of the page around it.
+  if (selector === 'report-panel') {
+    const container = findReportScrollContainer();
+    return container ? container.getBoundingClientRect() : null;
+  }
   const el = document.querySelector(selector);
   if (!el) return null;
   return el.getBoundingClientRect();
@@ -167,6 +177,11 @@ function scrollReportSmooth(targetTop: number) {
 
 export function OnboardingTour() {
   const [mounted, setMounted] = useState(false);
+  // Welcome gate — a centred "Take the tour?" dialog shown before the
+  // spotlight tour actually starts. Lets a user who clearly doesn't
+  // want a tour opt out immediately without seeing step 1 for a beat.
+  // true = show the welcome; false = either past it or skipped.
+  const [welcome, setWelcome] = useState(false);
   const [active, setActive] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -186,6 +201,8 @@ export function OnboardingTour() {
   // Decide whether to run at all. Only on first visit (or explicit
   // ?tour=1) AND only when the user lands without a property already
   // selected — coming in on a shared link is deeper-funnel.
+  // Shows the welcome gate first; entering the spotlight tour happens
+  // only when the user clicks "Take the tour".
   useEffect(() => {
     setMounted(true);
     if (typeof window === 'undefined') return;
@@ -194,9 +211,9 @@ export function OnboardingTour() {
     const seen = window.localStorage.getItem(STORAGE_KEY) === '1';
     const onProperty = params.has('address');
     if (force || (!seen && !onProperty)) {
-      // Small delay so the page has painted and target elements have
-      // mounted. Without this the first step measures nothing.
-      const t = setTimeout(() => setActive(true), 600);
+      // Small delay so the page has painted before we overlay the
+      // welcome dialog — abrupt modals feel jarring.
+      const t = setTimeout(() => setWelcome(true), 600);
       return () => clearTimeout(t);
     }
   }, []);
@@ -208,13 +225,21 @@ export function OnboardingTour() {
     const handler = () => {
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(STORAGE_KEY);
+        // On mobile the MobileDrawer may be at full snap from a
+        // previous selection and completely covering the map. Fire
+        // the drawer:collapse event so steps 1-3 (map layer chips,
+        // pan/zoom, click property) have a visible map to spotlight.
+        // The drawer listens for this and moves full→peek, peek→mini.
+        window.dispatchEvent(new Event('drawer:collapse'));
       }
       clearSelection();
       setStepIdx(0);
       initialPersonaRef.current = null;
-      // Give the page a beat to unmount any open report before we
-      // start measuring the step-0 target.
-      setTimeout(() => setActive(true), 300);
+      setActive(false);
+      // Give the page a beat to unmount any open report, then show
+      // the welcome gate again. Users who hit "Take the tour" from
+      // the Help menu want the full experience, not a cold step 0.
+      setTimeout(() => setWelcome(true), 300);
     };
     window.addEventListener('tour:restart', handler);
     return () => window.removeEventListener('tour:restart', handler);
@@ -425,8 +450,29 @@ export function OnboardingTour() {
     setStepIdx((i) => i + 1);
   };
 
-  if (!mounted || !active) return null;
+  if (!mounted) return null;
   if (typeof document === 'undefined') return null;
+
+  const handleAcceptWelcome = () => {
+    setWelcome(false);
+    setActive(true);
+  };
+
+  const handleDeclineWelcome = () => {
+    setWelcome(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, '1');
+    }
+  };
+
+  if (welcome) {
+    return createPortal(
+      <WelcomeGate onAccept={handleAcceptWelcome} onDecline={handleDeclineWelcome} />,
+      document.body,
+    );
+  }
+
+  if (!active) return null;
 
   return createPortal(
     <TourOverlay
@@ -439,6 +485,62 @@ export function OnboardingTour() {
       onSkip={finish}
     />,
     document.body,
+  );
+}
+
+interface WelcomeGateProps {
+  onAccept: () => void;
+  onDecline: () => void;
+}
+
+function WelcomeGate({ onAccept, onDecline }: WelcomeGateProps) {
+  return (
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/55 backdrop-blur-[2px] animate-fade-in-up"
+      onClick={onDecline}
+    >
+      <div
+        role="dialog"
+        aria-label="Welcome to WhareScore"
+        className="relative w-full max-w-sm rounded-2xl bg-background border border-border shadow-2xl p-6 text-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onDecline}
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-piq-primary/10 mb-3">
+          <MapPin className="h-7 w-7 text-piq-primary" />
+        </div>
+        <h2 className="text-xl font-bold mb-1">
+          Welcome to <span className="text-piq-primary">WhareScore</span>
+        </h2>
+        <p className="text-sm text-muted-foreground mb-5">
+          Property intelligence for New Zealand. Want a quick 60-second tour of how it works?
+        </p>
+        <div className="flex flex-col-reverse sm:flex-row gap-2">
+          <button
+            type="button"
+            onClick={onDecline}
+            className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            Maybe later
+          </button>
+          <button
+            type="button"
+            onClick={onAccept}
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-piq-primary text-white px-4 py-2.5 text-sm font-semibold hover:bg-piq-primary-dark transition-colors"
+          >
+            Take the tour
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -585,12 +687,21 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           ) : (
-            // For auto-advance steps the tour performs the action itself
-            // (seeding a property, toggling persona, scrolling). No
-            // "Try it" text — we don't want the user thinking they
-            // need to do something. Leaving the space empty keeps the
-            // focus on the content.
-            <span className="text-xs text-muted-foreground">Auto-advancing…</span>
+            // Auto-advance steps still get a Next button so users can
+            // skip the timed animation if they want. The "Auto-advancing…"
+            // text sits next to it so they know the tour will move on
+            // by itself if ignored.
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground italic">Auto-advancing…</span>
+              <button
+                type="button"
+                onClick={onNext}
+                className="inline-flex items-center gap-1 rounded-lg border border-piq-primary/50 text-piq-primary px-2.5 py-1 text-xs font-semibold hover:bg-piq-primary/10 transition-colors"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </div>
       </div>
