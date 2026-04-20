@@ -183,19 +183,37 @@ async def download_saved_report(
     )
 
 
+@router.get("/saved-properties")
+async def list_saved_properties(user_id: str = Depends(require_user)):
+    """List the signed-in user's saved property bookmarks.
+    Returns up to 50 most-recent saves for display on /account and
+    for client-side merge with localStorage on sign-in."""
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT address_id, full_address, saved_at::text AS saved_at
+            FROM saved_properties
+            WHERE user_id = %s
+            ORDER BY saved_at DESC
+            LIMIT 50
+            """,
+            [user_id],
+        )
+        return {"items": cur.fetchall()}
+
+
 @router.post("/saved-properties")
 async def save_property(
     user_id: str = Depends(require_user),
     body: dict = {},
 ):
-    """Save a property bookmark (free — no credit required)."""
+    """Save a property bookmark (free, no credit required)."""
     address_id = body.get("address_id")
     full_address = body.get("full_address", "")
     if not address_id:
         raise HTTPException(400, "address_id required")
 
     async with db.pool.connection() as conn:
-        # Upsert — don't duplicate
         await conn.execute(
             """
             INSERT INTO saved_properties (user_id, address_id, full_address)
@@ -205,6 +223,20 @@ async def save_property(
             [user_id, address_id, full_address],
         )
 
+    return {"status": "ok"}
+
+
+@router.delete("/saved-properties/{address_id}")
+async def delete_saved_property(
+    address_id: int,
+    user_id: str = Depends(require_user),
+):
+    """Remove a saved property bookmark."""
+    async with db.pool.connection() as conn:
+        await conn.execute(
+            "DELETE FROM saved_properties WHERE user_id = %s AND address_id = %s",
+            [user_id, address_id],
+        )
     return {"status": "ok"}
 
 

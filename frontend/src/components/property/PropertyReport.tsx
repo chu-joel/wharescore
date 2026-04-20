@@ -165,6 +165,11 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           <SavePropertyButton
             addressId={addressId}
             fullAddress={report.address.full_address}
+            score={report.scores?.overall ?? null}
+            rating={report.scores?.rating ?? null}
+            isMultiUnit={!!report.property_detection?.is_multi_unit}
+            lng={report.address.lng}
+            lat={report.address.lat}
           />
           {isEnriching ? (
             <span className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">

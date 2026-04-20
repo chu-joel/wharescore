@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
+import { FileText, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles, Heart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
@@ -42,11 +42,18 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [managingSubscription, setManagingSubscription] = useState(false);
+  const [savedProperties, setSavedProperties] = useState<{
+    address_id: number;
+    full_address: string;
+    saved_at: string;
+  }[]>([]);
+  const [loadingSavedProperties, setLoadingSavedProperties] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') {
       setLoading(false);
+      setLoadingSavedProperties(false);
       return;
     }
     (async () => {
@@ -68,7 +75,46 @@ export default function AccountPage() {
         setLoading(false);
       }
     })();
+
+    // Load saved properties in parallel. Failure is silent — the
+    // Saved Reports path above is the critical one.
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch('/api/v1/account/saved-properties', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSavedProperties(data.items ?? []);
+        }
+      } catch {
+        // Non-critical
+      } finally {
+        setLoadingSavedProperties(false);
+      }
+    })();
   }, [getToken, status]);
+
+  const handleRemoveSavedProperty = async (addressId: number) => {
+    const previous = savedProperties;
+    // Optimistic UI — remove locally first
+    setSavedProperties((prev) => prev.filter((p) => p.address_id !== addressId));
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('no token');
+      const res = await fetch(`/api/v1/account/saved-properties/${addressId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('delete failed');
+    } catch {
+      // Restore on failure
+      setSavedProperties(previous);
+      toast.error('Could not remove that save. Try again.');
+    }
+  };
 
   const handleManageSubscription = async () => {
     setManagingSubscription(true);
@@ -289,6 +335,53 @@ export default function AccountPage() {
 
         {/* Credit Balance */}
         {renderCreditBalance()}
+
+        {/* Saved Properties (bookmarks — distinct from Saved Reports) */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4">Saved Properties</h2>
+          {loadingSavedProperties ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />
+              ))}
+            </div>
+          ) : savedProperties.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-6 text-center">
+              <Heart className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Click the heart button on any property page to save it here.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {savedProperties.map((p) => (
+                <li
+                  key={p.address_id}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
+                >
+                  <Heart className="h-4 w-4 text-red-500 fill-red-500 shrink-0" />
+                  <a
+                    href={`/?address=${p.address_id}`}
+                    className="flex-1 text-sm font-medium hover:text-piq-primary transition-colors truncate"
+                  >
+                    {p.full_address || `Saved property #${p.address_id}`}
+                  </a>
+                  <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
+                    {new Date(p.saved_at).toLocaleDateString('en-NZ')}
+                  </span>
+                  <button
+                    onClick={() => handleRemoveSavedProperty(p.address_id)}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
+                    aria-label="Remove saved property"
+                    title="Remove"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {/* Saved Reports */}
         <div className="mt-8">

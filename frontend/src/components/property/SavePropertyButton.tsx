@@ -2,66 +2,119 @@
 
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
+import { useSavedProperties } from '@/hooks/useSavedProperties';
 import { toast } from 'sonner';
 
 interface SavePropertyButtonProps {
   addressId: number;
   fullAddress: string;
+  score?: number | null;
+  rating?: string | null;
+  isMultiUnit?: boolean;
+  lng?: number;
+  lat?: number;
 }
 
 /**
- * Save/bookmark a property — free but requires sign-in.
- * This is a commitment escalation step: Search → View → Save (sign-in) → Download (pay).
+ * Save/bookmark a property. Free but requires sign-in to persist
+ * across devices. For anonymous users, saves land in localStorage;
+ * for signed-in users they also sync to the `saved_properties`
+ * table on the backend, so /account can show them anywhere.
+ *
+ * Data flow:
+ *   click (anon)   → localStorage → landing panel shows it
+ *   click (signed) → localStorage + POST /account/saved-properties
+ *                    → /account page shows it, landing panel shows it
+ *   sign in after saves → one-time merge from server on mount
  */
-export function SavePropertyButton({ addressId, fullAddress }: SavePropertyButtonProps) {
+export function SavePropertyButton({
+  addressId,
+  fullAddress,
+  score = null,
+  rating = null,
+  isMultiUnit = false,
+  lng,
+  lat,
+}: SavePropertyButtonProps) {
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const { getToken } = useAuthToken();
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggle, mergeFromServer } = useSavedProperties();
   const [loading, setLoading] = useState(false);
 
-  // Check if already saved on mount
+  // On sign-in (or mount if already signed in), pull server-side
+  // saves and merge into local. Silent on failure — the user can
+  // still save normally.
   useEffect(() => {
     if (!isSignedIn) return;
-    const savedIds = JSON.parse(localStorage.getItem('wharescore_saved') ?? '[]') as number[];
-    if (savedIds.includes(addressId)) {
-      setSaved(true);
-    }
-  }, [isSignedIn, addressId]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token || cancelled) return;
+        const res = await fetch('/api/v1/account/saved-properties', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          items: { address_id: number; full_address: string; saved_at: string }[];
+        };
+        if (cancelled || !Array.isArray(data.items)) return;
+        mergeFromServer(
+          data.items.map((i) => ({
+            addressId: i.address_id,
+            fullAddress: i.full_address,
+            savedAt: new Date(i.saved_at).getTime() || Date.now(),
+          })),
+        );
+      } catch {
+        // Non-critical; local saves still work
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, getToken, mergeFromServer]);
+
+  const saved = isSaved(addressId);
 
   const handleSave = async () => {
     if (!isSignedIn) {
-      window.location.href = `/signin?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+      // Go through Google sign-in; callbackUrl brings the user back
+      // to this exact property page so the save completes naturally.
+      const callback = window.location.pathname + window.location.search;
+      window.location.href = `/signin?callbackUrl=${encodeURIComponent(callback)}`;
       return;
     }
 
-    if (saved) {
-      // Unsave
-      const savedIds = JSON.parse(localStorage.getItem('wharescore_saved') ?? '[]') as number[];
-      localStorage.setItem(
-        'wharescore_saved',
-        JSON.stringify(savedIds.filter((id: number) => id !== addressId)),
-      );
-      setSaved(false);
-      toast('Property removed from saved');
-      return;
-    }
+    const wasSaved = saved;
 
+    // Optimistic local toggle first — instant UI feedback
+    toggle({
+      addressId,
+      fullAddress,
+      score,
+      rating,
+      isMultiUnit,
+      lng,
+      lat,
+    });
+
+    // Background sync to backend. Failure doesn't unroll the
+    // optimistic local change; worst case the next device-sync
+    // after a refresh reconciles.
     setLoading(true);
     try {
-      // Save locally
-      const savedIds = JSON.parse(localStorage.getItem('wharescore_saved') ?? '[]') as number[];
-      if (!savedIds.includes(addressId)) {
-        savedIds.push(addressId);
-        localStorage.setItem('wharescore_saved', JSON.stringify(savedIds));
-      }
-
-      // Also save to backend if possible
-      try {
-        const token = await getToken();
-        if (token) {
+      const token = await getToken();
+      if (token) {
+        if (wasSaved) {
+          await fetch(`/api/v1/account/saved-properties/${addressId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } else {
           await fetch('/api/v1/account/saved-properties', {
             method: 'POST',
             headers: {
@@ -71,22 +124,25 @@ export function SavePropertyButton({ addressId, fullAddress }: SavePropertyButto
             body: JSON.stringify({ address_id: addressId, full_address: fullAddress }),
           });
         }
-      } catch {
-        // Local save is fine even if backend fails
       }
-
-      setSaved(true);
-      toast.success('Property saved! View it anytime from My Reports.');
+    } catch {
+      // Non-critical
     } finally {
       setLoading(false);
+    }
+
+    if (wasSaved) {
+      toast('Property removed from saved');
+    } else {
+      toast.success('Property saved. View it anytime on your account page.');
     }
   };
 
   const tip = saved
     ? 'Click to remove from your saved properties'
     : isSignedIn
-      ? 'Save this property to My Reports'
-      : 'Sign in to save this property to My Reports';
+      ? 'Save this property to your account'
+      : 'Sign in to save this property';
 
   return (
     <button
