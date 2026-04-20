@@ -518,7 +518,7 @@ export function OnboardingTour() {
       // busy. We pan left, then right of centre, then back, so the
       // map clearly ends where it started.
       const v = useMapStore.getState().viewport;
-      const fly = (longitude: number, duration = 1100) => {
+      const fly = (longitude: number, duration = 700) => {
         window.dispatchEvent(new CustomEvent('tour:fly-to', {
           detail: { longitude, latitude: v.latitude, zoom: v.zoom, duration },
         }));
@@ -533,14 +533,18 @@ export function OnboardingTour() {
         });
       };
       const timers: ReturnType<typeof setTimeout>[] = [];
-      // 0.5s   swipe right (map content moves left)
-      timers.push(setTimeout(() => fly(v.longitude + 0.025), 500));
-      // 2.2s   swipe left (map content moves right, past original)
-      timers.push(setTimeout(() => fly(v.longitude - 0.025), 2200));
-      // 3.9s   return to starting position
-      timers.push(setTimeout(() => fly(v.longitude), 3900));
-      // 5.4s   tap marker to hint "you can click anywhere too"
-      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 5400));
+      // Tiny pan — roughly a few streets across at suburb zoom, not
+      // a whole-suburb fly. 0.003 degrees ~= 250m at NZ latitude.
+      // Fast durations (700ms) so it reads as a nudge, not a trip.
+      const NUDGE = 0.003;
+      // 0.5s   nudge east (map content shifts left, user sees "drag")
+      timers.push(setTimeout(() => fly(v.longitude + NUDGE), 500));
+      // 1.7s   nudge west of origin
+      timers.push(setTimeout(() => fly(v.longitude - NUDGE), 1700));
+      // 2.9s   return to starting position
+      timers.push(setTimeout(() => fly(v.longitude), 2900));
+      // 4.2s   tap marker to hint "you can click anywhere too"
+      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 4200));
       return () => {
         timers.forEach(clearTimeout);
       };
