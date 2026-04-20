@@ -518,12 +518,23 @@ export function OnboardingTour() {
       // busy. We pan left, then right of centre, then back, so the
       // map clearly ends where it started.
       const v = useMapStore.getState().viewport;
-      const fly = (longitude: number, duration = 700) => {
+      const fly = (longitude: number, zoom: number, duration = 700) => {
         window.dispatchEvent(new CustomEvent('tour:fly-to', {
-          detail: { longitude, latitude: v.latitude, zoom: v.zoom, duration },
+          detail: { longitude, latitude: v.latitude, zoom, duration },
         }));
       };
-      const markerOnMap = (xFrac: number, yFrac: number) => {
+      const tapOnEl = (selector: string) => {
+        const el = document.querySelector(selector) as HTMLElement | null;
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        setTap({
+          x: r.left + r.width / 2,
+          y: r.top + r.height / 2,
+          key: Date.now() + Math.random(),
+        });
+        return true;
+      };
+      const tapOnMap = (xFrac: number, yFrac: number) => {
         const r = readRect('[data-tour="map"]');
         if (!r) return;
         setTap({
@@ -533,18 +544,45 @@ export function OnboardingTour() {
         });
       };
       const timers: ReturnType<typeof setTimeout>[] = [];
-      // Tiny pan — roughly a few streets across at suburb zoom, not
-      // a whole-suburb fly. 0.003 degrees ~= 250m at NZ latitude.
-      // Fast durations (700ms) so it reads as a nudge, not a trip.
+
+      // Use the map's native NavigationControl (the +/- buttons in
+      // the top-right corner) so the tour teaches by pointing at
+      // the real UI. Ripple over each button, then trigger the
+      // actual zoom via flyTo. MapLibre's class names for these
+      // buttons are stable: .maplibregl-ctrl-zoom-in / -out.
+      //
+      //   0.5s  ripple on zoom-in, actually zoom in
+      //   2.0s  ripple on zoom-out, actually zoom back
+      //   3.5s  small pan nudge (~250m) to hint "drag also works"
+      //   4.7s  tap ripple in the middle of map to hint "click a property"
+      timers.push(setTimeout(() => {
+        tapOnEl('.maplibregl-ctrl-zoom-in');
+      }, 500));
+      timers.push(setTimeout(() => {
+        fly(v.longitude, v.zoom + 1.5, 800);
+      }, 750));
+
+      timers.push(setTimeout(() => {
+        tapOnEl('.maplibregl-ctrl-zoom-out');
+      }, 2000));
+      timers.push(setTimeout(() => {
+        fly(v.longitude, v.zoom, 800);
+      }, 2250));
+
+      // Tiny drag nudge — a few streets across, to show panning
+      // is also a thing.
       const NUDGE = 0.003;
-      // 0.5s   nudge east (map content shifts left, user sees "drag")
-      timers.push(setTimeout(() => fly(v.longitude + NUDGE), 500));
-      // 1.7s   nudge west of origin
-      timers.push(setTimeout(() => fly(v.longitude - NUDGE), 1700));
-      // 2.9s   return to starting position
-      timers.push(setTimeout(() => fly(v.longitude), 2900));
-      // 4.2s   tap marker to hint "you can click anywhere too"
-      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 4200));
+      timers.push(setTimeout(() => {
+        fly(v.longitude + NUDGE, v.zoom, 600);
+      }, 3500));
+      timers.push(setTimeout(() => {
+        fly(v.longitude, v.zoom, 600);
+      }, 4200));
+
+      // Final marker over the map to suggest "click a property to
+      // open its report" — the implicit next action for the user.
+      timers.push(setTimeout(() => tapOnMap(0.5, 0.5), 5000));
+
       return () => {
         timers.forEach(clearTimeout);
       };
