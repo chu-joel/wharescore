@@ -31,10 +31,11 @@ import { ComparisonBars } from './ComparisonBars';
 import { DataLayersAccordion } from './DataLayersAccordion';
 import { SavePropertyButton } from './SavePropertyButton';
 import { ScrollPrompt } from './ScrollPrompt';
+import { SignupNudge } from './SignupNudge';
 import { SocialProof } from './SocialProof';
 import { EmailSummaryCapture } from './EmailSummaryCapture';
 import { generateFindings } from './FindingCard';
-import { trackVisit, shouldShowComparisonUpsell } from '@/hooks/useVisitTracker';
+import { trackVisit, shouldShowComparisonUpsell, markVisitedEver } from '@/hooks/useVisitTracker';
 import { usePersonaStore } from '@/stores/personaStore';
 import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
@@ -66,6 +67,10 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   useEffect(() => {
     if (!report) return;
     trackVisit(addressId);
+    // Flag the user as "has visited before" so the next session's
+    // SignupNudge fires at 30s instead of 60s. Persistent across
+    // browser restarts via localStorage; no PII, just a boolean.
+    markVisitedEver();
     setCoverage(report.coverage ?? null);
     // If second property visit + can't download → show "comparing" upsell after 30s (once per session)
     if (shouldShowComparisonUpsell() && !canDownload().allowed) {
@@ -321,6 +326,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
       {/* Scroll-triggered upgrade prompt */}
       <ScrollPrompt report={report} />
+
+      {/* Signup nudge for anon users — 60s first visit, 30s returning.
+          Value props: save properties + free shareable report link.
+          Z-index below ScrollPrompt so the paid-upgrade prompt wins
+          if both would be visible at once. */}
+      <SignupNudge />
     </div>
   );
 }
