@@ -64,8 +64,13 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
       window.open(pdf.downloadUrl, '_blank', 'noopener,noreferrer');
     } else if (!pdf.isGenerating) {
       // Unauth → low-friction "quick" path (Google sign-in → auto Quick
-      // Report). Auth → normal flow with tier selector in confirm modal.
-      pdf.startExport(isSignedIn ? undefined : 'quick');
+      // Report).
+      // Auth → preselect Full in the confirm modal — "Generate Report"
+      // is the intent-to-buy click, so the tier selector should lead with
+      // the paid option (users previously had to manually flip from Quick
+      // every time). They can still pick Quick inside the modal if they
+      // want the free version.
+      pdf.startExport(isSignedIn ? 'full' : 'quick');
     }
   };
 
@@ -111,7 +116,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const reportReady = !!(pdf.shareUrl || pdf.downloadUrl);
 
   return createPortal(
-    <div className={`fixed left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-all duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''} ${
+    <div data-tour="generate-report" className={`fixed left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-all duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''} ${
       // On mobile the MobileDrawer handle sits at the top of the 80px mini
       // sheet (bottom 36-80px of viewport). The FAB at bottom-5 with ~44px
       // height overlaps that region and steals pointer events from the

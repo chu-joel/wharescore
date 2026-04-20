@@ -19,6 +19,7 @@ import { SuburbSummaryPage } from '@/components/suburb/SuburbSummaryPage';
 import { AppFooter } from '@/components/layout/AppFooter';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
 import { ReportConfirmModal } from '@/components/property/ReportConfirmModal';
+import { OnboardingTour } from '@/components/common/OnboardingTour';
 import { MAX_ACTIVE_LAYERS } from '@/lib/constants';
 import { toast } from 'sonner';
 import {
@@ -104,6 +105,7 @@ export default function Home() {
       <AppHeader />
       <UpgradeModal />
       <ReportConfirmModal />
+      <OnboardingTour />
 
       {bp === 'desktop' && (
         <div className="pt-14">

@@ -19,6 +19,7 @@ export function PersonaToggle() {
     // view as users scroll through long reports — on mobile especially
     // this lets them switch renter/buyer without scrolling back to the top.
     <div
+      data-tour="persona-toggle"
       role="tablist"
       aria-label="Choose whether you're renting or buying"
       className="sticky top-0 z-10 flex rounded-xl border border-border bg-muted/90 backdrop-blur-sm p-1 gap-1 -mx-0.5"

@@ -641,6 +641,7 @@ export function MapContainer() {
 
   return (
     <div
+      data-tour="map"
       className="relative w-full h-full"
       role="application"
       aria-label="Interactive property map of New Zealand"

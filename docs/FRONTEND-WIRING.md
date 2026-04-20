@@ -40,6 +40,16 @@
 **Dampness risk — flood escalation** — when `hazards.flood_zone || flood_extent_label || flood_extent_aep || wcc_flood_type` is set (i.e. `isInFloodZone(h)`) AND shows up in the dampness factor list, RenterSnapshot + MouldDampnessRisk both escalate to their higher-severity variant ("Higher dampness and flood damage risk") regardless of factor count. Past flooding leaves long-term mould in walls/floors/insulation and affects contents insurance — never treat a flood-zone property as a "minor" dampness factor even in isolation.
 
 **Map hover cleanup** — `MapContainer` wires `onMouseLeave` AND `onPointerLeave` to the outer `<div>` wrapper (not just the `<Map>` canvas). react-map-gl's internal onMouseLeave only fires when the mouse exits the canvas element; moving to a sibling overlay (legend, style picker, report pane) wouldn't clear `hoverInfo` reliably. The wrapper-level handler belt-and-braces it so the tooltip disappears whenever the pointer leaves the map region.
+
+**Onboarding tour** (`components/common/OnboardingTour.tsx`, mounted in `app/page.tsx`) — 5-step spotlight tour for first-visit users. Targets existing components via `data-tour` attributes:
+- `map-layers` → `MapLayerChipBar` wrapper
+- `map` → `MapContainer` outer div
+- `persona-toggle` → `PersonaToggle` wrapper
+- `generate-report` → `FloatingReportButton` portal
+
+Steps 3 ("click any property") and 4 ("toggle persona") auto-advance when the external signal fires (`searchStore.selectedAddress` / `personaStore.persona` change). Other steps have a Next button. Tour persists completion in `localStorage['whare:onboarding_seen']`. Force re-run with `?tour=1`. Skipped automatically when the user deep-links to a property (`?address=…`). Smooth transitions via `cubic-bezier(0.32, 0.72, 0, 1)` on all four dim rectangles + spotlight ring + tooltip. Tooltip placement falls back through below → above → right → left until one fits the viewport.
+
+When adding a new step target, add the `data-tour` attribute to the wrapper element (NOT a portal root unless the tour should measure the portal's content bounding box). The tour uses `getBoundingClientRect()` so the target must be a mounted, visible DOM node at the time the step activates.
 | `hazards.tsunami_zone \| .wcc_tsunami_ranking \| .council_tsunami_ranking` | Tsunami-sensitive components | `transformReport.ts` falls back: `tsunami_evac_zone` → `tsunami_zone_class` → `council_tsunami_ranking` → `wcc_tsunami_ranking`. For boolean checks use `isInTsunamiZone(h)` from `lib/hazards.ts`. Call sites: InsuranceRiskCard. | No |
 | `hazards.coastal_erosion \| .coastal_erosion_exposure \| .council_coastal_erosion` | Coastal-erosion-sensitive components | Use `hasHighCoastalErosionRisk(h)` from `lib/hazards.ts`. Checks national exposure label AND council overlay presence (Auckland ASCIE + others). Raw `h.coastal_erosion?.includes('high')` misses the council overlays. Call sites: InsuranceRiskCard. | No |
 | `hazards.wildfire_risk \| .wildfire_vhe_days` | Wildfire-sensitive components | Use `hasHighWildfireRisk(h)` from `lib/hazards.ts`. `wildfire_risk` is a trend string ("increasing"/"stable") — severity signal is `wildfire_vhe_days` (days/yr of Very High/Extreme fire danger). Threshold ≥15 days = high, `increasing` + ≥8 days = high. Call sites: InsuranceRiskCard. | No |

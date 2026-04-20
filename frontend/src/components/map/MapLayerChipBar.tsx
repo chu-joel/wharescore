@@ -83,7 +83,7 @@ export function MapLayerChipBar() {
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 py-1">
+    <div data-tour="map-layers" className="flex flex-wrap items-center gap-1.5 py-1">
       {/* Quick-toggle preset chips */}
       {QUICK_PRESETS.map((preset) => {
         const Icon = preset.icon;
