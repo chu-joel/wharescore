@@ -15,7 +15,7 @@ from .. import db
 from ..deps import limiter
 from ..redis import cache_get, cache_set, cache_del
 from ..services.auth import _extract_bearer, verify_jwt, optional_user
-from ..services.event_writer import track_event, log_error
+from ..services.event_writer import track_event, log_error, client_ip_from_request
 from slowapi.util import get_remote_address
 
 
@@ -523,7 +523,11 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     # 4. Cache 24h
     await cache_set(cache_key, orjson.dumps(report).decode(), ex=86400)
 
-    track_event("report_view", properties={"address_id": address_id})
+    track_event(
+        "report_view",
+        ip=client_ip_from_request(request),
+        properties={"address_id": address_id},
+    )
 
     # Strip premium detail for unauthenticated users.
     # Free on-screen report shows: scores, 2 findings, basic sections.
@@ -2100,8 +2104,12 @@ async def start_pdf_export(
         buyer_inputs=buyer_inputs,
         report_tier=credit_info.report_tier,
     )
-    track_event("report_generated", user_id=credit_info.user_id,
-                properties={"address_id": address_id, "persona": persona})
+    track_event(
+        "report_generated",
+        user_id=credit_info.user_id,
+        ip=client_ip_from_request(request),
+        properties={"address_id": address_id, "persona": persona},
+    )
     return JSONResponse({
         "job_id": job_id,
         "status_url": f"/api/v1/property/{address_id}/export/pdf/status/{job_id}",

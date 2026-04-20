@@ -27,6 +27,35 @@ def _hash_ip(ip: str | None) -> str | None:
     return hashlib.sha256(ip.encode()).hexdigest()[:16]
 
 
+def client_ip_from_request(request) -> str | None:
+    """Extract the real client IP from a FastAPI Request.
+
+    Reads X-Forwarded-For and X-Real-IP first (host nginx sets these),
+    falls back to request.client.host. With uvicorn running under
+    --proxy-headers the fallback is ALSO safe — it reads from
+    X-Forwarded-For under the hood. Without --proxy-headers the
+    fallback returns the Docker bridge gateway IP, which would hash
+    the same for every user (the exact bug we just fixed).
+
+    Call from any router that wants to track_event with a real IP so
+    the admin unique-visitors count is meaningful. Every server-side
+    track_event should thread this through; the `/events` frontend
+    ingestion endpoint already does.
+    """
+    try:
+        fwd = request.headers.get("x-forwarded-for", "")
+        if fwd:
+            return fwd.split(",")[0].strip()
+        real = request.headers.get("x-real-ip", "")
+        if real:
+            return real.strip()
+        if request.client:
+            return request.client.host
+    except Exception:
+        pass
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Public API — all non-blocking
 # ---------------------------------------------------------------------------

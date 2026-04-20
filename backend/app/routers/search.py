@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query, Request
 from ..deps import limiter
 from ..services.abbreviations import expand_abbreviations
 from ..services.search import search as search_service
-from ..services.event_writer import track_event
+from ..services.event_writer import track_event, client_ip_from_request
 
 router = APIRouter()
 
@@ -21,5 +21,9 @@ async def search_address(
     Returns up to `limit` results sorted by relevance."""
     expanded = expand_abbreviations(q)
     results = await search_service(expanded, limit)
-    track_event("search", properties={"query": expanded, "result_count": len(results)})
+    track_event(
+        "search",
+        ip=client_ip_from_request(request),
+        properties={"query": expanded, "result_count": len(results)},
+    )
     return {"results": results}
