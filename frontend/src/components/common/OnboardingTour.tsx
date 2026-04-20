@@ -32,7 +32,7 @@ import { usePersonaStore } from '@/stores/personaStore';
 
 const STORAGE_KEY = 'whare:onboarding_seen';
 
-type StepAdvance = 'next-button' | 'address-selected' | 'persona-toggled';
+type StepAdvance = 'next-button' | 'address-selected' | 'persona-toggled' | 'auto-timer';
 
 interface Step {
   id: string;
@@ -41,6 +41,10 @@ interface Step {
   body: string;
   advance: StepAdvance;
   placement?: 'below' | 'above' | 'left' | 'right' | 'auto';
+  /** Additional behaviours to run on step entry. */
+  onEnter?: 'scroll-report-down' | 'scroll-report-top';
+  /** Milliseconds before auto-advancing. Used when advance='auto-timer'. */
+  autoMs?: number;
 }
 
 const STEPS: Step[] = [
@@ -69,12 +73,28 @@ const STEPS: Step[] = [
     placement: 'auto',
   },
   {
+    id: 'scroll',
+    // Spotlight on the whole report panel. Uses `main` as a close-enough
+    // anchor that exists on all breakpoints.
+    target: 'body',
+    title: 'Scroll to explore the report',
+    body: 'Score → key findings → recommended actions → deep-dive accordion. We\'ll scroll through for you so you can see what\'s in there.',
+    advance: 'auto-timer',
+    autoMs: 3200,
+    placement: 'auto',
+    onEnter: 'scroll-report-down',
+  },
+  {
     id: 'persona',
     target: '[data-tour="persona-toggle"]',
     title: 'Renter or buyer?',
     body: 'Flip between renter and buyer to retune the whole report — rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers.',
     advance: 'persona-toggled',
     placement: 'below',
+    // Scroll back to the top first — persona toggle is sticky so it's
+    // always visible, but aligning it with the viewport top makes the
+    // spotlight look intentional.
+    onEnter: 'scroll-report-top',
   },
   {
     id: 'generate',
@@ -93,12 +113,43 @@ function readRect(selector: string): DOMRect | null {
   return el.getBoundingClientRect();
 }
 
+/** Find the scroll container that holds the PropertyReport. Uses the
+ * PersonaToggle as an anchor (it lives inside the report) and walks up
+ * looking for the nearest vertically-scrollable ancestor. Works across
+ * desktop (SplitView pane), tablet (TabletPanel), and mobile (the
+ * MobileDrawer's contentRef). Returns null when no report is mounted. */
+function findReportScrollContainer(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  const anchor = document.querySelector('[data-tour="persona-toggle"]') as HTMLElement | null;
+  if (!anchor) return null;
+  let el: HTMLElement | null = anchor.parentElement;
+  while (el && el !== document.body) {
+    const style = window.getComputedStyle(el);
+    const overflowY = style.overflowY;
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+      return el;
+    }
+    el = el.parentElement;
+  }
+  // Mobile path: the MobileDrawer's internal scroll container may not
+  // have overflow-y set declaratively at all breakpoints. Fall back to
+  // the document scrolling element.
+  return document.scrollingElement as HTMLElement | null;
+}
+
+function scrollReportSmooth(targetTop: number) {
+  const container = findReportScrollContainer();
+  if (!container) return;
+  container.scrollTo({ top: targetTop, behavior: 'smooth' });
+}
+
 export function OnboardingTour() {
   const [mounted, setMounted] = useState(false);
   const [active, setActive] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const clearSelection = useSearchStore((s) => s.clearSelection);
   const persona = usePersonaStore((s) => s.persona);
   const initialPersonaRef = useRef<string | null>(null);
 
@@ -152,6 +203,40 @@ export function OnboardingTour() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, selectedAddress]);
 
+  // Run onEnter side-effects when a step activates. Kept in its own
+  // effect so we don't re-trigger scrolling on every measurement.
+  useEffect(() => {
+    if (!active) return;
+    if (step.onEnter === 'scroll-report-down') {
+      // Multi-stage: wait a beat so the report has painted, scroll
+      // ~420px to reveal KeyFindings / action card, pause, then scroll
+      // back to the top so the persona step isn't disoriented. The
+      // final scrollTop=0 runs slightly before this step's auto-timer
+      // fires so the next step enters with the report re-aligned.
+      const down = setTimeout(() => scrollReportSmooth(420), 400);
+      const up = setTimeout(() => scrollReportSmooth(0), 2800);
+      return () => {
+        clearTimeout(down);
+        clearTimeout(up);
+      };
+    }
+    if (step.onEnter === 'scroll-report-top') {
+      scrollReportSmooth(0);
+    }
+  }, [active, step]);
+
+  // Auto-advance for timer-based steps (e.g. the scroll demo). Kept
+  // separate from the onEnter effect above so the two can be reasoned
+  // about independently.
+  useEffect(() => {
+    if (!active) return;
+    if (step.advance !== 'auto-timer') return;
+    const ms = step.autoMs ?? 3000;
+    const t = setTimeout(() => goNext(), ms);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step]);
+
   // Auto-advance on persona toggle (step 4). Snapshot the initial
   // persona on step entry so we only advance when it changes, not if
   // the user already had it set.
@@ -177,6 +262,10 @@ export function OnboardingTour() {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(STORAGE_KEY, '1');
     }
+    // Hand the user back to an empty map + landing panel so they can
+    // explore from scratch, rather than leaving them parked in the
+    // demo report they just walked through.
+    clearSelection();
   };
 
   const goNext = () => {
