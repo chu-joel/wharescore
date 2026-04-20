@@ -56,33 +56,34 @@ interface Step {
     | 'scroll-report-down'
     | 'scroll-report-top'
     | 'auto-select-property'
-    | 'auto-toggle-persona';
+    | 'auto-toggle-persona'
+    | 'expand-rent-fair';
   /** Milliseconds before auto-advancing. Used when advance='auto-timer'. */
   autoMs?: number;
 }
 
 const STEPS: Step[] = [
   {
-    id: 'layers',
-    target: '[data-tour="map-layers"]',
-    title: 'Toggle map layers',
-    body: 'Turn hazard, transport, zoning and amenity overlays on or off. Mix layers to compare what matters most to you.',
-    advance: 'next-button',
-    placement: 'below',
-  },
-  {
     id: 'map',
     target: '[data-tour="map"]',
     title: 'Explore the map',
-    body: 'Drag to pan, scroll or pinch to zoom. Active layers repaint as you move so you can scan whole suburbs quickly.',
+    body: 'Drag to pan, scroll or pinch to zoom. Every address in Aotearoa has a WhareScore waiting: you can browse a suburb or jump straight to a property you care about.',
     advance: 'next-button',
     placement: 'auto',
   },
   {
+    id: 'layers',
+    target: '[data-tour="map-layers"]',
+    title: 'Turn on map filters',
+    body: 'Hazards, transport, zoning, amenities. Layer them on to see risk and context right on the map before you click into any property.',
+    advance: 'next-button',
+    placement: 'below',
+  },
+  {
     id: 'click-property',
     target: '[data-tour="map"]',
-    title: 'Loading a sample property',
-    body: "We'll drop you on a Wellington CBD address with real hazard, rent and planning data loaded. Click Next once the report finishes loading.",
+    title: 'Click on a property',
+    body: 'Zooming in and picking a Wellington CBD property for you. Wait for the report to finish loading on the right, then click Next.',
     advance: 'next-button',
     placement: 'auto',
     onEnter: 'auto-select-property',
@@ -94,31 +95,35 @@ const STEPS: Step[] = [
     // lands on the panel being scrolled, and the rest of the page
     // (map / sidebar chrome) dims around it.
     target: 'report-panel',
-    title: 'Scroll to explore the report',
-    body: 'Score, key findings, recommended actions, then the deep-dive accordion. Watch as we scroll through, then click Next when you\'re ready.',
+    title: "What's in the report",
+    body: 'Hazard exposure, rent prediction, transport access, planning restrictions, neighbourhood insights — everything we\'ve pulled from 40+ government data sources, in one place. Watch as we scroll through.',
     advance: 'next-button',
     placement: 'auto',
     onEnter: 'scroll-report-down',
   },
   {
+    id: 'rent-fair',
+    target: '[data-tour-section="rent-fair"]',
+    title: 'Is the rent fair?',
+    body: "The star of the renter report. We compare this rent against every MBIE bond lodged in the same suburb over the past 12 months — you'll see the median, the range, how the market's trending and whether you have room to negotiate.",
+    advance: 'next-button',
+    placement: 'above',
+    onEnter: 'expand-rent-fair',
+  },
+  {
     id: 'persona',
     target: '[data-tour="persona-toggle"]',
-    title: 'Renter or buyer?',
-    body: 'Flipping personas retunes the whole report: rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers. We\'ll flip it for you, then click Next.',
+    title: 'Buying instead of renting?',
+    body: 'Flip to the buyer persona and the whole report retunes: price advisor, mortgage + rates + insurance math, due-diligence checklist, HPI trend and investment yield. We\'ll flip it for you.',
     advance: 'next-button',
     placement: 'below',
-    // Auto-click the OTHER persona tab with a visible tap ripple so
-    // the user sees the report recompute without having to do it
-    // themselves. Advance is manual — the user clicks Next when they
-    // want to move on so they can read the resulting report as long
-    // as they like.
     onEnter: 'auto-toggle-persona',
   },
   {
     id: 'generate',
     target: '[data-tour="generate-report"]',
-    title: 'Get the full report',
-    body: 'Generate the hosted interactive report for deep analysis — rent/price advisor with adjustable inputs, 25+ sections, permanent shareable link.',
+    title: 'Know everything before you sign',
+    body: "The on-screen report is a preview. The full hosted report unlocks every data layer — past flood events, seismic history, neighbours' demographics, the climate forecast, walking isochrone, rates breakdown, demographics, Healthy Homes checks, council hazard advice — and lets you tweak your rent or purchase price to recompute the whole thing live. Shareable link, permanent, print-ready.",
     advance: 'next-button',
     placement: 'above',
   },
@@ -296,43 +301,47 @@ export function OnboardingTour() {
       scrollReportSmooth(0);
     }
     if (step.onEnter === 'auto-select-property') {
-      // Tap ripple on the map, then fetch + select the demo address.
-      // Wrapped in setTimeout so the ripple is visible before the
-      // report pane mounts and shifts everything.
-      const tapT = setTimeout(() => pulseAtTarget(), 500);
-      const pickT = setTimeout(() => {
+      // Choreographed so the user sees the zoom first, then the tap,
+      // then the report loading:
+      //   0.3s  →  fetch address, selectAddress fires → MapContainer
+      //            starts the flyTo animation (zooms to zoom=17 over
+      //            ~1s) but we delay selectProperty so the report
+      //            pane doesn't pop up and cover the zoom.
+      //   1.6s  →  tap ripple at the centre of the now-zoomed map,
+      //            then selectProperty to load the report for real.
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      let first: { address_id: number; full_address: string; lng: number; lat: number } | null = null;
+      timers.push(setTimeout(() => {
         apiFetch<{
           results?: { address_id: number; full_address: string; lng: number; lat: number }[];
         }>(`/api/v1/search/address?q=${encodeURIComponent(DEMO_ADDRESS_QUERY)}`)
           .then((res) => {
-            const first = res.results?.[0];
+            first = res.results?.[0] ?? null;
             if (!first) return;
+            // selectAddress triggers the map flyTo without loading
+            // the report, so the user watches the zoom in.
             selectAddress({
               addressId: first.address_id,
               fullAddress: first.full_address,
               lng: first.lng,
               lat: first.lat,
             });
-            selectProperty(first.address_id, first.lng, first.lat);
           })
-          .catch(() => {
-            // Non-critical — if the demo picker fails we let the user
-            // click manually. The advance='address-selected' wiring
-            // still catches any selection they make.
-          });
-      }, 900);
+          .catch(() => {});
+      }, 300));
+      timers.push(setTimeout(() => pulseAtTarget(), 1600));
+      timers.push(setTimeout(() => {
+        if (first) selectProperty(first.address_id, first.lng, first.lat);
+      }, 1900));
       return () => {
-        clearTimeout(tapT);
-        clearTimeout(pickT);
+        timers.forEach(clearTimeout);
       };
     }
     if (step.onEnter === 'auto-toggle-persona') {
-      // Scroll the toggle into view, then wait for it to be
-      // measurable before firing the tap + toggle. Step 3's
-      // address-selected poll already waited for the toggle to
-      // appear, but the scroll + sticky repositioning can still
-      // produce a 0-height rect for a frame or two. Polling here is
-      // belt-and-braces so the ripple lands on the real element.
+      // Always flip to BUYER — the preceding 'rent-fair' step assumes
+      // renter persona (that's where the section exists), so this
+      // step's job is to showcase the buyer recomputation. Scroll
+      // back up first, then tap + flip after the element settles.
       scrollReportSmooth(0);
       let settled = false;
       const timers: ReturnType<typeof setTimeout>[] = [];
@@ -341,17 +350,63 @@ export function OnboardingTour() {
         const r = readRect(step.target);
         if (r && r.width > 0 && r.height > 0) {
           settled = true;
-          // Tap ripple first, then toggle after the ripple peaks so
-          // the cause/effect is visible.
           timers.push(setTimeout(() => pulseAtTarget(), 300));
-          timers.push(setTimeout(() => {
-            setPersona(persona === 'renter' ? 'buyer' : 'renter');
-          }, 700));
+          timers.push(setTimeout(() => setPersona('buyer'), 700));
         } else {
           timers.push(setTimeout(startWhenReady, 150));
         }
       };
       timers.push(setTimeout(startWhenReady, 350));
+      return () => {
+        settled = true;
+        timers.forEach(clearTimeout);
+      };
+    }
+    if (step.onEnter === 'expand-rent-fair') {
+      // Three phases:
+      //   1. Make sure persona is 'renter' — the rent-fair accordion
+      //      only exists for that persona.
+      //   2. Scroll the rent-fair AccordionItem into view inside the
+      //      report scroll container.
+      //   3. Click the AccordionTrigger button so the panel expands,
+      //      so the tour's spotlight lands on an open section.
+      // Each phase polls briefly for its own element to settle —
+      // persona switches cause the report to remount.
+      setPersona('renter');
+      let settled = false;
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      const findAndAct = () => {
+        if (settled) return;
+        const item = document.querySelector('[data-tour-section="rent-fair"]') as HTMLElement | null;
+        if (!item) {
+          timers.push(setTimeout(findAndAct, 200));
+          return;
+        }
+        const container = findReportScrollContainer();
+        if (container) {
+          // Scroll so the item top sits ~80px below the container top
+          // — leaves room for the sticky persona toggle and the
+          // tooltip placed above the spotlight.
+          const containerTop = container.getBoundingClientRect().top;
+          const itemTop = item.getBoundingClientRect().top;
+          const offset = itemTop - containerTop - 80;
+          container.scrollBy({ top: offset, behavior: 'smooth' });
+        }
+        // Wait for the smooth scroll, then click the trigger.
+        timers.push(setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          const trigger = item.querySelector('button') as HTMLButtonElement | null;
+          if (trigger && trigger.getAttribute('aria-expanded') !== 'true') {
+            // Tap ripple first so the user sees the click land.
+            const r = item.getBoundingClientRect();
+            setTap({ x: r.left + r.width / 2, y: r.top + 24, key: Date.now() });
+            setTimeout(() => trigger.click(), 200);
+          }
+        }, 700));
+      };
+      // Give the persona switch a beat to take effect before polling.
+      timers.push(setTimeout(findAndAct, 400));
       return () => {
         settled = true;
         timers.forEach(clearTimeout);
@@ -455,7 +510,7 @@ function WelcomeGate({ onAccept, onDecline }: WelcomeGateProps) {
           Welcome to <span className="text-piq-primary">WhareScore</span>
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
-          Property intelligence for New Zealand. Want a quick 60-second tour of how it works?
+          Property intelligence for renters and buyers — uncover what you may not know about New Zealand properties.
         </p>
         <div className="flex flex-col-reverse sm:flex-row gap-2">
           <button

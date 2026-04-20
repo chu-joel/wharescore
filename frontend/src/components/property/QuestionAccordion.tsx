@@ -87,6 +87,10 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
           <AccordionItem
             key={q.id}
             value={q.id}
+            // data-tour-section lets OnboardingTour locate specific
+            // accordion items (e.g. `[data-tour-section="rent-fair"]`)
+            // for spotlight + programmatic expand during the tour.
+            data-tour-section={q.id}
             className={itemClass}
           >
             <AccordionTrigger className="px-4 py-3 hover:no-underline group">

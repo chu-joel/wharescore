@@ -55,7 +55,16 @@ When adding a new step target, add the `data-tour` attribute to the wrapper elem
 
 **Finish hands the user back to a clean slate** — after the final step (or on skip), the tour calls `searchStore.clearSelection()` so the user lands on the empty map + landing panel rather than the demo property they just walked through. The localStorage flag is still set, so the tour won't re-run.
 
-**Interactions the tour performs for the user** — step 3 ("Loading a sample property") fetches `10 Customhouse Quay, Wellington` via `/api/v1/search/address` and calls `selectAddress` + `selectProperty` automatically, so new users see a populated report without having to pick something themselves. Step 4 ("Renter or buyer?") auto-calls `personaStore.setPersona` to the opposite tab so the report visibly recomputes. Each auto-action is preceded by a tap ripple (translucent pulse) at the target's centre so the user sees where the click landed. onEnter values: `'auto-select-property'`, `'auto-toggle-persona'`.
+**Tour step order + interactions** (current):
+1. `map` — explore the map (pan/scroll/zoom copy).
+2. `layers` — turn on map filters (MapLayerChipBar).
+3. `click-property` — choreographed zoom-then-tap-then-load. Fetches `10 Customhouse Quay, Wellington`, calls `selectAddress` at 300ms (map flies in without loading the report), tap ripple at 1600ms over the now-zoomed map, then `selectProperty` at 1900ms to load the report for real. Splitting `selectAddress`/`selectProperty` lets the user watch the fly-in instead of seeing it obscured by the immediately-mounting report pane.
+4. `scroll` — "What's in the report" — scrolls the report panel down ~420px then back up, with the scroll container as the spotlight target so the surrounding page dims.
+5. `rent-fair` — spotlights the rent-fair AccordionItem (tagged `data-tour-section="rent-fair"` by QuestionAccordion). onEnter `'expand-rent-fair'` forces persona='renter', polls for the item, scrolls it into view, and programmatically clicks the AccordionTrigger button so the section is expanded when the tour arrives.
+6. `persona` — always flips to buyer (because step 5 just forced renter). Tap ripple + `setPersona('buyer')`.
+7. `generate` — sales-leaning copy promoting the Full hosted report.
+
+All steps use manual `advance: 'next-button'` — nothing auto-advances on a timer or event. onEnter side-effects still fire.
 
 **Wait-for-load contract (step 3 → step 4 transition)** — the PropertyReport fetch is async (SQL + transit + terrain overlays can take several seconds) so the tour must not advance on a fixed delay. Instead, step 3's `address-selected` handler polls `[data-tour="persona-toggle"]` every 200ms (max 12s) for a measurable rect, then advances after a 700ms grace. Step 4's `auto-toggle-persona` onEnter does the same belt-and-braces poll before firing the tap ripple + `setPersona` so the ripple lands on the real DOM element even after sticky repositioning / scroll. If you add new tour steps that depend on report-loaded state, copy this pattern — rely on the target's measurable rect, not a fixed timer.
 
