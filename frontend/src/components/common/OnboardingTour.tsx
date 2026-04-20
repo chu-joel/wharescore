@@ -233,15 +233,37 @@ export function OnboardingTour() {
     };
   }, [active, step]);
 
-  // Auto-advance on address selection (step 3).
+  // Auto-advance on address selection (step 3). Don't rely on a fixed
+  // timeout — the PropertyReport fetch is async and can take several
+  // seconds (SQL + transit + terrain overlays). If we advance too
+  // early the next step tries to measure/tap a PersonaToggle that
+  // isn't in the DOM yet and the tap ripple lands on empty space.
+  //
+  // Strategy: poll for `[data-tour="persona-toggle"]` — it renders
+  // inside PropertyReport, which only mounts after the fetch resolves.
+  // Once the toggle exists AND its rect is non-zero (i.e. it's
+  // actually laid out, not just in the DOM), advance with a short
+  // grace delay so the user sees the loaded report for a beat.
   useEffect(() => {
     if (!active) return;
-    if (step.advance === 'address-selected' && selectedAddress) {
-      // Wait for the report pane to render before advancing so the next
-      // step's target (the PersonaToggle) exists.
-      const t = setTimeout(() => goNext(), 800);
-      return () => clearTimeout(t);
-    }
+    if (step.advance !== 'address-selected') return;
+    if (!selectedAddress) return;
+
+    let tries = 0;
+    const MAX_TRIES = 60; // 60 × 200ms = 12s — generous for slow connections
+    const interval = setInterval(() => {
+      const el = document.querySelector('[data-tour="persona-toggle"]') as HTMLElement | null;
+      const rect = el?.getBoundingClientRect();
+      const ready = !!(rect && rect.width > 0 && rect.height > 0);
+      if (ready || tries >= MAX_TRIES) {
+        clearInterval(interval);
+        // Grace period so the loaded report is visible for a moment
+        // before the tour moves on.
+        setTimeout(() => goNext(), 700);
+      }
+      tries++;
+    }, 200);
+    return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, selectedAddress]);
 
@@ -305,16 +327,34 @@ export function OnboardingTour() {
       };
     }
     if (step.onEnter === 'auto-toggle-persona') {
-      // Scroll the toggle into view then tap + toggle to the OTHER
-      // persona so the user sees the report recompute.
+      // Scroll the toggle into view, then wait for it to be
+      // measurable before firing the tap + toggle. Step 3's
+      // address-selected poll already waited for the toggle to
+      // appear, but the scroll + sticky repositioning can still
+      // produce a 0-height rect for a frame or two. Polling here is
+      // belt-and-braces so the ripple lands on the real element.
       scrollReportSmooth(0);
-      const tapT = setTimeout(() => pulseAtTarget(), 500);
-      const toggleT = setTimeout(() => {
-        setPersona(persona === 'renter' ? 'buyer' : 'renter');
-      }, 900);
+      let settled = false;
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      const startWhenReady = () => {
+        if (settled) return;
+        const r = readRect(step.target);
+        if (r && r.width > 0 && r.height > 0) {
+          settled = true;
+          // Tap ripple first, then toggle after the ripple peaks so
+          // the cause/effect is visible.
+          timers.push(setTimeout(() => pulseAtTarget(), 300));
+          timers.push(setTimeout(() => {
+            setPersona(persona === 'renter' ? 'buyer' : 'renter');
+          }, 700));
+        } else {
+          timers.push(setTimeout(startWhenReady, 150));
+        }
+      };
+      timers.push(setTimeout(startWhenReady, 350));
       return () => {
-        clearTimeout(tapT);
-        clearTimeout(toggleT);
+        settled = true;
+        timers.forEach(clearTimeout);
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

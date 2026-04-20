@@ -33,9 +33,9 @@ interface SnapshotSection {
 
 const VERDICT_CONFIG = {
   good: { label: 'Looks good for renters', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-800', text: 'text-green-700 dark:text-green-400', icon: CheckCircle },
-  ok: { label: 'Reasonable — check a few things', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', icon: Shield },
+  ok: { label: 'Reasonable. Check a few things', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', icon: Shield },
   caution: { label: 'Some things to watch out for', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-400', icon: AlertTriangle },
-  warning: { label: 'Significant concerns — inspect carefully', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
+  warning: { label: 'Significant concerns. Inspect carefully', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
 };
 
 const SECTION_DOT = {
@@ -89,7 +89,7 @@ export function RenterSnapshot({ report }: Props) {
         id: 'market',
         icon: Minus,
         title: 'Rents flat or softening',
-        detail: 'Room to negotiate — especially if the listing has been up for 2+ weeks.',
+        detail: 'Room to negotiate, especially if the listing has been up for 2+ weeks.',
         verdict: 'good',
       });
     } else if (cagr1 <= 3) {
@@ -114,7 +114,7 @@ export function RenterSnapshot({ report }: Props) {
       id: 'market',
       icon: TrendingDown,
       title: 'Cool rental market',
-      detail: 'More supply than demand — don\'t feel pressured. You have options.',
+      detail: "More supply than demand. Don't feel pressured; you have options.",
       verdict: 'good',
     });
   }
@@ -165,8 +165,8 @@ export function RenterSnapshot({ report }: Props) {
       icon: Droplets,
       title: floodAmongFactors ? 'Higher dampness and flood damage risk' : 'Higher dampness risk',
       detail: floodAmongFactors
-        ? `${dampFactors.join(', ')} — past flooding leaves long-term mould in walls, floors and insulation. Check behind wardrobes, under sinks, along skirting boards and in the ceiling space. Ask directly whether this property has been flooded or is on contents-insurance exclusion lists.`
-        : `${dampFactors.join(', ')} — check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals have dampness issues.`,
+        ? `${dampFactors.join(', ')}. Past flooding leaves long-term mould in walls, floors and insulation. Check behind wardrobes, under sinks, along skirting boards and in the ceiling space. Ask directly whether this property has been flooded or is on contents-insurance exclusion lists.`
+        : `${dampFactors.join(', ')}. Check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals have dampness issues.`,
       verdict: (dampFactors.length >= 3 || floodAmongFactors) ? 'warning' : 'caution',
     });
   } else if (dampFactors.length === 1) {
@@ -174,7 +174,7 @@ export function RenterSnapshot({ report }: Props) {
       id: 'dampness',
       icon: Droplets,
       title: 'Minor dampness factor',
-      detail: `${dampFactors[0]} — check for mould during your viewing, but overall risk is low.`,
+      detail: `${dampFactors[0]}. Check for mould during your viewing, but overall risk is low.`,
       verdict: 'ok',
     });
   }
@@ -186,7 +186,7 @@ export function RenterSnapshot({ report }: Props) {
       sections.push({
         id: 'sun',
         icon: Sun,
-        title: `${aspect}-facing — good sun`,
+        title: `${aspect}-facing: good sun`,
         detail: 'Best orientation in NZ. Warm in winter, lower heating costs.',
         verdict: 'good',
       });
@@ -194,7 +194,7 @@ export function RenterSnapshot({ report }: Props) {
       sections.push({
         id: 'sun',
         icon: Snowflake,
-        title: `${aspect}-facing — limited winter sun`,
+        title: `${aspect}-facing: limited winter sun`,
         detail: 'Expect higher heating costs. Ask about power bills and check for cold spots on walls.',
         verdict: 'caution',
       });

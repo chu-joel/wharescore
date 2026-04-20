@@ -34,10 +34,10 @@ interface SnapshotSection {
 // (e.g. score badge said "Low Risk" while this card said "Elevated risk").
 // These labels focus on what the BUYER should DO, not on re-scoring.
 const VERDICT_CONFIG = {
-  good: { label: 'Strong fundamentals — standard checks apply', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-800', text: 'text-green-700 dark:text-green-400', icon: CheckCircle },
+  good: { label: 'Strong fundamentals. Standard checks apply.', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-800', text: 'text-green-700 dark:text-green-400', icon: CheckCircle },
   ok: { label: 'A few areas to look closer at', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', icon: Shield },
   caution: { label: 'Worth extra due diligence before offering', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-400', icon: AlertTriangle },
-  warning: { label: 'Several hazards flagged — thorough review needed', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
+  warning: { label: 'Several hazards flagged. Thorough review needed.', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-800', text: 'text-red-700 dark:text-red-400', icon: AlertTriangle },
 };
 
 const SECTION_DOT = {
@@ -85,8 +85,8 @@ export function BuyerSnapshot({ report }: Props) {
     if (flags.length >= 3 || isEPB) {
       sections.push({
         id: 'insurance',
-        title: `Insurance: difficult — ${flags.slice(0, 3).join(', ')}`,
-        detail: 'Multiple hazards. Some insurers may decline or set high excesses. Get quotes BEFORE going unconditional. EQC covers first $300K of earthquake damage — check the gap.',
+        title: `Insurance difficult: ${flags.slice(0, 3).join(', ')}`,
+        detail: 'Multiple hazards. Some insurers may decline or set high excesses. Get quotes BEFORE going unconditional. EQC covers the first $300K of earthquake damage; check the gap.',
         verdict: 'warning',
       });
     } else if (flags.length >= 1) {
@@ -123,7 +123,7 @@ export function BuyerSnapshot({ report }: Props) {
     sections.push({
       id: 'era',
       title: `Older construction: ${epbType}`,
-      detail: 'Not EPB-listed, but older construction type. Get a structural assessment. Pre-1990 buildings may contain asbestos — test before any renovation.',
+      detail: 'Not EPB-listed, but older construction type. Get a structural assessment. Pre-1990 buildings may contain asbestos, so test before any renovation.',
       verdict: 'caution',
     });
   }
@@ -140,7 +140,7 @@ export function BuyerSnapshot({ report }: Props) {
     if (restrictionCount >= 2) {
       sections.push({
         id: 'development',
-        title: 'Development: restricted — multiple overlays',
+        title: 'Development restricted: multiple overlays',
         detail: `${[hasHeritage && 'heritage', hasCharacter && 'character area', hasViewshaft && 'viewshaft', hasEcological && 'ecological area'].filter(Boolean).join(', ')}. Resource consent required for most external changes.`,
         verdict: 'caution',
       });
@@ -154,7 +154,7 @@ export function BuyerSnapshot({ report }: Props) {
     } else if (heightLimit && heightLimit >= 14) {
       sections.push({
         id: 'development',
-        title: `Development: good potential — ${heightLimit}m height limit`,
+        title: `Development potential: ${heightLimit}m height limit`,
         detail: 'No major planning overlays. Zone allows higher density. Subdivision or second dwelling may be feasible.',
         verdict: 'good',
       });
@@ -172,7 +172,7 @@ export function BuyerSnapshot({ report }: Props) {
     sections.push({
       id: 'climate',
       title: `Climate risk: only ${(coastalElev! / 100).toFixed(1)}m above sea level`,
-      detail: 'Low-lying coastal property with existing hazard flags. At +0.5m sea level rise, flood risk increases significantly. Check council climate adaptation plans — managed retreat may apply.',
+      detail: 'Low-lying coastal property with existing hazard flags. At +0.5m sea level rise, flood risk increases significantly. Check council climate adaptation plans; managed retreat may apply.',
       verdict: 'warning',
     });
   } else if (isCoastal && hasCoastalErosion) {
@@ -191,14 +191,14 @@ export function BuyerSnapshot({ report }: Props) {
     if (cagr5 >= 4) {
       sections.push({
         id: 'growth',
-        title: `Rent growth: strong — ${cagr5.toFixed(1)}%/yr over 5 years`,
+        title: `Rent growth strong: ${cagr5.toFixed(1)}%/yr over 5 years`,
         detail: 'Above-inflation rental growth supports yield. Good signal for capital value trajectory.',
         verdict: 'good',
       });
     } else if (cagr5 < 0) {
       sections.push({
         id: 'growth',
-        title: `Rent growth: declining — ${cagr5.toFixed(1)}%/yr over 5 years`,
+        title: `Rent growth declining: ${cagr5.toFixed(1)}%/yr over 5 years`,
         detail: 'Rents have fallen over 5 years. May indicate area challenges or oversupply.',
         verdict: 'caution',
       });
@@ -207,7 +207,7 @@ export function BuyerSnapshot({ report }: Props) {
     sections.push({
       id: 'growth',
       title: cagr1 >= 0 ? `Rent trend: up ${cagr1.toFixed(1)}% this year` : `Rent trend: down ${Math.abs(cagr1).toFixed(1)}% this year`,
-      detail: cagr1 >= 0 ? 'Strong rental demand supports investment case.' : 'Falling rents — investigate whether temporary or structural.',
+      detail: cagr1 >= 0 ? 'Strong rental demand supports investment case.' : 'Falling rents. Investigate whether temporary or structural.',
       verdict: cagr1 >= 3 ? 'good' : 'caution',
     });
   }
@@ -219,7 +219,7 @@ export function BuyerSnapshot({ report }: Props) {
     sections.push({
       id: 'title',
       title: `Multi-unit: ${unitCount} units on this site`,
-      detail: 'Check title type (cross-lease, unit title, or freehold). If cross-lease: verify flats plan is current — 50% of NZ cross-leases are technically defective. If unit title: request body corporate records and LTMP.',
+      detail: 'Check title type (cross-lease, unit title, or freehold). If cross-lease: verify flats plan is current; 50% of NZ cross-leases are technically defective. If unit title: request body corporate records and LTMP.',
       verdict: 'ok',
     });
   }

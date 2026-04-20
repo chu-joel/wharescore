@@ -33,7 +33,7 @@ export function MouldDampnessRisk({ report }: Props) {
   const aspect = terrain?.aspect_label;
   if (aspect === 'S' || aspect === 'SE' || aspect === 'SW') {
     factors.push({
-      label: `${aspect}-facing — limited sun`,
+      label: `${aspect}-facing: limited sun`,
       detail: 'Less sun means slower drying. Check for condensation on windows and mould in wardrobes.',
       severity: aspect === 'S' ? 'high' : 'moderate',
     });
@@ -53,7 +53,7 @@ export function MouldDampnessRisk({ report }: Props) {
   if (liq.includes('high') || liq.includes('very')) {
     factors.push({
       label: 'High liquefaction zone',
-      detail: 'High water table area. Subfloor dampness more likely — ask about ground moisture barriers.',
+      detail: 'High water table area. Subfloor dampness more likely. Ask about ground moisture barriers.',
       severity: 'moderate',
     });
   }
@@ -120,7 +120,7 @@ export function MouldDampnessRisk({ report }: Props) {
     riskLevel = 'high';
     riskLabel = floodFlagged ? 'Higher dampness and flood damage risk' : 'Higher dampness risk';
     riskDescription = floodFlagged
-      ? 'Past or potential flooding here leaves long-term damp in walls, floors and insulation. Inspect carefully — behind wardrobes, under sinks, along skirting, in the ceiling space — and ask directly whether the property has been flooded.'
+      ? 'Past or potential flooding here leaves long-term damp in walls, floors and insulation. Inspect carefully: behind wardrobes, under sinks, along skirting, in the ceiling space. Ask directly whether the property has been flooded.'
       : 'Multiple factors increase mould and dampness risk here. Inspect carefully before signing.';
   } else if (highCount >= 1 || modCount >= 2) {
     riskLevel = 'moderate';
@@ -165,7 +165,7 @@ export function MouldDampnessRisk({ report }: Props) {
               )}
               <div>
                 <span className="font-medium">{f.label}</span>
-                <span className="text-muted-foreground"> — {f.detail}</span>
+                <span className="text-muted-foreground">: {f.detail}</span>
               </div>
             </div>
           ))}
@@ -181,7 +181,7 @@ export function MouldDampnessRisk({ report }: Props) {
         <ul className="text-xs text-muted-foreground space-y-1 ml-5 list-disc">
           <li>Look behind wardrobes and under sinks for mould</li>
           <li>Check bathroom ceilings and window frames for black spots</li>
-          <li>Feel the walls — cold spots mean poor insulation</li>
+          <li>Feel the walls: cold spots mean poor insulation</li>
           <li>Open windows to check they stay open (ventilation requirement)</li>
           {riskLevel !== 'low' && <li>Ask about the ground moisture barrier under the floor</li>}
         </ul>

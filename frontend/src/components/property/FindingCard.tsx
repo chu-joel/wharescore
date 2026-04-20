@@ -121,18 +121,18 @@ export function generateFindings(report: {
   const isCrossLease = titleType.includes('cross lease') || titleType.includes('cross-lease') || estate.includes('cross lease') || estate.includes('cross-lease');
   if (isLeasehold) {
     findings.push({
-      headline: 'Leasehold title — you own the building, not the land',
+      headline: 'Leasehold title: you own the building, not the land',
       interpretation:
-        'Ground rent typically reviews every 7–21 years and can jump 20–50%. Mortgage options are narrower — some banks won\'t lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.',
+        "Ground rent typically reviews every 7 to 21 years and can jump 20 to 50%. Mortgage options are narrower: some banks won't lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.",
       severity: 'critical',
       category: 'Planning',
       source: 'LINZ Property Titles',
     });
   } else if (isCrossLease) {
     findings.push({
-      headline: 'Cross-lease title — shared land ownership',
+      headline: 'Cross-lease title: shared land ownership',
       interpretation:
-        'You share the land with the other flats and must agree to any structural change outside the flat plan. Ensure the as-built structure matches the flats plan — unapproved additions (decks, extensions) are a common pitfall and can block sale or refinance.',
+        'You share the land with the other flats and must agree to any structural change outside the flat plan. Ensure the as-built structure matches the flats plan. Unapproved additions (decks, extensions) are a common pitfall and can block sale or refinance.',
       severity: 'warning',
       category: 'Planning',
       source: 'LINZ Property Titles',
@@ -155,7 +155,7 @@ export function generateFindings(report: {
     findings.push({
       headline: `Only ${dist}m from a flood zone`,
       interpretation:
-        `The mapped flood boundary stops ${dist}m away, but flood maps aren't precise — a larger-than-mapped event can spill beyond the edge. Be prepared: know the evacuation route for your street, check that your insurance covers flood (many policies exclude it), and ask whether the street or neighbours have flooded before.`,
+        `The mapped flood boundary stops ${dist}m away, but flood maps aren't precise: a larger-than-mapped event can spill beyond the edge. Be prepared. Know the evacuation route for your street, check that your insurance covers flood (many policies exclude it), and ask whether the street or neighbours have flooded before.`,
       severity: 'warning',
       category: 'Hazards',
       source: 'Regional Council Flood Maps',
@@ -220,7 +220,7 @@ export function generateFindings(report: {
   // 2.1 — Compounding seismic vulnerability (slope HIGH + liquefaction HIGH).
   if (slopeIsHigh && liqHigh) {
     findings.push({
-      headline: 'Double seismic vulnerability — slope failure AND liquefaction both High',
+      headline: 'Double seismic vulnerability: slope failure AND liquefaction both High',
       interpretation:
         'A single significant earthquake can trigger both ground-failure modes here. Combined geotech + slope-stability assessment costs $5,000–$8,000 (vs $2,000–$3,000 for one alone). Get this BEFORE going unconditional.',
       severity: 'critical',
