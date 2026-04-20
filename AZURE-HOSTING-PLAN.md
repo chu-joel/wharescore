@@ -131,7 +131,7 @@ Single VM running Docker Compose — same architecture as the existing plan, min
 | Resource | SKU / Config | Purpose |
 |----------|-------------|---------|
 | **Resource Group** | `wharescore-rg` (Australia East) | Container for all resources |
-| **VM** | Standard_B2ms (2 vCPU, 8GB RAM) | Runs all services via Docker Compose |
+| **VM** | Standard_D4as_v5 (4 vCPU dedicated AMD, 16GB RAM) | Runs all services via Docker Compose |
 | **OS Disk** | 64GB Premium SSD (P6) | Ubuntu + Docker images |
 | **Data Disk** | 128GB Premium SSD (P10) | PostgreSQL data (`/data/postgres`) |
 | **Public IP** | Static Standard SKU | Stable IP for Cloudflare DNS |
@@ -151,9 +151,11 @@ Single VM running Docker Compose — same architecture as the existing plan, min
 | OS + Docker overhead | ~1GB | Minimal |
 | **Total** | **~5GB** | **Bursty** |
 
-B2ms (8GB RAM) gives ~3GB headroom. B-series burstable is perfect — a POC idles most of the time, banking CPU credits for bursts.
+D4as_v5 (16GB RAM, 4 dedicated AMD vCPUs) gives ~11GB headroom and full-time CPU with no burst credits to drain. Moved off B2ms because sustained search + PostGIS spatial load + AI summary generation was burning burst credits and throttling to 40% baseline.
 
-**Upgrade path:** If you need more, B4ms (4 vCPU, 16GB) is a one-click resize with ~2min downtime.
+**Previous size:** Started on Standard_B2ms (2 vCPU burstable, 8GB RAM, ~$48/mo) through early POC. Resized to D4as_v5 (~$175/mo SE Australia) once traffic picked up. Standard_B4ms (4 vCPU burstable, 16GB, ~$120/mo) was considered but rejected: same burst-credit problem at 2x RAM, only ~$55/mo cheaper than D4as_v5. Dedicated CPU is worth the delta for a consistent UX.
+
+**Further upgrade path:** D8as_v5 (8 vCPU, 32GB, ~$350/mo) or split workload: PostgreSQL to Azure DB for PostgreSQL Flexible Server, app tier on a smaller VM.
 
 ---
 
@@ -173,7 +175,7 @@ az vm create \
   --resource-group wharescore-rg \
   --name wharescore-vm \
   --image Canonical:ubuntu-24_04-lts:server:latest \
-  --size Standard_B2ms \
+  --size Standard_D4as_v5 \
   --admin-username wharescore \
   --generate-ssh-keys \
   --public-ip-sku Standard \
@@ -326,12 +328,12 @@ postgres:
 
 | Resource | Monthly Cost (USD) |
 |----------|-------------------|
-| VM (B2ms) | ~$48 |
+| VM (D4as_v5) | ~$175 |
 | OS Disk (64GB P6) | ~$10 |
 | Data Disk (128GB P10) | ~$20 |
 | Static Public IP | ~$4 |
 | Egress (~50GB/mo) | ~$4 |
-| **Total** | **~$86/mo** |
+| **Total** | **~$213/mo** |
 
 **Free runway: ~6 months** ($5,200 ÷ $86 ≈ 60 months on paper, but credits expire in 180 days)
 
