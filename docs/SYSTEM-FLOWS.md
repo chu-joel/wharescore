@@ -55,6 +55,16 @@ When adding ANY new data layer to the system:
 5. Present the data with context and a "so what" — not just raw numbers
 6. Update `docs/FRONTEND-WIRING.md` § Hosted-sections table
 
+**Hazard detection for hosted snapshots:** The `hazards` dict inside the
+snapshot comes from `_detect_hazards()` in `backend/app/services/rent_advisor.py`
+(yes, despite the filename — it's a shared helper imported by
+`snapshot_generator.py` and `price_advisor.py`). This is a SEPARATE code path
+from `get_property_report()` (the SQL function used by the on-screen report).
+When adding a new hazard field that should appear in BOTH surfaces, update
+`_detect_hazards` (snapshots) AND the relevant migration (on-screen).
+Existing snapshots are immutable — they won't backfill. Only new hosted
+reports generated after the code change will include the new field.
+
 ### Map View (`/`)
 **Purpose:** Discovery. Let users explore the map, see property pins, and search addresses. The map is the entry point.
 
