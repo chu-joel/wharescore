@@ -48,11 +48,12 @@ export function SignupNudge() {
   if (isSignedIn || dismissed || !visible) return null;
 
   const handleSignIn = () => {
-    // Route through the dedicated /signin page so the user lands on
-    // the branded welcome + privacy copy before the Google OAuth
-    // round-trip. Matches SavePropertyButton and the rest of the
-    // app — all auth entry points funnel through /signin so we
-    // have a single place to tweak copy / add providers later.
+    // Route through the dedicated /signin page so the user can pick
+    // between email-OTP (the primary flow, no password) and Google
+    // OAuth. Every auth entry point in the app funnels through
+    // /signin — do not call next-auth's signIn() directly from the
+    // nudge, it would commit the user to a single provider and
+    // skip the branded welcome + privacy copy.
     const callback = window.location.pathname + window.location.search;
     window.location.href = `/signin?callbackUrl=${encodeURIComponent(callback)}`;
   };
@@ -107,7 +108,7 @@ export function SignupNudge() {
               onClick={handleSignIn}
               className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-piq-primary text-white px-3 py-1.5 text-xs font-semibold hover:bg-piq-primary-dark transition-colors"
             >
-              Sign in with Google
+              Create free account
             </button>
           </div>
         </div>
