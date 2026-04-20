@@ -158,6 +158,7 @@ POST /property/{id}/export/pdf/start[?report_tier=quick|full]
 | `docs/SYSTEM-FLOWS.md` | "How does auth/payment/scoring/findings/caching work? What is each screen's PURPOSE?" | Changing auth, payments, scoring, adding screens | When changing any system flow |
 | `docs/WIRING-TRACES.md` | "Does city X have data for field Y? What's the full chain?" | Verifying data flows, debugging, auditing | When adding data, changing report fields |
 | `docs/DATA-CATALOG.md` | "What table stores this? What DataSources populate it? What's the live rates API?" | Adding data, rates modules, checking schemas | When adding DataSources, tables, APIs |
+| `docs/DATA-PROVENANCE.md` | "Where did this user-facing datapoint come from — which authority, which endpoint?" | Answering user transparency questions, wiring source attribution into findings | When adding a DataSource that surfaces in findings/insights |
 | `docs/FRONTEND-WIRING.md` | "What component displays this field? What's in the snapshot? What API does this call?" | Changing UI, adding sections, tracing JSON | When adding components, fields, endpoints |
 | `docs/RECIPES.md` | "How do I add a dataset/rates API/transit city/report field step by step?" | Any implementation task | When a new recipe is needed |
 | `DATA-LAYERS.md` | "Which councils have flood/liquefaction/tsunami data loaded?" | Checking hazard coverage by region | When loading new council data |
@@ -176,6 +177,7 @@ Before committing, check if your change affects any of these. If yes, update the
 | If you... | Update this doc | Add this |
 |---|---|---|
 | Added a DataSource | `DATA-CATALOG.md` § DataSources-by-region | Row under the region: `\| key \| target_table \|` |
+| Added a DataSource that surfaces in findings | `DATA-PROVENANCE.md` (appropriate category) AND set `source_key` on the Insight in `report_html.py` | Row: `\| field.path \| Label \| Authority \| Dataset / endpoint \| DataSource key \| Table \| Coverage \|` |
 | Added a rates module | `DATA-CATALOG.md` § Live-rates-APIs | Row: `\| # \| Council \| module.py \| city matches \| endpoint type \| CV \| LV \| IV \| Rates \|` — also verify TWO wiring points updated |
 | Added GTFS city | `DATA-CATALOG.md` § GTFS-transit | Row: `\| City \| datasource_key \| URL \| stops \| destinations \| travel_times \|` |
 | Added a DB table | `DATA-CATALOG.md` § Major-database-tables | Row: `\| table \| ~rows \| key columns \| populated by \| queried by \|` |

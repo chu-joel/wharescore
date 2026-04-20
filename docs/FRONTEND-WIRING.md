@@ -6,6 +6,21 @@
 
 ---
 
+## Source attribution (transparency)
+<!-- UPDATE: When annotating a new Insight with source=_src("key"), add the key to SOURCE_CATALOG and a row in docs/DATA-PROVENANCE.md. -->
+
+Findings and insights carry an optional `source` field that renders a "Source: {authority}" caption linking to the authority's page. Wiring:
+
+| Layer | File | Shape | Notes |
+|---|---|---|---|
+| Insight class | `backend/app/services/report_html.py` (`Insight`, `SOURCE_CATALOG`, `_src`) | `Insight(level, text, action, source={authority, url}\|None)` | `source` is optional. Call sites without `source=` render unchanged. Unknown keys log a warning and render without attribution (don't crash). |
+| Badge/ranked findings | `select_findings_for_badge()` → `ranked_findings` on report/snapshot | `{severity, title, detail, source?: {authority, url}}` | Propagated from `Insight.to_dict()` when present. |
+| On-screen card | `frontend/src/components/property/FindingCard.tsx` | `Finding.source: string`, optional `sourceUrl: string` | When `sourceUrl` present, the caption renders as a link. |
+| On-screen free tier | `frontend/src/components/property/KeyFindings.tsx` (`asFrontendFinding`) | Reads `ranked.source.authority`/`.url` | Falls back to `'WhareScore data'` when snapshot predates the field. |
+| Hosted (Jinja, legacy) | `backend/app/templates/report/property_report.html` (4 insight loops) | `{% if i.source %}` | Only renders when present — old snapshots pass-through safely. |
+
+**Coverage:** ~15 of 103 `Insight(...)` call sites annotated so far (highest-visibility hazards, crime, noise, crashes, contamination, climate, NZDep). Remaining calls render without attribution — adding more is a one-line edit per site.
+
 ## Report Fields → Components
 <!-- UPDATE: When adding a report field, add the row. When adding a component, add its fields. -->
 

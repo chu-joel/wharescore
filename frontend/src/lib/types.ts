@@ -80,9 +80,12 @@ export interface PropertyReport {
    *  Single source of truth shared with the browser extension. KeyFindings
    *  prefers these over generateFindings() for the free-tier visible slice. */
   ranked_findings?: {
-    renter: Array<{ severity: string; title: string; detail: string }>;
-    buyer: Array<{ severity: string; title: string; detail: string }>;
-    generic: Array<{ severity: string; title: string; detail: string }>;
+    // source is optional — older cached/snapshotted findings won't have it,
+    // and only a subset of backend Insight() call sites have been annotated
+    // so far (see SOURCE_CATALOG in backend/app/services/report_html.py).
+    renter: Array<{ severity: string; title: string; detail: string; source?: { authority: string; url: string } }>;
+    buyer: Array<{ severity: string; title: string; detail: string; source?: { authority: string; url: string } }>;
+    generic: Array<{ severity: string; title: string; detail: string; source?: { authority: string; url: string } }>;
   };
 }
 

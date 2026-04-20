@@ -17,11 +17,13 @@ interface KeyFindingsProps {
 }
 
 // Coerce a backend-ranked finding into the frontend Finding shape expected by
-// FindingCard. Backend returns {severity, title, detail}; FindingCard wants
-// {headline, interpretation, severity, category, source}. Category/source are
-// cosmetic here since the card renders severity + text.
+// FindingCard. Backend returns {severity, title, detail, source?}; FindingCard
+// wants {headline, interpretation, severity, category, source, sourceUrl?}.
+// When the backend has annotated the Insight with a source (SOURCE_CATALOG),
+// surface the authority name — otherwise fall back to a generic label so the
+// card still renders for older cached/snapshotted findings.
 function asFrontendFinding(
-  ranked: { severity: string; title: string; detail: string },
+  ranked: { severity: string; title: string; detail: string; source?: { authority: string; url: string } },
 ): Finding {
   const sev = ranked.severity as Finding['severity'];
   return {
@@ -31,7 +33,8 @@ function asFrontendFinding(
     headline: ranked.title,
     interpretation: ranked.detail || '',
     category: 'ranked',
-    source: 'backend',
+    source: ranked.source?.authority || 'WhareScore data',
+    sourceUrl: ranked.source?.url,
   };
 }
 

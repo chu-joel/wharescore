@@ -275,6 +275,8 @@ tr.haz-row-ok    { background: #FAFFFE !important; }
 .insight-info  { border-color: var(--info); }
 .insight-text  { margin-bottom: 4px; color: var(--text-secondary); }
 .insight-action { color: var(--text-muted); font-size: 0.92em; font-style: italic; }
+.insight-source { color: var(--text-muted); font-size: 0.8em; margin-top: 6px; }
+.insight-source a { color: var(--text-muted); text-decoration: underline; }
 
 /* ─── AI Narrative ───────────────────────────────────────────────────────────── */
 .ai-narrative { background: var(--card-bg); border-left: 4px solid var(--info); border-radius: 0 12px 12px 0; padding: 14px 18px; font-size: 0.91em; margin: 10px 0; color: var(--text-secondary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -1071,6 +1073,7 @@ html { scroll-behavior: smooth; }
   <div class="insight insight-{{ i.level }}">
     <p class="insight-text">{{ i.text }}</p>
     {% if i.action %}<p class="insight-action"><strong>&#8594;</strong> {{ i.action }}</p>{% endif %}
+    {% if i.source %}<p class="insight-source">Source: {% if i.source.url %}<a href="{{ i.source.url }}" target="_blank" rel="noopener">{{ i.source.authority }}</a>{% else %}{{ i.source.authority }}{% endif %}</p>{% endif %}
   </div>
   {% endfor %}
 </div>
@@ -1461,6 +1464,7 @@ html { scroll-behavior: smooth; }
 <div class="insight insight-{{ i.level }}">
   <p class="insight-text">{{ i.text }}</p>
   {% if i.action %}<p class="insight-action"><strong>&#8594;</strong> {{ i.action }}</p>{% endif %}
+  {% if i.source %}<p class="insight-source">Source: {% if i.source.url %}<a href="{{ i.source.url }}" target="_blank" rel="noopener">{{ i.source.authority }}</a>{% else %}{{ i.source.authority }}{% endif %}</p>{% endif %}
 </div>
 {% endfor %}
 {% endif %}
@@ -1881,6 +1885,7 @@ html { scroll-behavior: smooth; }
 <div class="insight insight-{{ i.level }}">
   <p class="insight-text">{{ i.text }}</p>
   {% if i.action %}<p class="insight-action"><strong>&#8594;</strong> {{ i.action }}</p>{% endif %}
+  {% if i.source %}<p class="insight-source">Source: {% if i.source.url %}<a href="{{ i.source.url }}" target="_blank" rel="noopener">{{ i.source.authority }}</a>{% else %}{{ i.source.authority }}{% endif %}</p>{% endif %}
 </div>
 {% endfor %}
 {% endif %}
@@ -2070,6 +2075,7 @@ html { scroll-behavior: smooth; }
 <div class="insight insight-{{ i.level }}">
   <p class="insight-text">{{ i.text }}</p>
   {% if i.action %}<p class="insight-action"><strong>&#8594;</strong> {{ i.action }}</p>{% endif %}
+  {% if i.source %}<p class="insight-source">Source: {% if i.source.url %}<a href="{{ i.source.url }}" target="_blank" rel="noopener">{{ i.source.authority }}</a>{% else %}{{ i.source.authority }}{% endif %}</p>{% endif %}
 </div>
 {% endfor %}
 {% endif %}

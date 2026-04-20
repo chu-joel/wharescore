@@ -10,6 +10,9 @@ export interface Finding {
   severity: 'critical' | 'warning' | 'info' | 'positive';
   category: string;
   source: string;
+  // Optional authority URL — when present the source caption becomes a link so
+  // users can verify the flagged datapoint at its origin.
+  sourceUrl?: string;
 }
 
 const SEVERITY_CONFIG = {
@@ -82,7 +85,19 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
             {finding.interpretation}
           </p>
           <p className="text-xs text-muted-foreground/60 mt-1.5">
-            Source: {finding.source}
+            Source:{' '}
+            {finding.sourceUrl ? (
+              <a
+                href={finding.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-piq-primary"
+              >
+                {finding.source}
+              </a>
+            ) : (
+              finding.source
+            )}
           </p>
         </div>
       </div>
@@ -190,15 +205,20 @@ export function generateFindings(report: {
   }
 
   if (h.liquefaction_zone) {
-    const isHigh = h.liquefaction_zone.toLowerCase().includes('high') || h.liquefaction_zone.toLowerCase().includes('very');
-    findings.push({
-      headline: `Liquefaction susceptibility: ${h.liquefaction_zone}`,
-      interpretation:
-        'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
-      severity: isHigh ? 'critical' : 'warning',
-      category: 'Hazards',
-      source: 'Regional Council Liquefaction Maps',
-    });
+    const liq = h.liquefaction_zone.toLowerCase();
+    const isVeryHigh = liq.includes('very high');
+    const isHigh = !isVeryHigh && liq.includes('high');
+    const isModerate = liq.includes('moderate') || liq.includes('medium');
+    if (isVeryHigh || isHigh || isModerate) {
+      findings.push({
+        headline: `Liquefaction susceptibility: ${h.liquefaction_zone}`,
+        interpretation:
+          'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
+        severity: isVeryHigh ? 'critical' : isHigh ? 'warning' : 'info',
+        category: 'Hazards',
+        source: 'Regional Council Liquefaction Maps',
+      });
+    }
   }
 
   if (h.slope_failure) {
@@ -638,7 +658,11 @@ export function generateFindings(report: {
 
   // --- Positive findings ---
 
-  if (!isInFloodZone(h) && !h.tsunami_zone && !h.liquefaction_zone) {
+  const liqMeaningful = (() => {
+    const v = (h.liquefaction_zone || '').toLowerCase();
+    return v.includes('moderate') || v.includes('medium') || v.includes('high');
+  })();
+  if (!isInFloodZone(h) && !h.tsunami_zone && !liqMeaningful) {
     findings.push({
       headline: 'No major natural hazards detected',
       interpretation:

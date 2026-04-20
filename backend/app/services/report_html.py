@@ -499,16 +499,79 @@ def build_map_url(addr: dict) -> str | None:
 # Insight Rule Engine
 # =============================================================================
 
-class Insight:
-    __slots__ = ("level", "text", "action")
+# Source attribution catalog — used by Insight(source=_src("key")) to surface
+# "who said so" in findings. Keys match DATA-PROVENANCE.md. Adding a new
+# authority here is cheap; the frontend renders {authority, url} when present
+# and falls back gracefully when absent (old cached reports).
+SOURCE_CATALOG: dict[str, dict[str, str]] = {
+    # Flood / hazards
+    "council_flood": {"authority": "Regional council flood maps", "url": "https://www.lawa.org.nz/"},
+    "wcc_flood": {"authority": "Wellington City Council 2024 District Plan", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
+    "gwrc_flood": {"authority": "Greater Wellington Regional Council", "url": "https://mapping.gw.govt.nz/"},
+    # Tsunami / liquefaction / earthquake
+    "gns_faults": {"authority": "GNS Science Active Faults Database", "url": "https://data.gns.cri.nz/af/"},
+    "gns_landslides": {"authority": "GNS NZ Landslide Database", "url": "https://data.gns.cri.nz/landslides/"},
+    "geonet_earthquakes": {"authority": "GeoNet / GNS Science", "url": "https://www.geonet.org.nz/"},
+    "gwrc_earthquake": {"authority": "Greater Wellington Emergencies Portal", "url": "https://mapping.gw.govt.nz/"},
+    "council_liquefaction": {"authority": "Regional council liquefaction maps", "url": "https://www.lawa.org.nz/"},
+    "council_tsunami": {"authority": "Regional council tsunami zones", "url": "https://www.civildefence.govt.nz/"},
+    "wcc_hazards": {"authority": "Wellington City Council 2024 District Plan", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
+    "mbie_epb": {"authority": "MBIE Earthquake-Prone Building Register", "url": "https://epbr.building.govt.nz/"},
+    "niwa_coastal": {"authority": "NIWA Coastal Sensitivity Index", "url": "https://niwa.co.nz/coasts"},
+    "council_coastal": {"authority": "Regional council coastal hazard maps", "url": "https://www.lawa.org.nz/"},
+    # Liveability
+    "nzta_crashes": {"authority": "Waka Kotahi Crash Analysis System (CAS)", "url": "https://www.nzta.govt.nz/safety/partners/crash-analysis-system/"},
+    "nzta_noise": {"authority": "Waka Kotahi noise contours", "url": "https://www.nzta.govt.nz/"},
+    "nz_police_crime": {"authority": "NZ Police victimisations data", "url": "https://www.police.govt.nz/about-us/publications-statistics/data-and-statistics"},
+    "moe_schools": {"authority": "Ministry of Education", "url": "https://www.educationcounts.govt.nz/directories"},
+    "heritage_nz": {"authority": "Heritage NZ Pouhere Taonga Register", "url": "https://www.heritage.org.nz/list"},
+    "gtfs_transit": {"authority": "Regional transit operators (GTFS feeds)", "url": "https://opendata.transit.land/"},
+    "osm_amenities": {"authority": "OpenStreetMap contributors", "url": "https://www.openstreetmap.org/copyright"},
+    "nzdep": {"authority": "University of Otago NZDep / Stats NZ", "url": "https://www.otago.ac.nz/wellington/departments/publichealth/research/hirp/otago020194.html"},
+    # Environment
+    "lawa_air": {"authority": "LAWA (Land Air Water Aotearoa)", "url": "https://www.lawa.org.nz/explore-data/air-quality"},
+    "lawa_water": {"authority": "LAWA (Land Air Water Aotearoa)", "url": "https://www.lawa.org.nz/explore-data/water-quality"},
+    "niwa_climate": {"authority": "NIWA climate projections", "url": "https://niwa.co.nz/climate/research-projects/climate-projections-new-zealand"},
+    "open_meteo": {"authority": "Open-Meteo historical weather archive (CC BY 4.0)", "url": "https://open-meteo.com/"},
+    "council_slur": {"authority": "Regional council SLUR / HAIL registers", "url": "https://environment.govt.nz/guides/contaminated-land/"},
+    # Planning / property
+    "linz_titles": {"authority": "LINZ Property Titles", "url": "https://data.linz.govt.nz/data/category/property-ownership-boundaries/"},
+    "linz_outlines": {"authority": "LINZ Building Outlines", "url": "https://data.linz.govt.nz/layer/101290-nz-building-outlines/"},
+    "linz_waterways": {"authority": "LINZ Topo50 waterways", "url": "https://data.linz.govt.nz/"},
+    "council_zones": {"authority": "Council District / Unitary Plan zones", "url": "https://www.lawa.org.nz/"},
+    "council_heritage_overlay": {"authority": "Council heritage overlay", "url": "https://www.heritage.org.nz/"},
+    "transpower": {"authority": "Transpower transmission network", "url": "https://www.transpower.co.nz/"},
+    "srtm": {"authority": "NASA/USGS SRTM 30m DEM (computed by WhareScore)", "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm"},
+}
 
-    def __init__(self, level: str, text: str, action: str = ""):
+
+def _src(key: str) -> dict | None:
+    """Look up a source from SOURCE_CATALOG. Returns None if key is missing so
+    Insights with a typo'd source_key still render (just without attribution)
+    rather than crashing. Emits a one-time warning in logs for the unknown key."""
+    src = SOURCE_CATALOG.get(key)
+    if src is None:
+        logger.warning("Unknown source_key %r — add to SOURCE_CATALOG in report_html.py", key)
+    return src
+
+
+class Insight:
+    __slots__ = ("level", "text", "action", "source")
+
+    def __init__(self, level: str, text: str, action: str = "", source: dict | None = None):
         self.level = level   # "warn" | "info" | "ok"
         self.text = text
         self.action = action
+        # source is optional: {"authority": str, "url": str} or None.
+        # Old Insight call sites without source= remain unchanged — attribution
+        # is additive and gracefully absent in the rendered finding.
+        self.source = source
 
     def to_dict(self) -> dict:
-        return {"level": self.level, "text": self.text, "action": self.action}
+        d = {"level": self.level, "text": self.text, "action": self.action}
+        if self.source:
+            d["source"] = self.source
+        return d
 
 
 def build_insights(report: dict) -> dict[str, list[dict]]:
@@ -560,12 +623,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             "1-in-100-year flood zone — 1% annual chance of inundation.",
             "Request LIM. Check floor level was elevated to consent. Ask lender about flood insurance requirement.",
+            source=_src("council_flood"),
         ).to_dict())
     elif "0.2%" in flood or "430" in flood:
         result["hazards"].append(Insight(
             "info",
             "Low-probability flood zone (1-in-430 years) — mainly affects mortgage eligibility.",
             "Check with your lender — some banks require flood insurance for any mapped zone.",
+            source=_src("council_flood"),
         ).to_dict())
 
     tsunami = hazards.get("tsunami_zone_class")
@@ -579,12 +644,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "warn",
                 f"Tsunami Zone {tz} — highest local government warning tier for this area.",
                 "Identify your inland evacuation route. Zone 3 affects resale times in some coastal suburbs.",
+                source=_src("council_tsunami"),
             ).to_dict())
         elif tz >= 1:
             result["hazards"].append(Insight(
                 "info",
                 f"Tsunami Zone {tz} — low-to-moderate wave inundation risk from distant events.",
                 "",
+                source=_src("council_tsunami"),
             ).to_dict())
 
     liquefaction = str(hazards.get("liquefaction") or "").lower()
@@ -593,12 +660,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"High liquefaction potential — ground likely to deform in a major earthquake.",
             "Inspect foundations carefully. Request geotechnical report if available.",
+            source=_src("council_liquefaction"),
         ).to_dict())
     elif "moderate" in liquefaction:
         result["hazards"].append(Insight(
             "info",
             "Moderate liquefaction — partial settlement possible in significant seismic event.",
             "Standard building inspection should note any existing foundation movement cracks.",
+            source=_src("council_liquefaction"),
         ).to_dict())
 
     eq_count = hazards.get("earthquake_count_30km")
@@ -612,6 +681,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{eq_count} M4+ earthquakes within 30km in 10 years — active seismic area.",
             "Review earthquake strengthening, especially pre-1976 unreinforced masonry.",
+            source=_src("geonet_earthquakes"),
         ).to_dict())
 
     wind = str(hazards.get("wind_zone") or "").upper()
@@ -633,6 +703,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{epb_count} earthquake-prone buildings within 300m — older building stock nearby.",
             "Check MBIE EPB register for this specific property. EPB status affects insurance.",
+            source=_src("mbie_epb"),
         ).to_dict())
 
     wildfire_days = hazards.get("wildfire_vhe_days")
@@ -655,12 +726,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{ls_count} historical landslides documented within 500m (GNS NZLD). Multiple events indicate significant slope instability.",
             "Commission a geotechnical assessment. Check retaining walls, drainage, and ground movement indicators.",
+            source=_src("gns_landslides"),
         ).to_dict())
     elif ls_count > 0:
         result["hazards"].append(Insight(
             "info",
             f"{ls_count} historical landslide{'s' if ls_count > 1 else ''} recorded within 500m. Check property for signs of ground movement.",
             "Review retaining wall condition and drainage adequacy during your viewing.",
+            source=_src("gns_landslides"),
         ).to_dict())
 
     if hazards.get("landslide_in_area"):
@@ -668,6 +741,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             "This property is within a mapped historical landslide boundary (GNS Science).",
             "A geotechnical report is essential. Consider foundation type and any ground movement history.",
+            source=_src("gns_landslides"),
         ).to_dict())
 
     # Slope Failure / Landslide
@@ -1456,12 +1530,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "warn",
                 f"{noise_db:.0f} dB — equivalent to a busy restaurant. Audible indoors with standard windows.",
                 action,
+                source=_src("nzta_noise"),
             ).to_dict())
         elif noise_db >= 55:
             result["environment"].append(Insight(
                 "info",
                 f"{noise_db:.0f} dB — moderate road noise, similar to a conversational voice at close range.",
                 "Consider room orientation — bedrooms away from the road will be quieter.",
+                source=_src("nzta_noise"),
             ).to_dict())
         elif noise_db < 45:
             result["environment"].append(Insight(
@@ -1481,6 +1557,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"Regional air quality is degrading{site_str}{dist_note}.",
             "This is regional LAWA data, not a property-specific reading. HEPA filtration effective indoors. Check if wood burners are the dominant source.",
+            source=_src("lawa_air"),
         ).to_dict())
 
     water_band = env.get("water_ecoli_band")
@@ -1489,6 +1566,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"Nearest water monitoring site rated {water_band} for E.coli — below NPS-FM standards.",
             "Surface water only, not drinking water. If property has bore water, test before use.",
+            source=_src("lawa_water"),
         ).to_dict())
 
     contam_dist = env.get("contam_nearest_distance_m")
@@ -1527,6 +1605,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ANZECC Category A covers former petrol stations, chemical plants, galvanisers. Groundwater plumes can travel "
                 "300–2,000m. A Phase-1 Environmental Site Assessment (~$1,500–3,000) should explicitly address the pathway "
                 "from this site to yours, not just proximity. Lender may require clearance before mortgage.",
+                source=_src("council_slur"),
             ).to_dict())
         elif contam_dist <= 200 and is_cemetery_waste:
             result["environment"].append(Insight(
@@ -1534,6 +1613,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"Contaminated-land register entry {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
                 "Cemeteries and closed landfills carry a regulatory listing but rarely have active soil/water-contact exposure. "
                 "Still worth a LIM disclosure check if you plan earthworks or food gardens.",
+                source=_src("council_slur"),
             ).to_dict())
         elif contam_dist <= 200:
             result["environment"].append(Insight(
@@ -1541,6 +1621,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"Contaminated site {int(contam_dist)}m away: **{name}**{cat_str}.{count_str}",
                 "Check the regional council SLUR register for full site history. For purchase: a Phase 1 Environmental Site "
                 "Assessment (~$1,500–3,000) is standard practice and may be required by your lender.",
+                source=_src("council_slur"),
             ).to_dict())
 
     climate_change = env.get("climate_temp_change")
@@ -1554,6 +1635,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"+{climate_change:.1f}°C projected warming 2041–2060 (SSP2-4.5) — warmer winters, higher summer cooling loads.",
             "Review home insulation rating.",
+            source=_src("niwa_climate"),
         ).to_dict())
 
     # ── Liveability Rules ─────────────────────────────────────────────────────
@@ -1570,12 +1652,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "warn",
                 f"NZDep decile {nzdep}/10 — among the 30% most deprived NZ areas (2018 index covering income, employment, qualifications, access).",
                 "Decile does not reflect gentrification since 2018. Visit at different times to assess character.",
+                source=_src("nzdep"),
             ).to_dict())
         elif nzdep <= 3:
             result["liveability"].append(Insight(
                 "ok",
                 f"NZDep decile {nzdep}/10 — among the least deprived areas in NZ.",
                 "",
+                source=_src("nzdep"),
             ).to_dict())
 
     crime_pct = live.get("crime_percentile")
@@ -1593,6 +1677,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "warn",
                 f"{crime_pct:.0f}th percentile for crime victimisations — higher than {crime_pct:.0f}% of {city} areas.{median_str}",
                 "Check the specific crime categories — property crime and violent crime have different implications for insurance vs personal safety.",
+                source=_src("nz_police_crime"),
             ).to_dict())
         elif crime_pct >= 50:
             median_str = f" City median: {crime_median}." if crime_median else ""
@@ -1600,6 +1685,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "info",
                 f"{crime_pct:.0f}th percentile — above {city} median for crime victimisations.{median_str}",
                 "",
+                source=_src("nz_police_crime"),
             ).to_dict())
 
     crashes_serious = live.get("crashes_300m_serious") or 0
@@ -1614,6 +1700,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{crashes_serious + crashes_fatal} serious/fatal crashes within 300m in 5 years.",
             "Check intersection geometry. If households have children, assess pedestrian crossing availability.",
+            source=_src("nzta_crashes"),
         ).to_dict())
 
     transit = live.get("transit_stops_400m")
@@ -5047,10 +5134,10 @@ def select_findings_for_badge(
                 score = severity_score * persona_weight * non_obv
             else:
                 score = severity_score * persona_weight
-            scored.append((
-                score,
-                {"severity": severity, "title": text, "detail": item.get("action") or ""},
-            ))
+            finding = {"severity": severity, "title": text, "detail": item.get("action") or ""}
+            if item.get("source"):
+                finding["source"] = item["source"]
+            scored.append((score, finding))
 
     scored.sort(key=lambda t: t[0], reverse=True)
 
