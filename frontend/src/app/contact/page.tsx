@@ -22,10 +22,10 @@ export default function ContactPage() {
             <div>
               <p className="font-medium">Email</p>
               <a
-                href="mailto:hello@wharescore.co.nz"
+                href="mailto:wharescore@gmail.com"
                 className="text-sm text-primary hover:underline"
               >
-                hello@wharescore.co.nz
+                wharescore@gmail.com
               </a>
               <p className="text-sm text-muted-foreground mt-1">
                 For general enquiries, partnerships, media, or anything else.
@@ -54,10 +54,10 @@ export default function ContactPage() {
             If you notice incorrect data in a report, the fastest path is the
             in-app feedback button (bottom-right of any report page) or{' '}
             <a
-              href="mailto:hello@wharescore.co.nz?subject=Data%20correction"
+              href="mailto:wharescore@gmail.com?subject=Data%20correction"
               className="text-primary hover:underline"
             >
-              email hello@wharescore.co.nz
+              email wharescore@gmail.com
             </a>{' '}
             with the property address and the data point that looks wrong.
             Our data comes from government sources, so corrections may need
@@ -73,7 +73,7 @@ export default function ContactPage() {
             area you&rsquo;ll see a &ldquo;Notify me when available&rdquo; form,
             or you can{' '}
             <a
-              href="mailto:hello@wharescore.co.nz?subject=Coverage%20request"
+              href="mailto:wharescore@gmail.com?subject=Coverage%20request"
               className="text-primary hover:underline"
             >
               email us the region you&rsquo;d like to see covered
