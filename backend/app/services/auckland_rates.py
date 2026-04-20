@@ -18,9 +18,36 @@ import json
 import logging
 import math
 import re
+import unicodedata
 import urllib.parse
 
 import requests
+
+
+def _fold(s: str) -> str:
+    """Lowercase + strip diacritics (macrons, accents) for locale-insensitive equality.
+
+    AC API returns "Totara Vale" for LINZ's "Tōtara Vale" — literal `==` fails.
+    Also covers Te Atatū, Ōrākei, Kūmeu, Pākuranga, Ōtāhuhu, Māngere, etc.
+    """
+    if not s:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+
+
+def _leading_number(addr: str) -> str | None:
+    """Extract the street number from the start of a LINZ-style address.
+    '52 Clarence Road, ...' -> '52'.  '1/111 Athena Drive, ...' -> '1/111'.
+    Used to reject candidates whose street number doesn't match exactly —
+    AC search returns partial-number matches ('5', '12', '25', '50' all
+    come before '52' when pageSize is small).
+    """
+    if not addr:
+        return None
+    first = addr.split(",", 1)[0].strip().lower()
+    m = re.match(r"^([0-9]+[a-z]?(?:/[0-9]+[a-z]?)?)\s", first)
+    return m.group(1) if m else None
 
 logger = logging.getLogger(__name__)
 
@@ -75,15 +102,16 @@ def _best_match(
         return None
 
     search_lower = search_addr.lower()
-    search_suburb = _extract_suburb_phrase(search_addr)
+    search_suburb = _fold(_extract_suburb_phrase(search_addr))
     search_words = set(search_lower.split())
+    search_number = _leading_number(search_addr)
 
-    # Pass 1: require exact suburb match.
+    # Pass 1: require exact suburb match (macron-insensitive).
     candidates: list[dict] = []
     if search_suburb:
         for item in items:
             addr = item.get("address") or item.get("name") or ""
-            item_suburb = _extract_suburb_phrase(addr)
+            item_suburb = _fold(_extract_suburb_phrase(addr))
             if item_suburb and item_suburb == search_suburb:
                 candidates.append(item)
         if not candidates:
@@ -94,6 +122,23 @@ def _best_match(
             return None
     else:
         candidates = list(items)
+
+    # Pass 1b: if we have a leading street number, require it to match exactly.
+    # AC search returns partial-number hits ("5, 12, 25, 50" all come before "52")
+    # so without this, word-overlap below silently picks the wrong property.
+    if search_number:
+        number_matches = [
+            item for item in candidates
+            if _leading_number(item.get("address") or item.get("name") or "") == search_number
+        ]
+        if number_matches:
+            candidates = number_matches
+        else:
+            logger.debug(
+                f"AC: no candidate had street number {search_number!r} from "
+                f"{search_addr!r}; rejecting {len(candidates)} suburb matches"
+            )
+            return None
 
     # Pass 2: distance sort if we have a reference point AND results expose x/y.
     if ref_lat is not None and ref_lng is not None:
@@ -145,7 +190,10 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
     try:
         # 1. Search by address to get rateAccountKey
         search_addr = _simplify_address(address)
-        search_url = f"{AC_SEARCH_URL}?query={urllib.parse.quote(search_addr)}&pageSize=5"
+        # pageSize=25: AC search is substring/prefix, so "52 Clarence" is
+        # outscored by "5, 12, 25, 32, 50" with pageSize=5 — the real property
+        # falls off the list before _best_match sees it.
+        search_url = f"{AC_SEARCH_URL}?query={urllib.parse.quote(search_addr)}&pageSize=25"
         logger.debug(f"Auckland search: {search_url}")
         search_data = await _fetch_json(search_url)
 
@@ -165,7 +213,7 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
                     "WHERE full_address = %s LIMIT 1",
                     [address],
                 )
-                row = cur.fetchone()
+                row = await cur.fetchone()
                 if row and row.get("lat") is not None and row.get("lng") is not None:
                     ref_lat, ref_lng = float(row["lat"]), float(row["lng"])
             except Exception as e:
@@ -274,7 +322,7 @@ async def _get_cached(address: str, conn) -> dict | None:
             """,
             [f"%{search}%"],
         )
-        r = cur.fetchone()
+        r = await cur.fetchone()
         if not r:
             return None
 
