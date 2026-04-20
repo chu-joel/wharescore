@@ -644,6 +644,13 @@ export function MapContainer() {
       className="relative w-full h-full"
       role="application"
       aria-label="Interactive property map of New Zealand"
+      // Belt-and-braces: react-map-gl's onMouseLeave only fires when the
+      // mouse exits the canvas. Leaving onto a sibling overlay (legend,
+      // style picker) or the report pane next to the map could leave
+      // hoverInfo stuck visible. Catching pointer-leave on the outer
+      // wrapper covers that case.
+      onMouseLeave={handleMouseLeave}
+      onPointerLeave={handleMouseLeave}
     >
       <Map
         ref={mapRef}

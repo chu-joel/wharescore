@@ -106,15 +106,22 @@ export function MouldDampnessRisk({ report }: Props) {
 
   const highCount = factors.filter(f => f.severity === 'high').length;
   const modCount = factors.filter(f => f.severity === 'moderate').length;
+  // Flood zone is a qualitatively different factor — past flooding leaves
+  // long-term mould in walls, floors, and insulation — so it's never just a
+  // "minor" factor even in isolation. Detect by label since factors[] below
+  // uses free-form labels.
+  const floodFlagged = factors.some(f => f.label.toLowerCase().includes('flood'));
 
   // Determine overall risk
   let riskLevel: 'high' | 'moderate' | 'low';
   let riskLabel: string;
   let riskDescription: string;
-  if (highCount >= 2 || (highCount >= 1 && modCount >= 2)) {
+  if (highCount >= 2 || (highCount >= 1 && modCount >= 2) || floodFlagged) {
     riskLevel = 'high';
-    riskLabel = 'Higher dampness risk';
-    riskDescription = 'Multiple factors increase mould and dampness risk here. Inspect carefully before signing.';
+    riskLabel = floodFlagged ? 'Higher dampness and flood damage risk' : 'Higher dampness risk';
+    riskDescription = floodFlagged
+      ? 'Past or potential flooding here leaves long-term damp in walls, floors and insulation. Inspect carefully — behind wardrobes, under sinks, along skirting, in the ceiling space — and ask directly whether the property has been flooded.'
+      : 'Multiple factors increase mould and dampness risk here. Inspect carefully before signing.';
   } else if (highCount >= 1 || modCount >= 2) {
     riskLevel = 'moderate';
     riskLabel = 'Some dampness risk';

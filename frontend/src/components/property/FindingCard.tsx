@@ -145,7 +145,7 @@ export function generateFindings(report: {
     findings.push({
       headline: `This property is in a flood zone (${floodLabel(h)})`,
       interpretation:
-        'The property may be at risk of flooding during heavy rainfall events. This can affect insurance availability and premiums, and may require specific building modifications.',
+        'Rain heavy enough to overwhelm drains has been mapped to reach this property. Plan for it: know your evacuation route and where you\'d go, keep important documents somewhere you can grab in 5 minutes, and check your insurance specifically covers flood (many policies exclude it or charge a higher excess). Ask the agent or landlord directly whether this property has flooded before.',
       severity: 'critical',
       category: 'Hazards',
       source: 'Regional Council Flood Maps',
@@ -153,9 +153,9 @@ export function generateFindings(report: {
   } else if (isNearFloodZone(h)) {
     const dist = floodProximityM(h);
     findings.push({
-      headline: `This property is within ${dist}m of a mapped flood zone`,
+      headline: `Only ${dist}m from a flood zone`,
       interpretation:
-        'The property is not inside a mapped flood polygon but is close enough that a large flood event could still affect it. Mapped boundaries are imprecise — ask about any historical flooding on the street and check insurance cover.',
+        `The mapped flood boundary stops ${dist}m away, but flood maps aren't precise — a larger-than-mapped event can spill beyond the edge. Be prepared: know the evacuation route for your street, check that your insurance covers flood (many policies exclude it), and ask whether the street or neighbours have flooded before.`,
       severity: 'warning',
       category: 'Hazards',
       source: 'Regional Council Flood Maps',

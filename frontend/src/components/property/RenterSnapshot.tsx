@@ -154,13 +154,20 @@ export function RenterSnapshot({ report }: Props) {
   if (highLiquefaction) dampFactors.push('high water table');
   if (coastalErosion) dampFactors.push('coastal exposure');
 
-  if (dampFactors.length >= 2) {
+  // Flood zone is a qualitatively different dampness factor to "limited sun"
+  // or "low-lying terrain" — rooms that have actually flooded carry long-term
+  // mould risk, contents insurance implications, and possible contamination.
+  // Always surface it at 'warning' even when it's the only factor.
+  const floodAmongFactors = hasFlood && dampFactors.includes('flood zone');
+  if (dampFactors.length >= 2 || floodAmongFactors) {
     sections.push({
       id: 'dampness',
       icon: Droplets,
-      title: 'Higher dampness risk',
-      detail: `${dampFactors.join(', ')} — check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals have dampness issues.`,
-      verdict: dampFactors.length >= 3 ? 'warning' : 'caution',
+      title: floodAmongFactors ? 'Higher dampness and flood damage risk' : 'Higher dampness risk',
+      detail: floodAmongFactors
+        ? `${dampFactors.join(', ')} — past flooding leaves long-term mould in walls, floors and insulation. Check behind wardrobes, under sinks, along skirting boards and in the ceiling space. Ask directly whether this property has been flooded or is on contents-insurance exclusion lists.`
+        : `${dampFactors.join(', ')} — check behind wardrobes and bathroom ceilings for mould. 1 in 5 NZ rentals have dampness issues.`,
+      verdict: (dampFactors.length >= 3 || floodAmongFactors) ? 'warning' : 'caution',
     });
   } else if (dampFactors.length === 1) {
     sections.push({
