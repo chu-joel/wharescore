@@ -760,6 +760,19 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
             capital_value = live_cv
             land_value = cv_data.get("land_value") or 0
 
+    # Apply per-unit floor area from rates data (AKCC, WDC, ICC today).
+    # The SQL report's footprint_sqm is the LINZ building polygon and is
+    # identical across cross-lease / semi-detached units sitting under one
+    # outline. The rates API returns valued floor area per rating unit.
+    if rates_data and report.get("property"):
+        live_floor = rates_data.get("total_floor_area_sqm")
+        if live_floor:
+            report["property"]["floor_area_sqm"] = float(live_floor)
+            report["property"]["floor_area_source"] = rates_data.get("source") or "council_rates"
+        live_coverage = rates_data.get("building_site_coverage_pct")
+        if live_coverage:
+            report["property"]["site_coverage_sqm"] = float(live_coverage)
+
     # 8. Hazard prevalence (depends on hazards result)
     detected_keys = set()
     if hazards.get("flood_zone"):

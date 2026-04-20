@@ -100,6 +100,7 @@ def _format_response(prop: dict) -> dict:
         "legal_description": prop.get("app_concat"),
         "cert_of_title": None,
         "property_improvements": prop.get("as_improvements"),
+        "total_floor_area_sqm": _safe_float(prop.get("Floor_Area")),
         "current_valuation": {
             "capital_value": cv,
             "land_value": lv,

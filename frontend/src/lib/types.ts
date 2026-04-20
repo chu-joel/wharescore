@@ -102,7 +102,17 @@ export interface AddressInfo {
 }
 
 export interface PropertyInfo {
+  /** LINZ building_outlines polygon area. For cross-lease / semi-detached /
+   * duplex addresses this is the whole structure's footprint and is shared
+   * across every unit under that polygon - not a per-unit figure. */
   building_area_sqm: number | null;
+  /** Per-unit valued floor area from the council rates API (AKCC / WDC / ICC
+   * today). Prefer this over `building_area_sqm` when present. */
+  floor_area_sqm?: number | null;
+  /** Source tag for floor_area_sqm (e.g. 'akcc', 'wdc_arcgis', 'icc_arcgis'). */
+  floor_area_source?: string | null;
+  /** Per-unit building site coverage in m² (Auckland only). */
+  site_coverage_sqm?: number | null;
   land_area_sqm: number | null;
   capital_value: number | null;
   land_value: number | null;

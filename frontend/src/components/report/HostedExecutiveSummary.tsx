@@ -2,7 +2,7 @@
 
 import { AlertTriangle, MapPin, Building2, Ruler, TreePine, Bus, Navigation, Shield, Footprints, Volume2 } from 'lucide-react';
 import type { PropertyReport, ReportSnapshot } from '@/lib/types';
-import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv, resolveFloorArea } from '@/lib/format';
 import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
@@ -50,13 +50,20 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   });
   if (prop.land_value && !hideBuildingAreas) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Value', value: formatCurrency(prop.land_value) });
   if (prop.improvement_value && !hideBuildingAreas) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Improvements', value: formatCurrency(prop.improvement_value) });
-  if (prop.building_area_sqm && !hideBuildingAreas) stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Building', value: `${prop.building_area_sqm.toLocaleString()} m²` });
-  if (prop.land_area_sqm && !hideBuildingAreas) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
-
-  const footprint = rawProp.footprint_sqm as number;
-  if (footprint && footprint !== prop.building_area_sqm && !hideBuildingAreas) {
-    stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
+  if (!hideBuildingAreas) {
+    const floor = resolveFloorArea(prop, {
+      isMultiUnit: !!report.property_detection?.is_multi_unit,
+      titleType: prop.title_type,
+    });
+    if (floor) {
+      stats.push({
+        icon: <Ruler className="h-3.5 w-3.5" />,
+        label: floor.label,
+        value: `${Math.round(floor.value).toLocaleString()} m²`,
+      });
+    }
   }
+  if (prop.land_area_sqm && !hideBuildingAreas) stats.push({ icon: <TreePine className="h-3.5 w-3.5" />, label: 'Land Area', value: `${prop.land_area_sqm.toLocaleString()} m²` });
 
   // Skip "Use" when the value is literally "Unknown". showing a prominent "Unknown" cell
   // undermines confidence in the rest of the card.

@@ -485,6 +485,9 @@ export function transformReport(raw: any): PropertyReport {
   const rawProp = raw.property ?? {};
   const property = {
     building_area_sqm: rawProp.footprint_sqm ?? null,
+    floor_area_sqm: rawProp.floor_area_sqm ?? null,
+    floor_area_source: rawProp.floor_area_source ?? null,
+    site_coverage_sqm: rawProp.site_coverage_sqm ?? null,
     land_area_sqm: rawProp.cv_land_area || null,
     capital_value: rawProp.capital_value ?? null,
     land_value: rawProp.land_value ?? null,

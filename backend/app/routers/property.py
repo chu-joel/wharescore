@@ -178,6 +178,20 @@ async def _fix_unit_cv(report: dict, address_id: int) -> None:
                 report["property"]["improvements_value"] = cv_data.get("improvements_value") or 0
                 # Only assert per-unit when the value is plausible for one unit.
                 report["property"]["cv_is_per_unit"] = not looks_building_level
+
+        # Apply per-unit floor area from rates API when available (AKCC, WDC,
+        # ICC today). The SQL report's `footprint_sqm` is the LINZ building
+        # polygon and is identical across cross-lease / semi-detached units
+        # sitting under one outline. The rates API returns the actual valued
+        # floor area per rating unit, which disambiguates units correctly.
+        if rates_data:
+            live_floor = rates_data.get("total_floor_area_sqm")
+            if live_floor and report.get("property"):
+                report["property"]["floor_area_sqm"] = float(live_floor)
+                report["property"]["floor_area_source"] = rates_data.get("source") or "council_rates"
+            live_coverage = rates_data.get("building_site_coverage_pct")
+            if live_coverage and report.get("property"):
+                report["property"]["site_coverage_sqm"] = float(live_coverage)
     except Exception:
         pass  # non-critical. fall back to SQL report CV
     report["_cv_from_rates"] = True

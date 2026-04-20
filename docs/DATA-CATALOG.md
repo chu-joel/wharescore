@@ -10,33 +10,35 @@
 
 25 councils. Live rates are now fetched lazily via `GET /property/{id}/rates` (unified router in `routers/rates.py`). CV no longer blocks the report endpoint — DB value shown first, live value updates inline. `snapshot_generator.py` (~line 309-470) still calls rates directly for snapshot generation.
 
-| # | Council | Module file | City match (lowercase) | Endpoint type | CV | LV | IV | Rates |
-|---|---------|------------|----------------------|--------------|:--:|:--:|:--:|:-----:|
-| 1 | Wellington | `rates.py` | wellington | WCC API + wcc_rates_cache | Y | Y | Y | Y |
-| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API. Uses `_best_match()` to pick result by word overlap (not first result). | Y | Y | Y | Y |
-| 3 | Lower Hutt | `hcc_rates.py` | lower hutt | ArcGIS MapServer | Y | Y | Y | Y |
-| 4 | Upper Hutt | `uhcc_rates.py` | upper hutt | ArcGIS Online | Y | - | - | Y |
-| 5 | Porirua | `pcc_rates.py` | porirua | ArcGIS MapServer | Y | Y | Y | - |
-| 6 | Kapiti Coast | `kcdc_rates.py` | kapiti, paraparaumu, waikanae, otaki | ArcGIS MapServer | Y | Y | Y | - |
-| 7 | Horowhenua | `hdc_rates.py` | horowhenua, levin, foxton | ArcGIS MapServer | Y | Y | Y | - |
-| 8 | Hamilton | `hamilton_rates.py` | hamilton | ArcGIS FeatureServer | Y | Y | Y | - |
-| 9 | Dunedin | `dcc_rates.py` | dunedin | ArcGIS MapServer | Y | - | - | - |
-| 10 | Christchurch | `ccc_rates.py` | christchurch | CCC API + cache | Y | Y | Y | Y |
-| 11 | New Plymouth | `taranaki_rates.py` | new plymouth | ArcGIS FeatureServer | Y | Y | Y | - |
-| 12 | Tasman | `tasman_rates.py` | richmond, motueka, takaka, mapua | ArcGIS MapServer | Y | Y | Y | - |
-| 13 | Tauranga | `tcc_rates.py` | tauranga, mount maunganui | ArcGIS 2-step | Y | Y | Y | Y |
-| 14 | Western BOP | `wbop_rates.py` | katikati, te puke, waihi beach, ōmokoroa, paengaroa, western bay | ArcGIS 3-layer | Y | Y | Y | - |
-| 15 | Palmerston Nth | `pncc_rates.py` | palmerston | ArcGIS Online | Y | Y | - | Y |
-| 16 | Whangarei | `wdc_rates.py` | whangarei, whangārei | ArcGIS MapServer | Y | Y | Y | - |
-| 17 | Queenstown | `qldc_rates.py` | queenstown, wanaka, arrowtown, frankton, cromwell, alexandra | ArcGIS FeatureServer | Y | Y | Y | - |
-| 18 | Invercargill | `icc_rates.py` | invercargill | ArcGIS MapServer | Y | Y | Y | - |
-| 19 | Hastings | `hastings_rates.py` | hastings, havelock north, flaxmere | ArcGIS MapServer | Y | Y | Y | - |
-| 20 | Gisborne | `gdc_rates.py` | gisborne | ArcGIS Online | Y | Y | Y | Y |
-| 21 | Nelson | `ncc_rates.py` | nelson | MagiqCloud scraping | Y | Y | Y | Y |
-| 22 | Rotorua | `rlc_rates.py` | rotorua | ArcGIS Online | Y | Y | Y | Y |
-| 23 | Timaru | `timaru_rates.py` | timaru, temuka, geraldine | ArcGIS MapServer | Y | Y | Y | - |
-| 24 | Marlborough | `mdc_rates.py` | blenheim, marlborough, picton, renwick | ArcGIS MapServer | Y | Y | Y | - |
-| 25 | Whanganui | `wdc_whanganui_rates.py` | whanganui, wanganui | GeoServer WFS 2-step | Y | Y | Y | - |
+| # | Council | Module file | City match (lowercase) | Endpoint type | CV | LV | IV | Rates | Floor |
+|---|---------|------------|----------------------|--------------|:--:|:--:|:--:|:-----:|:-----:|
+| 1 | Wellington | `rates.py` | wellington | WCC API + wcc_rates_cache | Y | Y | Y | Y | - |
+| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API. Uses `_best_match()` to pick result by word overlap (not first result). | Y | Y | Y | Y | Y |
+| 3 | Lower Hutt | `hcc_rates.py` | lower hutt | ArcGIS MapServer | Y | Y | Y | Y | - |
+| 4 | Upper Hutt | `uhcc_rates.py` | upper hutt | ArcGIS Online | Y | - | - | Y | - |
+| 5 | Porirua | `pcc_rates.py` | porirua | ArcGIS MapServer | Y | Y | Y | - | - |
+| 6 | Kapiti Coast | `kcdc_rates.py` | kapiti, paraparaumu, waikanae, otaki | ArcGIS MapServer | Y | Y | Y | - | - |
+| 7 | Horowhenua | `hdc_rates.py` | horowhenua, levin, foxton | ArcGIS MapServer | Y | Y | Y | - | - |
+| 8 | Hamilton | `hamilton_rates.py` | hamilton | ArcGIS FeatureServer | Y | Y | Y | - | - |
+| 9 | Dunedin | `dcc_rates.py` | dunedin | ArcGIS MapServer | Y | - | - | - | - |
+| 10 | Christchurch | `ccc_rates.py` | christchurch | CCC API + cache | Y | Y | Y | Y | - |
+| 11 | New Plymouth | `taranaki_rates.py` | new plymouth | ArcGIS FeatureServer | Y | Y | Y | - | - |
+| 12 | Tasman | `tasman_rates.py` | richmond, motueka, takaka, mapua | ArcGIS MapServer | Y | Y | Y | - | - |
+| 13 | Tauranga | `tcc_rates.py` | tauranga, mount maunganui | ArcGIS 2-step | Y | Y | Y | Y | - |
+| 14 | Western BOP | `wbop_rates.py` | katikati, te puke, waihi beach, ōmokoroa, paengaroa, western bay | ArcGIS 3-layer | Y | Y | Y | - | - |
+| 15 | Palmerston Nth | `pncc_rates.py` | palmerston | ArcGIS Online | Y | Y | - | Y | - |
+| 16 | Whangarei | `wdc_rates.py` | whangarei, whangārei | ArcGIS MapServer | Y | Y | Y | - | Y |
+| 17 | Queenstown | `qldc_rates.py` | queenstown, wanaka, arrowtown, frankton, cromwell, alexandra | ArcGIS FeatureServer | Y | Y | Y | - | - |
+| 18 | Invercargill | `icc_rates.py` | invercargill | ArcGIS MapServer | Y | Y | Y | - | Y |
+| 19 | Hastings | `hastings_rates.py` | hastings, havelock north, flaxmere | ArcGIS MapServer | Y | Y | Y | - | - |
+| 20 | Gisborne | `gdc_rates.py` | gisborne | ArcGIS Online | Y | Y | Y | Y | - |
+| 21 | Nelson | `ncc_rates.py` | nelson | MagiqCloud scraping | Y | Y | Y | Y | - |
+| 22 | Rotorua | `rlc_rates.py` | rotorua | ArcGIS Online | Y | Y | Y | Y | - |
+| 23 | Timaru | `timaru_rates.py` | timaru, temuka, geraldine | ArcGIS MapServer | Y | Y | Y | - | - |
+| 24 | Marlborough | `mdc_rates.py` | blenheim, marlborough, picton, renwick | ArcGIS MapServer | Y | Y | Y | - | - |
+| 25 | Whanganui | `wdc_whanganui_rates.py` | whanganui, wanganui | GeoServer WFS 2-step | Y | Y | Y | - | - |
+
+**Floor area column** — `Y` means the rates API returns per-unit valued floor area and the module surfaces it as `total_floor_area_sqm` in the response dict. `_fix_unit_cv()` and `snapshot_generator.py` write that back to `report.property.floor_area_sqm`, which the frontend `resolveFloorArea()` helper prefers over the shared LINZ `footprint_sqm` polygon. Essential for cross-lease / semi-detached addresses - without it, every unit shows the same whole-building footprint. Schemas introspected on all 25 councils 2026-04-21; only AKCC / WDC / ICC expose the field.
 
 **Not covered:** Napier (no public API — uses bulk council_valuations fallback)
 

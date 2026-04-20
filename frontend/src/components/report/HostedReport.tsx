@@ -42,7 +42,7 @@ import { KeyFindings } from '@/components/property/KeyFindings';
 import { QuestionContent } from '@/components/property/QuestionContent';
 import { getRatingBin } from '@/lib/constants';
 import { getQuestionsForPersona } from '@/lib/reportSections';
-import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
+import { formatCurrency, effectivePerUnitCv, resolveFloorArea } from '@/lib/format';
 import { useAreaFeed } from '@/hooks/useAreaFeed';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
 
@@ -103,7 +103,10 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
     isMultiUnit: !!(report.property_detection?.is_multi_unit),
     unitCount: report.property_detection?.unit_count,
   });
-  const buildingArea = report.property.building_area_sqm;
+  const floor = resolveFloorArea(report.property, {
+    isMultiUnit: !!report.property_detection?.is_multi_unit,
+    titleType: report.property.title_type,
+  });
   const rawProp = (snapshot.report?.property ?? {}) as Record<string, unknown>;
   const titleType = rawProp.title_type as string;
   const buildingUse = rawProp.building_use as string;
@@ -180,9 +183,9 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 Valuation {formatCurrency(cv)}
               </span>
             )}
-            {buildingArea && (
+            {floor && (
               <span className="px-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs font-medium">
-                {buildingArea.toLocaleString()} m²
+                {floor.label} {floor.value.toLocaleString()} m²
               </span>
             )}
             {report.coverage && (

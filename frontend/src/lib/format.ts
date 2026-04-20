@@ -79,6 +79,39 @@ export function effectivePerUnitCv(
 }
 
 /**
+ * Resolve the best floor-area figure to display, distinguishing per-unit
+ * valued floor area (from the council rates API) from the LINZ building
+ * polygon footprint (shared across cross-lease / semi-detached siblings).
+ *
+ * Returns null when we have nothing trustworthy to show - in that case the
+ * caller should render a "not published" line instead of a potentially
+ * misleading shared footprint.
+ */
+export function resolveFloorArea(
+  property: {
+    floor_area_sqm?: number | null;
+    building_area_sqm: number | null;
+  },
+  opts: {
+    isMultiUnit?: boolean;
+    titleType?: string | null;
+  },
+): { value: number; label: 'Floor area' | 'Building footprint'; isPerUnit: boolean } | null {
+  if (property.floor_area_sqm && property.floor_area_sqm > 0) {
+    return { value: property.floor_area_sqm, label: 'Floor area', isPerUnit: true };
+  }
+  const footprint = property.building_area_sqm;
+  if (!footprint || footprint <= 0) return null;
+  // For cross-lease / multi-unit where we don't have per-unit data, the LINZ
+  // footprint is the whole structure - hide it rather than show the same
+  // number for every sibling unit.
+  const title = (opts.titleType || '').toLowerCase();
+  const isCrossLease = title.includes('cross') || title.includes('unit title');
+  if (isCrossLease || opts.isMultiUnit) return null;
+  return { value: footprint, label: 'Building footprint', isPerUnit: false };
+}
+
+/**
  * "$1.2M" / "$850k" / "$920". compact NZD for headlines and pills.
  * Switches to millions at ≥ $1,000,000 so very large values (whole-building CVs)
  * never print as "$80800k". Use formatCurrency() when you need exact digits.

@@ -18,7 +18,10 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 | `property.capital_value` | council_valuations | SQL spatial match 30m → Python `_fix_unit_cv()` overrides with live API | 40+ *_rates DataSources (bulk) + 25 live APIs | Yes (bulk fallback for all; live API for 25 councils) |
 | `property.land_value` | council_valuations | Same as above | Same | Yes |
 | `property.improvements_value` | council_valuations | Same as above | Same | Yes (some councils don't have IV) |
-| `property.footprint_sqm` | building_outlines | SQL spatial ST_Contains | LINZ national | Yes |
+| `property.footprint_sqm` | building_outlines | SQL spatial ST_Contains | LINZ national | Yes. Shared polygon - identical across cross-lease / semi-detached siblings under one outline. Not a per-unit figure. |
+| `property.floor_area_sqm` | (rates API) | Python `_fix_unit_cv()` writes from rates response when available | auckland_rates, wdc_rates, icc_rates | No. AKCC (Auckland), WDC (Whangārei), ICC (Invercargill) only. Per-unit valued floor area. |
+| `property.floor_area_source` | (rates API) | Set alongside `floor_area_sqm` (e.g. `akcc`, `wdc_arcgis`, `icc_arcgis`) | Same as floor_area_sqm | Same |
+| `property.site_coverage_sqm` | (rates API) | Python `_fix_unit_cv()` writes from rates response | auckland_rates | Auckland only. Per-unit building site coverage in m². |
 | `property.title_no` | property_titles | SQL spatial ST_Contains | LINZ national | Yes |
 | `property.multi_unit` | addresses | SQL count within 5m | LINZ national | Yes |
 

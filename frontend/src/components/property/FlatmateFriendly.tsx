@@ -2,6 +2,7 @@
 
 import { Users, Car, Maximize2, Bath } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { resolveFloorArea } from '@/lib/format';
 
 interface Props {
   report: PropertyReport;
@@ -15,7 +16,15 @@ interface Props {
 export function FlatmateFriendly({ report }: Props) {
   const bedrooms = report.property_detection?.detected_bedrooms;
   const isMultiUnit = report.property_detection?.is_multi_unit;
-  const buildingArea = report.property.building_area_sqm;
+  // Per-unit valued floor area when the council rates API returns it; null for
+  // cross-lease / multi-unit where we only have the shared LINZ footprint.
+  // Using the shared footprint would inflate the "m² per room" figure for
+  // cross-lease units and mislead renters.
+  const floor = resolveFloorArea(report.property, {
+    isMultiUnit: !!isMultiUnit,
+    titleType: report.property.title_type,
+  });
+  const buildingArea = floor?.isPerUnit ? floor.value : null;
   const detectedType = report.property_detection?.detected_type;
 
   // Only show for 2+ bedroom properties

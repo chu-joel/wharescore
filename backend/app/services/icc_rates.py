@@ -26,6 +26,7 @@ OUT_FIELDS = ",".join([
     "ADDRESS", "HOUSE", "UNIT", "STREET",
     "CAPITAL", "LAND", "PREV_CAP", "PREV_LAND",
     "RATES_STRU", "VGNUMBER", "appellation", "titles", "SUBURB_PC",
+    "FLOOR_AREA",
 ])
 
 
@@ -123,6 +124,7 @@ def _format_response(prop: dict) -> dict:
         "legal_description": prop.get("appellation"),
         "cert_of_title": prop.get("titles"),
         "property_improvements": None,
+        "total_floor_area_sqm": _safe_float(prop.get("FLOOR_AREA")),
         "current_valuation": {
             "capital_value": cv,
             "land_value": lv,

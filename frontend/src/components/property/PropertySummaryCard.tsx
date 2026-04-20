@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Download, Loader2, Eye, ExternalLink, BookmarkPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency, formatCompactCurrency } from '@/lib/format';
+import { formatCurrency, formatCompactCurrency, resolveFloorArea } from '@/lib/format';
 import { getRatingBin } from '@/lib/constants';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useSession } from 'next-auth/react';
@@ -299,12 +299,18 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
       </span>
     );
   }
-  if (property.building_area_sqm && !hideBuildingAreas) {
-    pills.push(
-      <span key="building" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
-        Building {property.building_area_sqm.toLocaleString()}m²
-      </span>
-    );
+  if (!hideBuildingAreas) {
+    const floor = resolveFloorArea(property, {
+      isMultiUnit: !!report.property_detection?.is_multi_unit,
+      titleType: property.title_type,
+    });
+    if (floor) {
+      pills.push(
+        <span key="building" className="inline-flex items-center px-2.5 py-1 rounded-lg bg-muted/60 text-xs font-medium">
+          {floor.label} {floor.value.toLocaleString()}m²
+        </span>
+      );
+    }
   }
   if (property.title_ref) {
     pills.push(
