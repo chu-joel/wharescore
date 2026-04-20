@@ -49,15 +49,20 @@ interface Step {
   target: string; // CSS selector, usually [data-tour="..."]
   title: string;
   body: string;
+  /** Optional bullet points shown below the body. Keep each bullet to ~60 chars. */
+  bullets?: string[];
+  /** Optional call-to-action line — rendered in primary colour above the buttons. */
+  cta?: string;
   advance: StepAdvance;
-  placement?: 'below' | 'above' | 'left' | 'right' | 'auto';
+  placement?: 'below' | 'above' | 'left' | 'right' | 'auto' | 'center';
   /** Additional behaviours to run on step entry. */
   onEnter?:
     | 'scroll-report-down'
     | 'scroll-report-top'
     | 'auto-select-property'
     | 'auto-toggle-persona'
-    | 'expand-rent-fair';
+    | 'expand-rent-fair'
+    | 'demo-flood-layers';
   /** Milliseconds before auto-advancing. Used when advance='auto-timer'. */
   autoMs?: number;
 }
@@ -75,9 +80,10 @@ const STEPS: Step[] = [
     id: 'layers',
     target: '[data-tour="map-layers"]',
     title: 'Turn on map filters',
-    body: 'Hazards, transport, zoning, amenities. Layer them on to see risk and context right on the map before you click into any property.',
+    body: "Hazards, transport, zoning, amenities. Watch as we open the Layers panel and turn on all three flood overlays so you can see every mapped flood zone in NZ, right on the map.",
     advance: 'next-button',
     placement: 'below',
+    onEnter: 'demo-flood-layers',
   },
   {
     id: 'click-property',
@@ -122,10 +128,18 @@ const STEPS: Step[] = [
   {
     id: 'generate',
     target: '[data-tour="generate-report"]',
-    title: 'Know everything before you sign',
-    body: "The on-screen report is a preview. The full hosted report unlocks every data layer — past flood events, seismic history, neighbours' demographics, the climate forecast, walking isochrone, rates breakdown, demographics, Healthy Homes checks, council hazard advice — and lets you tweak your rent or purchase price to recompute the whole thing live. Shareable link, permanent, print-ready.",
+    title: 'Ready to uncover the hidden risks?',
+    body: "The full report unlocks every data layer we have on this property:",
+    bullets: [
+      'Rent and price advisor with live sliders',
+      'Full hazard history — past floods, quakes, landslides',
+      'Climate forecast, demographics, walking reach',
+      'Council rates breakdown + Healthy Homes checks',
+      'Permanent shareable link, print-ready',
+    ],
+    cta: 'One click, everything you need to sign with confidence.',
     advance: 'next-button',
-    placement: 'above',
+    placement: 'center',
   },
 ];
 
@@ -412,6 +426,55 @@ export function OnboardingTour() {
         timers.forEach(clearTimeout);
       };
     }
+    if (step.onEnter === 'demo-flood-layers') {
+      // Four-phase demo:
+      //   1. Click the layer picker trigger to open the modal.
+      //   2-4. Click each of the three flood layer toggles with a
+      //        visible tap ripple, staggered so the user sees each
+      //        one turn on in turn.
+      // Cleanup (step leave) dispatches an Escape keydown to close
+      // the modal — base-ui Dialog listens and handles the close.
+      const FLOOD_IDS = ['flood_zones', 'flood_hazard', 'flood_extent'];
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      let opened = false;
+
+      timers.push(setTimeout(() => {
+        const trigger = document.querySelector('[data-layer-picker-trigger]') as HTMLButtonElement | null;
+        if (!trigger) return;
+        // Ripple on the trigger first so the user sees the click
+        // before the modal pops open.
+        const tr = trigger.getBoundingClientRect();
+        setTap({ x: tr.left + tr.width / 2, y: tr.top + tr.height / 2, key: Date.now() });
+        timers.push(setTimeout(() => {
+          trigger.click();
+          opened = true;
+        }, 200));
+      }, 400));
+
+      // Stagger the three flood toggles. The modal animates open
+      // (~200ms) so we start 800ms after the trigger click.
+      FLOOD_IDS.forEach((id, i) => {
+        timers.push(setTimeout(() => {
+          const btn = document.querySelector(`[data-layer-id="${id}"]`) as HTMLButtonElement | null;
+          if (!btn) return;
+          const r = btn.getBoundingClientRect();
+          // Tap ripple at the row's left where the icon sits.
+          setTap({ x: r.left + 28, y: r.top + r.height / 2, key: Date.now() + i });
+          timers.push(setTimeout(() => btn.click(), 200));
+        }, 1400 + i * 900));
+      });
+
+      return () => {
+        timers.forEach(clearTimeout);
+        // Close the modal if we opened it. Dispatching Escape is
+        // the most portable way — base-ui Dialog handles the key
+        // itself. Keyboard event needs to be on document for the
+        // primitive's listener to pick it up.
+        if (opened) {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        }
+      };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
 
@@ -510,7 +573,7 @@ function WelcomeGate({ onAccept, onDecline }: WelcomeGateProps) {
           Welcome to <span className="text-piq-primary">WhareScore</span>
         </h2>
         <p className="text-sm text-muted-foreground mb-5">
-          Property intelligence for renters and buyers — uncover what you may not know about New Zealand properties.
+          Property intelligence for renters and buyers. Uncover what you may not know about New Zealand properties.
         </p>
         <div className="flex flex-col-reverse sm:flex-row gap-2">
           <button
@@ -658,7 +721,20 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
           </button>
         </div>
         <h3 className="text-sm font-bold mb-1">{step.title}</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed mb-3">{step.body}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-2">{step.body}</p>
+        {step.bullets && step.bullets.length > 0 && (
+          <ul className="text-xs text-foreground/90 leading-snug mb-3 space-y-1">
+            {step.bullets.map((b) => (
+              <li key={b} className="flex items-start gap-1.5">
+                <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-piq-primary" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {step.cta && (
+          <p className="text-xs font-semibold text-piq-primary mb-3">{step.cta}</p>
+        )}
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -700,7 +776,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
 }
 
 function computeTooltipPos(
-  preferred: 'below' | 'above' | 'left' | 'right' | 'auto',
+  preferred: 'below' | 'above' | 'left' | 'right' | 'auto' | 'center',
   tr: { top: number; left: number; right: number; bottom: number; width: number; height: number } | null,
 ): { top: number; left: number } {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -709,6 +785,14 @@ function computeTooltipPos(
   const tipH = 180; // rough height; tooltip is small and the dialog doesn't need perfect fit
   const gap = 12;
   const margin = 16;
+
+  // 'center' always centres the tooltip in the viewport regardless
+  // of where the target is. The spotlight still highlights the
+  // target — used for the final "Get the full report" step so the
+  // sales pitch reads from the middle of the screen.
+  if (preferred === 'center') {
+    return { top: (vh - tipH) / 2, left: (vw - tipW) / 2 };
+  }
 
   if (!tr) {
     return { top: (vh - tipH) / 2, left: (vw - tipW) / 2 };

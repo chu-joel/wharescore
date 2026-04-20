@@ -207,6 +207,9 @@ export function MapLayerPicker() {
                   return (
                     <button
                       key={id}
+                      // Tagged so the OnboardingTour can locate and
+                      // click specific layers during the guided demo.
+                      data-layer-id={id}
                       onClick={() => handleToggleLayer(id)}
                       disabled={disabled}
                       className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg text-left transition-all ${
