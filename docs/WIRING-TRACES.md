@@ -45,6 +45,7 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 |---|---|---|---|
 | `hazards.flood_extent_aep` | flood_hazard | SQL spatial intersect, worst-ranking first | 63 source_councils — ALL major cities have data |
 | `hazards.flood_extent_label` | flood_hazard | Same query | Same |
+| `hazards.flood_nearest_m` | flood_hazard + flood_zones + flood_extent | SQL MIN(ST_Distance) within 500m across all three (migration 0054). 0 when in polygon, NULL when nothing within 500m | Any city where any flood table has geometry. Same backend source as hosted snapshots via `_detect_hazards` in rent_advisor.py |
 | `hazards.council_liquefaction` | liquefaction_detail | SQL spatial intersect, worst-class first | ~16 councils (Auckland, ChCh, Waikato, Tauranga, Hawke's Bay, GWRC) |
 | `hazards.council_liquefaction_geology` | liquefaction_detail | Same query | Same |
 | `hazards.council_liquefaction_source` | liquefaction_detail | Same query | Same |

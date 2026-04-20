@@ -202,7 +202,25 @@ async def _detect_hazards(conn, address_id: int) -> dict:
             (SELECT sfz.severity FROM slope_failure_zones sfz
              WHERE ST_Intersects(sfz.geom, a.geom) LIMIT 1) AS slope_failure,
             (SELECT true FROM coastal_erosion ce
-             WHERE ST_DWithin(ce.geom::geography, a.geom::geography, 500) LIMIT 1) AS coastal_erosion_nearby
+             WHERE ST_DWithin(ce.geom::geography, a.geom::geography, 500) LIMIT 1) AS coastal_erosion_nearby,
+            -- Nearest flood polygon across flood_hazard + flood_zones + flood_extent
+            -- within 500m. NULL when none. Frontend treats <=100 as "close to flood zone".
+            (SELECT MIN(dist_m)::double precision FROM (
+                SELECT ST_Distance(geom::geography, a.geom::geography) AS dist_m
+                  FROM flood_hazard
+                  WHERE geom && ST_Expand(a.geom, 0.006)
+                    AND ST_DWithin(geom::geography, a.geom::geography, 500)
+                UNION ALL
+                SELECT ST_Distance(geom::geography, a.geom::geography) AS dist_m
+                  FROM flood_zones
+                  WHERE geom && ST_Expand(a.geom, 0.006)
+                    AND ST_DWithin(geom::geography, a.geom::geography, 500)
+                UNION ALL
+                SELECT ST_Distance(geom::geography, a.geom::geography) AS dist_m
+                  FROM flood_extent
+                  WHERE geom && ST_Expand(a.geom, 0.006)
+                    AND ST_DWithin(geom::geography, a.geom::geography, 500)
+            ) AS all_flood) AS flood_nearest_m
         FROM addresses a
         WHERE a.address_id = %s
         """,

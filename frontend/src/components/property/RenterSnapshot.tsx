@@ -14,7 +14,7 @@ import {
   Minus,
   Eye,
 } from 'lucide-react';
-import { isInFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isNearFloodZone } from '@/lib/hazards';
 import type { PropertyReport } from '@/lib/types';
 
 interface Props {
@@ -123,7 +123,7 @@ export function RenterSnapshot({ report }: Props) {
   const hazards = report.hazards;
   const environment = report.environment;
   const windZone = String(environment?.wind_zone || '').toUpperCase();
-  const hasFlood = isInFloodZone(hazards);
+  const hasFlood = isInFloodZone(hazards) || isNearFloodZone(hazards);
   const highLiquefaction = String(hazards?.liquefaction_zone || '').toLowerCase().includes('high');
   const coastalErosion = !!(hazards?.coastal_erosion_exposure);
   const highWind = ['H', 'VH', 'EH', 'SED', 'HIGH', 'VERY HIGH'].includes(windZone);

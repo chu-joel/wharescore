@@ -6,7 +6,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
-import { isInFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isNearFloodZone, floodProximityM } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -53,6 +53,7 @@ export function BuyerSnapshot({ report }: Props) {
   if (hazards) {
     const flags: string[] = [];
     const isFlood = isInFloodZone(hazards);
+    const nearFlood = isNearFloodZone(hazards);
     const liqStr = String(hazards.liquefaction_zone || '').toLowerCase();
     const isHighLiq = liqStr.includes('high') || liqStr.includes('very');
     const isTsunami = !!hazards.tsunami_zone;
@@ -62,6 +63,7 @@ export function BuyerSnapshot({ report }: Props) {
     const isHighSlope = slopeStr.includes('high') || slopeStr.includes('very');
 
     if (isFlood) flags.push('flood zone');
+    else if (nearFlood) flags.push(`close to flood zone (${floodProximityM(hazards)}m)`);
     if (isHighLiq) flags.push('liquefaction');
     if (isEPB) flags.push('earthquake-prone');
     if (isCoastalErosion) flags.push('coastal erosion');

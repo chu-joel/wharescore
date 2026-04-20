@@ -65,6 +65,23 @@ When adding a new hazard field that should appear in BOTH surfaces, update
 Existing snapshots are immutable — they won't backfill. Only new hosted
 reports generated after the code change will include the new field.
 
+**Worked example — flood proximity (migration 0054):**
+1. `get_property_report()` gets a new `flood_nearest_m` CTE computing
+   `MIN(ST_Distance)` across `flood_hazard` + `flood_zones` + `flood_extent`
+   within a 500m search radius. Copy the entire previous function body into a
+   new migration; do NOT edit the older migration in place (it won't re-run
+   on existing deployments).
+2. `_detect_hazards` in `rent_advisor.py` gets the same 3-table `UNION ALL`
+   nearest-distance subquery so new hosted snapshots also carry the field.
+3. Frontend adds `raw.flood_nearest_m` to `transformReport.ts`, types, and
+   the appropriate helpers in `lib/hazards.ts` (`isNearFloodZone`,
+   `floodProximityM`, `FLOOD_PROXIMITY_THRESHOLD_M = 100`).
+4. Call sites (FindingCard, InsuranceRiskCard, BuyerSnapshot, RenterSnapshot,
+   LandlordChecklist, HostedHazardAdvice) branch on "in zone" → "near zone"
+   → nothing, in that order. `isNearFloodZone` returns false when
+   `isInFloodZone` is true, so the two are mutually exclusive — existing
+   in-zone call sites don't need to add an else-branch.
+
 ### Map View (`/`)
 **Purpose:** Discovery. Let users explore the map, see property pins, and search addresses. The map is the entry point.
 

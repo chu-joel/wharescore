@@ -2,8 +2,13 @@ import type { HazardData } from './types';
 
 type FloodHazards = Pick<
   HazardData,
-  'flood_zone' | 'flood_extent_label' | 'flood_extent_aep' | 'wcc_flood_type' | 'wcc_flood_ranking'
+  'flood_zone' | 'flood_extent_label' | 'flood_extent_aep' | 'wcc_flood_type' | 'wcc_flood_ranking' | 'flood_nearest_m'
 >;
+
+// "Close to" threshold in metres. 100m is roughly a street width — close
+// enough that a 1% AEP event that overtops the polygon edge could still
+// affect the property, and close enough that insurers treat it as relevant.
+export const FLOOD_PROXIMITY_THRESHOLD_M = 100;
 
 type CoastalErosionHazards = Pick<
   HazardData,
@@ -89,6 +94,30 @@ export function isInTsunamiZone(
   if (zone && zone !== 'none' && zone !== '0') return true;
   if (h.wcc_tsunami_ranking || h.council_tsunami_ranking) return true;
   return false;
+}
+
+// True when the property is close to a flood polygon but NOT inside one.
+// Properties inside a polygon are handled by `isInFloodZone`; this covers
+// the "one block away" case where the mapped zone boundary is an imprecise
+// proxy for real-world flood risk.
+export function isNearFloodZone(
+  h: Partial<FloodHazards> | null | undefined,
+  thresholdM: number = FLOOD_PROXIMITY_THRESHOLD_M,
+): boolean {
+  if (!h) return false;
+  if (isInFloodZone(h)) return false;
+  const dist = h.flood_nearest_m;
+  if (dist == null) return false;
+  return dist > 0 && dist <= thresholdM;
+}
+
+// Rounded metres to the nearest flood polygon when `isNearFloodZone` is true.
+// Null otherwise. UI uses this for the "within Nm of a flood zone" copy.
+export function floodProximityM(
+  h: Partial<FloodHazards> | null | undefined,
+): number | null {
+  if (!isNearFloodZone(h)) return null;
+  return Math.round(h!.flood_nearest_m as number);
 }
 
 // Human-readable label for the flood flag. Returns null when no flag is set.

@@ -6,7 +6,7 @@ import {
   Shield, Wind, Volume2, Zap, MapPin, Home, Heart, Phone, CheckCircle2,
 } from 'lucide-react';
 import type { PropertyReport, ReportSnapshot } from '@/lib/types';
-import { isInFloodZone, floodLabel } from '@/lib/hazards';
+import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -268,7 +268,7 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
   }
 
   // ── FLOODING ──
-  if (isInFloodZone(h) || h.on_overland_flow_path || h.overland_flow_within_50m) {
+  if (isInFloodZone(h) || isNearFloodZone(h) || h.on_overland_flow_path || h.overland_flow_within_50m) {
     const isHB = isHawkesBay(ta);
     const isWC = isWestCoast(ta);
 
@@ -279,7 +279,9 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
       severity: 'critical',
       intro: isInFloodZone(h)
         ? `This property is in a mapped flood zone (${floodLabel(h)}). ${isHB ? 'Hawke\'s Bay was devastated by Cyclone Gabrielle in 2023 — take this seriously.' : isWC ? 'Westport has flooded repeatedly in recent years.' : 'Flood events are becoming more frequent due to climate change.'}`
-        : 'This property is near an overland flow path, which means stormwater can flow across the property during heavy rain events.',
+        : isNearFloodZone(h)
+          ? `This property is within ${floodProximityM(h)}m of a mapped flood zone. Zone boundaries are imprecise — a large event could still reach this property. ${isHB ? 'Cyclone Gabrielle overtopped many mapped boundaries in 2023.' : 'Treat the mapped edge as a guide, not a guarantee.'}`
+          : 'This property is near an overland flow path, which means stormwater can flow across the property during heavy rain events.',
       subsections: [
         {
           heading: 'Protect Your Property Now',

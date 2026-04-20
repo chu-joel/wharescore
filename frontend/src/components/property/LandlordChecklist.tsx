@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CheckSquare, AlertTriangle, ChevronDown } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
-import { isInFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isNearFloodZone, floodProximityM } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -61,6 +61,8 @@ function buildItems(report: PropertyReport): CheckItem[] {
   // ── Hazard-triggered (personalised) ──
   if (isInFloodZone(hazards)) {
     items.push({ question: 'Has this property ever flooded?', why: 'Property is in a mapped flood zone', priority: 'must-ask', scope: 'personalised' });
+  } else if (isNearFloodZone(hazards)) {
+    items.push({ question: 'Has this property or the street ever flooded?', why: `Within ${floodProximityM(hazards)}m of a mapped flood zone`, priority: 'must-ask', scope: 'personalised' });
   }
   if (planning?.epb_listed) {
     items.push({ question: 'What is the seismic strengthening timeline for this building?', why: 'Listed as earthquake-prone — may face strengthening deadline', priority: 'must-ask', scope: 'personalised' });
@@ -97,6 +99,7 @@ function buildItems(report: PropertyReport): CheckItem[] {
   }
 
   const hasDampRisk = isInFloodZone(hazards) ||
+    isNearFloodZone(hazards) ||
     String(hazards?.liquefaction_zone || '').toLowerCase().includes('high') ||
     hazards?.coastal_erosion_exposure;
   if (hasDampRisk) {

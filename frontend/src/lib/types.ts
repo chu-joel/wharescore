@@ -307,6 +307,9 @@ export interface HazardData {
   // Flood extent (AEP-based)
   flood_extent_aep: string | null;
   flood_extent_label: string | null;
+  // Distance to nearest flood polygon in metres (flood_zones + flood_hazard +
+  // flood_extent, within 500m). 0 when inside a polygon, null when none within 500m.
+  flood_nearest_m: number | null;
   // Geotechnical reports
   geotech_count_500m: number | null;
   geotech_nearest_hazard: string | null;

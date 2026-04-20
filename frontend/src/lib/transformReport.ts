@@ -306,6 +306,7 @@ function transformHazards(raw: any): HazardData {
     // Flood extent (AEP-based)
     flood_extent_aep: raw.flood_extent_aep ?? null,
     flood_extent_label: raw.flood_extent_label ?? null,
+    flood_nearest_m: raw.flood_nearest_m ?? null,
     // Geotechnical reports
     geotech_count_500m: raw.geotech_count_500m ?? null,
     geotech_nearest_hazard: raw.geotech_nearest_hazard ?? null,

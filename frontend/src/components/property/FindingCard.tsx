@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { RatingBin } from '@/lib/types';
-import { isInFloodZone, floodLabel } from '@/lib/hazards';
+import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM } from '@/lib/hazards';
 
 export interface Finding {
   headline: string;
@@ -147,6 +147,16 @@ export function generateFindings(report: {
       interpretation:
         'The property may be at risk of flooding during heavy rainfall events. This can affect insurance availability and premiums, and may require specific building modifications.',
       severity: 'critical',
+      category: 'Hazards',
+      source: 'Regional Council Flood Maps',
+    });
+  } else if (isNearFloodZone(h)) {
+    const dist = floodProximityM(h);
+    findings.push({
+      headline: `This property is within ${dist}m of a mapped flood zone`,
+      interpretation:
+        'The property is not inside a mapped flood polygon but is close enough that a large flood event could still affect it. Mapped boundaries are imprecise — ask about any historical flooding on the street and check insurance cover.',
+      severity: 'warning',
       category: 'Hazards',
       source: 'Regional Council Flood Maps',
     });

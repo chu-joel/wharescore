@@ -4,6 +4,8 @@ import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
 import {
   isInFloodZone,
+  isNearFloodZone,
+  floodProximityM,
   isInTsunamiZone,
   hasHighCoastalErosionRisk,
   hasHighWildfireRisk,
@@ -30,8 +32,16 @@ function assessInsuranceRisk(report: PropertyReport): {
   const p = report.planning;
 
   const slopeStr = String(h.slope_failure ?? h.council_slope_severity ?? '').toLowerCase();
+  const nearFloodDist = floodProximityM(h);
   const factors: RiskFactor[] = [
-    { label: 'Flood zone', present: isInFloodZone(h) },
+    {
+      label: isInFloodZone(h)
+        ? 'Flood zone'
+        : isNearFloodZone(h)
+          ? `Close to flood zone (${nearFloodDist}m)`
+          : 'Flood zone',
+      present: isInFloodZone(h) || isNearFloodZone(h),
+    },
     { label: 'Earthquake-prone building', present: !!p.epb_listed || !!h.epb_rating },
     { label: 'High slope failure risk', present: slopeStr.includes('high') || slopeStr.includes('very') },
     { label: 'Tsunami zone', present: isInTsunamiZone(h) },
