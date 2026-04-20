@@ -204,7 +204,9 @@ Both of these bit 0053 in sequence: the initial version used `clerk_id`, the fir
 | at_gtfs | at_stops, at_travel_times, at_stop_frequency |
 
 ### Canterbury/Christchurch (~25 DataSources)
-Keys: `chch_*`, `ecan_*`, `waimakariri_*`. Tables: flood_hazard, coastal_erosion, coastal_inundation, district_plan_zones, heritage_sites, notable_trees, liquefaction (9 district-level).
+Keys: `chch_*`, `ecan_*`, `waimakariri_*`. Tables: flood_hazard, coastal_erosion, coastal_inundation, district_plan_zones, heritage_sites, notable_trees, liquefaction (9 district-level), tsunami_hazard.
+
+`chch_tsunami` uses the CCC Civil Defence **evacuation-zone** layer (`WaterCharacteristic/FeatureServer/43`), not the district-plan modelled-inundation layer. ZoneType maps Red→High, Orange→Medium, Yellow→Low; "No Zone" features are skipped. Previous wiring used `GCSP/FeatureServer/23` and hard-coded every feature as `hazard_ranking='High'`, producing false tsunami warnings for properties officially designated "No Zone".
 
 ### Waikato/Hamilton (~15 DataSources)
 Keys: `hamilton_*`, `waikato_*`, `waipa_*`. Tables: flood_hazard, district_plan_zones, heritage_sites, notable_trees, liquefaction.

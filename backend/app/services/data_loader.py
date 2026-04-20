@@ -1432,6 +1432,8 @@ def _load_council_arcgis(
         if not wkt:
             continue
         vals = extract(a)
+        if vals is None:
+            continue
         try:
             cur.execute(insert_q, (*vals, council, wkt, srid))
             count += 1
@@ -5335,13 +5337,26 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("ZoneCode")),
                 _derive_zone_category(_clean(a.get("ZoneType"))),
             ))),
-    DataSource("chch_tsunami", "Christchurch Tsunami Inundation",
+    DataSource("chch_tsunami", "Christchurch Tsunami Evacuation Zones",
         ["tsunami_hazard"],
+        # CCC Civil Defence evacuation-zone layer. The District Plan "GCSP/FeatureServer/23"
+        # modelled-inundation layer was previously used here and stamped every feature as
+        # hazard_ranking='High', producing false tsunami warnings for properties CCC
+        # officially designates "No Zone" on the public evacuation map.
         lambda conn, log=None: _load_council_arcgis(conn, log,
-            "https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/23",
+            "https://gis.ccc.govt.nz/server/rest/services/OpenData/WaterCharacteristic/FeatureServer/43",
             "tsunami_hazard", "christchurch",
             ["name", "hazard_ranking", "scenario"],
-            lambda a: ("Tsunami Inundation", "High", _clean(a.get("TsunamiInundationStatus")) or "Tsunami"))),
+            lambda a: (
+                None if (_clean(a.get("ZoneType")) or "").lower() in ("no zone", "nil", "", "none")
+                else (
+                    "Tsunami Evacuation Zone",
+                    {"Red": "High", "Orange": "Medium", "Yellow": "Low"}.get(
+                        _clean(a.get("ZoneType")) or "", "Low"
+                    ),
+                    _clean(a.get("ZoneEvacuationTrigger")) or _clean(a.get("ZoneType")) or "Tsunami",
+                )
+            ))),
     DataSource("chch_heritage", "Christchurch Heritage Items (polygons)",
         ["heritage_extent"],
         lambda conn, log=None: _load_council_arcgis(conn, log,

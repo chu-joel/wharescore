@@ -317,9 +317,9 @@ total_datasources: 530
   tables: [district_plan_zones]
   url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/0
 - key: chch_tsunami
-  desc: Christchurch Tsunami Inundation
+  desc: Christchurch Tsunami Evacuation Zones
   tables: [tsunami_hazard]
-  url: https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/23
+  url: https://gis.ccc.govt.nz/server/rest/services/OpenData/WaterCharacteristic/FeatureServer/43
 - key: chch_heritage
   desc: Christchurch Heritage Items (polygons)
   tables: [heritage_extent]

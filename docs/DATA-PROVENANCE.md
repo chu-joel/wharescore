@@ -34,6 +34,7 @@
 |---|---|---|---|---|---|---|
 | `hazards.wcc_tsunami_return_period` | Tsunami return period (1:100 / 1:500 / 1:1000 yr) | Wellington City Council | `https://gis.wcc.govt.nz/arcgis/rest/services/2024DistrictPlan/2024DistrictPlan/MapServer` (layers 52-54) | `wcc_hazards` | `tsunami_hazard` (source_council='wellington_city') | Wellington only |
 | `hazards.council_tsunami_ranking` | Council tsunami hazard ranking | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region (~12 tsunami loaders) | varies | `tsunami_hazard` | ~12 councils |
+| `hazards.council_tsunami_ranking` (Christchurch) | CCC tsunami evacuation zone (Red→High, Orange→Medium, Yellow→Low; "No Zone" skipped) | Christchurch City Council Civil Defence | `https://gis.ccc.govt.nz/server/rest/services/OpenData/WaterCharacteristic/FeatureServer/43` (TsunamiEvacuationZone) | `chch_tsunami` | `tsunami_hazard` (source_council='christchurch') | Christchurch coastal only |
 | `hazards.tsunami_zone_class` | Regional evacuation zone class (1 / 2 / 3) | Regional councils | `backend/scripts/load_regional_hazards.py` + `load_christchurch_hazards.py` (one-off bulk load) | `-` | `tsunami_zones` | Bulk — Wellington + Christchurch regions |
 
 ### Liquefaction
