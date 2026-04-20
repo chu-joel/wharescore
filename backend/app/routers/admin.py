@@ -1500,6 +1500,90 @@ async def analytics_overview(request: Request, days: int = Query(7, le=90)):
         """)
         result["unresolved_errors_24h"] = (cur.fetchone() or {}).get("count", 0)
 
+        # --- Unique visitors (DAU / WAU / MAU).
+        # ip_hash is the best stable proxy we have: survives new tabs
+        # and private browsing (unlike session_id which is sessionStorage)
+        # and doesn't identify individuals. Authenticated events also have
+        # user_id but we count by ip_hash so signed-in and anonymous users
+        # share the same denominator.
+        cur = await conn.execute("""
+            SELECT
+                COUNT(DISTINCT ip_hash) FILTER (WHERE created_at >= CURRENT_DATE) AS dau,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') AS wau,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') AS mau
+            FROM app_events
+            WHERE ip_hash IS NOT NULL
+              AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+        """)
+        visitors = cur.fetchone() or {}
+
+        # --- New vs returning today.
+        # "new today"       = first-ever event for this ip_hash was today
+        # "returning today" = has events today AND had events before today
+        cur = await conn.execute("""
+            WITH today_visitors AS (
+                SELECT DISTINCT ip_hash
+                FROM app_events
+                WHERE created_at >= CURRENT_DATE AND ip_hash IS NOT NULL
+            ),
+            first_seen AS (
+                SELECT tv.ip_hash, MIN(ae.created_at) AS first_seen
+                FROM today_visitors tv
+                JOIN app_events ae ON ae.ip_hash = tv.ip_hash
+                GROUP BY tv.ip_hash
+            )
+            SELECT
+                COUNT(*) FILTER (WHERE first_seen >= CURRENT_DATE) AS new_today,
+                COUNT(*) FILTER (WHERE first_seen < CURRENT_DATE) AS returning_today
+            FROM first_seen
+        """)
+        new_returning = cur.fetchone() or {}
+
+        result["visitors"] = {
+            "dau": visitors.get("dau", 0) or 0,
+            "wau": visitors.get("wau", 0) or 0,
+            "mau": visitors.get("mau", 0) or 0,
+            "new_today": new_returning.get("new_today", 0) or 0,
+            "returning_today": new_returning.get("returning_today", 0) or 0,
+        }
+
+        # --- Conversion funnel (last 7 days, by unique ip_hash).
+        # Counts unique visitors who reached each stage at least once.
+        # The top stage "visit" is any event — every session fires one,
+        # so it's a reasonable proxy for "landed on the site" without
+        # needing a dedicated page_view event.
+        cur = await conn.execute("""
+            SELECT
+                COUNT(DISTINCT ip_hash) AS visits,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'search') AS searches,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'report_view') AS report_views,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'report_generated') AS reports_generated,
+                COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'payment_completed') AS payments
+            FROM app_events
+            WHERE ip_hash IS NOT NULL
+              AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+        """)
+        f = cur.fetchone() or {}
+        visits = f.get("visits", 0) or 0
+        searches = f.get("searches", 0) or 0
+        report_views = f.get("report_views", 0) or 0
+        reports_generated = f.get("reports_generated", 0) or 0
+        payments = f.get("payments", 0) or 0
+
+        def _pct(n: int, d: int) -> float:
+            return round(100 * n / d, 1) if d > 0 else 0.0
+
+        result["funnel"] = {
+            "days": 7,
+            "stages": [
+                {"name": "Visit", "count": visits, "pct": 100.0},
+                {"name": "Search", "count": searches, "pct": _pct(searches, visits)},
+                {"name": "Report view", "count": report_views, "pct": _pct(report_views, visits)},
+                {"name": "Report generated", "count": reports_generated, "pct": _pct(reports_generated, visits)},
+                {"name": "Payment", "count": payments, "pct": _pct(payments, visits)},
+            ],
+        }
+
     return result
 
 

@@ -9,7 +9,7 @@ import { apiFetch } from '@/lib/api';
 import { useAuthToken } from '@/hooks/useAuthToken';
 import {
   Search, Eye, FileText, CreditCard, Users, Activity,
-  AlertTriangle, Clock, CheckCircle, XCircle,
+  AlertTriangle, Clock, CheckCircle, XCircle, UserPlus, UserCheck, TrendingDown,
 } from 'lucide-react';
 
 const TIME_RANGES = [
@@ -85,7 +85,7 @@ export function AnalyticsPanel() {
 
   if (!data) return null;
 
-  const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h } = data;
+  const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h, visitors, funnel } = data;
 
   const handleResolve = async (errorId: number) => {
     const token = await getToken();
@@ -130,6 +130,97 @@ export function AnalyticsPanel() {
           sub={unresolved_errors_24h > 0 ? `${unresolved_errors_24h} unresolved` : undefined}
         />
       </div>
+
+      {/* Unique visitors — DAU / WAU / MAU + new vs returning today.
+          Sits just below the live stat cards because "who's here now"
+          and "who's coming back" are the first questions the dashboard
+          should answer. */}
+      {visitors && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Unique visitors</h3>
+            <span className="text-xs text-muted-foreground">by distinct IP</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{visitors.dau}</p>
+              <p className="text-xs text-muted-foreground">Today</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{visitors.wau}</p>
+              <p className="text-xs text-muted-foreground">Last 7 days</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{visitors.mau}</p>
+              <p className="text-xs text-muted-foreground">Last 30 days</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-xl font-bold tabular-nums">{visitors.new_today}</p>
+                <p className="text-xs text-muted-foreground">New today</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-xl font-bold tabular-nums">{visitors.returning_today}</p>
+                <p className="text-xs text-muted-foreground">Returning today</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Conversion funnel — where visitors drop off on the way to
+          paying. Each bar's width is a percentage of the top stage
+          (visits). The drop-off badge shows the stage-to-stage delta
+          so you can see WHERE the leak is, not just that there is one. */}
+      {funnel && funnel.stages.length > 0 && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Conversion funnel</h3>
+            <span className="text-xs text-muted-foreground">last {funnel.days} days</span>
+          </div>
+          <div className="space-y-2">
+            {funnel.stages.map((stage, i) => {
+              const prev = i > 0 ? funnel.stages[i - 1].count : stage.count;
+              const dropPct = i > 0 && prev > 0
+                ? Math.round(100 * (prev - stage.count) / prev)
+                : 0;
+              return (
+                <div key={stage.name}>
+                  <div className="flex items-center justify-between text-xs mb-0.5">
+                    <span className="font-medium">{stage.name}</span>
+                    <div className="flex items-center gap-2 tabular-nums">
+                      <span className="text-foreground">{stage.count}</span>
+                      <span className="text-muted-foreground w-12 text-right">{stage.pct}%</span>
+                      {i > 0 && dropPct > 0 && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground w-16 justify-end">
+                          <TrendingDown className="h-3 w-3" />
+                          -{dropPct}%
+                        </span>
+                      )}
+                      {i === 0 && <span className="w-16" />}
+                    </div>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${Math.max(stage.pct, 0.5)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {funnel.stages[0].count === 0 && (
+            <p className="text-xs text-muted-foreground mt-3">
+              No visitor data in this window yet.
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Trend sparklines */}
       {Object.keys(trends).length > 0 && (

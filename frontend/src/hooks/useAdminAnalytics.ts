@@ -39,6 +39,28 @@ export interface AnalyticsOverview {
     resolved_at: string | null;
   }[];
   unresolved_errors_24h: number;
+  visitors: {
+    /** Daily active visitors (distinct ip_hash, today) */
+    dau: number;
+    /** Weekly active visitors (last 7 days) */
+    wau: number;
+    /** Monthly active visitors (last 30 days) */
+    mau: number;
+    /** Visitors today whose first-ever event was today */
+    new_today: number;
+    /** Visitors today who had prior events before today */
+    returning_today: number;
+  };
+  funnel: {
+    /** Window in days the funnel covers */
+    days: number;
+    stages: {
+      name: string;
+      count: number;
+      /** Percentage of the top stage (always 100 for the first stage) */
+      pct: number;
+    }[];
+  };
 }
 
 export function useAdminAnalytics(days = 7) {
