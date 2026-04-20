@@ -513,16 +513,15 @@ export function OnboardingTour() {
       };
     }
     if (step.onEnter === 'demo-map-navigation') {
-      // Subtle "you can pan and zoom" demo. Instead of flying off
-      // to Auckland and back (felt too much like a product reel),
-      // we stay near the user's current viewport, nudge it a few
-      // times with small pans + a zoom in/out, and drop tap ripples
-      // at different spots on the map so they read as "markers"
-      // pointing out interactive locations. The map stays
-      // recognisably where it started.
+      // Simple left/right swipe gesture so the user sees that the
+      // map can be panned. No zoom, no vertical pan — that felt
+      // busy. We pan left, then right of centre, then back, so the
+      // map clearly ends where it started.
       const v = useMapStore.getState().viewport;
-      const fly = (longitude: number, latitude: number, zoom: number, duration = 900) => {
-        window.dispatchEvent(new CustomEvent('tour:fly-to', { detail: { longitude, latitude, zoom, duration } }));
+      const fly = (longitude: number, duration = 1100) => {
+        window.dispatchEvent(new CustomEvent('tour:fly-to', {
+          detail: { longitude, latitude: v.latitude, zoom: v.zoom, duration },
+        }));
       };
       const markerOnMap = (xFrac: number, yFrac: number) => {
         const r = readRect('[data-tour="map"]');
@@ -530,25 +529,18 @@ export function OnboardingTour() {
         setTap({
           x: r.left + r.width * xFrac,
           y: r.top + r.height * yFrac,
-          // Add a random offset so consecutive ripples at the same
-          // fraction still re-key and re-animate.
           key: Date.now() + Math.random(),
         });
       };
       const timers: ReturnType<typeof setTimeout>[] = [];
-      // 0.4s   marker near the centre, reads as "click a spot here"
-      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 400));
-      // 1.4s   zoom in a couple of levels so user sees zoom working
-      timers.push(setTimeout(() => fly(v.longitude, v.latitude, v.zoom + 1.5, 1200), 1400));
-      // 3.0s   subtle pan right so user sees drag working
-      timers.push(setTimeout(() => fly(v.longitude + 0.02, v.latitude, v.zoom + 1.5, 900), 3000));
-      // 4.2s   marker over on the right to reinforce "tap anywhere"
-      timers.push(setTimeout(() => markerOnMap(0.72, 0.45), 4200));
-      // 5.2s   pan down a bit to cover the other axis
-      timers.push(setTimeout(() => fly(v.longitude + 0.02, v.latitude - 0.012, v.zoom + 1.5, 900), 5200));
-      // 6.6s   zoom back out so the user isn't stranded closer in
-      //        than they started
-      timers.push(setTimeout(() => fly(v.longitude, v.latitude, v.zoom, 1200), 6600));
+      // 0.5s   swipe right (map content moves left)
+      timers.push(setTimeout(() => fly(v.longitude + 0.025), 500));
+      // 2.2s   swipe left (map content moves right, past original)
+      timers.push(setTimeout(() => fly(v.longitude - 0.025), 2200));
+      // 3.9s   return to starting position
+      timers.push(setTimeout(() => fly(v.longitude), 3900));
+      // 5.4s   tap marker to hint "you can click anywhere too"
+      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 5400));
       return () => {
         timers.forEach(clearTimeout);
       };
