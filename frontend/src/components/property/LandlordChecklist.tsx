@@ -167,7 +167,7 @@ export function LandlordChecklist({ report }: Props) {
           className="inline-flex items-center gap-1 text-xs font-medium text-piq-primary hover:underline"
         >
           <ChevronDown className="h-3.5 w-3.5" />
-          Show {universal.length} standard question{universal.length === 1 ? '' : 's'}
+          Show {universal.length} more vital question{universal.length === 1 ? '' : 's'}
         </button>
       )}
 
@@ -175,7 +175,7 @@ export function LandlordChecklist({ report }: Props) {
         <div className="space-y-2">
           {hasPersonalised && (
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Standard questions
+              Vital for every rental
             </p>
           )}
           {universal.map((item) => (

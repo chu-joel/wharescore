@@ -21,8 +21,11 @@ import {
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionSection, QuestionId } from '@/lib/reportSections';
 
-/** Questions expanded by default — the ones each persona cares about most */
-const DEFAULT_EXPANDED: QuestionId[] = ['rent-fair', 'daily-life', 'deal-breakers', 'true-cost'];
+// Deep-dive panels start collapsed for both personas. The Snapshot +
+// KeyFindings + Action cards above already give the verdict + the critical
+// evidence; the accordion is for readers who want to drill in. Defaulting
+// everything open made the page feel like an undifferentiated wall of text.
+const DEFAULT_EXPANDED: QuestionId[] = [];
 import { getQuestionSummary, getPreviewChips, type PreviewChip } from './QuestionSummary';
 import { QuestionContent } from './QuestionContent';
 
