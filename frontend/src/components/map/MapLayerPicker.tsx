@@ -161,7 +161,13 @@ export function MapLayerPicker() {
           </span>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden scrollbar-none">
+      <DialogContent
+        // Tagged so OnboardingTour can spotlight the dialog during
+        // the flood-layer demo (otherwise only the chip bar is lit
+        // and the user can't clearly see the toggles being clicked).
+        data-tour-target="layer-modal"
+        className="sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden scrollbar-none"
+      >
         <DialogHeader>
           <DialogTitle>Map Layers</DialogTitle>
         </DialogHeader>

@@ -73,7 +73,7 @@ const STEPS: Step[] = [
     id: 'map',
     target: '[data-tour="map"]',
     title: 'Explore the map',
-    body: 'Drag to pan, scroll or pinch to zoom. Every address in Aotearoa has a WhareScore waiting. Watch as we fly from Auckland down to Wellington and zoom into the CBD.',
+    body: "Drag to pan, scroll or pinch to zoom. Every address in Aotearoa has a WhareScore waiting. We'll tap a few spots and zoom in and out so you can see how it works, then you can take over.",
     advance: 'next-button',
     placement: 'auto',
     onEnter: 'demo-map-navigation',
@@ -200,6 +200,12 @@ export function OnboardingTour() {
   const [active, setActive] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  // Optional override for the spotlight target. Lets an onEnter
+  // handler temporarily point the spotlight somewhere else, for
+  // example when the flood-layer demo opens the Layers modal and
+  // the action shifts from the chip bar to the dialog content.
+  // Clears back to step.target on step change.
+  const [overrideTarget, setOverrideTarget] = useState<string | null>(null);
   // Click/tap ripple — rendered over the target centre when the tour
   // auto-clicks something. Keyed by timestamp so remount re-triggers
   // the CSS animation even if two consecutive steps both want a
@@ -262,11 +268,18 @@ export function OnboardingTour() {
 
   const step = STEPS[stepIdx];
 
+  // Clear any stale override when the step changes — otherwise a
+  // previous step's override would carry into the next.
+  useEffect(() => {
+    setOverrideTarget(null);
+  }, [stepIdx]);
+
   // Position tracking — re-measure on step change, resize, and a short
   // interval (targets can shift as their host components render).
+  const activeTarget = overrideTarget ?? step.target;
   useEffect(() => {
     if (!active) return;
-    const measure = () => setRect(readRect(step.target));
+    const measure = () => setRect(readRect(activeTarget));
     measure();
     const rAF = requestAnimationFrame(measure);
     const interval = setInterval(measure, 250);
@@ -278,7 +291,7 @@ export function OnboardingTour() {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
-  }, [active, step]);
+  }, [active, step, activeTarget]);
 
   // Previously we auto-advanced step 3 when selectedAddress appeared
   // (polled for the PersonaToggle to finish loading). Tour now requires
@@ -432,16 +445,14 @@ export function OnboardingTour() {
       // Paced demo so the user can follow each click. Timeline:
       //   1.0s   ripple on the Layers trigger (long pre-click beat)
       //   1.8s   click trigger, modal opens
+      //   2.1s   shift spotlight from chip bar to the dialog so
+      //          the flood toggles being clicked are clearly lit
       //   3.0s   ripple on flood_zones, click 200ms later
       //   5.0s   ripple on flood_hazard, click 200ms later
       //   7.0s   ripple on flood_extent, click 200ms later
-      //   9.0s   close the modal (Escape) so the user sees the
-      //          flood overlays painted on the map with the chip
-      //          bar now showing the active layer count.
-      // The spotlight stays on the MapLayerChipBar for the whole
-      // thing. After the modal auto-closes the user sees the bar
-      // glow with the new active count plus the overlays on the
-      // map underneath.
+      //   9.0s   close modal, shift spotlight back to chip bar so
+      //          the user sees the active-layer count with the
+      //          flood overlays painted on the map underneath.
       const FLOOD_IDS = ['flood_zones', 'flood_hazard', 'flood_extent'];
       const timers: ReturnType<typeof setTimeout>[] = [];
       let opened = false;
@@ -458,6 +469,11 @@ export function OnboardingTour() {
         trigger.click();
         opened = true;
       }, 1800));
+      // Shift spotlight to the dialog once it's had time to mount
+      // and animate in. Base-ui dialogs fade in ~150ms.
+      timers.push(setTimeout(() => {
+        setOverrideTarget('[data-tour-target="layer-modal"]');
+      }, 2100));
 
       FLOOD_IDS.forEach((id, i) => {
         const rippleAt = 3000 + i * 2000;
@@ -475,12 +491,14 @@ export function OnboardingTour() {
 
       // Auto-close the modal after the last click so the user can
       // see the flood overlays painted on the map while still on
-      // this step.
+      // this step. Shift spotlight back to the chip bar so the
+      // active-layer count badge reads.
       timers.push(setTimeout(() => {
         if (opened) {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
           opened = false;
         }
+        setOverrideTarget(null);
       }, 9000));
 
       return () => {
@@ -488,31 +506,49 @@ export function OnboardingTour() {
         if (opened) {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         }
+        // Belt-and-braces: clear the dialog override so the next
+        // step starts on its own target even if the user Nexted
+        // through the demo mid-animation.
+        setOverrideTarget(null);
       };
     }
     if (step.onEnter === 'demo-map-navigation') {
-      // Paced flyTo sequence so the user sees the map actively
-      // moving. Coordinates are the four main centres so the
-      // zoom-out-then-zoom-in choreography feels like a sweep
-      // across Aotearoa rather than random jumps.
-      const fly = (longitude: number, latitude: number, zoom: number, duration = 1400) => {
+      // Subtle "you can pan and zoom" demo. Instead of flying off
+      // to Auckland and back (felt too much like a product reel),
+      // we stay near the user's current viewport, nudge it a few
+      // times with small pans + a zoom in/out, and drop tap ripples
+      // at different spots on the map so they read as "markers"
+      // pointing out interactive locations. The map stays
+      // recognisably where it started.
+      const v = useMapStore.getState().viewport;
+      const fly = (longitude: number, latitude: number, zoom: number, duration = 900) => {
         window.dispatchEvent(new CustomEvent('tour:fly-to', { detail: { longitude, latitude, zoom, duration } }));
       };
-      const tapAtMapCentre = () => {
+      const markerOnMap = (xFrac: number, yFrac: number) => {
         const r = readRect('[data-tour="map"]');
-        if (r) setTap({ x: r.left + r.width / 2, y: r.top + r.height / 2, key: Date.now() });
+        if (!r) return;
+        setTap({
+          x: r.left + r.width * xFrac,
+          y: r.top + r.height * yFrac,
+          // Add a random offset so consecutive ripples at the same
+          // fraction still re-key and re-animate.
+          key: Date.now() + Math.random(),
+        });
       };
       const timers: ReturnType<typeof setTimeout>[] = [];
-      // 0.5s  fly to Auckland CBD (zoom in)
-      timers.push(setTimeout(() => fly(174.7633, -36.8485, 12, 1600), 500));
-      // 2.5s  zoom out to see Aotearoa end to end
-      timers.push(setTimeout(() => fly(174.5, -40.5, 5.2, 1800), 2500));
-      // 5.0s  zoom into Wellington region
-      timers.push(setTimeout(() => fly(174.78, -41.28, 11, 1800), 5000));
-      // 7.5s  a tap ripple on the map to hint at "click a property"
-      timers.push(setTimeout(() => tapAtMapCentre(), 7500));
-      // 8.2s  final tight zoom on the Wellington CBD
-      timers.push(setTimeout(() => fly(174.776, -41.287, 15, 1400), 8200));
+      // 0.4s   marker near the centre, reads as "click a spot here"
+      timers.push(setTimeout(() => markerOnMap(0.5, 0.5), 400));
+      // 1.4s   zoom in a couple of levels so user sees zoom working
+      timers.push(setTimeout(() => fly(v.longitude, v.latitude, v.zoom + 1.5, 1200), 1400));
+      // 3.0s   subtle pan right so user sees drag working
+      timers.push(setTimeout(() => fly(v.longitude + 0.02, v.latitude, v.zoom + 1.5, 900), 3000));
+      // 4.2s   marker over on the right to reinforce "tap anywhere"
+      timers.push(setTimeout(() => markerOnMap(0.72, 0.45), 4200));
+      // 5.2s   pan down a bit to cover the other axis
+      timers.push(setTimeout(() => fly(v.longitude + 0.02, v.latitude - 0.012, v.zoom + 1.5, 900), 5200));
+      // 6.6s   zoom back out so the user isn't stranded closer in
+      //        than they started
+      timers.push(setTimeout(() => fly(v.longitude, v.latitude, v.zoom, 1200), 6600));
       return () => {
         timers.forEach(clearTimeout);
       };
