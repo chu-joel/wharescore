@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("/search/address")
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")
 async def search_address(
     request: Request,
     q: str = Query(..., min_length=3, max_length=200),

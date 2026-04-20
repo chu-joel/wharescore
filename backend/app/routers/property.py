@@ -395,8 +395,16 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
 
 
 @router.get("/property/{address_id}/report")
-@limiter.limit("20/minute", key_func=_verified_user_or_ip)
-@limiter.limit("5/minute", key_func=get_remote_address)
+# Two overlays:
+#   40/min per user (or IP if anon, via _verified_user_or_ip) is the
+#     legit ceiling for someone actively browsing / flipping persona /
+#     revisiting properties. On-screen report fires 2 requests per
+#     page load (fast + full) so 40/min = ~20 distinct pages/min,
+#     plenty for human use.
+#   15/min per IP is a stricter abuse-only anon cap. Enough for any
+#     real visitor but tight enough that a scraper has to slow down.
+@limiter.limit("40/minute", key_func=_verified_user_or_ip)
+@limiter.limit("15/minute", key_func=get_remote_address)
 async def get_report(request: Request, address_id: int, fast: bool = Query(False)):
     """Full property report with risk scores.
     Calls get_property_report() PL/pgSQL function, enriches with Python scoring.
@@ -548,7 +556,7 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
 # --- Crime Trend ---
 
 @router.get("/property/{address_id}/crime-trend")
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")
 async def get_crime_trend(request: Request, address_id: int):
     """Monthly crime victimisations for the property's area unit, last 3 years.
     Cached 24h by area_unit."""
@@ -606,7 +614,7 @@ async def get_crime_trend(request: Request, address_id: int):
 # --- Earthquake Timeline ---
 
 @router.get("/property/{address_id}/earthquake-timeline")
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")
 async def get_earthquake_timeline(request: Request, address_id: int):
     """Annual earthquake count + max magnitude within 50km, last 10 years.
     Cached 24h by lat/lng bucket."""
@@ -658,7 +666,7 @@ async def get_earthquake_timeline(request: Request, address_id: int):
 # --- Council Rates (live per-property lookup) ---
 
 @router.get("/property/{address_id}/rates")
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def get_property_rates(request: Request, address_id: int):
     """Fetch live council rates/valuation for a property.
 
