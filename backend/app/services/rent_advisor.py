@@ -11,7 +11,7 @@ from datetime import date
 from .market import (
     REVALUATION_DATES,
     blend_sa2_tla,
-    cv_uncertainty,  # noqa: F401 — re-exported for parity with price_advisor
+    cv_uncertainty,  # noqa: F401. re-exported for parity with price_advisor
     estimate_percentile,
     market_confidence_stars,
 )
@@ -23,7 +23,7 @@ from .market import (
 TYPICAL_FOOTPRINT = {"House": 140, "Flat": 90, "Apartment": 65, "Room": 40}
 TYPICAL_IMP_RATIO = 0.45
 
-# Finish tier: (low_adj, high_adj) — range for the band
+# Finish tier: (low_adj, high_adj). range for the band
 FINISH_TIERS = {
     "basic": (-0.05, -0.10),
     "standard": (-0.01, -0.03),
@@ -65,7 +65,7 @@ BATHROOM_ADJ: dict[tuple[str, str], tuple[float, float]] = {
     ("5+", "3+"): (0.02, 0.05),
 }
 
-# Hazard adjustment ranges (low_adj, high_adj) — both negative
+# Hazard adjustment ranges (low_adj, high_adj). both negative
 HAZARD_ADJ = {
     "flood": {"label": "Flood zone", "low": -0.03, "high": -0.06},
     "liquefaction": {"label": "High liquefaction", "low": -0.02, "high": -0.04},
@@ -81,7 +81,7 @@ HAZARD_ADJ = {
     "coastal_erosion": {"label": "Coastal erosion risk", "low": -0.03, "high": -0.05},
 }
 
-# SQL fragments for prevalence counting (safe — defined in code, not user input)
+# SQL fragments for prevalence counting (safe. defined in code, not user input)
 _PREVALENCE_SQL = {
     "flood": "EXISTS(SELECT 1 FROM flood_zones hz WHERE ST_Intersects(hz.geom, a.geom))",
     "liquefaction": "EXISTS(SELECT 1 FROM liquefaction_zones hz WHERE ST_Intersects(hz.geom, a.geom) AND hz.liquefaction IN ('High', 'Very High'))",
@@ -171,7 +171,7 @@ async def get_sa2_rental_baseline(
 
 
 # ---------------------------------------------------------------------------
-# Hazard detection — single query, all hazards
+# Hazard detection. single query, all hazards
 # ---------------------------------------------------------------------------
 
 async def _detect_hazards(conn, address_id: int) -> dict:
@@ -231,7 +231,7 @@ async def _detect_hazards(conn, address_id: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Prevalence — how common is each hazard in this SA2?
+# Prevalence. how common is each hazard in this SA2?
 # ---------------------------------------------------------------------------
 
 async def _compute_prevalence(conn, sa2_code: str, detected_keys: set[str]) -> dict[str, float]:
@@ -260,7 +260,7 @@ async def _compute_prevalence(conn, sa2_code: str, detected_keys: set[str]) -> d
 
 
 # ---------------------------------------------------------------------------
-# Unit CV fallback — match LINZ unit to WCC rates cache
+# Unit CV fallback. match LINZ unit to WCC rates cache
 # ---------------------------------------------------------------------------
 
 async def _get_unit_cv_from_rates(conn, prop: dict) -> dict | None:
@@ -303,7 +303,7 @@ async def _get_unit_cv_from_rates(conn, prop: dict) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# Location metrics — property-specific vs SA2 average
+# Location metrics. property-specific vs SA2 average
 # ---------------------------------------------------------------------------
 
 # CBD coordinates for NZ cities (matches report function)
@@ -474,7 +474,7 @@ def _location_adjustment(
         elif ratio < 0.8:  # 20-50% worse
             lo, hi = -max_adj_high * 0.5, -max_adj_low * 0.3
         else:
-            return None  # Within 20% of average — no adjustment
+            return None  # Within 20% of average. no adjustment
     else:
         # Less = better (e.g. CBD distance, noise dB)
         if ratio < 0.5:  # Much closer/quieter
@@ -501,7 +501,7 @@ def _location_adjustment(
 
 
 # ---------------------------------------------------------------------------
-# Area context — suburb characteristics that explain the median
+# Area context. suburb characteristics that explain the median
 # ---------------------------------------------------------------------------
 
 async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
@@ -524,7 +524,7 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
     context: list[dict] = []
 
     # NZDep (1=least deprived, 10=most deprived). These describe the SUBURB AVERAGE,
-    # not this specific property — the audit flagged that users were reading the suburb
+    # not this specific property. the audit flagged that users were reading the suburb
     # figures here as this property's own deprivation score, which is typically different
     # (a single meshblock can diverge substantially from its suburb average).
     if sa2.get("avg_nzdep") is not None:
@@ -532,13 +532,13 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
         city_nzdep = round(float(ta["avg_nzdep"])) if ta and ta.get("avg_nzdep") else 5
         if nzdep <= 3:
             direction = "up"
-            desc = f"Suburb NZDep avg {nzdep} — less deprived than city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep}. less deprived than city avg ({city_nzdep})"
         elif nzdep >= 8:
             direction = "down"
-            desc = f"Suburb NZDep avg {nzdep} — more deprived than city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep}. more deprived than city avg ({city_nzdep})"
         else:
             direction = "neutral"
-            desc = f"Suburb NZDep avg {nzdep} — similar to city avg ({city_nzdep})"
+            desc = f"Suburb NZDep avg {nzdep}. similar to city avg ({city_nzdep})"
         context.append({
             "factor": "deprivation",
             "label": "Deprivation",
@@ -549,20 +549,20 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Transit — this is the suburb-wide average of stops within 400m, not stops within 400m
+    # Transit. this is the suburb-wide average of stops within 400m, not stops within 400m
     # of this specific property (which is reported elsewhere in liveability.transit_stops_400m).
     if sa2.get("transit_count_400m") is not None:
         tc = sa2["transit_count_400m"]
         city_tc = ta["transit_count_400m"] if ta and ta.get("transit_count_400m") else 0
         if tc >= 10:
             direction = "up"
-            desc = f"Suburb avg {tc} stops within 400m — excellent access"
+            desc = f"Suburb avg {tc} stops within 400m. excellent access"
         elif tc >= 3:
             direction = "up"
-            desc = f"Suburb avg {tc} stops within 400m — good access"
+            desc = f"Suburb avg {tc} stops within 400m. good access"
         elif tc >= 1:
             direction = "neutral"
-            desc = f"Suburb avg {tc} stop{'s' if tc > 1 else ''} within 400m — limited access"
+            desc = f"Suburb avg {tc} stop{'s' if tc > 1 else ''} within 400m. limited access"
         else:
             direction = "down"
             desc = "Suburb average: no transit stops within 400m"
@@ -576,19 +576,19 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Schools — also a suburb-wide average, not this property's own count.
+    # Schools. also a suburb-wide average, not this property's own count.
     if sa2.get("school_count_1500m") is not None:
         sc = sa2["school_count_1500m"]
         city_sc = ta["school_count_1500m"] if ta and ta.get("school_count_1500m") else 0
         if sc >= 5:
             direction = "up"
-            desc = f"Suburb avg {sc} schools within 1.5km — above average"
+            desc = f"Suburb avg {sc} schools within 1.5km. above average"
         elif sc >= 2:
             direction = "neutral"
             desc = f"Suburb avg {sc} schools within 1.5km"
         else:
             direction = "down"
-            desc = f"Suburb avg {sc} school{'s' if sc != 1 else ''} within 1.5km — below average"
+            desc = f"Suburb avg {sc} school{'s' if sc != 1 else ''} within 1.5km. below average"
         context.append({
             "factor": "schools",
             "label": "Schools",
@@ -599,20 +599,20 @@ async def _get_area_context(conn, sa2_code: str, ta_name: str) -> list[dict]:
             "description": desc,
         })
 
-    # Noise — this is the MAX road noise recorded anywhere in the suburb, not the noise
+    # Noise. this is the MAX road noise recorded anywhere in the suburb, not the noise
     # at this property. Prefix "Suburb peak" so renters don't read it as a measurement
     # for their specific address.
     if sa2.get("max_noise_db") is not None:
         noise = sa2["max_noise_db"]
         if noise >= 65:
             direction = "down"
-            desc = f"Suburb peak {noise} dB — noisy area"
+            desc = f"Suburb peak {noise} dB. noisy area"
         elif noise >= 55:
             direction = "neutral"
-            desc = f"Suburb peak {noise} dB — moderate noise"
+            desc = f"Suburb peak {noise} dB. moderate noise"
         else:
             direction = "up"
-            desc = "Suburb peak below 55 dB — quiet area"
+            desc = "Suburb peak below 55 dB. quiet area"
             noise = 50  # default for display
         context.append({
             "factor": "noise",
@@ -708,7 +708,7 @@ async def compute_rent_advice(
     )
     prop = cur.fetchone()
 
-    # For units, always try wcc_rates_cache — spatial match can return
+    # For units, always try wcc_rates_cache. spatial match can return
     # a random unit's CV (e.g. parking space) instead of the actual unit
     if prop and prop.get("unit_value"):
         prop = dict(prop)  # make mutable
@@ -731,7 +731,7 @@ async def compute_rent_advice(
             "pct_high": -4.0,
             "dollar_low": round(raw_median * -0.08),
             "dollar_high": round(raw_median * -0.04),
-            "reason": "Smaller than a 1-bed — compared to 1-bed bond data",
+            "reason": "Smaller than a 1-bed. compared to 1-bed bond data",
             "category": "property",
         })
     elif bedrooms == "1":
@@ -743,11 +743,11 @@ async def compute_rent_advice(
             "pct_high": 3.0,
             "dollar_low": round(raw_median * 0.01),
             "dollar_high": round(raw_median * 0.03),
-            "reason": "1-bed median includes studios — separate bedroom adds value",
+            "reason": "1-bed median includes studios. separate bedroom adds value",
             "category": "property",
         })
 
-    # Townhouse / multi-unit discount — when user selects "House" but the
+    # Townhouse / multi-unit discount. when user selects "House" but the
     # address is a unit (e.g. 1/45 Smith St, 9A Hollies Crescent), the bond
     # "House" median includes standalones which rent higher.
     is_multi_unit = (prop["unit_count"] or 1) > 1 if prop else False
@@ -771,11 +771,11 @@ async def compute_rent_advice(
             "pct_high": round(hi * 100, 1),
             "dollar_low": round(raw_median * lo),
             "dollar_high": round(raw_median * hi),
-            "reason": f"Unit {prop['unit_count'] or '?'}-unit building — 'House' median includes higher-value standalones",
+            "reason": f"Unit {prop['unit_count'] or '?'}-unit building. 'House' median includes higher-value standalones",
             "category": "property",
         })
 
-    # Size (skip for multi-unit — building footprint ≠ unit size, and we
+    # Size (skip for multi-unit. building footprint ≠ unit size, and we
     # don't have floor count or unit floor area data)
     if prop and prop["footprint_m2"] and not is_multi_unit:
         factors_analysed += 1
@@ -800,7 +800,7 @@ async def compute_rent_advice(
                 })
 
     # (Removed: quality-per-room-vs-SA2 block. Same denominator-asymmetry
-    # bug as the price advisor's equivalent block — subject used actual
+    # bug as the price advisor's equivalent block. subject used actual
     # beds+baths, SA2 median used hardcoded 3/4, biasing bigger properties
     # toward "Below-average" and smaller toward "Above-average". The signal
     # is structurally covered by imp_ratio on the price side; rent is less
@@ -830,9 +830,9 @@ async def compute_rent_advice(
         if abs(lo) >= 0.005 or abs(hi) >= 0.005:
             typical = "1" if bedrooms in ("1", "2") else "2"
             if lo >= 0:
-                reason = f"{bathrooms} bath — above typical ({typical}) for {bedrooms}-bed"
+                reason = f"{bathrooms} bath. above typical ({typical}) for {bedrooms}-bed"
             else:
-                reason = f"{bathrooms} bath — below typical ({typical}) for {bedrooms}-bed"
+                reason = f"{bathrooms} bath. below typical ({typical}) for {bedrooms}-bed"
             adjustments.append({
                 "factor": "bathrooms",
                 "label": f"{bathrooms} bathroom{'s' if bathrooms != '1' else ''}",
@@ -864,7 +864,7 @@ async def compute_rent_advice(
             "category": "property",
         })
 
-    # Insulation — legally required since July 2025 (Healthy Homes Standards),
+    # Insulation. legally required since July 2025 (Healthy Homes Standards),
     # so insulated is the baseline (0%). Only adjust down if NOT insulated.
     if has_insulation is not None:
         factors_analysed += 1
@@ -881,7 +881,7 @@ async def compute_rent_advice(
                 "category": "property",
             })
 
-    # Furnished vs unfurnished — bond data mixes both, so median is blended.
+    # Furnished vs unfurnished. bond data mixes both, so median is blended.
     # Furnished = premium over blend, unfurnished = discount vs blend.
     # Partially furnished (appliances only) = small premium.
     if is_partially_furnished:
@@ -914,7 +914,7 @@ async def compute_rent_advice(
             "category": "property",
         })
 
-    # Private outdoor space — rare for apartments, adds premium
+    # Private outdoor space. rare for apartments, adds premium
     if has_outdoor_space and dwelling_type in ("Flat", "Apartment"):
         factors_analysed += 1
         lo, hi = 0.02, 0.05
@@ -925,11 +925,11 @@ async def compute_rent_advice(
             "pct_high": round(hi * 100, 1),
             "dollar_low": round(raw_median * lo),
             "dollar_high": round(raw_median * hi),
-            "reason": "Deck/balcony/courtyard — uncommon for apartments",
+            "reason": "Deck/balcony/courtyard. uncommon for apartments",
             "category": "property",
         })
 
-    # Character property — unique architectural features command a premium
+    # Character property. unique architectural features command a premium
     if is_character_property:
         factors_analysed += 1
         lo, hi = 0.03, 0.07
@@ -944,7 +944,7 @@ async def compute_rent_advice(
             "category": "property",
         })
 
-    # Shared kitchen — most rentals have own kitchen, so shared is a discount
+    # Shared kitchen. most rentals have own kitchen, so shared is a discount
     if shared_kitchen is not None:
         factors_analysed += 1
         if shared_kitchen:
@@ -956,11 +956,11 @@ async def compute_rent_advice(
                 "pct_high": round(hi * 100, 1),
                 "dollar_low": round(raw_median * lo),
                 "dollar_high": round(raw_median * hi),
-                "reason": "Most rentals include own kitchen — shared reduces value",
+                "reason": "Most rentals include own kitchen. shared reduces value",
                 "category": "property",
             })
 
-    # Utilities included — bond data is mostly rent-only, so utilities-included
+    # Utilities included. bond data is mostly rent-only, so utilities-included
     # rentals appear higher than the median. Rent-only is the baseline.
     if utilities_included is not None:
         factors_analysed += 1
@@ -973,7 +973,7 @@ async def compute_rent_advice(
                 "pct_high": round(hi * 100, 1),
                 "dollar_low": round(raw_median * lo),
                 "dollar_high": round(raw_median * hi),
-                "reason": "Rent includes power/water/internet — most bond data is rent-only",
+                "reason": "Rent includes power/water/internet. most bond data is rent-only",
                 "category": "property",
             })
 
@@ -1031,7 +1031,7 @@ async def compute_rent_advice(
                 "factor": key,
                 "label": cfg["label"],
                 "prevalence_pct": prev_pct,
-                "description": f"{cfg['label']} — area-wide ({prev_pct}% of properties), already reflected in local rents",
+                "description": f"{cfg['label']}. area-wide ({prev_pct}% of properties), already reflected in local rents",
             })
         else:
             # Apply scaled adjustment
@@ -1086,7 +1086,7 @@ async def compute_rent_advice(
         prop_cbd = loc.get("cbd_distance_m")
         if prop_cbd is not None:
             factors_analysed += 1
-            # SA2 centroid CBD distance — compute from SA2 centroid
+            # SA2 centroid CBD distance. compute from SA2 centroid
             cur2 = await conn.execute(
                 """
                 SELECT round(ST_Distance(
@@ -1198,7 +1198,7 @@ async def compute_rent_advice(
     iqr = (uq - lq) if (lq is not None and uq is not None) else None
 
     if iqr and iqr > 0:
-        # Cap: band can't be wider than the IQR — we can't claim more
+        # Cap: band can't be wider than the IQR. we can't claim more
         # spread than the market actually exhibits for this property type
         if (band_high - band_low) > iqr:
             mid = (band_low + band_high) / 2
@@ -1368,14 +1368,14 @@ def _generate_advice(
             f"of ${band_low}–${band_high}/wk"
         )
         if in_possible:
-            line += f", but within the possible range (${band_low_outer}–${band_high_outer}/wk) — you're getting good value."
+            line += f", but within the possible range (${band_low_outer}–${band_high_outer}/wk). you're getting good value."
         else:
-            line += " — you're getting good value."
+            line += ". you're getting good value."
         lines.append(line)
     elif verdict == "fair":
         lines.append(
             f"Your rent of ${weekly_rent}/wk is within our estimated fair range "
-            f"of ${band_low}–${band_high}/wk — this looks reasonable."
+            f"of ${band_low}–${band_high}/wk. this looks reasonable."
         )
     elif verdict == "slightly-high":
         above = weekly_rent - band_high

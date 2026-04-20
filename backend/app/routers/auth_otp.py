@@ -4,7 +4,7 @@
 Flow:
   1. POST /auth/send-code {email} → generates 6-digit code, stores in Redis, sends via Resend
   2. POST /auth/verify-code {email, code} → verifies code, returns user info for NextAuth Credentials provider
-  3. NextAuth issues JWT — same session flow as Google auth
+  3. NextAuth issues JWT. same session flow as Google auth
 """
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ async def verify_code(request: Request, body: VerifyCodeRequest):
     if stored_code != code:
         raise HTTPException(400, "Incorrect code")
 
-    # Code is valid — clean up
+    # Code is valid. clean up
     await cache_del(_otp_key(email))
     await cache_del(attempts_key)
 

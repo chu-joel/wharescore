@@ -27,8 +27,8 @@ export function HostedNextSteps({ persona, report }: Props) {
   const hasHighCrime = (report.liveability?.crime_rate ?? 0) > 70;
 
   const renterCards: ActionCard[] = [
-    { level: 'essential', title: 'Healthy Homes Check', description: 'Request the signed compliance statement — legally required since July 2025' },
-    { level: 'essential', title: 'Contents Insurance', description: 'Get quotes — check hazard exclusions for this area' },
+    { level: 'essential', title: 'Healthy Homes Check', description: 'Request the signed compliance statement. legally required since July 2025' },
+    { level: 'essential', title: 'Contents Insurance', description: 'Get quotes. check hazard exclusions for this area' },
     { level: 'recommended', title: 'Visit at Different Times', description: 'Check noise, parking, safety at day and night' },
     { level: 'recommended', title: 'Test Your Commute', description: 'Peak hour transit/drive to work from this address' },
     ...(hasEpb ? [{
@@ -49,14 +49,14 @@ export function HostedNextSteps({ persona, report }: Props) {
   ];
 
   const buyerCards: ActionCard[] = [
-    { level: 'essential', title: 'Get a LIM Report (~$300-$500)', description: 'Council info memorandum — your #1 due diligence document' },
+    { level: 'essential', title: 'Get a LIM Report (~$300-$500)', description: 'Council info memorandum. your #1 due diligence document' },
     { level: 'essential', title: "Builder's Report (~$400-$1,500)", description: 'Pre-purchase building inspection by a qualified inspector' },
     { level: 'essential', title: 'Insurance Quotes', description: 'Get 2+ quotes BEFORE going unconditional' },
     { level: 'recommended', title: 'Legal Review', description: 'Title, covenants, easements, cross-lease checks' },
     ...(needsGeotech ? [{
       level: 'recommended' as const,
       title: 'Geotechnical Report (~$1,500-$3,000)',
-      description: 'Soil stability assessment — critical for foundations',
+      description: 'Soil stability assessment. critical for foundations',
     }] : []),
     ...(hasFlood ? [{
       level: 'recommended' as const,

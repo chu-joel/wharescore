@@ -147,7 +147,7 @@ export function MapLayerPicker() {
         data-layer-picker-trigger
         className="shrink-0 flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border bg-background/95 backdrop-blur-sm text-muted-foreground border-border hover:bg-muted hover:text-foreground transition-all active:scale-95"
         disabled={showUpgradeModal}
-        title={activeCount > 0 ? `${activeCount} layer${activeCount === 1 ? '' : 's'} active — click to edit` : 'Browse map layers'}
+        title={activeCount > 0 ? `${activeCount} layer${activeCount === 1 ? '' : 's'} active. click to edit` : 'Browse map layers'}
         aria-label={activeCount > 0 ? `Map layers (${activeCount} active)` : 'Map layers'}
       >
         <Layers className="h-3.5 w-3.5" />

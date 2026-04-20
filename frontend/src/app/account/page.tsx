@@ -76,7 +76,7 @@ export default function AccountPage() {
       }
     })();
 
-    // Load saved properties in parallel. Failure is silent — the
+    // Load saved properties in parallel. Failure is silent. the
     // Saved Reports path above is the critical one.
     (async () => {
       try {
@@ -99,7 +99,7 @@ export default function AccountPage() {
 
   const handleRemoveSavedProperty = async (addressId: number) => {
     const previous = savedProperties;
-    // Optimistic UI — remove locally first
+    // Optimistic UI. remove locally first
     setSavedProperties((prev) => prev.filter((p) => p.address_id !== addressId));
     try {
       const token = await getToken();
@@ -336,7 +336,7 @@ export default function AccountPage() {
         {/* Credit Balance */}
         {renderCreditBalance()}
 
-        {/* Saved Properties (bookmarks — distinct from Saved Reports) */}
+        {/* Saved Properties (bookmarks. distinct from Saved Reports) */}
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-4">Saved Properties</h2>
           {loadingSavedProperties ? (
@@ -467,7 +467,7 @@ export default function AccountPage() {
                         <div className={`border-t px-4 py-3 flex items-center justify-between gap-3 ${isExpiring ? 'border-amber-300 bg-gradient-to-r from-amber-50 to-transparent dark:from-amber-950/20' : 'border-border bg-gradient-to-r from-piq-primary/5 to-transparent'}`}>
                           <p className="text-xs text-muted-foreground">
                             {isExpiring
-                              ? `Expires in ${daysLeft! <= 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} — upgrade to keep permanently with 25+ sections.`
+                              ? `Expires in ${daysLeft! <= 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}. upgrade to keep permanently with 25+ sections.`
                               : 'Upgrade to Full for hazard analysis, rent/price advisor, terrain data, and 25+ sections.'}
                           </p>
                           <button

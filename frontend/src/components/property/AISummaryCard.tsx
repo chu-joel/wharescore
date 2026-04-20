@@ -69,7 +69,7 @@ export function AISummaryCard({ summary, areaProfile, suburbName, loading }: AIS
       {areaProfile && (
         <ExpandableCard
           icon={<MapPin className="h-4 w-4 text-piq-primary" />}
-          label={suburbName ? `${suburbName} — Suburb information` : 'Suburb information'}
+          label={suburbName ? `${suburbName}. Suburb information` : 'Suburb information'}
           text={areaProfile}
           expanded={profileExpanded}
           onToggle={() => setProfileExpanded(!profileExpanded)}

@@ -59,7 +59,7 @@ function assessInsuranceRisk(report: PropertyReport): {
   if (criticalCount === 0) {
     level = 'green';
     message =
-      'No flood zone, earthquake-prone building, tsunami zone, coastal erosion, wildfire or mapped landslide flags — the factors insurers usually load premiums for. Standard home insurance likely at normal rates. Other risks on this report (wind, air quality, crime) don\'t typically change premiums.';
+      'No flood zone, earthquake-prone building, tsunami zone, coastal erosion, wildfire or mapped landslide flags. the factors insurers usually load premiums for. Standard home insurance likely at normal rates. Other risks on this report (wind, air quality, crime) don\'t typically change premiums.';
   } else if (criticalCount <= 2) {
     level = 'amber';
     const names = activeFactors.map((f) => f.label.toLowerCase()).join(', ');

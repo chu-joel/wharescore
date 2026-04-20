@@ -8,14 +8,14 @@ interface Props {
 }
 
 const ASPECT_INFO: Record<string, { sun: string; warmth: string; variant: 'good' | 'ok' | 'poor' }> = {
-  'N':  { sun: 'Maximum sun all day', warmth: 'Warm in winter — best orientation in NZ', variant: 'good' },
+  'N':  { sun: 'Maximum sun all day', warmth: 'Warm in winter. best orientation in NZ', variant: 'good' },
   'NE': { sun: 'Morning sun, good all-day light', warmth: 'Warm mornings, good winter sun', variant: 'good' },
   'NW': { sun: 'Afternoon sun, good all-day light', warmth: 'Warm afternoons, good winter sun', variant: 'good' },
   'E':  { sun: 'Morning sun only', warmth: 'Bright mornings, cooler afternoons', variant: 'ok' },
   'W':  { sun: 'Afternoon sun only', warmth: 'Cool mornings, warm afternoons', variant: 'ok' },
-  'SE': { sun: 'Limited — morning only, less in winter', warmth: 'May be cool in winter', variant: 'poor' },
-  'SW': { sun: 'Limited — afternoon only, less in winter', warmth: 'May be cool in winter', variant: 'poor' },
-  'S':  { sun: 'Very limited winter sun', warmth: 'Coldest orientation — expect higher heating costs', variant: 'poor' },
+  'SE': { sun: 'Limited. morning only, less in winter', warmth: 'May be cool in winter', variant: 'poor' },
+  'SW': { sun: 'Limited. afternoon only, less in winter', warmth: 'May be cool in winter', variant: 'poor' },
+  'S':  { sun: 'Very limited winter sun', warmth: 'Coldest orientation. expect higher heating costs', variant: 'poor' },
 };
 
 const VARIANT_STYLES = {

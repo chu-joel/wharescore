@@ -243,13 +243,13 @@ export function HostedTerrain({ snapshot }: Props) {
               {/* Aspect */}
               {aspectLabel !== 'flat' && aspectLabel !== 'unknown' && (() => {
                 // For multi-unit dwellings (apartments, townhouses, units in a block) the
-                // parcel's aspect is largely meaningless — surrounding buildings dominate
+                // parcel's aspect is largely meaningless. surrounding buildings dominate
                 // the actual light the unit gets. Flag that up front instead of claiming
                 // "Limited sun" based on raster-derived parcel geometry.
                 const detection = (snapshot as unknown as { report?: { property_detection?: { is_multi_unit?: boolean } } }).report?.property_detection;
                 const isMultiUnit = !!detection?.is_multi_unit;
                 const sunLabel = isMultiUnit
-                  ? 'Urban unit — verify'
+                  ? 'Urban unit. verify'
                   : aspectLabel.includes('north')
                     ? 'Best sun'
                     : aspectLabel.includes('south')
@@ -285,7 +285,7 @@ export function HostedTerrain({ snapshot }: Props) {
                 </div>
               )}
 
-              {/* Wind exposure — keep the exposure label on its own line and treat the
+              {/* Wind exposure. keep the exposure label on its own line and treat the
                   relative position as a parenthesised qualifier so the card doesn't read
                   as "Wind moderate mid slope" in plain-text dumps. */}
               {windExposure !== 'unknown' && (
@@ -328,7 +328,7 @@ export function HostedTerrain({ snapshot }: Props) {
                     {floodTerrain}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {isDepression ? 'depression — water collects' : 'flood terrain risk'}
+                    {isDepression ? 'depression. water collects' : 'flood terrain risk'}
                   </p>
                 </div>
               )}
@@ -440,7 +440,7 @@ export function HostedTerrain({ snapshot }: Props) {
                   : ' (straight-line estimate)'}
               </p>
 
-              {/* Mode breakdown — show the noun ("stops") so users don't read "17 bus" as "17 bus lines". */}
+              {/* Mode breakdown. show the noun ("stops") so users don't read "17 bus" as "17 bus lines". */}
               {(busStops > 0 || railStops > 0 || ferryStops > 0) && (
                 <div className="flex flex-wrap gap-2">
                   {busStops > 0 && (
@@ -472,7 +472,7 @@ export function HostedTerrain({ snapshot }: Props) {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   <span className="font-semibold text-foreground">Hills reduce your walking range.</span>{' '}
                   On flat ground, a 10-minute walk covers about 800m. With the {slope.toFixed(0)}° slopes around this
-                  property, your actual reach is smaller — stops that look close on a map may involve steep climbs.
+                  property, your actual reach is smaller. stops that look close on a map may involve steep climbs.
                 </p>
               </div>
             )}

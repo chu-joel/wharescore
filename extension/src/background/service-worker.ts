@@ -4,7 +4,7 @@
 //     per-site enable flags reach the content scripts without a reload
 // All network requests go via src/lib/api.ts which handles token cache,
 // timeouts, and 401-retry. Content scripts do their own fetching for badge
-// lookups — see README for the rationale (cuts one message-hop per page).
+// lookups. see README for the rationale (cuts one message-hop per page).
 import { API_BASE } from "@/lib/constants";
 import { fetchStatus } from "@/lib/api";
 import { setCachedStatus } from "@/lib/storage";

@@ -85,7 +85,7 @@ def _classify_event(precip, wind_gust, temp_max, temp_min, weather_code):
     if temp_max is not None and temp_max >= HEATWAVE_C:
         events.append(("heatwave", "warning",
                         f"Extreme heat: {temp_max:.1f}°C",
-                        f"Maximum temperature of {temp_max:.1f}°C. Heat stress risk — stay hydrated, check on vulnerable neighbours."))
+                        f"Maximum temperature of {temp_max:.1f}°C. Heat stress risk. stay hydrated, check on vulnerable neighbours."))
 
     if temp_min is not None and temp_min <= COLD_SNAP_C:
         events.append(("cold_snap", "info",

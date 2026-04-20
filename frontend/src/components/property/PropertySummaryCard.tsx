@@ -69,7 +69,7 @@ export function PropertySummaryCard({
   // Persona-specific headline metric
   const personaHeadline = (() => {
     if (persona === 'renter' && market.rent_assessment?.median) {
-      // "For this area" was ambiguous — users asked "which area?". Name
+      // "For this area" was ambiguous. users asked "which area?". Name
       // the suburb when we have it so the median is grounded.
       const suburb = address.suburb || address.sa2_name || 'this area';
       return `Median rent: $${market.rent_assessment.median}/wk in ${suburb}`;
@@ -89,7 +89,7 @@ export function PropertySummaryCard({
       }
       // Only show yield when we actually have a single-unit CV to divide
       // into. For building-total CVs we've already hidden/estimated the
-      // number above — a "0.0% yield" line below it looks like real data.
+      // number above. a "0.0% yield" line below it looks like real data.
       if (market.rent_assessment?.median && displayCv && !looksBuildingLevel) {
         const annualRent = market.rent_assessment.median * 52;
         const grossYield = (annualRent / displayCv) * 100;
@@ -217,7 +217,7 @@ export function PropertySummaryCard({
           )}
         </div>
 
-        {/* Property info — key-value pills */}
+        {/* Property info. key-value pills */}
         <PropertyPills report={report} property={property} effectiveCV={effectiveCV} cvIsLive={cvIsLive} ratesLoading={ratesLoading} />
 
         {/* Persona-specific headline */}

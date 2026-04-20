@@ -111,7 +111,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
         </div>
       )}
 
-      {/* Overlays — viewshafts, character precincts, heritage overlay, ecological, mana whenua */}
+      {/* Overlays. viewshafts, character precincts, heritage overlay, ecological, mana whenua */}
       {overlays.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-3.5 card-elevated space-y-2.5">
           <span className="text-sm font-semibold">Planning Overlays</span>
@@ -133,7 +133,7 @@ export function PlanningSection({ category, planning }: PlanningSectionProps) {
       {/* Heritage / Contamination / EPB / Trees checklist */}
       <div className="rounded-xl border border-border bg-card p-3.5 card-elevated space-y-2">
         <span className="text-sm font-semibold">Checklist</span>
-        {/* EPB listed — critical flag */}
+        {/* EPB listed. critical flag */}
         <EpbListedItem listed={planning.epb_listed} />
         <ChecklistItem
           label="Heritage sites nearby"
@@ -226,7 +226,7 @@ function EpbListedItem({ listed }: { listed: boolean | null }) {
         This building on the EPB register?
       </span>
       <span className="ml-auto text-xs font-medium">
-        {listed ? 'Yes — listed' : 'No'}
+        {listed ? 'Yes. listed' : 'No'}
       </span>
     </div>
   );

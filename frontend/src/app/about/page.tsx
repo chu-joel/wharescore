@@ -2,7 +2,7 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 import { Shield, FileSearch, TrendingUp, MapPin, Mountain } from 'lucide-react';
 
 export const metadata = {
-  title: 'About WhareScore — Free NZ Property Intelligence',
+  title: 'About WhareScore. Free NZ Property Intelligence',
   description: 'WhareScore gives you everything the listing doesn\'t tell you about a New Zealand property. Risk scores, actionable recommendations, and fair rent & price analysis powered by 40+ official government data sources.',
   alternates: { canonical: 'https://wharescore.co.nz/about' },
 };
@@ -26,12 +26,12 @@ const FEATURES = [
   {
     icon: MapPin,
     title: 'Neighbourhood reality check',
-    desc: 'School zones, transit access, crime stats, noise levels, nearby amenities — the stuff you only find out after you move in.',
+    desc: 'School zones, transit access, crime stats, noise levels, nearby amenities. the stuff you only find out after you move in.',
   },
   {
     icon: Mountain,
     title: 'Terrain & environment',
-    desc: 'Elevation, slope, wind exposure, waterway proximity, and how these affect your property — inferred from SRTM elevation data and LINZ waterways.',
+    desc: 'Elevation, slope, wind exposure, waterway proximity, and how these affect your property. inferred from SRTM elevation data and LINZ waterways.',
   },
 ];
 
@@ -63,11 +63,11 @@ export default function AboutPage() {
           <strong>WhareScore</strong> gives you everything the listing doesn&rsquo;t tell you about a New Zealand property.
         </p>
         <p>
-          Enter any NZ address and get an instant property intelligence report powered by <strong>40+ official government data sources</strong> — including
+          Enter any NZ address and get an instant property intelligence report powered by <strong>40+ official government data sources</strong>. including
           GNS Science, LINZ, regional councils, NZTA, Ministry of Education, Stats NZ, and NIWA.
         </p>
         <p>
-          Every recommendation tells you exactly what to check, who to ask, and what it might cost — based on <strong>official NZ standards and post-disaster research</strong>, not opinions.
+          Every recommendation tells you exactly what to check, who to ask, and what it might cost. based on <strong>official NZ standards and post-disaster research</strong>, not opinions.
         </p>
       </section>
 
@@ -106,7 +106,7 @@ export default function AboutPage() {
           </div>
           <div className="rounded-xl border border-border p-4 text-center">
             <p className="text-2xl font-bold">$140<span className="text-sm font-normal">/mo</span></p>
-            <p className="text-sm text-muted-foreground mt-1">Pro — 30 reports/mo</p>
+            <p className="text-sm text-muted-foreground mt-1">Pro. 30 reports/mo</p>
           </div>
         </div>
       </section>
@@ -121,7 +121,7 @@ export default function AboutPage() {
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Data sources</h2>
         <p className="mb-4 text-sm text-muted-foreground">
-          All data is sourced from official government and open data providers under their respective Creative Commons licences. No proprietary or paid data — everything we use is publicly available.
+          All data is sourced from official government and open data providers under their respective Creative Commons licences. No proprietary or paid data. everything we use is publicly available.
         </p>
         <div className="space-y-2">
           {DATA_SOURCES.map((s) => (

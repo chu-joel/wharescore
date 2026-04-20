@@ -32,7 +32,7 @@ export default function NotFound() {
           </Link>
         </div>
         <p className="text-xs text-muted-foreground">
-          WhareScore — property intelligence for New Zealand
+          WhareScore. property intelligence for New Zealand
         </p>
       </div>
     </div>

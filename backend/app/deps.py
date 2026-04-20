@@ -47,7 +47,7 @@ def _get_storage_uri() -> str | None:
         return None
 
 
-# Rate limiter — shared across all routers
+# Rate limiter. shared across all routers
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=_get_storage_uri(),

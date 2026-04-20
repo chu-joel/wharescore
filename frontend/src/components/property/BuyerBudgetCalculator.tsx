@@ -288,7 +288,7 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
             : estimatedUnitCv
               ? `Based on valuation of ${formatCurrency(estimatedUnitCv)}. `
               : ''}
-        P&I mortgage. Rates, insurance{isMultiUnit ? ', body corp' : ''} &amp; utilities are estimates — adjust sliders to match.
+        P&I mortgage. Rates, insurance{isMultiUnit ? ', body corp' : ''} &amp; utilities are estimates. adjust sliders to match.
       </p>
     </div>
   );

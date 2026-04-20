@@ -4,7 +4,7 @@ Queenstown-Lakes District Council ArcGIS property data client.
 Uses the QLDC FeatureServer REST API to query property valuations.
 
 Single-step lookup: search by address via ArcGIS query → full property data.
-No cache needed — ArcGIS queries are fast and stateless.
+No cache needed. ArcGIS queries are fast and stateless.
 """
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ async def fetch_qldc_rates(address: str, conn=None) -> dict | None:
             return None
         # Treat all-null OR all-zero CV/LV/IV as "no data" and let the router
         # 404. Unit-titled parcels in QLDC ArcGIS often have null=0 valuations
-        # because the value lives on the parent strata title — there's no
+        # because the value lives on the parent strata title. there's no
         # useful information in such a record for the user.
         cv = _safe_int(prop.get("CAPITAL_VALUE"))
         lv = _safe_int(prop.get("LAND_VALUE"))

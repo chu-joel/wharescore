@@ -47,7 +47,7 @@ function getContextInsight(
   const pctDiff = Math.abs(ratio - 1) * 100;
   const area = suburbName || 'the suburb';
 
-  // Within 15% — basically typical
+  // Within 15%. basically typical
   if (pctDiff < 15) {
     return { sentence: `Typical for ${area}`, sentiment: 'neutral' };
   }
@@ -99,7 +99,7 @@ function getContextInsight(
   if (lowerLabel.includes('earthquake') || lowerLabel.includes('epb')) {
     const diffCount = Math.round(absDiff);
     if (propertyValue === 0) {
-      return { sentence: `None nearby — better than most of ${area}`, sentiment: 'positive' };
+      return { sentence: `None nearby. better than most of ${area}`, sentiment: 'positive' };
     }
     if (isMore) {
       return { sentence: `${diffCount} more than typical for ${area}`, sentiment };

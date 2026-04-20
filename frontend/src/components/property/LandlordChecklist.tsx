@@ -47,7 +47,7 @@ function buildItems(report: PropertyReport): CheckItem[] {
   });
   items.push({
     question: `Is the ceiling insulation at least ${ceilingR}? Underfloor at least R1.3?`,
-    why: `This property is in Climate Zone ${isZone3 ? '3' : '1/2'} — minimum ceiling insulation is ${ceilingR}. Ask when it was last checked.`,
+    why: `This property is in Climate Zone ${isZone3 ? '3' : '1/2'}. minimum ceiling insulation is ${ceilingR}. Ask when it was last checked.`,
     priority: 'must-ask',
     scope: 'universal',
   });
@@ -65,15 +65,15 @@ function buildItems(report: PropertyReport): CheckItem[] {
     items.push({ question: 'Has this property or the street ever flooded?', why: `Within ${floodProximityM(hazards)}m of a mapped flood zone`, priority: 'must-ask', scope: 'personalised' });
   }
   if (planning?.epb_listed) {
-    items.push({ question: 'What is the seismic strengthening timeline for this building?', why: 'Listed as earthquake-prone — may face strengthening deadline', priority: 'must-ask', scope: 'personalised' });
+    items.push({ question: 'What is the seismic strengthening timeline for this building?', why: 'Listed as earthquake-prone. may face strengthening deadline', priority: 'must-ask', scope: 'personalised' });
   }
   const windZone = String(environment?.wind_zone || '').toUpperCase();
   if (['H', 'VH', 'EH', 'SED', 'HIGH', 'VERY HIGH'].includes(windZone)) {
-    items.push({ question: 'Are the windows and doors well-sealed? Any draught issues?', why: 'High wind zone — draughts increase heating costs', priority: 'good-to-ask', scope: 'personalised' });
+    items.push({ question: 'Are the windows and doors well-sealed? Any draught issues?', why: 'High wind zone. draughts increase heating costs', priority: 'good-to-ask', scope: 'personalised' });
   }
   const noiseDb = environment?.noise_db;
   if (noiseDb && noiseDb >= 60) {
-    items.push({ question: 'Is there double glazing? Which rooms face the road?', why: `Road noise is ${Math.round(noiseDb)} dB — above comfortable levels`, priority: 'good-to-ask', scope: 'personalised' });
+    items.push({ question: 'Is there double glazing? Which rooms face the road?', why: `Road noise is ${Math.round(noiseDb)} dB. above comfortable levels`, priority: 'good-to-ask', scope: 'personalised' });
   }
   if (hazards?.aircraft_noise_name) {
     items.push({ question: 'How noticeable is aircraft noise? Which times are worst?', why: 'Property is within an airport noise overlay', priority: 'good-to-ask', scope: 'personalised' });
@@ -85,16 +85,16 @@ function buildItems(report: PropertyReport): CheckItem[] {
   const isSouthFacing = aspect === 'S' || aspect === 'SE' || aspect === 'SW';
   const isHighElevation = elevation != null && elevation > 200;
   if (isSouthFacing) {
-    items.push({ question: 'How warm does the main living area get in winter? Is there afternoon sun?', why: `${aspect}-facing — limited winter sun means higher heating costs`, priority: 'must-ask', scope: 'personalised' });
+    items.push({ question: 'How warm does the main living area get in winter? Is there afternoon sun?', why: `${aspect}-facing. limited winter sun means higher heating costs`, priority: 'must-ask', scope: 'personalised' });
   }
   if (isHighElevation || isSouthFacing) {
-    items.push({ question: 'What are typical winter power bills here?', why: `${isHighElevation ? `${Math.round(elevation!)}m elevation` : ''}${isHighElevation && isSouthFacing ? ' + ' : ''}${isSouthFacing ? 'south-facing' : ''} — expect higher heating needs`, priority: 'must-ask', scope: 'personalised' });
+    items.push({ question: 'What are typical winter power bills here?', why: `${isHighElevation ? `${Math.round(elevation!)}m elevation` : ''}${isHighElevation && isSouthFacing ? ' + ' : ''}${isSouthFacing ? 'south-facing' : ''}. expect higher heating needs`, priority: 'must-ask', scope: 'personalised' });
   }
 
   if (hazards?.epb_construction_type) {
     const conType = hazards.epb_construction_type.toLowerCase();
     if (conType.includes('unreinforced') || conType.includes('masonry') || conType.includes('brick')) {
-      items.push({ question: 'Has the building had any structural assessments or earthquake strengthening?', why: `Construction type: ${hazards.epb_construction_type} — older building stock`, priority: 'must-ask', scope: 'personalised' });
+      items.push({ question: 'Has the building had any structural assessments or earthquake strengthening?', why: `Construction type: ${hazards.epb_construction_type}. older building stock`, priority: 'must-ask', scope: 'personalised' });
     }
   }
 
@@ -108,9 +108,6 @@ function buildItems(report: PropertyReport): CheckItem[] {
 
   // ── Universal good-to-asks ──
   items.push({ question: 'Are pets allowed? Any restrictions?', why: 'Best to confirm before applying', priority: 'good-to-ask', scope: 'universal' });
-  if (!isHighElevation && !isSouthFacing) {
-    items.push({ question: 'What are the typical power and water costs here?', why: 'Helps you budget accurately', priority: 'good-to-ask', scope: 'universal' });
-  }
 
   return items;
 }
@@ -137,7 +134,7 @@ export function LandlordChecklist({ report }: Props) {
   const personalised = items.filter((i) => i.scope === 'personalised');
   const universal = items.filter((i) => i.scope === 'universal');
 
-  // If no personalised triggers fire, the universal list IS the list — show
+  // If no personalised triggers fire, the universal list IS the list. show
   // expanded by default so the renter still has a full checklist.
   const hasPersonalised = personalised.length > 0;
   const [expanded, setExpanded] = useState(!hasPersonalised);

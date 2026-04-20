@@ -1,4 +1,4 @@
-// lib/transformReport.ts — maps raw API response to frontend PropertyReport type
+// lib/transformReport.ts. maps raw API response to frontend PropertyReport type
 //
 // The backend returns a different shape than the frontend types expect.
 // This transform bridges the gap so components get the shape they need.
@@ -33,7 +33,7 @@ function toRatingBin(score: number): RatingBin {
   return getRatingBin(score).rating;
 }
 
-// --- Indicator display labels — overrides the naive title-case for abbreviations ---
+// --- Indicator display labels. overrides the naive title-case for abbreviations ---
 // Keys are backend indicator keys; values are the user-facing label.
 // Anything not listed falls through to snake_case → Title Case.
 const INDICATOR_LABELS: Record<string, string> = {
@@ -177,7 +177,7 @@ function transformLiveability(raw: any): LiveabilityData {
     // Walking reach (10-min walk via Valhalla)
     walking_reach_10min: raw.walking_reach_10min ?? null,
     walking_reach_method: raw.walking_reach_method ?? null,
-    // Nearest essentials — preserve the {name, distance_m} shape from SQL
+    // Nearest essentials. preserve the {name, distance_m} shape from SQL
     nearest_gp: raw.nearest_gp && typeof raw.nearest_gp === 'object'
       ? { name: raw.nearest_gp.name ?? '', distance_m: Number(raw.nearest_gp.distance_m) || 0 }
       : null,
@@ -250,7 +250,7 @@ function transformHazards(raw: any): HazardData {
     wildfire_vhe_days: raw.wildfire_vhe_days ?? null,
     epb_count: raw.epb_count_300m ?? null,
     slope_failure: raw.slope_failure ?? raw.council_slope_severity ?? null,
-    contamination_count: null, // see post-transform mirror below — source of truth is planning
+    contamination_count: null, // see post-transform mirror below. source of truth is planning
     // Wellington-specific
     earthquake_hazard_index: raw.earthquake_hazard_index ?? null,
     earthquake_hazard_grade: raw.earthquake_hazard_grade ?? null,
@@ -343,7 +343,7 @@ function transformEnvironment(raw: any, hazardsRaw: any): EnvironmentData {
 function transformMarket(raw: any): MarketData {
   if (!raw) return {} as MarketData;
 
-  // Build rent_assessment from rental_overview — pick the "ALL" dwelling type, "ALL" beds row
+  // Build rent_assessment from rental_overview. pick the "ALL" dwelling type, "ALL" beds row
   let rentAssessment = null;
   if (Array.isArray(raw.rental_overview)) {
     const allRow = raw.rental_overview.find(
@@ -364,11 +364,11 @@ function transformMarket(raw: any): MarketData {
     }
   }
 
-  // Build trend from trends array — pick the "ALL"/"ALL" row.
+  // Build trend from trends array. pick the "ALL"/"ALL" row.
   // Rent series for small SA2s are volatile and occasionally show extreme
   // outliers (e.g. -31%/yr) that reflect a data gap, not a real market move.
   // Suppress anything outside +/- 25% for the headline 1yr number and
-  // +/- 15% for the 5/10yr compound figures — those ranges cover every
+  // +/- 15% for the 5/10yr compound figures. those ranges cover every
   // genuine Wellington/Auckland movement in the past 20 years with margin.
   const sanitiseCagr = (v: unknown, clamp: number): number | null => {
     if (typeof v !== 'number' || !Number.isFinite(v)) return null;
@@ -447,7 +447,7 @@ function computeContext(liveability: LiveabilityData, market: MarketData): Compu
       : `More deprived than ${100 - pct}% of the country`;
   }
 
-  // Rent vs area median — currently no per-listing rent to compare
+  // Rent vs area median. currently no per-listing rent to compare
   const rent_vs_area: 'above' | 'below' | 'at' | null = null;
 
   return { crime_vs_city_pct, rent_vs_area, nzdep_context };

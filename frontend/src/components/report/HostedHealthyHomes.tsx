@@ -15,11 +15,11 @@ interface HHRow {
 }
 
 // The Healthy Homes Standards (heating / insulation / ventilation / moisture / draught-stopping)
-// cannot be verified from public data — a renter has to check these at viewing or demand the
+// cannot be verified from public data. a renter has to check these at viewing or demand the
 // compliance statement. Previous copy said "No issues detected" with a green tick, which
 // misleadingly implied verification. We now show "Not verified" for every area we can't measure
 // from data, and only flag Moisture / Draught when hazard/wind data gives us a reason to.
-const UNVERIFIED_LABEL = 'Not verified — ask at viewing';
+const UNVERIFIED_LABEL = 'Not verified. ask at viewing';
 
 export function HostedHealthyHomes({ report }: Props) {
   const hazards = (report as unknown as Record<string, unknown>).hazards as Record<string, unknown> | undefined;
@@ -55,7 +55,7 @@ export function HostedHealthyHomes({ report }: Props) {
       area: 'Moisture',
       status: moistureFlagged ? 'flagged' : 'unverified',
       label: moistureFlagged
-        ? `⚠ Area hazard — ${[hasFlood && 'flood zone', highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
+        ? `⚠ Area hazard. ${[hasFlood && 'flood zone', highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
         : UNVERIFIED_LABEL,
       whatToCheck: 'No visible mould, condensation, or rising damp',
     },
@@ -63,7 +63,7 @@ export function HostedHealthyHomes({ report }: Props) {
       area: 'Draught',
       status: windFlagged ? 'flagged' : 'unverified',
       label: windFlagged
-        ? `⚠ Wind zone ${windZone} — higher draught risk`
+        ? `⚠ Wind zone ${windZone}. higher draught risk`
         : UNVERIFIED_LABEL,
       whatToCheck: 'Window and door seals intact, no draughts',
     },

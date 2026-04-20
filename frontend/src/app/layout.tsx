@@ -24,7 +24,7 @@ const siteUrl = "https://wharescore.co.nz";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "WhareScore — Everything the listing doesn't tell you",
+    default: "WhareScore. Everything the listing doesn't tell you",
     template: "%s | WhareScore",
   },
   description:
@@ -33,24 +33,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NZ",
     siteName: "WhareScore",
-    title: "WhareScore — Everything the listing doesn't tell you",
+    title: "WhareScore. Everything the listing doesn't tell you",
     description:
-      "Free NZ property report for buyers & renters. Hazard risk scores, school zones, fair rent, neighbourhood demographics, climate — 40+ risk checks for any NZ address.",
+      "Free NZ property report for buyers & renters. Hazard risk scores, school zones, fair rent, neighbourhood demographics, climate. 40+ risk checks for any NZ address.",
     url: siteUrl,
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "WhareScore — Free NZ property intelligence",
+        alt: "WhareScore. Free NZ property intelligence",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "WhareScore — NZ Property Intelligence",
+    title: "WhareScore. NZ Property Intelligence",
     description:
-      "Free NZ property report — hazard scores, school zones, fair rent, demographics, climate. 40+ risk checks for any address.",
+      "Free NZ property report. hazard scores, school zones, fair rent, demographics, climate. 40+ risk checks for any address.",
     images: ["/og-image.png"],
   },
   icons: {
@@ -99,7 +99,7 @@ export default function RootLayout({
                 name: "WhareScore",
                 url: siteUrl,
                 description:
-                  "Free NZ property intelligence. Hazard exposure, school zones, crime data, fair rent analysis — everything the listing doesn't tell you.",
+                  "Free NZ property intelligence. Hazard exposure, school zones, crime data, fair rent analysis. everything the listing doesn't tell you.",
                 potentialAction: {
                   "@type": "SearchAction",
                   target: {

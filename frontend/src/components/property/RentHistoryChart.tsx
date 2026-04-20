@@ -58,7 +58,7 @@ export function RentHistoryChart({ addressId }: RentHistoryChartProps) {
   }
 
   // Hide when the endpoint returns no rows OR when every row has a zero /
-  // missing median — both cases render an empty chart that adds no value.
+  // missing median. both cases render an empty chart that adds no value.
   if (!data || data.data.length === 0) return null;
   const hasAnyMedian = data.data.some((p) => p.median && p.median > 0);
   if (!hasAnyMedian) return null;

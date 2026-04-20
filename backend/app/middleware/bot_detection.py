@@ -52,7 +52,7 @@ async def bot_detection_middleware(request: Request, call_next):
     if any(bot in ua_lower for bot in ALLOWED_BOTS):
         return await call_next(request)
 
-    # 3. Block known bad patterns (production only — allow curl/wget in dev)
+    # 3. Block known bad patterns (production only. allow curl/wget in dev)
     if settings.ENVIRONMENT == "production" and BLOCKED_RE.search(ua):
         logger.warning("bot_blocked", extra={
             "ip": ip,
@@ -69,6 +69,6 @@ async def bot_detection_middleware(request: Request, call_next):
         if count > 200:
             logger.warning("scraping_detected", extra={
                 "ip": ip, "unique_properties_10min": count})
-            return JSONResponse(status_code=429, content={"detail": "Too many requests — suspected automated access"})
+            return JSONResponse(status_code=429, content={"detail": "Too many requests. suspected automated access"})
 
     return await call_next(request)

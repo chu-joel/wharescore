@@ -42,7 +42,7 @@ def normalize_min_max(
     return 100 - score if inverse else score
 
 
-# Expert ranges — values from RISK-SCORE-METHODOLOGY.md §4
+# Expert ranges. values from RISK-SCORE-METHODOLOGY.md §4
 EXPERT_RANGES = {
     "earthquake_count": (0, 50),     # M4+, 30km, 10yr
     "road_noise_db": (40, 75),       # WHO: 40 quiet, 75 arterial
@@ -112,7 +112,7 @@ def contamination_score(distance_m: float | None, category: str | None) -> float
 
 
 # =============================================================================
-# Severity Mapping Dictionaries (Method 2 — ordinal/categorical → 0-100)
+# Severity Mapping Dictionaries (Method 2. ordinal/categorical → 0-100)
 # All values verified against actual DB content (session 23)
 # =============================================================================
 
@@ -132,6 +132,24 @@ SEVERITY_TSUNAMI = {None: 0, 1: 30, 2: 60, 3: 85}
 SEVERITY_LIQUEFACTION = {
     None: 0, "Low": 20, "Moderate": 50, "High": 80, "Very High": 95,
 }
+
+# Canonical severity scores keyed by the output of normalize_liquefaction().
+# Prefer severity_liquefaction_canonical() over the dict above — it handles the
+# full NZ vocabulary across councils, not just the 4 standard levels. The raw
+# dict is kept for back-compat with anything that reads pre-normalized values.
+_SEVERITY_LIQ_CANONICAL = {
+    "very_high": 95,
+    "high":      80,
+    "moderate":  50,
+    "low":       20,
+    "very_low":  5,
+    "none":      0,
+    "unknown":   0,  # unknown = we have data we can't score; don't inflate risk
+}
+
+
+def severity_liquefaction_canonical(canonical: str | None) -> int:
+    return _SEVERITY_LIQ_CANONICAL.get(canonical or "none", 0)
 
 SEVERITY_SLOPE_FAILURE = {
     None: 0, "Very Low": 5, "Low": 20, "Medium": 45, "High": 75, "Very High": 90,
@@ -244,7 +262,7 @@ WEIGHTS_LIVEABILITY = {      # Sum = 1.0, WAM (transit/crashes moved to transpor
     "heritage": 0.20,
 }
 
-WEIGHTS_TRANSPORT = {        # Sum = 1.0, WAM — higher = worse access (consistent with other categories)
+WEIGHTS_TRANSPORT = {        # Sum = 1.0, WAM. higher = worse access (consistent with other categories)
     "transit_access": 0.25,       # stops within 400m (0=many, 100=none)
     "cbd_proximity": 0.20,       # distance to CBD (0=close, 100=far)
     "commute_frequency": 0.15,   # peak services/hour (0=frequent, 100=none)
@@ -266,7 +284,7 @@ WEIGHTS_PLANNING = {         # Sum = 1.0, WAM
 # Cross-category composite weights.
 #
 # Hazards is weighted 50% (was 0.25) because physical safety is the
-# dominant concern for NZ property decisions — flood, liquefaction,
+# dominant concern for NZ property decisions. flood, liquefaction,
 # tsunami, slope and earthquake exposure drive insurance premiums,
 # lender appetite and resale value in ways no other category does.
 # The other five categories share the remaining 50% in the original
@@ -347,7 +365,7 @@ def coverage_summary(
     indicators: dict[str, float | None],
 ) -> dict:
     """Returns {available, total, label, per_category} for DataLayersAccordion.
-    'total' only counts indicators that are relevant for this location —
+    'total' only counts indicators that are relevant for this location .
     indicators omitted due to NULL data (no data for location) don't count."""
     per_category = {}
     available = 0
@@ -401,14 +419,20 @@ def enrich_with_scores(report: dict) -> dict:
     # --- 1. Normalize each indicator ---
     indicators = {}
 
-    # Hazards — only include indicators where we have actual data.
+    # Hazards. only include indicators where we have actual data.
     # NULL raw data = "no data for this location", not "confirmed safe".
     if haz.get("flood") is not None:
         indicators["flood"] = severity_flood(haz["flood"])
     if haz.get("tsunami_zone_class") is not None:
         indicators["tsunami"] = SEVERITY_TSUNAMI.get(haz["tsunami_zone_class"], 0)
+    # National liquefaction field — normalise before scoring so Auckland
+    # "Possible", Canterbury "damage is possible", Marlborough zone letters,
+    # etc all get a non-zero score instead of silently falling through.
     if haz.get("liquefaction") is not None:
-        indicators["liquefaction"] = SEVERITY_LIQUEFACTION.get(haz["liquefaction"], 0)
+        from .report_html import normalize_liquefaction
+        indicators["liquefaction"] = severity_liquefaction_canonical(
+            normalize_liquefaction(haz["liquefaction"])
+        )
     indicators["earthquake"] = normalize_min_max(haz.get("earthquake_count_30km"), 0, 50)
     if haz.get("coastal_exposure") is not None:
         indicators["coastal_erosion"] = SEVERITY_COASTAL_EXPOSURE.get(haz["coastal_exposure"], 0)
@@ -419,11 +443,11 @@ def enrich_with_scores(report: dict) -> dict:
     if haz.get("slope_failure") is not None:
         indicators["slope_failure"] = SEVERITY_SLOPE_FAILURE.get(haz["slope_failure"], 0)
 
-    # GNS landslide database (national) — refine slope_failure with historical events
+    # GNS landslide database (national). refine slope_failure with historical events
     ls_count = haz.get("landslide_count_500m") or 0
     ls_in_area = haz.get("landslide_in_area")
     if ls_in_area:
-        # Property is inside a mapped landslide area polygon — significant risk
+        # Property is inside a mapped landslide area polygon. significant risk
         gns_score = 75
     elif ls_count >= 3:
         gns_score = 65
@@ -457,8 +481,9 @@ def enrich_with_scores(report: dict) -> dict:
     gwrc_liq = haz.get("gwrc_liquefaction")
     gwrc_geo = haz.get("gwrc_liquefaction_geology")
     if gwrc_liq:
-        regional_score = SEVERITY_LIQUEFACTION.get(gwrc_liq, 0)
-        # Reclaimed land gets a boost — especially vulnerable
+        from .report_html import normalize_liquefaction
+        regional_score = severity_liquefaction_canonical(normalize_liquefaction(gwrc_liq))
+        # Reclaimed land gets a boost. especially vulnerable
         if gwrc_geo and "fill" in str(gwrc_geo).lower():
             regional_score = max(regional_score, 85)
         if regional_score > (indicators.get("liquefaction") or 0):
@@ -487,7 +512,7 @@ def enrich_with_scores(report: dict) -> dict:
         if wcc_flood_score > (indicators.get("flood") or 0):
             indicators["flood"] = wcc_flood_score
 
-    # Council flood AEP (all cities — from flood_hazard table)
+    # Council flood AEP (all cities. from flood_hazard table)
     council_flood_aep = haz.get("flood_extent_aep")
     if council_flood_aep and not wcc_flood:
         # AEP-based: lower AEP % = more frequent = worse
@@ -512,7 +537,7 @@ def enrich_with_scores(report: dict) -> dict:
         if tsunami_score > (indicators.get("tsunami") or 0):
             indicators["tsunami"] = tsunami_score
 
-    # Council tsunami (all cities — from tsunami_hazard table)
+    # Council tsunami (all cities. from tsunami_hazard table)
     council_tsunami_ranking = haz.get("council_tsunami_ranking")
     if council_tsunami_ranking and not wcc_tsunami:
         tsunami_score = {"High": 80, "Medium": 55, "Low": 30}.get(
@@ -521,18 +546,19 @@ def enrich_with_scores(report: dict) -> dict:
         if tsunami_score > (indicators.get("tsunami") or 0):
             indicators["tsunami"] = tsunami_score
 
-    # Council liquefaction (all cities — from liquefaction_detail table)
+    # Council liquefaction (all cities. from liquefaction_detail table)
     council_liq = haz.get("council_liquefaction")
     if council_liq:
-        council_liq_score = SEVERITY_LIQUEFACTION.get(council_liq, 0)
-        # Also check geology — reclaimed/fill land is especially vulnerable
+        from .report_html import normalize_liquefaction
+        council_liq_score = severity_liquefaction_canonical(normalize_liquefaction(council_liq))
+        # Also check geology. reclaimed/fill land is especially vulnerable
         council_liq_geo = haz.get("council_liquefaction_geology")
         if council_liq_geo and "fill" in str(council_liq_geo).lower():
             council_liq_score = max(council_liq_score, 85)
         if council_liq_score > (indicators.get("liquefaction") or 0):
             indicators["liquefaction"] = council_liq_score
 
-    # Council slope failure (all cities — from slope_failure table)
+    # Council slope failure (all cities. from slope_failure table)
     council_slope = haz.get("council_slope_severity")
     if council_slope:
         # Handle both GWRC format ("1 Low"..."5 High") and generic ("Low"..."Very High")
@@ -554,7 +580,7 @@ def enrich_with_scores(report: dict) -> dict:
 
     # Overland flow path proximity (within 50m of polyline flow path)
     if haz.get("overland_flow_within_50m"):
-        indicators["overland_flow"] = 45  # moderate risk — surface flooding possible
+        indicators["overland_flow"] = 45  # moderate risk. surface flooding possible
 
     # Aircraft noise
     aircraft_dba = haz.get("aircraft_noise_dba")
@@ -584,7 +610,7 @@ def enrich_with_scores(report: dict) -> dict:
                 indicators["coastal_erosion_council"] = ce_score
 
     # ── Terrain-inferred risk boosts ──
-    # These are soft signals from elevation/slope data — only boost when no
+    # These are soft signals from elevation/slope data. only boost when no
     # council-provided hazard data exists for this indicator.
     terrain = report.get("terrain") or {}
     flood_terrain_score = terrain.get("flood_terrain_score")
@@ -599,7 +625,7 @@ def enrich_with_scores(report: dict) -> dict:
     if waterway_m is not None:
         current_flood = indicators.get("flood") or 0
         if waterway_m <= 50 and current_flood < 45:
-            # Very close to waterway — significant flood risk even without council data
+            # Very close to waterway. significant flood risk even without council data
             indicators["flood"] = max(current_flood, 45)
         elif waterway_m <= 100 and current_flood < 35:
             indicators["flood"] = max(current_flood, 35)
@@ -661,12 +687,12 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["schools"] = school_quality_score(liv.get("schools_1500m") or [])
     indicators["heritage"] = log_normalize(liv.get("heritage_count_500m"), 100)
 
-    # Transport — ALL scores: higher = worse access (consistent with other categories)
-    # Transit access: 0 stops = 100 (bad — no transit), 25+ stops = 0 (good)
+    # Transport. ALL scores: higher = worse access (consistent with other categories)
+    # Transit access: 0 stops = 100 (bad. no transit), 25+ stops = 0 (good)
     indicators["transit_access"] = normalize_min_max(
         liv.get("transit_stops_400m"), 0, 25, inverse=True
     )
-    # CBD proximity: 0m = 0 (good — close), 10km+ = 100 (bad — far)
+    # CBD proximity: 0m = 0 (good. close), 10km+ = 100 (bad. far)
     cbd_m = liv.get("cbd_distance_m")
     if cbd_m is not None:
         indicators["cbd_proximity"] = min(100, (float(cbd_m) / 10000) * 100)
@@ -674,7 +700,7 @@ def enrich_with_scores(report: dict) -> dict:
     peak = liv.get("peak_trips_per_hour")
     if peak is not None:
         indicators["commute_frequency"] = normalize_min_max(float(peak), 0, 30, inverse=True)
-    # Rail proximity: 0m = 0 (good — close), 5km+ = 100 (bad — far)
+    # Rail proximity: 0m = 0 (good. close), 5km+ = 100 (bad. far)
     rail_m = liv.get("nearest_train_distance_m")
     if rail_m is not None:
         indicators["rail_proximity"] = min(100, (float(rail_m) / 5000) * 100)
@@ -686,7 +712,7 @@ def enrich_with_scores(report: dict) -> dict:
     serious = (liv.get("crashes_300m_serious") or 0) + (liv.get("crashes_300m_fatal") or 0)
     indicators["road_safety"] = normalize_min_max(serious, 0, 20)
 
-    # Planning (mostly neutral for MVP — no user preference context yet)
+    # Planning (mostly neutral for MVP. no user preference context yet)
     indicators["zone_permissiveness"] = 50
     indicators["height_limit"] = 50
     indicators["resource_consents"] = log_normalize(
@@ -696,7 +722,7 @@ def enrich_with_scores(report: dict) -> dict:
     indicators["infrastructure"] = log_normalize(len(infra) if infra else 0, 40)
     indicators["school_zone"] = 50
 
-    # Market — derive from rental overview data in report
+    # Market. derive from rental overview data in report
     market = report.get("market") or {}
     rental_overview = market.get("rental_overview") or []
     # Find ALL/ALL row for overall market signal
@@ -704,9 +730,9 @@ def enrich_with_scores(report: dict) -> dict:
     if all_row:
         # rental_fairness: market depth / data richness signal. HIGHER indicator score
         # means MORE renter risk, so a thick market (lots of bonds) should produce a
-        # LOW score. Previously this was inverted — a suburb with 180 bonds produced
+        # LOW score. Previously this was inverted. a suburb with 180 bonds produced
         # a 90 "rental_fairness" score which then rendered as "Rental Fairness: High
-        # risk — Limited rental market activity", the exact opposite of reality.
+        # risk. Limited rental market activity", the exact opposite of reality.
         bonds = all_row.get("bonds") or all_row.get("active_bonds") or 0
         if bonds:
             # 0 bonds → 100 (high risk, thin market), 200+ bonds → 0 (low risk, thick market)
@@ -716,7 +742,7 @@ def enrich_with_scores(report: dict) -> dict:
             indicators["rental_fairness"] = None
         # rental_trend: YoY% mapped to 0-100 where HIGHER = more renter risk
         # (rents rising fast). Falling rents clamp to 0 so they never show as
-        # a "risk" — the previous implementation took abs(yoy) which made a
+        # a "risk". the previous implementation took abs(yoy) which made a
         # 20% fall score the same as a 20% rise, producing contradictory
         # indicator copy ("Rents rising fast" on a property where rents were
         # falling). Buyer-side concerns about falling yield are surfaced

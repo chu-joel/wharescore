@@ -77,7 +77,7 @@ function RenterVerdict({ rentBand, userRent }: { rentBand: Props['rentBand']; us
             rawMedian={baseline.raw_median}
           />
         ) : (
-          // No user-entered rent yet — skip the "Your rent" gauge (which previously rendered
+          // No user-entered rent yet. skip the "Your rent" gauge (which previously rendered
           // a fake default) and show the suburb band with a prompt to upgrade for interactivity.
           <div className="rounded-lg bg-muted/40 border border-dashed border-border p-3 text-center">
             <p className="text-xs text-muted-foreground">

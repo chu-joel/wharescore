@@ -4,7 +4,7 @@ Hutt City Council ArcGIS property data client.
 Uses the HCC MapServer REST API to query property valuations and rates.
 
 Single-step lookup: search by address via ArcGIS query → full property data.
-No cache needed — ArcGIS queries are fast and stateless.
+No cache needed. ArcGIS queries are fast and stateless.
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def _build_search(full_address: str) -> str:
     """Build ArcGIS WHERE clause from LINZ address.
     '3/10 Laings Road, Hutt Central, Lower Hutt' → "prop_address LIKE '3/10 Laings Road%'"
     '42 High Street, Petone, Lower Hutt' → "prop_address LIKE '42 High Street%'"
-    Keep unit prefix — HCC stores addresses as '2/139 Knights Road'.
+    Keep unit prefix. HCC stores addresses as '2/139 Knights Road'.
     """
     parts = full_address.split(",")
     street = parts[0].strip()

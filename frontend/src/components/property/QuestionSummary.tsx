@@ -3,7 +3,7 @@
 import type { PropertyReport } from '@/lib/types';
 import type { QuestionId } from '@/lib/reportSections';
 import { formatCompactCurrency, effectivePerUnitCv } from '@/lib/format';
-import { isInFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isModerateOrWorseLiquefaction } from '@/lib/hazards';
 
 export interface PreviewChip {
   label: string;
@@ -169,8 +169,7 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
       if (p.epb_listed) issues.push('EPB listed');
       if (isInFloodZone(h)) issues.push('flood zone');
       if (h.tsunami_zone) issues.push('tsunami zone');
-      if (h.liquefaction_zone?.toLowerCase().includes('high') || h.liquefaction_zone?.toLowerCase().includes('moderate'))
-        issues.push('liquefaction risk');
+      if (isModerateOrWorseLiquefaction(h)) issues.push('liquefaction risk');
       if (h.slope_failure?.toLowerCase().includes('high')) issues.push('slope risk');
       if (h.contamination_count && h.contamination_count >= 3) issues.push('nearby contamination');
       if (h.landslide_in_area) issues.push('mapped landslide area');
@@ -215,7 +214,7 @@ export function getQuestionSummary(questionId: QuestionId, report: PropertyRepor
     }
 
     case 'neighbourhood': {
-      // Answers "what's the area like right now?" — snapshot of deprivation, crime, schools.
+      // Answers "what's the area like right now?". snapshot of deprivation, crime, schools.
       const parts: string[] = [];
       if (l.nzdep_score != null) parts.push(`NZDep ${l.nzdep_score}/10`);
       if (l.crime_rate != null) {

@@ -61,7 +61,7 @@ export function ScoreStrip({ categories }: ScoreStripProps) {
   // If we don't have clear strengths/concerns, show top/bottom
   const items: { cat: CategoryScore; type: 'strength' | 'concern' | 'neutral' }[] = [];
   if (concerns.length === 0 && strengths.length === 0) {
-    // All moderate — show top 2 best and worst
+    // All moderate. show top 2 best and worst
     items.push({ cat: sorted[0], type: 'strength' });
     items.push({ cat: sorted[sorted.length - 1], type: 'concern' });
   } else {

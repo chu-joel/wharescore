@@ -40,7 +40,7 @@ Given a property data report, write 2-3 short sentences highlighting what matter
 Pick the 1-2 biggest positives and 1-2 biggest risks from the data. Be specific with
 numbers. End with a one-line market verdict (fair/overpriced/good value).
 
-Keep it punchy — like a text message from a property-savvy friend, not a report.
+Keep it punchy. like a text message from a property-savvy friend, not a report.
 Do NOT repeat the suburb description. Output ONLY the summary text."""
 
 
@@ -85,7 +85,7 @@ You receive: (1) area profile text, (2) full property report data, (3) pre-compu
 insight flags from our rules engine showing what thresholds have been triggered.
 
 Your job is ADDITIONAL depth and narrative connecting findings across sections.
-Do NOT repeat what the rules engine already flags — add context, NZ-specific knowledge,
+Do NOT repeat what the rules engine already flags. add context, NZ-specific knowledge,
 and nuanced judgement that data alone cannot provide.
 
 Output ONLY this JSON (no markdown, no commentary):
@@ -101,7 +101,7 @@ Output ONLY this JSON (no markdown, no commentary):
 }
 
 Rules:
-- Specific numbers from data only — never vague
+- Specific numbers from data only. never vague
 - NZ context, not global averages
 - If multi-unit: include body corporate / strata considerations in key_questions
 - Do NOT fabricate facts not in the data

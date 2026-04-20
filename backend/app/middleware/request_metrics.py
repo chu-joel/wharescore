@@ -9,7 +9,7 @@ from fastapi import Request
 
 from ..services.event_writer import write_perf_metric
 
-# Paths to skip — high-frequency or not useful
+# Paths to skip. high-frequency or not useful
 _SKIP_PATHS = frozenset({"/health", "/openapi.json", "/docs", "/favicon.ico"})
 
 

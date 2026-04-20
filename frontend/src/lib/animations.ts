@@ -1,4 +1,4 @@
-// lib/animations.ts — shared timing constants
+// lib/animations.ts. shared timing constants
 
 export const TIMING = {
   // Micro-interactions

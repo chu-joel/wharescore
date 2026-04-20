@@ -26,8 +26,8 @@ interface ReportConfirmState {
   selectedTier: 'quick' | 'full';
   onConfirm: ((tier: 'quick' | 'full') => void) | null;
   /**
-   * Open the modal. Pass `initialTier` to preselect Quick or Full —
-   * important so clicking "Get Full Report — $9.99" doesn't land users on the Free tier.
+   * Open the modal. Pass `initialTier` to preselect Quick or Full .
+   * important so clicking "Get Full Report. $9.99" doesn't land users on the Free tier.
    */
   show: (
     addressId: number,
@@ -193,7 +193,7 @@ function RenterFields({ addressId }: { addressId: number }) {
         placeholder="e.g. 550"
       />
 
-      {/* Finish & Bathrooms — stacked on mobile, side by side on desktop */}
+      {/* Finish & Bathrooms. stacked on mobile, side by side on desktop */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Finish / condition</label>
@@ -243,7 +243,7 @@ function RenterFields({ addressId }: { addressId: number }) {
           <p className="text-xs text-muted-foreground mt-1 italic">Some furniture provided (e.g. whiteware only, or beds but no couch)</p>
         )}
         {isFurnished === false && !isPartiallyFurnished && (
-          <p className="text-xs text-muted-foreground mt-1 italic">Empty — you bring everything</p>
+          <p className="text-xs text-muted-foreground mt-1 italic">Empty. you bring everything</p>
         )}
       </div>
 
@@ -379,7 +379,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
 
   // NOTE: do NOT early-return when the budget entry is missing. Bedrooms /
   // bathrooms / finish all write to `buyerInputStore`, not `budgetStore`, so
-  // those pickers must render unconditionally — otherwise the user sees
+  // those pickers must render unconditionally. otherwise the user sees
   // "Select the number of bedrooms" validation but no picker to satisfy it.
   // Only the budget-dependent block below is gated on `b`.
 
@@ -428,7 +428,7 @@ function BuyerFields({ addressId }: { addressId: number }) {
       {b && (
         <>
           {/* Purchase details. Previously had a separate "Asking / purchase
-              price" field above — removed because it was visually identical
+              price" field above. removed because it was visually identical
               to "Purchase price" here and the two auto-synced to the same
               underlying value, which confused users about which to fill. */}
           <div className="grid grid-cols-2 gap-3">
@@ -682,7 +682,7 @@ export function ReportConfirmModal() {
             ) : hasFullCredits ? (
               'Generate Full Report'
             ) : (
-              `Get Full Report — ${fullPrice}`
+              `Get Full Report. ${fullPrice}`
             )}
           </button>
         </DialogFooter>

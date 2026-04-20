@@ -50,7 +50,7 @@ export function RentBandGauge({
 
   return (
     <div className="space-y-2">
-      {/* Legend — placed ABOVE the gauge so users read the key before interpreting the numbers. */}
+      {/* Legend. placed ABOVE the gauge so users read the key before interpreting the numbers. */}
       <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="w-3 h-1.5 rounded-sm bg-piq-primary/20 border border-piq-primary/30" />
@@ -91,7 +91,7 @@ export function RentBandGauge({
           className="absolute top-1 bottom-1 w-px bg-piq-primary/60"
           style={{ left: `${medianPct}%` }}
         />
-        {/* User rent marker — only show when user has entered a rent */}
+        {/* User rent marker. only show when user has entered a rent */}
         {userRent > 0 && (
           <div
             className="absolute w-0.5 rounded-full"
@@ -105,7 +105,7 @@ export function RentBandGauge({
         )}
       </div>
 
-      {/* Labels — only inner band edges + user rent, positioned above/below to avoid overlap */}
+      {/* Labels. only inner band edges + user rent, positioned above/below to avoid overlap */}
       <div className="flex items-center justify-between text-xs px-1">
         <span className="text-muted-foreground/60 tabular-nums">{formatRent(bandLowOuter)}</span>
         <span className="text-piq-primary font-medium tabular-nums">

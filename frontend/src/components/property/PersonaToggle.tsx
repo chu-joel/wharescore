@@ -16,7 +16,7 @@ export function PersonaToggle() {
 
   return (
     // Sticky inside the scrolling report container so the toggle stays in
-    // view as users scroll through long reports — on mobile especially
+    // view as users scroll through long reports. on mobile especially
     // this lets them switch renter/buyer without scrolling back to the top.
     <div
       data-tour="persona-toggle"

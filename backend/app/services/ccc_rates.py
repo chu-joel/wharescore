@@ -1,7 +1,7 @@
 # backend/app/services/ccc_rates.py
 """
 Christchurch City Council ArcGIS property data client.
-CCC's rating layer has CV/LV/IV but NO street addresses — only
+CCC's rating layer has CV/LV/IV but NO street addresses. only
 ValuationReference and RateLegalDescription. Lookups use spatial
 queries (point geometry) matched against LINZ address coordinates.
 """
@@ -52,7 +52,7 @@ async def fetch_ccc_rates(address: str, conn=None) -> dict | None:
 
         lng, lat = float(row["lng"]), float(row["lat"])
 
-        # Spatial query — return geometry so we can rank by true distance.
+        # Spatial query. return geometry so we can rank by true distance.
         params = {
             "geometry": f"{lng},{lat}",
             "geometryType": "esriGeometryPoint",
@@ -93,7 +93,7 @@ def _pick_nearest(features: list[dict], lat: float, lng: float) -> dict | None:
         fx, fy = g.get("x"), g.get("y")
         if fx is None or fy is None:
             return float("inf")
-        # Simple equirectangular — CCC features are all within a few km of lat,
+        # Simple equirectangular. CCC features are all within a few km of lat,
         # which is more than precise enough for ranking.
         dx = (float(fx) - lng) * math.cos(math.radians(lat))
         dy = float(fy) - lat

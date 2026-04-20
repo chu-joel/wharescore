@@ -54,7 +54,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
         <PropertyReport addressId={addressId} />
       </div>
 
-      {/* Modals — rendered once regardless of layout breakpoint */}
+      {/* Modals. rendered once regardless of layout breakpoint */}
       <UpgradeModal />
       <ReportConfirmModal />
     </>

@@ -6,8 +6,8 @@ page content (bedrooms, price, photos, etc.) is ever captured, stored, or
 forwarded.
 
 Endpoints:
-    POST /extension/badge  — resolve an address, return a tiered payload
-    GET  /extension/status — per-site kill-switch + version floor
+    POST /extension/badge . resolve an address, return a tiered payload
+    GET  /extension/status. per-site kill-switch + version floor
 """
 from __future__ import annotations
 
@@ -52,14 +52,14 @@ TIER_ANON = "anon"
 TIER_FREE = "free"
 TIER_PRO = "pro"
 
-# Anon badge findings — 2 severity-ranked, no persona weighting, no
+# Anon badge findings. 2 severity-ranked, no persona weighting, no
 # relative-to-baseline filtering (spec: "generic, no persona applied").
 ANON_FINDING_COUNT = 2
 FREE_FINDING_COUNT = 2
 
 # Plans that unlock Pro capabilities. `pro` plan is the subscription; the
 # transient credit-holder states (single/pack3/promo) stay on the free tier
-# for the badge — they aren't recurring pro users, and the price/rent
+# for the badge. they aren't recurring pro users, and the price/rent
 # advisor is metered separately.
 _PRO_PLAN_VALUES = {"pro"}
 
@@ -88,13 +88,13 @@ class BadgeRequest(BaseModel):
     source_site: str = Field(..., min_length=3, max_length=40)
     address_text: str = Field(..., min_length=4, max_length=300)
     # Optional: full URL of the host listing page. Used ONLY to infer persona
-    # from the path (e.g. /rent/ → renter, /sale/ → buyer). Path-only — we
+    # from the path (e.g. /rent/ → renter, /sale/ → buyer). Path-only. we
     # never read query strings or fragments.
     source_url: str | None = Field(None, max_length=500)
 
 
 # ---------------------------------------------------------------------------
-# Helpers — pure, unit-testable.
+# Helpers. pure, unit-testable.
 # ---------------------------------------------------------------------------
 
 def normalise_address(text: str) -> str:
@@ -147,7 +147,7 @@ def capabilities_for_tier(tier: str) -> dict[str, bool]:
 def compute_price_band(report: dict) -> dict[str, int] | None:
     """Free-tier price band: CV × HPI direction, widened for low confidence.
 
-    Intentionally wide (±15% default) — the precise Pro-tier `price_estimate`
+    Intentionally wide (±15% default). the precise Pro-tier `price_estimate`
     is the upsell. If there's no CV anchor we return None; the free badge
     simply omits the price_band field in that case.
     """
@@ -180,7 +180,7 @@ def compute_price_band(report: dict) -> dict[str, int] | None:
 def extract_pro_fields(report: dict) -> dict[str, Any]:
     """Shape the Pro-only flat fields from existing report data.
 
-    Phase 1 keeps this deterministic and report-driven — the precise
+    Phase 1 keeps this deterministic and report-driven. the precise
     rent/price advisor engines hit separate services and are deferred to
     Phase 1.1. Fields whose underlying source isn't wired yet are surfaced
     as None so the badge UI renders a consistent shape.
@@ -198,7 +198,7 @@ def extract_pro_fields(report: dict) -> dict[str, Any]:
     except (TypeError, ValueError):
         walk_score = None
 
-    # Schools — up to 3 nearest school rows from the liveability payload.
+    # Schools. up to 3 nearest school rows from the liveability payload.
     schools_src = liv.get("nearby_schools") or liv.get("schools") or []
     schools: list[dict[str, Any]] = []
     if isinstance(schools_src, list):
@@ -212,7 +212,7 @@ def extract_pro_fields(report: dict) -> dict[str, Any]:
                         if s.get("in_zone") is False else None,
             })
 
-    # Rent estimate shape — precise values require rent_advisor; surface what
+    # Rent estimate shape. precise values require rent_advisor; surface what
     # we have from the snapshot-friendly fields when present.
     rent_estimate: dict[str, Any] | None = None
     rent_low = market.get("rent_estimate_low")
@@ -229,7 +229,7 @@ def extract_pro_fields(report: dict) -> dict[str, Any]:
             ),
         }
 
-    # Precise price estimate — reuse the same band shape. If we only have the
+    # Precise price estimate. reuse the same band shape. If we only have the
     # CV anchor, omit entirely (the wide `price_band` already covered that).
     price_estimate: dict[str, Any] | None = None
     pe_low = market.get("price_estimate_low")
@@ -268,7 +268,7 @@ _RENTER_DROP_TITLE_MARKERS = ("school",)
 
 def _drop_persona_irrelevant(findings: list[dict], persona: str | None) -> list[dict]:
     """Persona-rank cleanup: renters don't care about school catchments
-    (per brief — school proximity is a buyer signal). Strip any finding whose
+    (per brief. school proximity is a buyer signal). Strip any finding whose
     title leads with school-related copy. Buyer path is untouched."""
     if persona != "renter":
         return findings
@@ -302,7 +302,7 @@ def pick_findings(report: dict, tier: str, persona: str | None) -> list[dict]:
 
 
 def _all_findings(report: dict) -> list[dict]:
-    """Fallback — shouldn't be reached since select_findings_for_badge with
+    """Fallback. shouldn't be reached since select_findings_for_badge with
     max_count=0 returns every ranked finding, but defensively keep a path
     that flattens raw insights in case the helper changes."""
     out: list[dict] = []
@@ -321,7 +321,7 @@ def _all_findings(report: dict) -> list[dict]:
 
 
 async def resolve_plan(user_id: str) -> str:
-    """Effective plan lookup — mirrors /account/credits so tier decisions are
+    """Effective plan lookup. mirrors /account/credits so tier decisions are
     consistent with the rest of the app."""
     try:
         async with db.pool.connection() as conn:
@@ -367,20 +367,20 @@ async def resolve_persona(user_id: str | None, source_url: str | None) -> str | 
                 if stored in {"renter", "buyer"}:
                     return stored
         except Exception as e:
-            # users.persona may not exist yet on every deployment — fall
+            # users.persona may not exist yet on every deployment. fall
             # through to URL inference rather than hard-failing the request.
             logger.debug(f"persona column lookup failed: {e}")
     return infer_persona_from_url(source_url)
 
 
 # ---------------------------------------------------------------------------
-# Rate limit key func — per user for authed, per IP for anon.
+# Rate limit key func. per user for authed, per IP for anon.
 # ---------------------------------------------------------------------------
 
 def _badge_limit(key: str) -> str:
     """Dynamic rate-limit provider. slowapi passes the key returned by
     `user_or_ip_key`; that key starts with `user:` for verified-JWT callers
-    and is an IP otherwise. 60/min authed, 30/min anon — per brief § Rate."""
+    and is an IP otherwise. 60/min authed, 30/min anon. per brief § Rate."""
     if isinstance(key, str) and key.startswith("user:"):
         return "60/minute"
     return "30/minute"
@@ -458,7 +458,7 @@ async def extension_badge(request: Request, body: BadgeRequest):
     address_id = matched_row["address_id"]
     full_address = matched_row.get("full_address") or ""
 
-    # 4. Report fetch — reuse the 24h Redis cache.
+    # 4. Report fetch. reuse the 24h Redis cache.
     cache_key = f"report:{address_id}"
     cached = await cache_get(cache_key)
     if cached:
@@ -501,7 +501,7 @@ async def extension_badge(request: Request, body: BadgeRequest):
         "report_url": f"https://wharescore.com/property/{address_id}",
     }
 
-    # Tier-gated fields — the brief forbids leaking pro data to free, and
+    # Tier-gated fields. the brief forbids leaking pro data to free, and
     # free/pro get the wide price band (pro also gets the precise estimate).
     if tier in {TIER_FREE, TIER_PRO}:
         band = compute_price_band(report)
@@ -511,7 +511,7 @@ async def extension_badge(request: Request, body: BadgeRequest):
     if tier == TIER_PRO:
         response.update(extract_pro_fields(report))
 
-    # 7. Telemetry — no address content, only id + site + tier.
+    # 7. Telemetry. no address content, only id + site + tier.
     client_ip = request.client.host if request.client else None
     track_event(
         "extension_badge_rendered",

@@ -7,7 +7,7 @@ export function useReportSnapshot(token: string | null) {
     queryKey: ['report-snapshot', token],
     queryFn: () => apiFetch<ReportSnapshot>(`/api/v1/report/${token}`),
     enabled: !!token,
-    staleTime: Infinity, // Snapshots are immutable — never refetch
+    staleTime: Infinity, // Snapshots are immutable. never refetch
     gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
     retry: 1,
   });

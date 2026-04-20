@@ -31,7 +31,7 @@ export function useAdminEmails(page: number) {
 }
 
 export async function exportEmailsCsv() {
-  // Fetch token for auth — uses the same token endpoint
+  // Fetch token for auth. uses the same token endpoint
   let token: string | null = null;
   try {
     const tokenRes = await fetch('/api/auth/token');

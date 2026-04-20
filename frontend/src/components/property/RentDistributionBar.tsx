@@ -91,7 +91,7 @@ export function RentDistributionBar({
           <span>
             {bondCount
               ? `Based on ${bondCount} bond${bondCount !== 1 ? 's' : ''} in this area`
-              : `Limited sample — ${confidence === 1 ? 'very few' : 'few'} bonds in this area`}
+              : `Limited sample. ${confidence === 1 ? 'very few' : 'few'} bonds in this area`}
           </span>
         </div>
       )}

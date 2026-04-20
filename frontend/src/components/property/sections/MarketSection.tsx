@@ -35,7 +35,7 @@ export function MarketSection({ addressId, category, market, property, detection
       {/* Market Heat Badge */}
       {market.market_heat && <MarketHeatBadge heat={market.market_heat} />}
 
-      {/* Council Valuation — buyers only. Renters see CV in the hero
+      {/* Council Valuation. buyers only. Renters see CV in the hero
           pill already and the breakdown (land + improvements) is not
           relevant to a tenancy decision. */}
       {persona === 'buyer' && (() => {
@@ -81,7 +81,7 @@ export function MarketSection({ addressId, category, market, property, detection
             </dl>
             <p className="text-xs text-muted-foreground mt-2">
               {isEstimatedPerUnit
-                ? 'Rateable value estimated per unit — council record is building-level.'
+                ? 'Rateable value estimated per unit. council record is building-level.'
                 : 'Rateable value, not market value.'}
             </p>
           </div>
@@ -102,7 +102,7 @@ export function MarketSection({ addressId, category, market, property, detection
         />
       )}
 
-      {/* Renter-only advisor section — buyers get PriceAdvisorCard in
+      {/* Renter-only advisor section. buyers get PriceAdvisorCard in
           the dedicated `true-cost` accordion so we don't render it twice. */}
       {!hosted && persona === 'renter' && (
         <>
@@ -149,10 +149,10 @@ export function MarketSection({ addressId, category, market, property, detection
         </div>
       )}
 
-      {/* Rent History — skip in hosted mode (calls API) */}
+      {/* Rent History. skip in hosted mode (calls API) */}
       {!hosted && <RentHistoryChart addressId={addressId} />}
 
-      {/* HPI — buyer-only. A national house price index has no bearing
+      {/* HPI. buyer-only. A national house price index has no bearing
           on a rental decision, so renters don't see it. */}
       {!hosted && persona === 'buyer' && (
         <PremiumGate label="NZ House Price Index trend" trigger="market">

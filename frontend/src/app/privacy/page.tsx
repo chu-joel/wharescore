@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Privacy Policy — No Tracking, No Cookies, No Third-Party Analytics',
+  title: 'Privacy Policy. No Tracking, No Cookies, No Third-Party Analytics',
   description: 'WhareScore privacy policy: no Google Analytics, no tracking cookies, no advertising identifiers. We collect only anonymous search queries and hashed IPs (purged after 7 days).',
   alternates: { canonical: 'https://wharescore.co.nz/privacy' },
 };
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           WhareScore uses minimal cookies. We may use a session cookie for the admin portal
           (httpOnly, secure, sameSite strict). No analytics or advertising cookies are used.
           Your recent searches and saved properties are stored in your browser&rsquo;s
-          localStorage — this data never leaves your device.
+          localStorage. this data never leaves your device.
         </p>
       </section>
 

@@ -131,7 +131,7 @@ export function AnalyticsPanel() {
         />
       </div>
 
-      {/* Unique visitors — DAU / WAU / MAU + new vs returning today.
+      {/* Unique visitors. DAU / WAU / MAU + new vs returning today.
           Sits just below the live stat cards because "who's here now"
           and "who's coming back" are the first questions the dashboard
           should answer. */}
@@ -172,7 +172,7 @@ export function AnalyticsPanel() {
         </Card>
       )}
 
-      {/* Conversion funnel — where visitors drop off on the way to
+      {/* Conversion funnel. where visitors drop off on the way to
           paying. Each bar's width is a percentage of the top stage
           (visits). The drop-off badge shows the stage-to-stage delta
           so you can see WHERE the leak is, not just that there is one. */}

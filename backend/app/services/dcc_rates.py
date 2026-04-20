@@ -3,7 +3,7 @@
 Dunedin City Council ArcGIS property data client.
 Uses the DCC MapServer REST API to query property valuations and rates.
 
-Note: DCC only provides Rateable_Value (capital value) — no separate
+Note: DCC only provides Rateable_Value (capital value). no separate
 land value or improvements value split.
 """
 from __future__ import annotations

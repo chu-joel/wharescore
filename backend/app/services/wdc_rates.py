@@ -4,7 +4,7 @@ Whangarei District Council ArcGIS property data client.
 Uses the WDC MapServer REST API to query property valuations.
 
 Single-step lookup: search by address via ArcGIS query → full property data.
-No cache needed — ArcGIS queries are fast and stateless.
+No cache needed. ArcGIS queries are fast and stateless.
 """
 from __future__ import annotations
 

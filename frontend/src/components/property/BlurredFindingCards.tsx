@@ -10,7 +10,7 @@ import { useSession } from 'next-auth/react';
 
 /**
  * Shows blurred/ghosted versions of hidden findings.
- * The blur is transparent enough to see severity colors but not text —
+ * The blur is transparent enough to see severity colors but not text .
  * creating Zeigarnik tension ("I can see red badges but can't read them").
  */
 export function BlurredFindingCards({
@@ -65,7 +65,7 @@ export function BlurredFindingCards({
 
   return (
     <div className="relative">
-      {/* Blurred ghost cards — show severity colors but not text */}
+      {/* Blurred ghost cards. show severity colors but not text */}
       <div className="space-y-1.5 select-none" aria-hidden>
         {findings.slice(0, 2).map((finding, i) => (
           <BlurredCard key={i} severity={finding.severity} />
@@ -77,7 +77,7 @@ export function BlurredFindingCards({
         )}
       </div>
 
-      {/* Overlay — the conversion point */}
+      {/* Overlay. the conversion point */}
       <button
         onClick={handleReveal}
         className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-xl cursor-pointer hover:bg-background/50 transition-colors group"
@@ -108,7 +108,7 @@ export function BlurredFindingCards({
           {ctaLabel}
         </p>
         {!isHostedQuick && !isAuthenticated && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">Free — one-tap Google sign-in</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Free. one-tap Google sign-in</p>
         )}
       </button>
     </div>

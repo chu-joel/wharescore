@@ -34,8 +34,8 @@ function getRentRatioMessage(pct: number): string {
   // pct is rent / total monthly expenses, not rent / income, so the
   // thresholds sit higher than the classic 30% affordability rule.
   if (pct < 40) return `${Math.round(pct)}% goes to rent`;
-  if (pct <= 55) return `${Math.round(pct)}% goes to rent — tight budget`;
-  return `${Math.round(pct)}% goes to rent — over-stretched`;
+  if (pct <= 55) return `${Math.round(pct)}% goes to rent. tight budget`;
+  return `${Math.round(pct)}% goes to rent. over-stretched`;
 }
 
 export function RenterBudgetCalculator({ report, userRent }: RenterBudgetCalculatorProps) {
@@ -58,7 +58,7 @@ export function RenterBudgetCalculator({ report, userRent }: RenterBudgetCalcula
   const r = entry.renter;
 
   // If the user later changes the sidebar rent, propagate that into the calculator's
-  // slider too — unless the user has already interacted with the calculator directly.
+  // slider too. unless the user has already interacted with the calculator directly.
   // syncRenter does NOT flip hasInteracted, so analytics remain accurate.
   useEffect(() => {
     if (!userRent || userRent <= 0) return;

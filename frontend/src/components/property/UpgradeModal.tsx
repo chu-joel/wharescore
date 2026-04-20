@@ -175,7 +175,7 @@ function InputReadinessTip({ persona }: { persona: string }) {
       )}
       {missingRequired.length === 0 && (
         <p className="text-xs text-muted-foreground mt-0.5">
-          Close this and enter your details above — your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
+          Close this and enter your details above. your report will include a personalised {persona === 'renter' ? 'rent' : 'value'} breakdown.
         </p>
       )}
     </div>
@@ -216,7 +216,7 @@ function getHeadline(
     return "You've used all your credits";
   }
 
-  // User has credits — show a "choose your report" headline
+  // User has credits. show a "choose your report" headline
   const hasCredits = (credits?.quickCredits ?? 0) > 0 || (credits?.fullCredits ?? 0) > 0;
   if (hasCredits) {
     return 'Choose your report';
@@ -282,7 +282,7 @@ export function UpgradeModal() {
     }
   }, [showUpgradeModal, modalTrigger]);
 
-  // Delayed close button — force 3s look at modal (research: improves conversion)
+  // Delayed close button. force 3s look at modal (research: improves conversion)
   // Skip delay when user has credits (they're choosing a tier, not being sold to)
   const hasAnyCredits = (credits?.quickCredits ?? 0) > 0 || (credits?.fullCredits ?? 0) > 0;
   useEffect(() => {
@@ -305,7 +305,7 @@ export function UpgradeModal() {
       return;
     }
 
-    // Signed in — create Stripe checkout session
+    // Signed in. create Stripe checkout session
     setLoading(plan);
     try {
       const token = await getToken();
@@ -430,11 +430,11 @@ export function UpgradeModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Free Quick Report — sign in prompt for logged-out users.
+        {/* Free Quick Report. sign in prompt for logged-out users.
             Round-trips through the same `autoSave=<addressId>` callbackUrl
             that the on-report "Save free report" button uses, so after
             OAuth the user lands back on the property with Quick generating
-            automatically — no re-hunting for the button. */}
+            automatically. no re-hunting for the button. */}
         {!isSignedIn && (
           <button
             onClick={() => {
@@ -461,7 +461,7 @@ export function UpgradeModal() {
             >
               <div>
                 <p className="text-xs sm:text-sm font-semibold">Full Report</p>
-                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence. 25+ sections</p>
               </div>
               <div className="text-right">
                 <span className="text-xs sm:text-sm font-bold text-piq-success">Use credit</span>
@@ -479,7 +479,7 @@ export function UpgradeModal() {
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-semibold">Full Report</p>
-                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence — 25+ sections</p>
+                <p className="text-xs sm:text-xs text-muted-foreground">Complete property intelligence. 25+ sections</p>
               </div>
               {loading === 'full_single' ? (
                 <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
@@ -500,7 +500,7 @@ export function UpgradeModal() {
                 Pro monthly
                 <span className="ml-1.5 text-xs font-medium text-muted-foreground">For professionals</span>
               </p>
-              <p className="text-xs sm:text-xs text-muted-foreground">Full Reports — 30/month, agents & investors</p>
+              <p className="text-xs sm:text-xs text-muted-foreground">Full Reports. 30/month, agents & investors</p>
             </div>
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
@@ -515,7 +515,7 @@ export function UpgradeModal() {
           <DataLayersAccordion coverage={coverage} compact />
         )}
 
-        {/* Feature comparison — hidden on mobile to reduce modal height */}
+        {/* Feature comparison. hidden on mobile to reduce modal height */}
         <div className="hidden sm:grid grid-cols-2 gap-2 pt-1">
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Quick</p>
@@ -555,7 +555,7 @@ export function UpgradeModal() {
                   Redirecting...
                 </span>
               ) : (
-                `Continue without account — ${fullPrice}`
+                `Continue without account. ${fullPrice}`
               )}
             </button>
           </div>
@@ -569,7 +569,7 @@ export function UpgradeModal() {
 
         {!isAuthenticated && !loading && !targetAddressId && (
           <p className="text-center text-xs text-muted-foreground">
-            Guest checkout — create an account after payment to save your report.
+            Guest checkout. create an account after payment to save your report.
           </p>
         )}
 

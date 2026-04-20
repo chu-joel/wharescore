@@ -45,7 +45,7 @@ export function SavePropertyButton({
   const [loading, setLoading] = useState(false);
 
   // On sign-in (or mount if already signed in), pull server-side
-  // saves and merge into local. Silent on failure — the user can
+  // saves and merge into local. Silent on failure. the user can
   // still save normally.
   useEffect(() => {
     if (!isSignedIn) return;
@@ -91,7 +91,7 @@ export function SavePropertyButton({
 
     const wasSaved = saved;
 
-    // Optimistic local toggle first — instant UI feedback
+    // Optimistic local toggle first. instant UI feedback
     toggle({
       addressId,
       fullAddress,

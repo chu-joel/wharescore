@@ -62,7 +62,7 @@ def _extract_bearer(request: Request) -> Optional[str]:
 
 
 async def require_user(request: Request) -> str:
-    """FastAPI dependency — returns clerk_id or raises 401."""
+    """FastAPI dependency. returns clerk_id or raises 401."""
     token = _extract_bearer(request)
     if not token:
         raise HTTPException(401, "Authentication required")
@@ -74,7 +74,7 @@ async def require_user(request: Request) -> str:
 
 
 async def optional_user(request: Request) -> Optional[str]:
-    """FastAPI dependency — returns clerk_id or None (no error if unauthenticated)."""
+    """FastAPI dependency. returns clerk_id or None (no error if unauthenticated)."""
     token = _extract_bearer(request)
     if not token:
         return None

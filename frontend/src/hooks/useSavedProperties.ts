@@ -64,7 +64,7 @@ export function useSavedProperties() {
       .slice(0, MAX_SAVED_PROPERTIES);
   });
 
-  // Cross-instance sync — when one SavePropertyButton writes, any
+  // Cross-instance sync. when one SavePropertyButton writes, any
   // other useSavedProperties consumer (e.g. the SavedProperties
   // panel on the landing page) picks it up on the next event tick.
   useEffect(() => {

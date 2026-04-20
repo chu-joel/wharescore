@@ -93,7 +93,7 @@ export default function Home() {
             });
             selectProperty(summary.address_id, addr.lng || 174.78, addr.lat || -41.29);
           }).catch(() => {
-            // Report failed — just use summary
+            // Report failed. just use summary
             selectAddress({
               addressId: summary.address_id,
               fullAddress: summary.full_address,
@@ -102,7 +102,7 @@ export default function Home() {
             });
           });
         }).catch(() => {
-          // Invalid address ID — clean URL
+          // Invalid address ID. clean URL
           const url = new URL(window.location.href);
           url.searchParams.delete('address');
           window.history.replaceState(null, '', url.toString());
@@ -210,7 +210,7 @@ function LandingPanel() {
           </p>
         </div>
 
-        {/* Search — prominent on desktop landing */}
+        {/* Search. prominent on desktop landing */}
         <div className="w-full max-w-md mb-4">
           <SearchBar />
         </div>
@@ -218,7 +218,7 @@ function LandingPanel() {
           <MousePointerClick className="h-3.5 w-3.5" />
           Or click any property on the map
         </p>
-        {/* First-use demo nudge — lets non-tech users see a real report
+        {/* First-use demo nudge. lets non-tech users see a real report
             without having to type their address first. */}
         <DemoAddressRow />
 
@@ -263,7 +263,7 @@ function LandingPanel() {
 
 /**
  * Quick-pick demo addresses. Addresses are fetched from /search/address on
- * click so we don't need to hard-code internal address_ids — the button
+ * click so we don't need to hard-code internal address_ids. the button
  * runs the same search flow a user would run manually.
  */
 const DEMO_ADDRESSES: { label: string; query: string }[] = [
@@ -291,7 +291,7 @@ function DemoAddressRow() {
       });
       selectProperty(first.address_id, first.lng, first.lat);
     } catch {
-      // Silent — the demo row is non-critical.
+      // Silent. the demo row is non-critical.
     }
   };
 
@@ -317,7 +317,7 @@ function DemoAddressRow() {
 const CHIP_LAYER_GROUPS: Record<string, string[]> = {
   Hazards: ['flood_zones', 'liquefaction_zones', 'slope_failure_zones', 'tsunami_zones', 'coastal_erosion', 'wind_zones'],
   Schools: ['school_zones'],
-  'Rent Check': [], // No map layers — informational
+  'Rent Check': [], // No map layers. informational
   'All Layers': [], // Opens layer awareness
 };
 
@@ -365,7 +365,7 @@ function MobileLandingContent() {
 
   return (
     <div className="py-2 space-y-3">
-      {/* Search bar removed — header compact search opens fullscreen overlay */}
+      {/* Search bar removed. header compact search opens fullscreen overlay */}
 
       <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
         <MousePointerClick className="h-3 w-3" />

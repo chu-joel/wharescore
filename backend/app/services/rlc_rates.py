@@ -2,7 +2,7 @@
 """
 Rotorua Lakes Council ArcGIS property data client.
 Uses the RDC_Valuations_Snapshot FeatureServer (tabular, no geometry).
-Values are formatted strings like "$430,000" — needs parsing.
+Values are formatted strings like "$430,000". needs parsing.
 Fields: Location, CapitalValue, LandValue, ImprovementsValue, TotalRatesThisYear
 """
 from __future__ import annotations

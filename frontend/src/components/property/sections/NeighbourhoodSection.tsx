@@ -59,7 +59,7 @@ export function NeighbourhoodSection({ category, liveability, addressId, persona
         </div>
       )}
 
-      {/* Crime card — buyers only. Renters already see this in the
+      {/* Crime card. buyers only. Renters already see this in the
           "Is it safe?" section above, so rendering it twice in the
           same report is noise. */}
       {!isRenter && (
@@ -70,7 +70,7 @@ export function NeighbourhoodSection({ category, liveability, addressId, persona
         />
       )}
 
-      {/* Indicator cards grid — buyers only */}
+      {/* Indicator cards grid. buyers only */}
       {!isRenter && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {available.map((indicator) => (
@@ -87,7 +87,7 @@ export function NeighbourhoodSection({ category, liveability, addressId, persona
         </div>
       )}
 
-      {/* What's Nearby — good / caution / info amenities */}
+      {/* What's Nearby. good / caution / info amenities */}
       <div className="rounded-xl border border-border bg-card p-3.5 card-elevated">
         <NearbyAmenities addressId={addressId} />
       </div>

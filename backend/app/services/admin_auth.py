@@ -36,7 +36,7 @@ async def get_admin_email(request: Request, user_id: str = Depends(optional_user
 
 
 async def require_admin(request: Request, email: str = Depends(get_admin_email)):
-    """FastAPI dependency — checks if the signed-in user's email is in the admin allowlist."""
+    """FastAPI dependency. checks if the signed-in user's email is in the admin allowlist."""
     admin_emails = settings.get_admin_emails()
 
     # Dev mode: allow all authenticated users when no ADMIN_EMAILS configured

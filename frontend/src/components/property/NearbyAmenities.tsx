@@ -57,7 +57,7 @@ export function NearbyAmenities({ addressId }: { addressId: number }) {
               <span
                 key={item.subcategory}
                 className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs dark:border-green-800 dark:bg-green-950/30"
-                title={`${item.name} — ${formatDistance(item.distance_m)}`}
+                title={`${item.name}. ${formatDistance(item.distance_m)}`}
               >
                 {item.label}
                 <span className="text-muted-foreground">{formatDistance(item.distance_m)}</span>
@@ -79,7 +79,7 @@ export function NearbyAmenities({ addressId }: { addressId: number }) {
               <span
                 key={item.subcategory}
                 className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs dark:border-amber-800 dark:bg-amber-950/30"
-                title={`${item.name} — ${formatDistance(item.distance_m)}`}
+                title={`${item.name}. ${formatDistance(item.distance_m)}`}
               >
                 {item.label}
                 <span className="text-muted-foreground">{formatDistance(item.distance_m)}</span>
@@ -101,7 +101,7 @@ export function NearbyAmenities({ addressId }: { addressId: number }) {
               <span
                 key={item.subcategory}
                 className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs dark:border-blue-800 dark:bg-blue-950/30"
-                title={`${item.name} — ${formatDistance(item.distance_m)}`}
+                title={`${item.name}. ${formatDistance(item.distance_m)}`}
               >
                 {item.label}
                 <span className="text-muted-foreground">{formatDistance(item.distance_m)}</span>

@@ -17,7 +17,7 @@ async def init_redis(redis_url: str):
         await redis_client.ping()
         logger.info("Redis connected")
     except Exception as e:
-        logger.warning(f"Redis unavailable — running without cache: {e}")
+        logger.warning(f"Redis unavailable. running without cache: {e}")
         redis_client = None
 
 

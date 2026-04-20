@@ -65,7 +65,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
         </div>
       )}
 
-      {/* Walking reach (10-min walk via Valhalla) — preferred over 800m radius */}
+      {/* Walking reach (10-min walk via Valhalla). preferred over 800m radius */}
       {walkingReach && walkingReach.method !== 'none' && walkingReach.total_stops > 0 ? (
         <div className="rounded-xl border border-border bg-card p-4 card-elevated">
           <div className="flex items-center justify-between mb-2.5">
@@ -164,7 +164,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
         </div>
       ) : null}
 
-      {/* Transit travel times — top 3 AM free, rest gated */}
+      {/* Transit travel times. top 3 AM free, rest gated */}
       {liveability.transit_travel_times && liveability.transit_travel_times.length > 0 && (() => {
         const FREE_ROUTES = 3;
         const amTimes = liveability.transit_travel_times;
@@ -228,7 +228,7 @@ export function TransportSection({ category, liveability, walkingReach, elevatio
         );
       })()}
 
-      {/* Indicator cards grid — buyers see full detail, renters see distance/commute cards above */}
+      {/* Indicator cards grid. buyers see full detail, renters see distance/commute cards above */}
       {!isRenter && available.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {available.map((indicator) => (

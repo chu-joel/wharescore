@@ -74,8 +74,8 @@ async def _ensure_user_exists(user_id: str, email: str | None, name: str | None)
 
 
 async def require_user(request: Request) -> str:
-    """FastAPI dependency — returns user_id or raises 401."""
-    # Dev mode bypass — allow unauthenticated access on localhost
+    """FastAPI dependency. returns user_id or raises 401."""
+    # Dev mode bypass. allow unauthenticated access on localhost
     from ..config import settings
     if settings.ENVIRONMENT == "development":
         token = _extract_bearer(request)
@@ -100,7 +100,7 @@ async def require_user(request: Request) -> str:
 
 
 async def optional_user(request: Request) -> Optional[str]:
-    """FastAPI dependency — returns user_id or None (no error if unauthenticated)."""
+    """FastAPI dependency. returns user_id or None (no error if unauthenticated)."""
     token = _extract_bearer(request)
     if not token:
         return None

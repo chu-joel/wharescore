@@ -19,7 +19,7 @@ router = APIRouter(tags=["webhooks"])
 
 
 # =============================================================================
-# Stripe Webhook — checkout.session.completed, invoice.paid, subscription deleted
+# Stripe Webhook. checkout.session.completed, invoice.paid, subscription deleted
 # =============================================================================
 
 @router.post("/webhooks/stripe")
@@ -44,7 +44,7 @@ async def stripe_webhook(request: Request):
         raise HTTPException(400, "Invalid payload")
 
     event_type = event["type"]
-    # Stripe SDK v8+ returns StripeObjects — deep-convert to dict for safe .get() access
+    # Stripe SDK v8+ returns StripeObjects. deep-convert to dict for safe .get() access
     raw_obj = event["data"]["object"]
     obj = raw_obj.to_dict() if hasattr(raw_obj, "to_dict") else dict(raw_obj)
 
@@ -61,16 +61,16 @@ async def stripe_webhook(request: Request):
 
 
 async def _handle_checkout_completed(session: dict):
-    """Process successful checkout — add credits, activate Pro, or fulfil guest purchase."""
+    """Process successful checkout. add credits, activate Pro, or fulfil guest purchase."""
     metadata = session.get("metadata", {})
     plan = metadata.get("plan")
 
-    # Guest single purchase — no user_id required
+    # Guest single purchase. no user_id required
     if plan == "guest_single":
         await _handle_guest_checkout(session, metadata)
         return
 
-    # Quick→Full upgrade — just change the tier on the snapshot
+    # Quick→Full upgrade. just change the tier on the snapshot
     if plan == "upgrade_quick_to_full":
         await _handle_upgrade(session, metadata)
         return
@@ -237,7 +237,7 @@ async def _handle_guest_checkout(session: dict, metadata: dict):
 
 
 async def _handle_upgrade(session: dict, metadata: dict):
-    """Upgrade a Quick report to Full — just update the tier column."""
+    """Upgrade a Quick report to Full. just update the tier column."""
     snapshot_id = metadata.get("snapshot_id")
     share_token_hash = metadata.get("share_token_hash")
     user_id = metadata.get("user_id")

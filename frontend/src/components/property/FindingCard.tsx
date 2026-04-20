@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { RatingBin } from '@/lib/types';
-import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM } from '@/lib/hazards';
+import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM, liquefactionRating, isHighOrVeryHighLiquefaction, isModerateOrWorseLiquefaction } from '@/lib/hazards';
 
 export interface Finding {
   headline: string;
@@ -10,7 +10,7 @@ export interface Finding {
   severity: 'critical' | 'warning' | 'info' | 'positive';
   category: string;
   source: string;
-  // Optional authority URL — when present the source caption becomes a link so
+  // Optional authority URL. when present the source caption becomes a link so
   // users can verify the flagged datapoint at its origin.
   sourceUrl?: string;
 }
@@ -204,21 +204,24 @@ export function generateFindings(report: {
     });
   }
 
-  if (h.liquefaction_zone) {
-    const liq = h.liquefaction_zone.toLowerCase();
-    const isVeryHigh = liq.includes('very high');
-    const isHigh = !isVeryHigh && liq.includes('high');
-    const isModerate = liq.includes('moderate') || liq.includes('medium');
-    if (isVeryHigh || isHigh || isModerate) {
-      findings.push({
-        headline: `Liquefaction susceptibility: ${h.liquefaction_zone}`,
-        interpretation:
-          'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
-        severity: isVeryHigh ? 'critical' : isHigh ? 'warning' : 'info',
-        category: 'Hazards',
-        source: 'Regional Council Liquefaction Maps',
-      });
-    }
+  // Liquefaction susceptibility. normalise across all three council fields
+  // (liquefaction_zone / gwrc_liquefaction / council_liquefaction) so every
+  // council vocabulary produces a finding — old code only read
+  // liquefaction_zone, which is empty for most of NZ including Wellington.
+  const liqRating = liquefactionRating(h);
+  if (liqRating === 'very_high' || liqRating === 'high' || liqRating === 'moderate') {
+    const rawLabel = h.gwrc_liquefaction || h.council_liquefaction || h.liquefaction_zone || '';
+    const displayLabel = liqRating === 'very_high' ? 'Very High'
+      : liqRating === 'high' ? 'High'
+      : 'Moderate';
+    findings.push({
+      headline: `Liquefaction susceptibility: ${displayLabel}${rawLabel && !rawLabel.toLowerCase().includes(displayLabel.toLowerCase()) ? ` (${rawLabel})` : ''}`,
+      interpretation:
+        'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
+      severity: liqRating === 'very_high' ? 'critical' : liqRating === 'high' ? 'warning' : 'info',
+      category: 'Hazards',
+      source: 'Regional Council Liquefaction Maps',
+    });
   }
 
   if (h.slope_failure) {
@@ -245,15 +248,13 @@ export function generateFindings(report: {
   }
 
   // Compound hazard rules (slope+liq, tsunami evac feasibility, saturated slope)
-  // mirror backend build_insights — keep these in sync if you change one path.
+  // mirror backend build_insights. keep these in sync if you change one path.
   const slopeLow = (h.slope_failure || '').toLowerCase();
   const slopeIsHigh = slopeLow.includes('high'); // catches "high" and "very high"
   const slopeIsMedOrHigh = slopeIsHigh || slopeLow.includes('moderate') || slopeLow.includes('medium');
-  const liqHigh = [h.liquefaction_zone, h.gwrc_liquefaction, h.council_liquefaction].some(
-    v => typeof v === 'string' && v.toLowerCase().includes('high')
-  );
+  const liqHigh = isHighOrVeryHighLiquefaction(h);
 
-  // 2.1 — Compounding seismic vulnerability (slope HIGH + liquefaction HIGH).
+  // 2.1. Compounding seismic vulnerability (slope HIGH + liquefaction HIGH).
   if (slopeIsHigh && liqHigh) {
     findings.push({
       headline: 'Double seismic vulnerability: slope failure AND liquefaction both High',
@@ -265,8 +266,8 @@ export function generateFindings(report: {
     });
   }
 
-  // 2.3 — Tsunami evacuation feasibility (zone + low elevation + flat surrounding terrain).
-  // Renters care as much as buyers — this is a life-safety finding.
+  // 2.3. Tsunami evacuation feasibility (zone + low elevation + flat surrounding terrain).
+  // Renters care as much as buyers. this is a life-safety finding.
   const tsunamiSignal =
     (typeof h.tsunami_zone === 'string' && (h.tsunami_zone === '1' || h.tsunami_zone === 'Red' || h.tsunami_zone === '2')) ||
     h.wcc_tsunami_return_period === '1:100yr' ||
@@ -281,17 +282,17 @@ export function generateFindings(report: {
     terrainElev != null && terrainElev <= 5
   ) {
     findings.push({
-      headline: `Tsunami zone on low, flat ground — only 5–20 min evacuation window`,
+      headline: `Tsunami zone on low, flat ground. only 5–20 min evacuation window`,
       interpretation:
-        `${Math.round(coastalCm)}cm above MHWS, ${terrainElev.toFixed(1)}m elevation. Walk the route to high ground (≥15m) BEFORE you sign — every 100m of horizontal distance is roughly a minute of your evacuation budget. Long-or-strong shake = move immediately, don't wait for the alert.`,
+        `${Math.round(coastalCm)}cm above MHWS, ${terrainElev.toFixed(1)}m elevation. Walk the route to high ground (≥15m) BEFORE you sign. every 100m of horizontal distance is roughly a minute of your evacuation budget. Long-or-strong shake = move immediately, don't wait for the alert.`,
       severity: 'critical',
       category: 'Hazards',
       source: 'Tsunami Zone + Terrain Analysis',
     });
   }
 
-  // 2.10 — Saturated slope. Slip-prone slope + nearby surface water = #1 NZ slip trigger.
-  // Buyer-relevant only — renters can't act on geotech findings.
+  // 2.10. Saturated slope. Slip-prone slope + nearby surface water = #1 NZ slip trigger.
+  // Buyer-relevant only. renters can't act on geotech findings.
   const waterwayClose = terrain?.nearest_waterway_m != null && terrain.nearest_waterway_m <= 50;
   const hasSurfaceWater =
     h.overland_flow_within_50m === true ||
@@ -305,7 +306,7 @@ export function generateFindings(report: {
     findings.push({
       headline: 'Slip-susceptible slope with surface water nearby',
       interpretation:
-        `${triggers.join(' · ')}. Rainfall-saturated soil is the #1 slip trigger in NZ — Auckland Anniversary 2023 and Cyclone Gabrielle hit slopes with this profile hardest. Get geotech assessment that explicitly covers drainage, retaining walls, and any geotextile treatments.`,
+        `${triggers.join(' · ')}. Rainfall-saturated soil is the #1 slip trigger in NZ. Auckland Anniversary 2023 and Cyclone Gabrielle hit slopes with this profile hardest. Get geotech assessment that explicitly covers drainage, retaining walls, and any geotextile treatments.`,
       severity: 'warning',
       category: 'Hazards',
       source: 'Slope + Terrain + Waterway Analysis',
@@ -331,7 +332,7 @@ export function generateFindings(report: {
     findings.push({
       headline: 'Property is within a mapped landslide area',
       interpretation:
-        'This property sits within the boundary of a mapped historical landslide. This is a significant risk factor — a geotechnical report is essential before any purchase decision.',
+        'This property sits within the boundary of a mapped historical landslide. This is a significant risk factor. a geotechnical report is essential before any purchase decision.',
       severity: 'critical',
       category: 'Hazards',
       source: 'GNS NZ Landslide Database',
@@ -429,7 +430,7 @@ export function generateFindings(report: {
     }
   }
 
-  // §4-d — On erosion-prone land (GWRC-flagged). Slope is categorised as too
+  // §4-d. On erosion-prone land (GWRC-flagged). Slope is categorised as too
   // steep for standard building consent without a slope-stability report.
   if (h.on_erosion_prone_land === true) {
     const angle = h.erosion_min_angle;
@@ -476,7 +477,7 @@ export function generateFindings(report: {
       headline: `${h.geotech_count_500m} geotechnical reports within 500m`,
       interpretation:
         h.geotech_nearest_hazard
-          ? `This area has known ground issues. Nearest report flags: ${h.geotech_nearest_hazard}. Request copies of relevant reports from the council — previous investigations can save you thousands.`
+          ? `This area has known ground issues. Nearest report flags: ${h.geotech_nearest_hazard}. Request copies of relevant reports from the council. previous investigations can save you thousands.`
           : 'Multiple geotechnical reports in this area indicate known ground conditions. Request copies from the council before commissioning your own assessment.',
       severity: 'info',
       category: 'Hazards',
@@ -500,7 +501,7 @@ export function generateFindings(report: {
     findings.push({
       headline: `${contaminationCount} HAIL site${contaminationCount > 1 ? 's' : ''} within 500m`,
       interpretation:
-        'HAIL = Hazardous Activities and Industries List (Ministry for the Environment). These are sites with a history of activities that may have contaminated the land — not necessarily this property, but nearby. Check the council\'s SLUR for details before digging or growing food.',
+        'HAIL = Hazardous Activities and Industries List (Ministry for the Environment). These are sites with a history of activities that may have contaminated the land. not necessarily this property, but nearby. Check the council\'s SLUR for details before digging or growing food.',
       severity: contaminationCount >= 5 ? 'warning' : 'info',
       category: 'Planning',
       source: 'Regional Council SLUR / HAIL',
@@ -540,7 +541,7 @@ export function generateFindings(report: {
         headline: `Ground shaking amplification: ${h.ground_shaking_severity}`,
         interpretation:
           h.gwrc_liquefaction_geology
-            ? `Built on ${h.gwrc_liquefaction_geology.toLowerCase()} — earthquake shaking is amplified here compared to bedrock areas. This is especially important for older buildings.`
+            ? `Built on ${h.gwrc_liquefaction_geology.toLowerCase()}. earthquake shaking is amplified here compared to bedrock areas. This is especially important for older buildings.`
             : 'This area amplifies earthquake shaking due to the underlying soil conditions. Newer buildings with modern foundations handle this better.',
         severity: 'warning',
         category: 'Hazards',
@@ -572,16 +573,16 @@ export function generateFindings(report: {
       source: 'District Plan / GNS Active Faults',
     });
   } else if (h.active_fault_nearest && h.active_fault_nearest.distance_m != null) {
-    // National GNS Active Faults — only fires when no council-specific fault_zone_name is already flagged
+    // National GNS Active Faults. only fires when no council-specific fault_zone_name is already flagged
     const af = h.active_fault_nearest;
     const dist = af.distance_m;
     const distStr = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`;
     const slip = af.slip_rate_mm_yr;
     if (dist <= 200 && slip != null && slip >= 1.0) {
       findings.push({
-        headline: `Active fault (${af.name}) within ${distStr} — direct rupture risk`,
+        headline: `Active fault (${af.name}) within ${distStr}. direct rupture risk`,
         interpretation:
-          `Slip rate ${slip} mm/yr. Fault rupture can cause 1–6m of surface offset — this is a ground-splitting risk, not a shaking risk. MBIE/GNS guidelines discourage building in this setback. Check the title for any fault-avoidance consent notice before offer.`,
+          `Slip rate ${slip} mm/yr. Fault rupture can cause 1–6m of surface offset. this is a ground-splitting risk, not a shaking risk. MBIE/GNS guidelines discourage building in this setback. Check the title for any fault-avoidance consent notice before offer.`,
         severity: 'critical',
         category: 'Hazards',
         source: 'GNS Active Faults Database',
@@ -591,7 +592,7 @@ export function generateFindings(report: {
       findings.push({
         headline: `${af.name} active fault ${distStr} away`,
         interpretation:
-          `Proximity to an active fault increases expected shaking intensity during an earthquake.${slipStr} Modern foundations and code-compliant seismic design significantly mitigate this — check the building consent file.`,
+          `Proximity to an active fault increases expected shaking intensity during an earthquake.${slipStr} Modern foundations and code-compliant seismic design significantly mitigate this. check the building consent file.`,
         severity: 'warning',
         category: 'Hazards',
         source: 'GNS Active Faults Database',
@@ -618,23 +619,23 @@ export function generateFindings(report: {
       headline: `Solar potential: ${Math.round(h.solar_mean_kwh)} kWh/m²/year`,
       interpretation: solarGood
         ? 'Good solar exposure. This building receives above-average sunshine, making solar panels a viable investment and improving winter liveability.'
-        : 'Below-average solar exposure. This may mean less natural light and warmth in winter — check north-facing windows and heating costs.',
+        : 'Below-average solar exposure. This may mean less natural light and warmth in winter. check north-facing windows and heating costs.',
       severity: solarGood ? 'positive' : 'info',
       category: 'Liveability',
       source: 'Council Building Solar Radiation',
     });
   }
 
-  // 2.19 — Healthcare desert. Both GP AND pharmacy ≥2km is a daily-life tax for
+  // 2.19. Healthcare desert. Both GP AND pharmacy ≥2km is a daily-life tax for
   // elderly, daily-medication users, families, and car-free households. Existing
   // gp_far rule uses GP only; combining with pharmacy makes the message specific.
   const gpDist = l.nearest_gp?.distance_m;
   const pharmacyDist = l.nearest_pharmacy?.distance_m;
   if (gpDist != null && gpDist >= 2000 && pharmacyDist != null && pharmacyDist >= 2000) {
     findings.push({
-      headline: `Healthcare 20+ min walk away — both GP and pharmacy`,
+      headline: `Healthcare 20+ min walk away. both GP and pharmacy`,
       interpretation:
-        `Nearest GP ${Math.round(gpDist)}m, nearest pharmacy ${Math.round(pharmacyDist)}m. Daily medication users, elderly, and car-free households should plan for pharmacy delivery and confirm the nearest GP is taking new enrolments — many practices are capped.`,
+        `Nearest GP ${Math.round(gpDist)}m, nearest pharmacy ${Math.round(pharmacyDist)}m. Daily medication users, elderly, and car-free households should plan for pharmacy delivery and confirm the nearest GP is taking new enrolments. many practices are capped.`,
       severity: 'info',
       category: 'Liveability',
       source: 'OSM Amenities',
@@ -658,10 +659,7 @@ export function generateFindings(report: {
 
   // --- Positive findings ---
 
-  const liqMeaningful = (() => {
-    const v = (h.liquefaction_zone || '').toLowerCase();
-    return v.includes('moderate') || v.includes('medium') || v.includes('high');
-  })();
+  const liqMeaningful = isModerateOrWorseLiquefaction(h);
   if (!isInFloodZone(h) && !h.tsunami_zone && !liqMeaningful) {
     findings.push({
       headline: 'No major natural hazards detected',
@@ -687,7 +685,7 @@ export function generateFindings(report: {
   if (l.transit_count && l.transit_count >= 5) {
     const peak = l.peak_trips_per_hour;
     if (peak != null && peak <= 3) {
-      // Many stops, sparse services — don't mis-sell as "excellent transit"
+      // Many stops, sparse services. don't mis-sell as "excellent transit"
       findings.push({
         headline: `${l.transit_count} transit stops within 400m, but only ${Math.round(peak)} trips/hour at peak`,
         interpretation:
@@ -779,7 +777,7 @@ export function generateFindings(report: {
 
   if (p.park_count_500m && p.park_count_500m >= 3 && p.nearest_park_distance_m && p.nearest_park_distance_m <= 300) {
     findings.push({
-      headline: `${p.park_count_500m} parks within 500m${p.nearest_park_name ? ` — nearest: ${p.nearest_park_name}` : ''}`,
+      headline: `${p.park_count_500m} parks within 500m${p.nearest_park_name ? `. nearest: ${p.nearest_park_name}` : ''}`,
       interpretation:
         'Excellent green space access. Multiple parks nearby is a strong positive for families, exercise, and property values.',
       severity: 'positive',
@@ -792,7 +790,7 @@ export function generateFindings(report: {
   if (terrain?.is_depression && !isInFloodZone(h)) {
     const depth = terrain.depression_depth_m;
     findings.push({
-      headline: `Natural low point${depth ? ` (${Math.abs(depth).toFixed(1)}m below surroundings)` : ''} — water may collect here`,
+      headline: `Natural low point${depth ? ` (${Math.abs(depth).toFixed(1)}m below surroundings)` : ''}. water may collect here`,
       interpretation:
         'This property sits lower than its immediate surroundings, creating a natural collection point for rainwater. Check for signs of past ponding and ensure stormwater drainage is adequate.',
       severity: terrain.flood_terrain_risk === 'high' ? 'warning' : 'info',
@@ -803,7 +801,7 @@ export function generateFindings(report: {
 
   if (terrain?.flood_terrain_risk === 'moderate' && !terrain?.is_depression && !isInFloodZone(h)) {
     findings.push({
-      headline: 'Flat, low-lying terrain — limited natural drainage',
+      headline: 'Flat, low-lying terrain. limited natural drainage',
       interpretation:
         'No council flood zone is mapped here, but flat low-lying ground is inherently vulnerable to surface flooding during heavy rain. Check floor levels and stormwater capacity.',
       severity: 'info',
@@ -814,7 +812,7 @@ export function generateFindings(report: {
 
   if (terrain?.wind_exposure === 'very_exposed') {
     findings.push({
-      headline: `Exposed ${terrain.relative_position === 'hilltop' ? 'hilltop' : 'ridgeline'} — expect strong winds`,
+      headline: `Exposed ${terrain.relative_position === 'hilltop' ? 'hilltop' : 'ridgeline'}. expect strong winds`,
       interpretation:
         'This elevated, exposed position faces significantly stronger winds, especially from the prevailing westerly direction. Check roof fixings and cladding meet wind zone requirements.',
       severity: 'warning',
@@ -832,13 +830,13 @@ export function generateFindings(report: {
     });
   }
 
-  // --- Aspect (solar orientation) — only when the site has meaningful slope ---
+  // --- Aspect (solar orientation). only when the site has meaningful slope ---
   const aspect = terrain?.aspect_label;
   const slope = terrain?.slope_degrees;
   if (aspect && aspect !== 'unknown' && aspect !== 'flat' && slope != null && slope >= 3) {
     if (['north', 'northeast', 'northwest'].includes(aspect)) {
       findings.push({
-        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing — good winter sun`,
+        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing. good winter sun`,
         interpretation:
           `In NZ's southern hemisphere, a ${aspect}-facing slope captures maximum winter sun. That means warmer, drier interiors, lower heating costs, and solar panels perform well.`,
         severity: 'positive',
@@ -847,7 +845,7 @@ export function generateFindings(report: {
       });
     } else if (['south', 'southeast', 'southwest'].includes(aspect)) {
       findings.push({
-        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing — limited winter sun`,
+        headline: `${aspect.charAt(0).toUpperCase() + aspect.slice(1)}-facing. limited winter sun`,
         interpretation:
           'South-facing sites receive significantly less direct sun in winter. Heating costs are typically 10–20% higher than a north-facing equivalent, and moisture/mould risk is elevated if ventilation and heating aren\'t adequate.',
         severity: 'info',
@@ -896,7 +894,7 @@ export function generateFindings(report: {
       findings.push({
         headline: `${eventHist.extreme_weather_5yr} extreme weather events recorded nearby in 5 years`,
         interpretation:
-          'Review property for weather resilience — drainage, roof condition, and tree proximity.',
+          'Review property for weather resilience. drainage, roof condition, and tree proximity.',
         severity: 'info',
         category: 'Hazards',
         source: 'Open-Meteo Weather Archive',

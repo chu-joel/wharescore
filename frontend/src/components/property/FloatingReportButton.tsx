@@ -13,7 +13,7 @@ import { useSession } from 'next-auth/react';
 
 interface FloatingReportButtonProps {
   addressId: number;
-  /** Number of critical+warning findings from the report — drives contextual CTA */
+  /** Number of critical+warning findings from the report. drives contextual CTA */
   riskCount?: number;
 }
 
@@ -65,7 +65,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
     } else if (!pdf.isGenerating) {
       // Unauth → low-friction "quick" path (Google sign-in → auto Quick
       // Report).
-      // Auth → preselect Full in the confirm modal — "Generate Report"
+      // Auth → preselect Full in the confirm modal. "Generate Report"
       // is the intent-to-buy click, so the tier selector should lead with
       // the paid option (users previously had to manually flip from Quick
       // every time). They can still pick Quick inside the modal if they
@@ -84,7 +84,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   //   - Unauth: primary action is "Save free report" (one-tap Google sign-in).
   //   - Auth  : primary action is "Generate Report" (confirm modal picks tier).
   // We still surface the risk count in place of the generic label when the
-  // report actually has critical/warning findings — users notice "3 risks
+  // report actually has critical/warning findings. users notice "3 risks
   // found" more than a neutral CTA, so we let urgency override the verb.
   let ctaText = isSignedIn ? 'Generate Report' : 'Save free report';
   let ctaIcon: React.ReactNode = isSignedIn
@@ -120,7 +120,7 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
       // On mobile the MobileDrawer handle sits at the top of the 80px mini
       // sheet (bottom 36-80px of viewport). The FAB at bottom-5 with ~44px
       // height overlaps that region and steals pointer events from the
-      // handle — users couldn't grab the drawer to expand it. Raise the
+      // handle. users couldn't grab the drawer to expand it. Raise the
       // FAB to bottom-24 on mobile so it clears the mini-sheet handle.
       // Desktop has no drawer, so bottom-5 stays.
       consentUp ? 'bottom-32 md:bottom-16' : 'bottom-24 md:bottom-5'

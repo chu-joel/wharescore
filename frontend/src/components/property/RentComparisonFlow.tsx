@@ -44,7 +44,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
   const rentValue = parseInt(rentInput, 10);
   const rentValid = !isNaN(rentValue) && rentValue >= 50 && rentValue <= 5000;
 
-  // Refs for unmount cleanup — captures latest values without stale closures
+  // Refs for unmount cleanup. captures latest values without stale closures
   const contributeRef = useRef(contributeChecked);
   const dwellingTypeRef = useRef(dwellingType);
   const bedroomsRef = useRef(bedrooms);
@@ -87,7 +87,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
 
   const rentOutOfBounds = rentInput.length > 0 && !isNaN(rentValue) && (rentValue < 50 || rentValue > 5000);
 
-  // Handle rent input — strip non-digits
+  // Handle rent input. strip non-digits
   const handleRentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const cleaned = e.target.value.replace(/\D/g, '');
     setRentInput(cleaned);
@@ -256,7 +256,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
               <div className="mt-3 p-2 rounded-lg bg-muted">
                 <p className="text-sm font-medium text-center">
                   {assessment.user_percentile <= 25
-                    ? 'Your rent looks below average — good value!'
+                    ? 'Your rent looks below average. good value!'
                     : assessment.user_percentile <= 75
                       ? 'Your rent is around the median for this area.'
                       : 'Your rent is above average for this area.'}
@@ -275,7 +275,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
                 className="mt-0.5 rounded"
               />
               <span>
-                Help others — anonymously contribute your rent to community data.
+                Help others. anonymously contribute your rent to community data.
                 Your rent won&apos;t be linked to your identity.
               </span>
             </label>

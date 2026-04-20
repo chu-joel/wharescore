@@ -52,9 +52,9 @@ export function AirQualityCard({ trend, site, distanceM }: AirQualityCardProps) 
         <p className="text-xs mt-1">
           <span className={`font-medium ${relevance.color}`}>{relevance.label} relevance</span>
           <span className="text-muted-foreground">
-            {relevance.label === 'High' && ' — station is nearby'}
-            {relevance.label === 'Medium' && ' — station is moderately distant'}
-            {relevance.label === 'Low' && ' — treat as regional indicator only'}
+            {relevance.label === 'High' && '. station is nearby'}
+            {relevance.label === 'Medium' && '. station is moderately distant'}
+            {relevance.label === 'Low' && '. treat as regional indicator only'}
           </span>
         </p>
       )}

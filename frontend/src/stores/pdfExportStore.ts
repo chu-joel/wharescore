@@ -19,7 +19,7 @@ interface PdfExportState {
   _pendingToken: string | null;
   /**
    * Kick off the export flow. `preferredTier` decides which tier is preselected
-   * in the review modal — pass 'full' when the user clicked a paid CTA so
+   * in the review modal. pass 'full' when the user clicked a paid CTA so
    * they don't land on the free option and have to switch manually.
    */
   startExport: (addressId: number, token?: string | null, preferredTier?: 'quick' | 'full') => void;
@@ -108,7 +108,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
 
     let generatingToastId: string | number | undefined;
     try {
-      // Always fetch a fresh token — the pre-modal token may have expired
+      // Always fetch a fresh token. the pre-modal token may have expired
       let token = _token;
       try {
         const tokenRes = await fetch('/api/auth/token');
@@ -176,9 +176,9 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
       );
       if (!res.ok) {
         if (res.status === 401) {
-          // Auth failed — if user has credits, it's a session issue, not a paywall issue
+          // Auth failed. if user has credits, it's a session issue, not a paywall issue
           if (gate.credits && gate.credits.plan !== 'free' && (gate.credits.creditsRemaining ?? 0) > 0) {
-            toast.error('Session expired — please sign out and sign back in, then try again.', { duration: 8000 });
+            toast.error('Session expired. please sign out and sign back in, then try again.', { duration: 8000 });
             set({ isGenerating: false, error: 'Session expired' });
           } else {
             gate.setShowUpgradeModal(true, 'default', {}, addressId, persona);
@@ -198,14 +198,14 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
           return;
         }
         if (res.status === 429) {
-          throw new Error('Rate limit reached — please wait a few minutes and try again.');
+          throw new Error('Rate limit reached. please wait a few minutes and try again.');
         }
         throw new Error('Failed to start PDF generation');
       }
 
       const { job_id, download_url } = await res.json();
 
-      // Show persistent generating toast — dismissed when report completes or fails
+      // Show persistent generating toast. dismissed when report completes or fails
       generatingToastId = toast.loading('Generating your report...', {
         description: tier === 'full'
           ? 'This typically takes 15-30 seconds. We\'ll email you a link when it\'s ready.'
@@ -219,7 +219,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
         const statusRes = await fetch(
           `/api/v1/property/${addressId}/export/pdf/status/${job_id}`,
         );
-        if (statusRes.status === 429) continue; // rate limited — skip and retry
+        if (statusRes.status === 429) continue; // rate limited. skip and retry
         if (!statusRes.ok) throw new Error('Failed to check PDF status');
 
         const status = await statusRes.json();
@@ -258,7 +258,7 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
         }
       }
 
-      throw new Error('PDF generation timed out — check My Reports shortly');
+      throw new Error('PDF generation timed out. check My Reports shortly');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       set({ error: msg, isGenerating: false });

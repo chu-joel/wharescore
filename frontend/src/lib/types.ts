@@ -1,4 +1,4 @@
-// lib/types.ts — frontend type definitions (mirrors backend schemas/)
+// lib/types.ts. frontend type definitions (mirrors backend schemas/)
 
 // --- Search ---
 export interface SearchResult {
@@ -80,7 +80,7 @@ export interface PropertyReport {
    *  Single source of truth shared with the browser extension. KeyFindings
    *  prefers these over generateFindings() for the free-tier visible slice. */
   ranked_findings?: {
-    // source is optional — older cached/snapshotted findings won't have it,
+    // source is optional. older cached/snapshotted findings won't have it,
     // and only a subset of backend Insight() call sites have been annotated
     // so far (see SOURCE_CATALOG in backend/app/services/report_html.py).
     renter: Array<{ severity: string; title: string; detail: string; source?: { authority: string; url: string } }>;

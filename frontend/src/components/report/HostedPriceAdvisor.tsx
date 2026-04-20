@@ -107,7 +107,7 @@ export function HostedPriceAdvisor({ snapshot, persona }: HostedPriceAdvisorProp
         </div>
       )}
 
-      {/* Adjustments — what moved the estimate from baseline */}
+      {/* Adjustments. what moved the estimate from baseline */}
       {pa.adjustments && pa.adjustments.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-muted-foreground mb-2">What moved your estimate</h4>

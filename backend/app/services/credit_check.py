@@ -1,4 +1,4 @@
-"""Credit check service — verifies user has active credits or Pro limits.
+"""Credit check service. verifies user has active credits or Pro limits.
 
 Provides require_paid_user dependency for endpoints that require payment.
 """
@@ -37,7 +37,7 @@ async def require_paid_user(
     request: Request,
     user_id: str = Depends(optional_user),
 ) -> CreditInfo:
-    """FastAPI dependency — returns CreditInfo or raises 403 if no credits."""
+    """FastAPI dependency. returns CreditInfo or raises 403 if no credits."""
     from ..config import settings
 
     # Dev mode: bypass credit + auth check entirely (localhost only)
@@ -75,7 +75,7 @@ async def require_paid_user(
         if requested_tier not in ("quick", "full"):
             requested_tier = "full"
 
-        # Quick reports are free for signed-in users — no credits needed
+        # Quick reports are free for signed-in users. no credits needed
         if requested_tier == "quick":
             return CreditInfo(
                 user_id=user_id,
@@ -89,7 +89,7 @@ async def require_paid_user(
                 report_tier="quick",
             )
 
-        # Get active credits — prefer matching tier, fall back to any (for Pro/promo)
+        # Get active credits. prefer matching tier, fall back to any (for Pro/promo)
         cur = await conn.execute(
             """
             SELECT id, credit_type, credits_remaining, daily_limit, monthly_limit, report_tier
@@ -124,7 +124,7 @@ async def require_paid_user(
         )
         downloads_this_month = cur_month.fetchone()["cnt"]
 
-        # Pro plan — check limits
+        # Pro plan. check limits
         if credit["credit_type"] == "pro":
             daily_limit = credit["daily_limit"] or 10
             monthly_limit = credit["monthly_limit"] or 30

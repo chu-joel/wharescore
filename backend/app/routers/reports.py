@@ -2,8 +2,8 @@
 """
 Hosted interactive report endpoints.
 
-GET /report/{share_token} — public, no auth. Returns pre-computed snapshot JSON.
-POST /report/{share_token}/upgrade — upgrade Quick→Full report tier.
+GET /report/{share_token}. public, no auth. Returns pre-computed snapshot JSON.
+POST /report/{share_token}/upgrade. upgrade Quick→Full report tier.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ router = APIRouter()
 @router.get("/report/{share_token}")
 @limiter.limit("30/minute")
 async def get_report_snapshot(request: Request, share_token: str):
-    """Public endpoint — returns pre-computed report snapshot by share token.
+    """Public endpoint. returns pre-computed report snapshot by share token.
     No auth required. Anyone with the URL can view."""
 
     if not share_token or len(share_token) < 8:
@@ -77,7 +77,7 @@ async def get_report_snapshot(request: Request, share_token: str):
     if row.get("expires_at"):
         response_data["expires_at"] = row["expires_at"].isoformat()
 
-    # Strip full-only fields from Quick Reports — the data stays in the DB
+    # Strip full-only fields from Quick Reports. the data stays in the DB
     # but never leaves the server until the tier is 'full'. Prevents
     # Postman/devtools access to paid data.
     if report_tier == "quick":
@@ -234,7 +234,7 @@ async def upgrade_report_tier(
 
                 return {"upgraded": True, "method": "credit"}
 
-    # No credits — create Stripe checkout
+    # No credits. create Stripe checkout
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
 

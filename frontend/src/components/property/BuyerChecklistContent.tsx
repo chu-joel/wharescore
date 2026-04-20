@@ -16,7 +16,7 @@ function getItems(report: PropertyReport): ChecklistItem[] {
   const h = report.hazards;
   const p = report.planning;
 
-  // Critical — driven by report data
+  // Critical. driven by report data
   if (isInFloodZone(h)) {
     items.push({ text: 'Get flood risk assessment', severity: 'critical', reason: `Property is in flood zone: ${floodLabel(h)}`, estimatedCost: '$500–$2,000' });
   }
@@ -31,7 +31,7 @@ function getItems(report: PropertyReport): ChecklistItem[] {
     items.push({ text: 'Check contaminated land register (HAIL/SLUR)', severity: 'critical', reason: `${contaminationCount} HAIL sites within 500m` });
   }
 
-  // Important — always include
+  // Important. always include
   items.push({ text: 'Get building inspection', severity: 'important', estimatedCost: '$400–$800' });
   items.push({ text: 'Order LIM report from council', severity: 'important', estimatedCost: '$300–$500' });
   items.push({ text: 'Review title and any encumbrances', severity: 'important' });

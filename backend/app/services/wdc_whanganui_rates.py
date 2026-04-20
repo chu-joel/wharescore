@@ -2,7 +2,7 @@
 """
 Whanganui District Council GeoServer WFS property data client.
 Uses the GeoNode/GeoServer at data.whanganui.govt.nz.
-Values are formatted strings like "$ 160,000.00" — needs parsing.
+Values are formatted strings like "$ 160,000.00". needs parsing.
 
 Two-step: property_addresses (address lookup) + property_values (CV/LV/IV via prop_no join)
 """

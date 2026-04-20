@@ -22,6 +22,7 @@ import { KnowYourRights } from '@/components/property/KnowYourRights';
 import { getRatingBin } from '@/lib/constants';
 import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
 import type { ReportSnapshot, PropertyReport } from '@/lib/types';
+import { HostedReportProvider } from './HostedReportContext';
 
 interface HostedQuickReportProps {
   snapshot: ReportSnapshot;
@@ -57,7 +58,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      await navigator.share({ title: `Property Report — ${snapshot.meta.full_address}`, url });
+      await navigator.share({ title: `Property Report. ${snapshot.meta.full_address}`, url });
     } else {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -81,6 +82,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
   const ai = snapshot.ai_insights as { bottom_line?: string; key_takeaways?: string[] } | null;
 
   return (
+    <HostedReportProvider snapshot={snapshot}>
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* ═══ Sticky header ═══ */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
@@ -95,7 +97,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-2 py-0.5 rounded-full bg-piq-primary/10 text-piq-primary text-xs font-semibold">Quick</span>
-            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] justify-center" title="Copy link to clipboard" aria-label="Share — copy report link">
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] justify-center" title="Copy link to clipboard" aria-label="Share. copy report link">
               <Share2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
                 {copied ? 'Copied!' : 'Share'}
@@ -110,7 +112,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
         </div>
       </header>
 
-      {/* ═══ Content — single column, no sidebar ═══ */}
+      {/* ═══ Content. single column, no sidebar ═══ */}
       <div className="max-w-2xl mx-auto px-4">
 
         {/* ═══ COVER ═══ */}
@@ -186,12 +188,12 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           </div>
         )}
 
-        {/* ═══ 2. AT A GLANCE — RAG status grid ═══ */}
+        {/* ═══ 2. AT A GLANCE. RAG status grid ═══ */}
         <div className="pb-6">
           <HostedAtAGlance report={report} />
         </div>
 
-        {/* ═══ 3. KEY FINDINGS (top 3 — upgrade for all) ═══ */}
+        {/* ═══ 3. KEY FINDINGS (top 3. upgrade for all) ═══ */}
         <div className="pb-6">
           <KeyFindings report={report} maxFree={3} persona={persona} />
         </div>
@@ -236,7 +238,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
           <HostedNearbyHighlights snapshot={snapshot} />
         </div>
 
-        {/* ═══ 7. DEMOGRAPHICS (basic — population, age, commute) ═══ */}
+        {/* ═══ 7. DEMOGRAPHICS (basic. population, age, commute) ═══ */}
         <div className="pb-6">
           <HostedDemographics snapshot={snapshot} isFull={false} />
         </div>
@@ -273,7 +275,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
                   className="inline-flex items-center gap-1 text-xs font-semibold text-piq-primary hover:underline mt-1"
                 >
                   <Sparkles className="h-3 w-3" />
-                  Upgrade to Full Report — {fullPrice}
+                  Upgrade to Full Report. {fullPrice}
                 </a>
               </div>
             </div>
@@ -299,5 +301,6 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
         </div>
       </div>
     </div>
+    </HostedReportProvider>
   );
 }

@@ -1,4 +1,4 @@
-// lib/api.ts — typed fetch wrapper with error classes
+// lib/api.ts. typed fetch wrapper with error classes
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -29,7 +29,7 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { token, ...fetchOptions } = options ?? {};
   const headers: HeadersInit = { ...fetchOptions?.headers };
-  // Only set Content-Type for JSON — let the browser handle FormData, etc.
+  // Only set Content-Type for JSON. let the browser handle FormData, etc.
   if (!(fetchOptions?.body instanceof FormData)) {
     (headers as Record<string, string>)['Content-Type'] ??= 'application/json';
   }

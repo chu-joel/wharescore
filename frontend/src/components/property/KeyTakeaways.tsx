@@ -39,8 +39,8 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
 
   const handleShare = async () => {
     const url = window.location.href;
-    const score = Number.isFinite(report.scores.overall) ? Math.round(report.scores.overall) : '—';
-    const text = `WhareScore report for ${report.address.full_address} — Score: ${score}/100`;
+    const score = Number.isFinite(report.scores.overall) ? Math.round(report.scores.overall) : '.';
+    const text = `WhareScore report for ${report.address.full_address}. Score: ${score}/100`;
 
     if (navigator.share) {
       try {
@@ -55,7 +55,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
 
   return (
     <div className="space-y-3">
-      {/* Concerns / Positives / Confidence — only when indicators exist */}
+      {/* Concerns / Positives / Confidence. only when indicators exist */}
       {hasIndicators ? (
         <>
           {concerns.length > 0 ? (
@@ -139,7 +139,7 @@ export function KeyTakeaways({ report, onSearchAnother }: KeyTakeawaysProps) {
 
       {/* Footer actions. "Export PDF" was removed here because the
           floating "Get Your Report" FAB (bottom-left) is always visible
-          on the same screen and leads to the same flow — two CTAs for
+          on the same screen and leads to the same flow. two CTAs for
           the same action confused users in the audit. */}
       <div className="flex flex-col sm:flex-row gap-2">
         <Button onClick={onSearchAnother} className="flex-1">

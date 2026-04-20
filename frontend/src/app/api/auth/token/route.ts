@@ -4,7 +4,7 @@ import { SignJWT } from "jose";
 // The browser extension needs to mint short-lived JWTs from chrome-extension://<id>
 // origins. Next.js Route Handlers don't apply any CORS middleware, so we set the
 // headers manually. We only echo back Origin values that look like a Chrome
-// extension id — everything else is handled by the browser's same-origin rules.
+// extension id. everything else is handled by the browser's same-origin rules.
 const EXTENSION_ORIGIN = /^chrome-extension:\/\/[a-z]{32}$/;
 
 function buildCorsHeaders(originHeader: string | null): Record<string, string> {

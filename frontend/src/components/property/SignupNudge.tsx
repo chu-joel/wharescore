@@ -20,7 +20,7 @@ import {
  *
  * Gated by:
  *   - User is anonymous (not signed in)
- *   - `shouldShowSignupNudge()` — not already shown this session
+ *   - `shouldShowSignupNudge()`. not already shown this session
  *
  * Value prop focuses on tangible free-tier benefits:
  *   - Save properties you're shortlisting
@@ -51,7 +51,7 @@ export function SignupNudge() {
     // Route through the dedicated /signin page so the user can pick
     // between email-OTP (the primary flow, no password) and Google
     // OAuth. Every auth entry point in the app funnels through
-    // /signin — do not call next-auth's signIn() directly from the
+    // /signin. do not call next-auth's signIn() directly from the
     // nudge, it would commit the user to a single provider and
     // skip the branded welcome + privacy copy.
     const callback = window.location.pathname + window.location.search;

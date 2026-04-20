@@ -161,7 +161,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
 
     sheetRef.current.style.transition = '';
 
-    // Tap without drag — cycle upward: mini→peek→full, full→peek
+    // Tap without drag. cycle upward: mini→peek→full, full→peek
     if (!hasMoved.current) {
       sheetRef.current.style.height = '';
       setSnapId((prev) => {
@@ -173,13 +173,13 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       return;
     }
 
-    // Drag ended — find nearest snap point, biased by drag direction
+    // Drag ended. find nearest snap point, biased by drag direction
     const h = currentHeight.current;
     const dragDelta = h - startHeight.current; // positive = dragged up
 
     let target: SnapId;
     if (Math.abs(dragDelta) > 60) {
-      // Intentional drag — move one snap in the drag direction
+      // Intentional drag. move one snap in the drag direction
       const currentIdx = SNAP_ORDER.indexOf(snapId);
       if (dragDelta > 0 && currentIdx < SNAP_ORDER.length - 1) {
         target = SNAP_ORDER[currentIdx + 1];
@@ -189,7 +189,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         target = snapId;
       }
     } else {
-      // Small drag — snap to nearest
+      // Small drag. snap to nearest
       const miniPx = snapToPx('mini', vh);
       const peekPx = snapToPx('peek', vh);
       const fullPx = snapToPx('full', vh);
@@ -240,7 +240,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
       {/* Drag handle + back button. The outer container has a generous
           vertical hit area (pt-4 + pb-3 ≈ 44px) so users can grab the
           handle without having to hit the tiny 6px pill exactly. Touch
-          actions are handled at this level only — child buttons stop
+          actions are handled at this level only. child buttons stop
           propagation so their own taps don't trigger a drag. */}
       <div
         data-drawer-handle
@@ -267,7 +267,7 @@ export function MobileDrawer({ children, hasSelection = false }: MobileDrawerPro
         )}
       </div>
 
-      {/* Scrollable content — hidden overflow when mini to prevent stuck scroll.
+      {/* Scrollable content. hidden overflow when mini to prevent stuck scroll.
           Extra bottom padding so the floating "Get Your Report" FAB at bottom-left
           (roughly 56px tall + safe-area) never obscures the last sections of the report. */}
       <div

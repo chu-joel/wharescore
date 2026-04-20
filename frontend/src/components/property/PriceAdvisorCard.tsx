@@ -301,7 +301,7 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
             </div>
           )}
 
-          {/* Hazard cost flags (always shown free — consumer advocate) */}
+          {/* Hazard cost flags (always shown free. consumer advocate) */}
           {result.hazard_cost_flags.length > 0 && (
             <HazardCostFlags flags={result.hazard_cost_flags} />
           )}

@@ -1,7 +1,7 @@
 // Thin wrappers over chrome.storage. Three scopes are used:
-//   session — JWT cache (cleared when the browser restarts)
-//   sync    — user preferences (per-site toggles, pause-all, drag position)
-//   local   — per-address dismissals (7-day TTL)
+//   session. JWT cache (cleared when the browser restarts)
+//   sync   . user preferences (per-site toggles, pause-all, drag position)
+//   local  . per-address dismissals (7-day TTL)
 import type { SourceSite } from "./constants";
 
 interface CachedJwt { token: string; expiresAt: number; }

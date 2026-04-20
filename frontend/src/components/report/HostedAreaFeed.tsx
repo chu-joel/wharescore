@@ -74,7 +74,7 @@ function formatDateTime(timestamp: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Watch items — derive from report hazard data
+// Watch items. derive from report hazard data
 // ---------------------------------------------------------------------------
 
 interface WatchItem {
@@ -148,7 +148,7 @@ function deriveWatchItems(snapshot: ReportSnapshot): WatchItem[] {
     });
   }
 
-  // Flood zone — any of the three flood fields counts (GWRC flood_zones,
+  // Flood zone. any of the three flood fields counts (GWRC flood_zones,
   // regional flood extent, or WCC District Plan overlay).
   const floodZone = (hazards.flood_zone
     ?? hazards.flood_extent_label
@@ -192,7 +192,7 @@ function deriveWatchItems(snapshot: ReportSnapshot): WatchItem[] {
 }
 
 // ---------------------------------------------------------------------------
-// Top events — pick the 3 most notable from feed
+// Top events. pick the 3 most notable from feed
 // ---------------------------------------------------------------------------
 
 interface TopEvent {
@@ -413,7 +413,7 @@ function WeatherTimelineEvent({ event }: { event: NonNullable<ReportSnapshot['we
 }
 
 // ---------------------------------------------------------------------------
-// Expandable Timeline — shows important events, accordion for rest
+// Expandable Timeline. shows important events, accordion for rest
 // ---------------------------------------------------------------------------
 
 type TimelineItem =
@@ -530,7 +530,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
 
       <div className="px-5 pb-5 space-y-5">
 
-        {/* ═══ WATCH ITEMS — permanent hazard context ═══ */}
+        {/* ═══ WATCH ITEMS. permanent hazard context ═══ */}
         {watchItems.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Watches</p>
@@ -542,7 +542,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
           </div>
         )}
 
-        {/* ═══ TOP EVENTS — 3 most notable ═══ */}
+        {/* ═══ TOP EVENTS. 3 most notable ═══ */}
         {topEvents.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Events</p>
@@ -554,7 +554,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
           </div>
         )}
 
-        {/* ═══ HAZARD ADVICE — collapsible ═══ */}
+        {/* ═══ HAZARD ADVICE. collapsible ═══ */}
         {hazardAdvice.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Preparedness Advice</p>
@@ -566,7 +566,7 @@ export function HostedAreaFeed({ feed, snapshot }: Props) {
           </div>
         )}
 
-        {/* ═══ TIMELINE — important events shown, rest expandable ═══ */}
+        {/* ═══ TIMELINE. important events shown, rest expandable ═══ */}
         {timeline.length > 0 && (
           <ExpandableTimeline timeline={timeline} />
         )}

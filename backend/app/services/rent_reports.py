@@ -59,9 +59,9 @@ async def _get_building_address(conn, address_id: int) -> str:
 async def submit(conn, body, ip_hash: str) -> dict:
     """Submit a rent report with 5-layer validation."""
 
-    # 1. Hard bounds — already enforced by Pydantic (50-5000)
+    # 1. Hard bounds. already enforced by Pydantic (50-5000)
 
-    # 2. SA2 deviation check — flag if >3x or <0.25x SA2 median
+    # 2. SA2 deviation check. flag if >3x or <0.25x SA2 median
     sa2 = await _get_sa2_for_address(conn, body.address_id)
     sa2_median = await _get_sa2_median(conn, sa2, body.dwelling_type, body.bedrooms)
     is_outlier = False
@@ -70,12 +70,12 @@ async def submit(conn, body, ip_hash: str) -> dict:
     ):
         is_outlier = True
 
-    # 3. Bedroom coherence — national maxima
+    # 3. Bedroom coherence. national maxima
     BED_MAX = {"1": 800, "2": 1200, "3": 1800, "4": 2500, "5+": 3500}
     if body.reported_rent > BED_MAX.get(body.bedrooms, 5000) * 1.5:
         is_outlier = True
 
-    # 4. Rate limiting — max 3 per IP per 24h
+    # 4. Rate limiting. max 3 per IP per 24h
     cur = await conn.execute(
         """
         SELECT COUNT(*) AS cnt FROM user_rent_reports
@@ -86,7 +86,7 @@ async def submit(conn, body, ip_hash: str) -> dict:
     if (cur.fetchone())["cnt"] >= 3:
         raise HTTPException(429, "Maximum 3 reports per day")
 
-    # 5. Duplicate dedup — same address+type+beds within 7 days
+    # 5. Duplicate dedup. same address+type+beds within 7 days
     cur = await conn.execute(
         """
         SELECT id FROM user_rent_reports

@@ -57,7 +57,7 @@ LEGAL_DISCLAIMER = (
 
 
 # =============================================================================
-# GET /property/{address_id}/market — Fair price analysis
+# GET /property/{address_id}/market. Fair price analysis
 # =============================================================================
 
 @router.get("/property/{address_id}/market")
@@ -114,7 +114,7 @@ async def get_market(
         bonds = cur.fetchone()
 
         # 3. SA2→TLA fallback if bond count < 5
-        # Note: PostgreSQL returns Decimal for numeric columns — cast to float
+        # Note: PostgreSQL returns Decimal for numeric columns. cast to float
         # early so all downstream arithmetic (yield * float, HPI ratio, etc.) works.
         sa2_median = float(bonds["median_rent"]) if bonds and bonds["median_rent"] else None
         sa2_bond_count = bonds["active_bonds"] if bonds else 0
@@ -169,7 +169,7 @@ async def get_market(
         )
         cv = cur.fetchone()
 
-        # For units, always try wcc_rates_cache — spatial match can return
+        # For units, always try wcc_rates_cache. spatial match can return
         # a random unit's CV (e.g. parking space) instead of the actual unit
         if cv and cv.get("unit_value"):
             unit_val = cv["unit_value"]
@@ -354,7 +354,7 @@ async def get_market(
 
 
 # =============================================================================
-# POST /property/{address_id}/rent-advisor — Personalised rent advice
+# POST /property/{address_id}/rent-advisor. Personalised rent advice
 # =============================================================================
 
 @router.post("/property/{address_id}/rent-advisor")
@@ -393,7 +393,7 @@ async def rent_advisor(request: Request, address_id: int, body: RentAdvisorReque
 
 
 # =============================================================================
-# POST /property/{address_id}/price-advisor — Personalised price advice
+# POST /property/{address_id}/price-advisor. Personalised price advice
 # =============================================================================
 
 @router.post("/property/{address_id}/price-advisor")
@@ -419,7 +419,7 @@ async def price_advisor(request: Request, address_id: int, body: PriceAdvisorReq
 
 
 # =============================================================================
-# GET /property/{address_id}/rent-history — Time series for chart
+# GET /property/{address_id}/rent-history. Time series for chart
 # =============================================================================
 
 @router.get("/property/{address_id}/rent-history")
@@ -432,7 +432,7 @@ async def rent_history(
     years: int = Query(10, ge=1, le=33),
 ):
     """SA2-level rent time series from bonds_detailed.
-    Separate endpoint because it returns 40-130 data points — too heavy for /market.
+    Separate endpoint because it returns 40-130 data points. too heavy for /market.
     Frontend lazy-loads when Market section is expanded."""
 
     cache_key = f"rent_history:{address_id}:{dwelling_type}:{beds}:{years}"
@@ -519,14 +519,14 @@ async def rent_history(
 
 
 # =============================================================================
-# GET /market/hpi — National House Price Index trend
+# GET /market/hpi. National House Price Index trend
 # =============================================================================
 
 @router.get("/market/hpi")
 @limiter.limit("30/minute")
 async def hpi_trend(request: Request, years: int = Query(10, le=35)):
     """National HPI from rbnz_housing (143 records, 1990-2025).
-    Property-independent — globally cacheable.
+    Property-independent. globally cacheable.
     Frontend lazy-loads when Market section is expanded."""
 
     cache_key = f"hpi:{years}"

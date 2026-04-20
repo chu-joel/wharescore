@@ -27,7 +27,7 @@ const BUYER_ONLY_TITLES = new Set([
   'Request a LIM Report',
   "Get a Builder's Report",
   'Conveyancing & Legal Checklist',
-  'Ground Conditions — Foundation Check',
+  'Ground Conditions. Foundation Check',
 ]);
 
 // Recommendations that are renter-only

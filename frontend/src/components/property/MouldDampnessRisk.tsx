@@ -106,8 +106,8 @@ export function MouldDampnessRisk({ report }: Props) {
 
   const highCount = factors.filter(f => f.severity === 'high').length;
   const modCount = factors.filter(f => f.severity === 'moderate').length;
-  // Flood zone is a qualitatively different factor — past flooding leaves
-  // long-term mould in walls, floors, and insulation — so it's never just a
+  // Flood zone is a qualitatively different factor. past flooding leaves
+  // long-term mould in walls, floors, and insulation. so it's never just a
   // "minor" factor even in isolation. Detect by label since factors[] below
   // uses free-form labels.
   const floodFlagged = factors.some(f => f.label.toLowerCase().includes('flood'));
@@ -172,7 +172,7 @@ export function MouldDampnessRisk({ report }: Props) {
         </div>
       )}
 
-      {/* Viewing tips — always show */}
+      {/* Viewing tips. always show */}
       <div className="border-t border-border/50 pt-2.5 mt-2.5">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Eye className="h-3.5 w-3.5 text-piq-primary" />

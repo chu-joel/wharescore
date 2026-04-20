@@ -33,11 +33,11 @@ export function KnowYourRights({ report, userRent }: Props) {
 
   const rights: RightItem[] = [];
 
-  // Healthy Homes — always show (most tenants don't know this)
+  // Healthy Homes. always show (most tenants don't know this)
   rights.push({
     icon: Home,
     title: 'Demand the Healthy Homes compliance statement',
-    detail: 'Since July 2025, every rental must comply with Healthy Homes Standards. Your landlord must give you a signed compliance statement — ask for it before signing.',
+    detail: 'Since July 2025, every rental must comply with Healthy Homes Standards. Your landlord must give you a signed compliance statement. ask for it before signing.',
     source: 'Residential Tenancies Act s45(1A)',
   });
 
@@ -62,12 +62,12 @@ export function KnowYourRights({ report, userRent }: Props) {
     source: 'RTA s24',
   });
 
-  // Modification rights — earthquake zone makes this especially relevant
+  // Modification rights. earthquake zone makes this especially relevant
   const isEqZone = (hazards?.earthquake_count ?? 0) > 5 || hazards?.active_fault_nearest != null;
   rights.push({
     icon: Wrench,
     title: 'You can install shelves, picture hooks, and baby gates',
-    detail: `These are "minor changes" your landlord cannot refuse. ${isEqZone ? 'In this seismic area, you can also secure furniture to walls for earthquake safety.' : 'You can also secure furniture to walls for earthquake safety.'} Request in writing — landlord must respond within 21 days.`,
+    detail: `These are "minor changes" your landlord cannot refuse. ${isEqZone ? 'In this seismic area, you can also secure furniture to walls for earthquake safety.' : 'You can also secure furniture to walls for earthquake safety.'} Request in writing. landlord must respond within 21 days.`,
     source: 'RTA s42A',
   });
 

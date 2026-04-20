@@ -1,4 +1,4 @@
-// Lightweight event tracking — no third-party scripts, no dependencies.
+// Lightweight event tracking. no third-party scripts, no dependencies.
 // Events are sent via navigator.sendBeacon (fire-and-forget, works on page unload).
 
 const ENDPOINT = '/api/v1/events';
@@ -41,6 +41,6 @@ export function trackEvent(
       }).catch(() => {});
     }
   } catch {
-    // Silently ignore — analytics should never break the app
+    // Silently ignore. analytics should never break the app
   }
 }

@@ -54,7 +54,7 @@ function getTeaser(feature: ReportUpsellProps['feature'], hiddenCount?: number, 
       const parts: string[] = [];
       if (criticalCount && criticalCount > 0) parts.push(`${criticalCount} critical`);
       if (warningCount && warningCount > 0) parts.push(`${warningCount} to watch`);
-      const suffix = parts.length > 0 ? ` — including ${parts.join(', ')}` : '';
+      const suffix = parts.length > 0 ? `. including ${parts.join(', ')}` : '';
       return {
         headline: `${hiddenCount ?? 0} more issue${(hiddenCount ?? 0) !== 1 ? 's' : ''} found${suffix}`,
         detail: 'The full report includes detailed analysis, actionable recommendations, and risk interpretation for every finding.',
@@ -63,7 +63,7 @@ function getTeaser(feature: ReportUpsellProps['feature'], hiddenCount?: number, 
     case 'ai-summary':
       return {
         headline: 'AI-powered property analysis',
-        detail: 'Get a plain-English summary of this property\'s key risks, opportunities, and neighbourhood character — written by AI.',
+        detail: 'Get a plain-English summary of this property\'s key risks, opportunities, and neighbourhood character. written by AI.',
       };
     case 'comparisons':
       return {
@@ -79,7 +79,7 @@ function getTeaser(feature: ReportUpsellProps['feature'], hiddenCount?: number, 
       const parts: string[] = [];
       if (criticalCount && criticalCount > 0) parts.push(`${criticalCount} high-risk`);
       const countText = hiddenCount ? `${hiddenCount} more indicator${hiddenCount !== 1 ? 's' : ''}` : 'More indicators';
-      const suffix = parts.length > 0 ? ` — including ${parts.join(', ')} flagged for attention` : '';
+      const suffix = parts.length > 0 ? `. including ${parts.join(', ')} flagged for attention` : '';
       return {
         headline: `${countText} in this section${suffix}`,
         detail: 'The full report includes detailed scores, data sources, and risk analysis for every indicator.',
@@ -90,7 +90,7 @@ function getTeaser(feature: ReportUpsellProps['feature'], hiddenCount?: number, 
 
 export function ReportUpsell({ addressId, feature, hiddenCount, criticalCount, warningCount }: ReportUpsellProps) {
   const hosted = useHostedReport();
-  if (hosted) return null; // User has paid — no upsell needed
+  if (hosted) return null; // User has paid. no upsell needed
   const config = FEATURE_CONFIG[feature];
   const teaser = getTeaser(feature, hiddenCount, criticalCount, warningCount);
   const Icon = config.icon;

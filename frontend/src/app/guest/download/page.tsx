@@ -47,7 +47,7 @@ function GuestDownloadContent() {
         return;
       }
       if (tokenRes.status === 404) {
-        // Payment may still be processing — retry with exponential backoff
+        // Payment may still be processing. retry with exponential backoff
         // Stripe webhooks can take up to 30s to arrive
         for (let attempt = 1; attempt <= 5; attempt++) {
           await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s, 6s, 8s, 10s
@@ -145,7 +145,7 @@ function GuestDownloadContent() {
           <p className="mt-1 text-sm text-muted-foreground">
             {stage === 'loading' && 'Verifying your purchase...'}
             {stage === 'exchanging' && 'Verifying your purchase...'}
-            {stage === 'generating' && 'Generating your report — this takes about a minute...'}
+            {stage === 'generating' && 'Generating your report. this takes about a minute...'}
             {stage === 'ready' && 'Your report is ready!'}
             {stage === 'error' && 'Something went wrong'}
           </p>

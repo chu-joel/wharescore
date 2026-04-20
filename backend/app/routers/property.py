@@ -179,7 +179,7 @@ async def _fix_unit_cv(report: dict, address_id: int) -> None:
                 # Only assert per-unit when the value is plausible for one unit.
                 report["property"]["cv_is_per_unit"] = not looks_building_level
     except Exception:
-        pass  # non-critical — fall back to SQL report CV
+        pass  # non-critical. fall back to SQL report CV
     report["_cv_from_rates"] = True
 
 
@@ -218,7 +218,7 @@ async def _overlay_transit_data(report: dict, address_id: int) -> None:
                 if val is not None and val != 0:
                     liveability[key] = val
 
-            # Fix nearest_train — the base SQL only checks metlink (Wellington).
+            # Fix nearest_train. the base SQL only checks metlink (Wellington).
             # Look up the actual nearest rail station from AT or regional tables.
             if transit.get("rail_stops_800m", 0) > 0:
                 try:
@@ -249,7 +249,7 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
     """Add terrain (elevation, slope, aspect) and walking isochrone data to the report.
 
     Calls Valhalla for hill-aware walking isochrone + multi-point elevation sampling.
-    Falls back gracefully if Valhalla is unavailable — terrain section simply won't appear."""
+    Falls back gracefully if Valhalla is unavailable. terrain section simply won't appear."""
     try:
         from ..services.walking_isochrone import (
             get_terrain_at_property,
@@ -262,7 +262,7 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
             terrain = await get_terrain_at_property(conn, address_id)
             isochrone = await count_stops_in_isochrone(conn, address_id, minutes=10)
 
-            # Waterway proximity — nearest river/stream/drain within 500m
+            # Waterway proximity. nearest river/stream/drain within 500m
             try:
                 cur = await conn.execute("""
                     WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
@@ -321,10 +321,10 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
 
     Queries weather_events (5yr, 50km) and earthquakes (10yr, 30km) already in the
     database and adds a summary to the on-screen report so users see what has
-    happened in this area — even on the free tier."""
+    happened in this area. even on the free tier."""
     try:
         async with db.pool.connection() as conn:
-            # Weather events — critical/warning within 50km, last 5 years
+            # Weather events. critical/warning within 50km, last 5 years
             cur = await conn.execute("""
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT we.event_type, we.severity, we.title,
@@ -339,7 +339,7 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
             """, [address_id])
             weather_rows = cur.fetchall()
 
-            # Earthquakes — M4+ within 30km, last 10 years
+            # Earthquakes. M4+ within 30km, last 10 years
             cur = await conn.execute("""
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT eq.magnitude, eq.depth_km, eq.event_time, eq.location_name,
@@ -374,7 +374,7 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
             top_events.append({
                 "type": "earthquake",
                 "date": r["event_time"].isoformat() if hasattr(r["event_time"], "isoformat") else str(r["event_time"]),
-                "title": f"M{r['magnitude']:.1f} earthquake" + (f" — {r['location_name']}" if r["location_name"] else ""),
+                "title": f"M{r['magnitude']:.1f} earthquake" + (f". {r['location_name']}" if r["location_name"] else ""),
                 "severity": "critical" if r["magnitude"] >= 5.0 else "warning",
                 "detail": f"M{r['magnitude']:.1f}, {r['depth_km']:.0f}km deep" if r["depth_km"] else f"M{r['magnitude']:.1f}",
                 "distance_km": float(r["dist_km"]) if r["dist_km"] else None,
@@ -408,7 +408,7 @@ async def _overlay_event_history(report: dict, address_id: int) -> None:
 async def get_report(request: Request, address_id: int, fast: bool = Query(False)):
     """Full property report with risk scores.
     Calls get_property_report() PL/pgSQL function, enriches with Python scoring.
-    AI summary is NOT included — fetch separately from /ai-summary.
+    AI summary is NOT included. fetch separately from /ai-summary.
     Cached 24h in Redis.
 
     ?fast=true skips Valhalla terrain/isochrone overlay (saves ~5-15s on cold cache).
@@ -426,12 +426,12 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
         if not (report.get("scores") or {}).get("composite"):
             report = enrich_with_scores(report)
             dirty = True
-        # _cv_from_rates check removed — CV is now fetched lazily via /rates endpoint
+        # _cv_from_rates check removed. CV is now fetched lazily via /rates endpoint
         if dirty:
             await cache_set(cache_key, orjson.dumps(report), ex=86400)
         return report
 
-    # 2. Call PL/pgSQL function — single DB round-trip
+    # 2. Call PL/pgSQL function. single DB round-trip
     import time as _time
     _t0 = _time.monotonic()
     async with db.pool.connection() as conn:
@@ -481,8 +481,8 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     report["area_profile"] = area_profile
     report["ai_summary"] = None  # fetched separately via /ai-summary
 
-    # Run all overlays concurrently — each writes to distinct report keys so no conflicts.
-    # CV is no longer fetched here — the frontend /rates endpoint handles it lazily.
+    # Run all overlays concurrently. each writes to distinct report keys so no conflicts.
+    # CV is no longer fetched here. the frontend /rates endpoint handles it lazily.
     # fast=True skips Valhalla terrain calls (~5-15s) for a quick first render;
     # the frontend follows up with a full request to fill in terrain/walking_reach.
     overlays = [
@@ -502,7 +502,7 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     report = enrich_with_scores(report)
 
     # Persona-ranked top findings for the free on-screen tier AND the extension
-    # badge (single source of truth — same helper as /api/v1/extension/badge).
+    # badge (single source of truth. same helper as /api/v1/extension/badge).
     # Both personas are pre-computed so the frontend persona-toggle doesn't
     # have to round-trip.
     try:
@@ -513,7 +513,7 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
             "generic": select_findings_for_badge(report, persona=None,    max_count=2),
         }
     except Exception as _e:
-        # Finding ranking is advisory — never block a report render on it.
+        # Finding ranking is advisory. never block a report render on it.
         logger.warning(f"ranked_findings failed for {address_id}: {_e}")
 
     # Tag fast responses so the frontend knows terrain is pending
@@ -532,7 +532,7 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     # Strip premium detail for unauthenticated users.
     # Free on-screen report shows: scores, 2 findings, basic sections.
     # Premium detail (terrain insights, detailed hazard breakdown, event history,
-    # area profile, property detection) is stripped — it's the data that lets
+    # area profile, property detection) is stripped. it's the data that lets
     # someone reconstruct paid findings from the raw JSON.
     user_id = await optional_user(request)
     if not user_id:
@@ -678,7 +678,7 @@ async def get_property_rates(request: Request, address_id: int):
     unified _fetch_rates_for_address router, and updates council_valuations
     with the live CV so the next report read picks it up.
 
-    Returns 404 (not 200 null) when no rates service supports the city —
+    Returns 404 (not 200 null) when no rates service supports the city .
     previously this handler had a hand-rolled if/elif chain that only listed
     11 councils and emitted a literal `null` body for the 14 missing ones."""
 
@@ -916,7 +916,7 @@ async def get_area_feed(request: Request, address_id: int):
                 "source": "geonet",
                 "type": "earthquake",
                 "severity": severity,
-                "title": f"M{mag} earthquake — {dist_rounded}km from property",
+                "title": f"M{mag} earthquake. {dist_rounded}km from property",
                 "description": (
                     f"Magnitude {mag}, depth {props.get('depth', '?')}km, "
                     f"MMI {mmi} ({_mmi_description(mmi)} shaking)"
@@ -1059,7 +1059,7 @@ async def get_area_feed(request: Request, address_id: int):
                 "source": "geonet",
                 "type": "volcanic_alert",
                 "severity": severity,
-                "title": f"{name} — Alert Level {level}",
+                "title": f"{name}. Alert Level {level}",
                 "description": (
                     f"{level_names.get(level, 'Volcanic alert')}"
                     + (f". {activity}" if activity else "")
@@ -1103,7 +1103,7 @@ async def get_area_feed(request: Request, address_id: int):
                     "source": "geonet",
                     "type": "earthquake",
                     "severity": severity,
-                    "title": f"M{mag:.1f} earthquake — {dist:.0f}km from property",
+                    "title": f"M{mag:.1f} earthquake. {dist:.0f}km from property",
                     "description": (
                         f"Magnitude {mag:.1f}, depth {r['depth_km']}km"
                         + (f", near {r['location_name']}" if r.get("location_name") else "")
@@ -1129,7 +1129,7 @@ async def get_area_feed(request: Request, address_id: int):
     )
 
     events.extend(quakes)
-    # Merge historical — skip duplicates (same quake within 1 min + similar magnitude)
+    # Merge historical. skip duplicates (same quake within 1 min + similar magnitude)
     existing_times = {e["timestamp"][:16] for e in quakes}
     for hq in historical:
         if hq["timestamp"][:16] not in existing_times:
@@ -1151,7 +1151,7 @@ async def get_area_feed(request: Request, address_id: int):
                 events.append({
                     "source": "council", "type": "flood_zone", "severity": "warning",
                     "title": "Property is in a flood hazard zone",
-                    "description": f"{flood['hazard_type'] or 'Flood zone'} — risk level: {flood['hazard_ranking'] or 'identified'}. Historical flooding events have affected this area.",
+                    "description": f"{flood['hazard_type'] or 'Flood zone'}. risk level: {flood['hazard_ranking'] or 'identified'}. Historical flooding events have affected this area.",
                     "timestamp": now.isoformat(), "distance_km": 0, "active": True, "historical": False,
                 })
             # Tsunami zone
@@ -1242,7 +1242,7 @@ async def get_area_feed(request: Request, address_id: int):
                 events.append({
                     "source": "council", "type": "contaminated_land", "severity": "info",
                     "title": f"Contaminated site {int(contam['dist_m'])}m away",
-                    "description": f"{contam['site_name'] or 'Contaminated site'}" + (f" — Category: {contam['category']}" if contam.get('category') else ""),
+                    "description": f"{contam['site_name'] or 'Contaminated site'}" + (f". Category: {contam['category']}" if contam.get('category') else ""),
                     "timestamp": now.isoformat(), "distance_km": round(float(contam['dist_m']) / 1000, 2), "active": True, "historical": False,
                 })
     except Exception as e:
@@ -1296,7 +1296,7 @@ async def get_area_feed(request: Request, address_id: int):
 @router.get("/property/{address_id}/ai-summary")
 @limiter.limit("20/minute")
 async def get_ai_summary(request: Request, address_id: int):
-    """Generate AI summary for a property report. Slow — call after report loads.
+    """Generate AI summary for a property report. Slow. call after report loads.
     Returns {ai_summary: str | null, area_profile: str | null}."""
 
     # Try to use the cached report as input (avoids re-running the DB function)
@@ -1339,14 +1339,14 @@ async def get_ai_summary(request: Request, address_id: int):
 
 
 # =============================================================================
-# GET /property/{address_id}/summary — Lightweight for map popups + SSR
+# GET /property/{address_id}/summary. Lightweight for map popups + SSR
 # =============================================================================
 
 @router.get("/property/{address_id}/summary")
 @limiter.limit("60/minute")
 async def get_summary(request: Request, address_id: int):
     """Lightweight property summary for map popups and SSR metadata.
-    Returns key facts only — no hazard details, no nearby data.
+    Returns key facts only. no hazard details, no nearby data.
     Tries cached report first, falls back to minimal DB query."""
 
     # 1. Try extracting from cached full report
@@ -1356,7 +1356,7 @@ async def get_summary(request: Request, address_id: int):
         report = orjson.loads(cached)
         return _extract_summary(report, address_id)
 
-    # 2. Fast path — lightweight query for popup (no full report needed)
+    # 2. Fast path. lightweight query for popup (no full report needed)
     try:
         async with db.pool.connection() as conn:
             cur = await conn.execute(
@@ -1528,7 +1528,7 @@ async def _generate_pdf_background(
                     area_profile = pr["profile"] if pr else None
 
         # --- Parallel data fetching (steps 3-3i + AI) ---
-        # All these are independent — run concurrently for speed.
+        # All these are independent. run concurrently for speed.
         from .nearby import AMENITY_CLASSES
         sa2_code = (report.get("address") or {}).get("sa2_code")
 
@@ -1780,11 +1780,11 @@ async def _generate_pdf_background(
                 pass
             return {}
 
-        # 4-5. Sync insight engines (fast, CPU-only — run before gather so report is available)
+        # 4-5. Sync insight engines (fast, CPU-only. run before gather so report is available)
         python_insights = build_insights(report)
         lifestyle_fit = build_lifestyle_fit(report)
 
-        # --- Phase 1: Fast data fetches (no AI) — aim for <10s ---
+        # --- Phase 1: Fast data fetches (no AI). aim for <10s ---
         # Start AI in background, don't wait for it
         ai_task = asyncio.ensure_future(asyncio.wait_for(
             generate_pdf_insights(report, area_profile, python_insights),
@@ -1878,7 +1878,7 @@ async def _generate_pdf_background(
         try:
             ai_insights = await asyncio.wait_for(asyncio.shield(ai_task), timeout=2.0)
         except (asyncio.TimeoutError, Exception):
-            pass  # AI not ready yet — render without it
+            pass  # AI not ready yet. render without it
 
         html = render_report_html(
             report, python_insights, lifestyle_fit, ai_insights, recommendations,
@@ -1914,7 +1914,7 @@ async def _generate_pdf_background(
         # Pass already-fetched data to snapshot generator to avoid duplicate queries
         # Only pass data that's fetched identically by both paths.
         # rent_history/hpi_data differ (background filters by dwelling_type/beds,
-        # snapshot fetches ALL; HPI columns differ too) — let snapshot re-fetch.
+        # snapshot fetches ALL; HPI columns differ too). let snapshot re-fetch.
         _preloaded = {
             "report": report,
             "rates_data": rates_data,
@@ -2064,7 +2064,7 @@ async def _generate_pdf_background(
 
 
 # =============================================================================
-# POST /property/{address_id}/export/pdf/start — Initiate PDF generation
+# POST /property/{address_id}/export/pdf/start. Initiate PDF generation
 # =============================================================================
 
 @router.post("/property/{address_id}/export/pdf/start")
@@ -2118,7 +2118,7 @@ async def start_pdf_export(
 
 
 # =============================================================================
-# POST /property/{address_id}/export/pdf/guest-start — Guest PDF generation
+# POST /property/{address_id}/export/pdf/guest-start. Guest PDF generation
 # =============================================================================
 
 @router.post("/property/{address_id}/export/pdf/guest-start")
@@ -2197,7 +2197,7 @@ async def start_guest_pdf_export(
 
 
 # =============================================================================
-# GET /property/{address_id}/export/pdf/status/{job_id} — Check generation status
+# GET /property/{address_id}/export/pdf/status/{job_id}. Check generation status
 # =============================================================================
 
 @router.get("/property/{address_id}/export/pdf/status/{job_id}")
@@ -2211,7 +2211,7 @@ async def check_pdf_status(request: Request, address_id: int, job_id: str):
 
 
 # =============================================================================
-# GET /property/{address_id}/export/pdf/download/{job_id} — Download generated PDF
+# GET /property/{address_id}/export/pdf/download/{job_id}. Download generated PDF
 # =============================================================================
 
 @router.get("/property/{address_id}/export/pdf/download/{job_id}")

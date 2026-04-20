@@ -29,7 +29,7 @@ export function AffordabilityGauge({ ratio }: AffordabilityGaugeProps) {
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">Cost-to-income</span>
         <span className="font-semibold tabular-nums" style={{ color }}>
-          {Math.round(ratio)}% — {label}
+          {Math.round(ratio)}%. {label}
         </span>
       </div>
 

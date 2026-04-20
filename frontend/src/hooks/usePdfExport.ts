@@ -5,7 +5,7 @@ import { useAuthToken } from '@/hooks/useAuthToken';
 import { usePdfExportStore } from '@/stores/pdfExportStore';
 
 /**
- * Shared hook for PDF export — all instances share the same Zustand store,
+ * Shared hook for PDF export. all instances share the same Zustand store,
  * so generating from one button updates all buttons across the page.
  */
 export function usePdfExport(addressId: number, persona?: string) {
@@ -24,7 +24,7 @@ export function usePdfExport(addressId: number, persona?: string) {
 
   /**
    * Kick off export. Callers can pass `preferredTier` to preselect the tier
-   * in the review modal — pass 'full' when the click originates from a paid
+   * in the review modal. pass 'full' when the click originates from a paid
    * CTA so users aren't dumped on the free tier.
    */
   const startExport = useCallback(async (preferredTier?: 'quick' | 'full') => {

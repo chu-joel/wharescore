@@ -3,7 +3,7 @@
 // Render contract: the backend tells us what the user is entitled to via
 // `tier` + `capabilities.*` + presence of optional fields (price_band,
 // price_estimate, rent_estimate, walk_score, schools). The client does not
-// reconstruct that mapping — it just renders what's there.
+// reconstruct that mapping. it just renders what's there.
 import type {
   BadgeResponse, Capabilities, Finding, PriceBand, PriceEstimate,
   RentEstimate, SchoolRow, SourceSite, Tier,
@@ -110,7 +110,7 @@ export class Badge {
 
     // Ambiguous match: render minimal card. Per brief §Address matching step 6,
     // findings/price/save are suppressed because they may belong to the wrong
-    // property — only the score-for-first and a "View full report" link remain.
+    // property. only the score-for-first and a "View full report" link remain.
     if (data.ambiguous) {
       this.card.innerHTML = `
         <div class="ws-header">
@@ -118,11 +118,11 @@ export class Badge {
           <button class="ws-dismiss" aria-label="Dismiss">×</button>
         </div>
         <div class="ws-score-row">
-          <div class="ws-score ${bandClass}">${score ?? "—"}</div>
+          <div class="ws-score ${bandClass}">${score ?? "."}</div>
           <div class="ws-band">${escape(data.score_band || "")}<span class="ws-ambiguous">Multiple matches</span></div>
         </div>
         <div class="ws-address" title="${escape(data.full_address || "")}">${escape(data.full_address || "")}</div>
-        <div class="ws-state">Multiple addresses match — open the full report to confirm which one</div>
+        <div class="ws-state">Multiple addresses match. open the full report to confirm which one</div>
         <div class="ws-footer">
           <a class="ws-open" href="${reportUrl}" target="_blank" rel="noopener noreferrer">View full report →</a>
         </div>
@@ -136,7 +136,7 @@ export class Badge {
     const persona = data.persona ?? null;
     const findings = data.findings ?? [];
 
-    // Pro: progressive disclosure — top 2 findings up front + chevron toggle for
+    // Pro: progressive disclosure. top 2 findings up front + chevron toggle for
     // findings 3+, plus a single collapsible "Market & area" block for the data
     // grid (price/rent/walk/schools). Anon/Free render as before.
     let bodyHtml = "";
@@ -190,7 +190,7 @@ export class Badge {
         <button class="ws-dismiss" aria-label="Dismiss">×</button>
       </div>
       <div class="ws-score-row">
-        <div class="ws-score ${bandClass}">${score ?? "—"}</div>
+        <div class="ws-score ${bandClass}">${score ?? "."}</div>
         <div class="ws-band">${escape(data.score_band || "")}</div>
       </div>
       <div class="ws-address" title="${escape(data.full_address || "")}">${escape(data.full_address || "")}</div>
@@ -222,7 +222,7 @@ export class Badge {
   }
 
   private wireActionButtons(data: BadgeResponse) {
-    // Pro toggles. Vanilla DOM — flip state, re-render. Cheap because the card
+    // Pro toggles. Vanilla DOM. flip state, re-render. Cheap because the card
     // is small and the toggles are user-driven (not animation-frame hot paths).
     this.root.querySelector(".ws-findings-toggle")?.addEventListener("click", () => {
       this._findingsExpanded = !this._findingsExpanded;
@@ -346,7 +346,7 @@ function renderRentSection(
   persona: string | null | undefined,
 ): string {
   if (!est || est.median == null) return "";
-  // Yield is a buyer/investor signal — renters don't care about it. Hide for
+  // Yield is a buyer/investor signal. renters don't care about it. Hide for
   // the renter persona; show for buyer (and unknown persona, which defaults
   // to the fuller view).
   const showYield = persona !== "renter" && est.yield_percent != null;
@@ -399,7 +399,7 @@ function chipLabel(severity: string): string {
 }
 
 function fmt(n: number | null | undefined): string {
-  if (n == null) return "—";
+  if (n == null) return ".";
   return n.toLocaleString("en-NZ");
 }
 

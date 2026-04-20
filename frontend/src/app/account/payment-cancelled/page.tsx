@@ -11,7 +11,7 @@ export default function PaymentCancelledPage() {
           </div>
           <h1 className="text-2xl font-bold mb-2">Payment cancelled</h1>
           <p className="text-muted-foreground">
-            No worries — you haven&apos;t been charged. You can try again whenever you&apos;re ready.
+            No worries. you haven&apos;t been charged. You can try again whenever you&apos;re ready.
           </p>
         </div>
 

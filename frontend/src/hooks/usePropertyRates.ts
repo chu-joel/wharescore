@@ -17,7 +17,7 @@ export interface LiveRates {
  * Returns null when the city has no rates integration (404).
  *
  * The caller is responsible for displaying the live CV in place of the DB CV.
- * No report cache invalidation — the UI updates inline.
+ * No report cache invalidation. the UI updates inline.
  */
 export function usePropertyRates(addressId: number | null, enabled: boolean = true) {
   return useQuery<LiveRates | null>({
@@ -26,7 +26,7 @@ export function usePropertyRates(addressId: number | null, enabled: boolean = tr
       try {
         return await apiFetch<LiveRates>(`/api/v1/property/${addressId}/rates`);
       } catch {
-        // 404 = no rates integration for this city — not an error
+        // 404 = no rates integration for this city. not an error
         return null;
       }
     },

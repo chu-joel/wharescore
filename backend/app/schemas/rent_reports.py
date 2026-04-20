@@ -9,7 +9,7 @@ class RentReportSubmit(BaseModel):
     dwelling_type: str = Field(pattern=r"^(House|Flat|Apartment|Room)$")
     bedrooms: str = Field(pattern=r"^(1|2|3|4|5\+)$")
     reported_rent: int = Field(ge=50, le=5000)
-    website: str | None = Field(None, exclude=True)  # honeypot — must be empty
+    website: str | None = Field(None, exclude=True)  # honeypot. must be empty
 
 
 class RentReportResponse(BaseModel):

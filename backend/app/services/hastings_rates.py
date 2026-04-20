@@ -4,7 +4,7 @@ Hastings District Council ArcGIS property data client.
 Uses the HDC MapServer REST API to query property rates.
 
 Single-step lookup: search by address via ArcGIS query → full property data.
-No cache needed — ArcGIS queries are fast and stateless.
+No cache needed. ArcGIS queries are fast and stateless.
 
 NOTE: This council has RATES but NO CV/LV. We still load it because the
 annual rates amount (RT_CurrentYear) is valuable data.

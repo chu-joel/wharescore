@@ -17,8 +17,8 @@ interface RiskHazardsSectionProps {
 }
 
 export function RiskHazardsSection({ category, hazards, environment, persona }: RiskHazardsSectionProps) {
-  // Crime has its own dedicated CrimeCard inside the NeighbourhoodSection — suppress
-  // the short "Crime — Higher than average" indicator here so the same information
+  // Crime has its own dedicated CrimeCard inside the NeighbourhoodSection. suppress
+  // the short "Crime. Higher than average" indicator here so the same information
   // doesn't show up twice on the same report.
   const available = category.indicators.filter(
     (i) => i.is_available && !i.name.toLowerCase().includes('crime'),
@@ -42,13 +42,13 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
 
   return (
     <div className="space-y-3">
-      {/* Technical earthquake/fault details — buyers only */}
+      {/* Technical earthquake/fault details. buyers only */}
       {!isRenter && hazards && <EarthquakeDetailCard hazards={hazards} />}
       {!isRenter && hazards?.active_fault_nearest && (
         <ActiveFaultDetailCard fault={hazards.active_fault_nearest} />
       )}
 
-      {/* Fault avoidance zone warning — show for both (it's actionable) */}
+      {/* Fault avoidance zone warning. show for both (it's actionable) */}
       {hazards?.fault_avoidance_zone && (
         <FaultAvoidanceZoneCard zone={hazards.fault_avoidance_zone} />
       )}
@@ -76,7 +76,7 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
         </div>
       )}
 
-      {/* Normal indicators — show for buyers, simplified summary for renters */}
+      {/* Normal indicators. show for buyers, simplified summary for renters */}
       {normal.length > 0 && (
         <>
           {critical.length === 0 && (
@@ -92,7 +92,7 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
             // Renters: just a summary count, not the full grid
             critical.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                {normal.length} other hazard{normal.length !== 1 ? 's' : ''} checked — all within normal range.
+                {normal.length} other hazard{normal.length !== 1 ? 's' : ''} checked. all within normal range.
               </p>
             )
           ) : (
@@ -105,27 +105,27 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
         </>
       )}
 
-      {/* Contaminated land — both personas (actionable) */}
+      {/* Contaminated land. both personas (actionable) */}
       {hazards && hazards.contamination_count != null && hazards.contamination_count > 0 && (
         <ContaminatedLandCard hazards={hazards} />
       )}
 
-      {/* Landslide detail — buyers only (too technical for renters) */}
+      {/* Landslide detail. buyers only (too technical for renters) */}
       {!isRenter && hazards?.landslide_nearest && (
         <LandslideDetailCard landslide={hazards.landslide_nearest} count={hazards.landslide_count_500m} />
       )}
 
-      {/* Climate projections — buyers only */}
+      {/* Climate projections. buyers only */}
       {!isRenter && environment?.climate_temp_change != null && (
         <ClimateForecastCard projection={{ temp_change: environment.climate_temp_change, precip_change_pct: environment.climate_precip_change_pct }} />
       )}
 
-      {/* Solar potential — buyers only */}
+      {/* Solar potential. buyers only */}
       {!isRenter && hazards && (
         <SolarPotentialCard meanKwh={hazards.solar_mean_kwh} maxKwh={hazards.solar_max_kwh} />
       )}
 
-      {/* Unavailable indicators — buyers only */}
+      {/* Unavailable indicators. buyers only */}
       {!isRenter && unavailable.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {unavailable.map((indicator) => (
@@ -139,9 +139,9 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
   );
 }
 
-/** Active Fault nearest — shows what SQL actually delivers: name, distance, type, slip rate.
+/** Active Fault nearest. shows what SQL actually delivers: name, distance, type, slip rate.
  * Earlier version had rows for fault.class / fault.fault_type / fault.recurrence_interval which
- * the SQL never provides — they always rendered as empty rows. Removed to keep the card clean.
+ * the SQL never provides. they always rendered as empty rows. Removed to keep the card clean.
  */
 function ActiveFaultDetailCard({ fault }: {
   fault: NonNullable<HazardData['active_fault_nearest']>;
@@ -185,7 +185,7 @@ function ActiveFaultDetailCard({ fault }: {
   );
 }
 
-/** Fault Avoidance Zone — building restriction warning */
+/** Fault Avoidance Zone. building restriction warning */
 function FaultAvoidanceZoneCard({ zone }: {
   zone: NonNullable<HazardData['fault_avoidance_zone']>;
 }) {
@@ -197,7 +197,7 @@ function FaultAvoidanceZoneCard({ zone }: {
           Fault Avoidance Zone
         </p>
         <p className="text-xs text-orange-700 dark:text-orange-400">
-          {zone.fault_name} — {zone.zone_type} zone (Class {zone.fault_class}).
+          {zone.fault_name}. {zone.zone_type} zone (Class {zone.fault_class}).
           Building setback of {zone.setback_m}m may be required. Resource consent likely needed for new builds.
         </p>
       </div>
@@ -205,7 +205,7 @@ function FaultAvoidanceZoneCard({ zone }: {
   );
 }
 
-/** Contaminated Land detail — nearest site name, category, distance */
+/** Contaminated Land detail. nearest site name, category, distance */
 function ContaminatedLandCard({ hazards }: { hazards: HazardData }) {
   // Only show the detail card if we have specific contamination info beyond just count
   // The count is already shown in PlanningSection checklist, so here we show extra detail
@@ -230,7 +230,7 @@ function ContaminatedLandCard({ hazards }: { hazards: HazardData }) {
   );
 }
 
-/** Landslide nearest — shows nearest recorded event details */
+/** Landslide nearest. shows nearest recorded event details */
 function LandslideDetailCard({ landslide, count }: {
   landslide: NonNullable<HazardData['landslide_nearest']>;
   count: number | null;

@@ -28,7 +28,7 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
   const positiveDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh > 0);
   const negativeDeltas = rentBand.appliedDeltas.filter(d => d.pctHigh < 0);
 
-  // Rental overview by dwelling type — sort by dwelling type then by bedroom count so rows
+  // Rental overview by dwelling type. sort by dwelling type then by bedroom count so rows
   // come out House/Flat/Apartment grouped, then 1→2→3→4→5+→All within each group. Previously
   // the backend returned them unordered which produced a scrambled table.
   const rawMarket = (snapshot.report.market ?? {}) as Record<string, unknown>;
@@ -79,7 +79,7 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
         rawMedian={rentBand.baseline.raw_median}
       />
 
-      {/* What's influencing your rent — plain English */}
+      {/* What's influencing your rent. plain English */}
       {(rentBand.baseline.adjustments.length > 0 || rentBand.appliedDeltas.length > 0) && (
         <div>
           <h4 className="text-sm font-semibold text-muted-foreground mb-2">What's influencing your rent</h4>
@@ -122,14 +122,14 @@ export function HostedRentAdvisor({ snapshot, rentBand, persona, userRent }: Hos
         </div>
       )}
 
-      {/* Area context — these are SUBURB-LEVEL stats (from comparisons.suburb), not property-
+      {/* Area context. these are SUBURB-LEVEL stats (from comparisons.suburb), not property-
           level. The heading and sub-line make that explicit so the numbers here (22 stops, NZDep 6,
-          70 dB) don't look like this property's own stats — which frequently differ from the
+          70 dB) don't look like this property's own stats. which frequently differ from the
           personalised values shown elsewhere in the report. */}
       {rentBand.baseline.area_context.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-muted-foreground mb-0.5">About {snapshot.meta.sa2_name} (suburb average)</h4>
-          <p className="text-xs text-muted-foreground/70 mb-1.5">These are area-level numbers for context — your specific property&apos;s stats are in the sections above.</p>
+          <p className="text-xs text-muted-foreground/70 mb-1.5">These are area-level numbers for context. your specific property&apos;s stats are in the sections above.</p>
           <div className="grid grid-cols-2 gap-1">
             {rentBand.baseline.area_context.map((ctx: RentAreaContext) => (
               <div key={ctx.factor} className="flex items-center gap-1.5 text-xs text-muted-foreground">

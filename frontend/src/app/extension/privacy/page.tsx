@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'WhareScore Badge — Privacy Policy',
+  title: 'WhareScore Badge. Privacy Policy',
   description:
     'Full privacy policy for the WhareScore Badge Chrome extension. Limited Use affirmation per Chrome Web Store User Data Policy.',
   alternates: { canonical: 'https://wharescore.co.nz/extension/privacy' },
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function ExtensionPrivacyPage() {
   return (
-    <StaticPageLayout title="WhareScore Badge — Privacy Policy">
+    <StaticPageLayout title="WhareScore Badge. Privacy Policy">
       <p className="text-sm text-muted-foreground">Effective date: 19 April 2026</p>
 
       <section className="mt-6 space-y-3">
@@ -39,9 +39,9 @@ export default function ExtensionPrivacyPage() {
         <h2 className="text-lg font-semibold">What the extension does on a listing page</h2>
         <p className="text-sm">
           When you land on a supported listing page (homes.co.nz, OneRoof,
-          realestate.co.nz — Trade Me is temporarily disabled pending selector
+          realestate.co.nz. Trade Me is temporarily disabled pending selector
           verification), the extension reads the street address from the page
-          DOM and sends it — and only it — to{' '}
+          DOM and sends it. and only it. to{' '}
           <code>https://wharescore.com/api/v1/extension/badge</code>. The URL
           path of the listing is also sent so we can tell whether you are
           looking at a sale listing or a rental listing; query strings and URL
@@ -98,8 +98,8 @@ export default function ExtensionPrivacyPage() {
               <tr className="border-b">
                 <td className="py-2 pr-2">Browsing history</td>
                 <td className="py-2 pr-2">No</td>
-                <td className="py-2 pr-2">—</td>
-                <td className="py-2">—</td>
+                <td className="py-2 pr-2">.</td>
+                <td className="py-2">.</td>
               </tr>
               <tr className="border-b">
                 <td className="py-2 pr-2">
@@ -107,20 +107,20 @@ export default function ExtensionPrivacyPage() {
                   agent info)
                 </td>
                 <td className="py-2 pr-2"><strong>No</strong></td>
-                <td className="py-2 pr-2">—</td>
-                <td className="py-2">—</td>
+                <td className="py-2 pr-2">.</td>
+                <td className="py-2">.</td>
               </tr>
               <tr className="border-b">
                 <td className="py-2 pr-2">Cookies from host sites</td>
                 <td className="py-2 pr-2">No</td>
-                <td className="py-2 pr-2">—</td>
-                <td className="py-2">—</td>
+                <td className="py-2 pr-2">.</td>
+                <td className="py-2">.</td>
               </tr>
               <tr>
                 <td className="py-2 pr-2">Screen or device fingerprint</td>
                 <td className="py-2 pr-2">No</td>
-                <td className="py-2 pr-2">—</td>
-                <td className="py-2">—</td>
+                <td className="py-2 pr-2">.</td>
+                <td className="py-2">.</td>
               </tr>
             </tbody>
           </table>

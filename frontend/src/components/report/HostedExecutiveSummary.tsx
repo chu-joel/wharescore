@@ -58,7 +58,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
     stats.push({ icon: <Ruler className="h-3.5 w-3.5" />, label: 'Footprint', value: `${Math.round(footprint).toLocaleString()} m²` });
   }
 
-  // Skip "Use" when the value is literally "Unknown" — showing a prominent "Unknown" cell
+  // Skip "Use" when the value is literally "Unknown". showing a prominent "Unknown" cell
   // undermines confidence in the rest of the card.
   const buildingUse = String(rawProp.building_use ?? '');
   if (buildingUse && buildingUse.toLowerCase() !== 'unknown') {
@@ -98,7 +98,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   const noiseDb = report.environment?.noise_db;
   if (noiseDb) stats.push({ icon: <Volume2 className="h-3.5 w-3.5" />, label: 'Road Noise', value: `${Math.round(noiseDb)} dB` });
 
-  // Walkability — from raw snapshot since not in typed LiveabilityData
+  // Walkability. from raw snapshot since not in typed LiveabilityData
   const walkScoreRaw = rawLive.walkability_score;
   const walkScore: number | undefined = typeof walkScoreRaw === 'number' ? walkScoreRaw : undefined;
   const walkLabel = walkScore != null ? (walkScore >= 90 ? "Walker's Paradise" : walkScore >= 70 ? 'Very Walkable' : walkScore >= 50 ? 'Somewhat Walkable' : 'Car-Dependent') : null;
@@ -111,7 +111,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
   if (hazards.coastal_erosion) insuranceFactors.push('Coastal erosion');
   const insuranceLevel = insuranceFactors.length === 0 ? 'Low' : insuranceFactors.length <= 2 ? 'Moderate' : 'High';
 
-  // Trajectory — from raw snapshot
+  // Trajectory. from raw snapshot
   const trajectoryRaw = rawLive.trajectory as Record<string, unknown> | undefined;
   const trajectoryDir = String(trajectoryRaw?.direction ?? '');
   const trajectoryLabel = String(trajectoryRaw?.label ?? '');
@@ -193,7 +193,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
         {/* ── Property flags (buyer) ── */}
         {persona === 'buyer' && (isMultiUnit || cvDate || isContaminated) && (
           <div className="text-xs text-muted-foreground space-y-1 mb-5">
-            {isMultiUnit && <p><span className="font-medium">Multi-unit building</span> — check body corporate rules, levies, and long-term maintenance plan.</p>}
+            {isMultiUnit && <p><span className="font-medium">Multi-unit building</span>. check body corporate rules, levies, and long-term maintenance plan.</p>}
             {isContaminated && <p className="text-amber-700 font-medium">This property is on the contaminated land register. Get a Phase 1 Environmental Site Assessment.</p>}
             {cvDate && <p>Council valuation date: {new Date(cvDate).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })}.</p>}
           </div>
@@ -206,7 +206,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
             <div>
               <p className="text-sm font-bold text-red-700">This property is on the Earthquake-Prone Buildings register</p>
               <p className="text-xs text-red-600/80 mt-0.5">
-                Check MBIE EPB register for remediation timeline{hazards.epb_deadline ? ` — deadline: ${hazards.epb_deadline}` : ''}.
+                Check MBIE EPB register for remediation timeline{hazards.epb_deadline ? `. deadline: ${hazards.epb_deadline}` : ''}.
               </p>
             </div>
           </div>
@@ -220,7 +220,7 @@ export function HostedExecutiveSummary({ report, snapshot, persona, rentBand, st
             </span>
             <span className="text-sm font-medium">
               Neighbourhood is {trajectoryDir}
-              {trajectoryLabel && <span className="text-muted-foreground font-normal"> — {trajectoryLabel}</span>}
+              {trajectoryLabel && <span className="text-muted-foreground font-normal">. {trajectoryLabel}</span>}
             </span>
           </div>
         )}

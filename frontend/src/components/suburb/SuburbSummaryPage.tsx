@@ -143,7 +143,7 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
  * - Keep the "ALL · ALL" aggregate as a summary row
  * - Keep specific dwelling type + specific bedroom rows (e.g. House · 2 bed)
  * - Drop "ALL" dwelling type + specific beds (redundant with per-type rows)
- * - Drop "NA" bedrooms (meaningless label — usually boarding houses)
+ * - Drop "NA" bedrooms (meaningless label. usually boarding houses)
  * - Drop rows where specific type + "ALL" beds duplicates a single bedroom row
  */
 function filterRentalRows(rows: SuburbRental[]): SuburbRental[] {
@@ -156,7 +156,7 @@ function filterRentalRows(rows: SuburbRental[]): SuburbRental[] {
     // Keep the overall aggregate (ALL · ALL) as summary
     if (r.dwelling_type === 'ALL' && r.bedrooms === 'ALL') return true;
 
-    // Drop "ALL" dwelling type with specific bedrooms — redundant when per-type rows exist
+    // Drop "ALL" dwelling type with specific bedrooms. redundant when per-type rows exist
     if (r.dwelling_type === 'ALL' && r.bedrooms !== 'ALL' && hasSpecificTypes) return false;
 
     // Drop per-type "ALL beds" if that type has specific bedroom rows

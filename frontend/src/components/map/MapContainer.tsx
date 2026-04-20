@@ -24,7 +24,7 @@ import { TIMING } from '@/lib/animations';
 import { MapLayerChipBar } from './MapLayerChipBar';
 import { MapLegend } from './MapLegend';
 import { MapStylePicker } from './MapStylePicker';
-// MapPopup removed — click goes straight to report
+// MapPopup removed. click goes straight to report
 import { MapControls } from './MapControls';
 import { MapPin } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -95,13 +95,13 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
   }
   if (layerId === 'layer-flood_zones') {
     const title = p.title as string || p.label as string;
-    return { label: 'Flood zone', sublabel: title ? `${title} — check floor level` : 'Check floor level relative to flood extent' };
+    return { label: 'Flood zone', sublabel: title ? `${title}. check floor level` : 'Check floor level relative to flood extent' };
   }
   if (layerId === 'layer-tsunami_zones') {
     const zc = p.zone_class as number | undefined;
     const zone = zc ? `Zone ${zc}` : undefined;
     const evac = p.evac_zone as string | undefined;
-    const context = zc === 1 ? 'Highest risk — evacuate immediately' : zc === 2 ? 'Moderate risk — know your route' : 'Lower risk zone';
+    const context = zc === 1 ? 'Highest risk. evacuate immediately' : zc === 2 ? 'Moderate risk. know your route' : 'Lower risk zone';
     return { label: 'Tsunami zone', sublabel: [zone, evac, context].filter(Boolean).join(' · ') };
   }
   if (layerId === 'layer-liquefaction_zones') {
@@ -109,37 +109,37 @@ function getFeatureLabel(feature: maplibregl.MapGeoJSONFeature): { label: string
     const context: Record<string, string> = {
       'Low': 'Minimal ground settlement expected',
       'Moderate': 'Some ground damage possible in large quake',
-      'High': 'Significant ground damage likely — check foundations',
-      'Very High': 'Severe ground damage expected — engineering assessment recommended',
+      'High': 'Significant ground damage likely. check foundations',
+      'Very High': 'Severe ground damage expected. engineering assessment recommended',
     };
-    return { label: 'Liquefaction', sublabel: `${liq}${context[liq] ? ' — ' + context[liq] : ''}` };
+    return { label: 'Liquefaction', sublabel: `${liq}${context[liq] ? '. ' + context[liq] : ''}` };
   }
   if (layerId === 'layer-slope_failure_zones') {
     const sus = p.susceptibility as string;
     const context: Record<string, string> = {
       'Very Low': 'Negligible landslide risk',
-      'Low': 'Minor risk — standard foundations sufficient',
-      'Medium': 'Moderate risk — geotech report recommended',
-      'High': 'Significant risk — geotech report essential',
-      'Very High': 'Severe risk — specialist assessment required',
+      'Low': 'Minor risk. standard foundations sufficient',
+      'Medium': 'Moderate risk. geotech report recommended',
+      'High': 'Significant risk. geotech report essential',
+      'Very High': 'Severe risk. specialist assessment required',
     };
-    return { label: 'Slope failure', sublabel: `${sus}${context[sus] ? ' — ' + context[sus] : ''}` };
+    return { label: 'Slope failure', sublabel: `${sus}${context[sus] ? '. ' + context[sus] : ''}` };
   }
   if (layerId === 'layer-wind_zones') {
     const names: Record<string, string> = { M: 'Moderate', H: 'High', VH: 'Very High', EH: 'Extreme', SED: 'Special Exposure' };
     const tips: Record<string, string> = { M: '', H: '', VH: 'Higher building standards apply', EH: 'Special design required', SED: 'Site-specific wind study needed' };
     const name = names[p.zone_name as string] ?? p.zone_name as string;
     const tip = tips[p.zone_name as string];
-    return { label: 'Wind zone', sublabel: tip ? `${name} — ${tip}` : name };
+    return { label: 'Wind zone', sublabel: tip ? `${name}. ${tip}` : name };
   }
   if (layerId === 'layer-coastal_erosion') {
     const csi = p.csi_in as number | undefined;
     const level = csi == null ? '' : csi < 25 ? 'Low risk' : csi < 50 ? 'Moderate risk' : csi < 75 ? 'High risk' : 'Very high risk';
-    return { label: 'Coastal erosion', sublabel: csi != null ? `CSI ${csi} — ${level}` : undefined };
+    return { label: 'Coastal erosion', sublabel: csi != null ? `CSI ${csi}. ${level}` : undefined };
   }
   if (layerId === 'layer-noise_contours') {
     const db = p.laeq24h as number | undefined;
-    const level = db == null ? '' : db < 50 ? '(quiet)' : db < 55 ? '(moderate)' : db < 60 ? '(noticeable)' : db < 65 ? '(loud — may affect sleep)' : '(very loud — noise mitigation recommended)';
+    const level = db == null ? '' : db < 50 ? '(quiet)' : db < 55 ? '(moderate)' : db < 60 ? '(noticeable)' : db < 65 ? '(loud. may affect sleep)' : '(very loud. noise mitigation recommended)';
     return { label: `Noise: ${db ?? ''}dB ${level}`.trim() };
   }
   if (layerId === 'layer-conservation_land') return { label: p.name as string ?? 'Conservation land', sublabel: p.land_type as string };
@@ -233,7 +233,7 @@ export function MapContainer() {
 
   const currentBasemap = getBasemapStyle(baseStyleId);
 
-  // showPopup removed — no popup, just pin + address label
+  // showPopup removed. no popup, just pin + address label
   const [pinVisible, setPinVisible] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
@@ -339,7 +339,7 @@ export function MapContainer() {
     });
   }, [selectedSuburb]);
 
-  // Update Zustand only when interaction ends — keeps drag/zoom fully native speed
+  // Update Zustand only when interaction ends. keeps drag/zoom fully native speed
   const onMoveEnd = useCallback(
     (e: { viewState: { longitude: number; latitude: number; zoom: number } }) => {
       setViewport(e.viewState);
@@ -384,10 +384,10 @@ export function MapContainer() {
     (addressId: number) => {
       // popup removed
       if (isOnPropertyPage) {
-        // Different property on property page — navigate to it
+        // Different property on property page. navigate to it
         router.push(`/property/${addressId}`);
       } else if (window.innerWidth < 640) {
-        // On mobile, report is already in the drawer — snap it to full
+        // On mobile, report is already in the drawer. snap it to full
         window.dispatchEvent(new Event('drawer:snap-full'));
       } else {
         router.push(`/property/${addressId}`);
@@ -436,7 +436,7 @@ export function MapContainer() {
     return lines;
   }, []);
 
-  // Handle map click — uses ref for showPopup to avoid recreating on every popup toggle
+  // Handle map click. uses ref for showPopup to avoid recreating on every popup toggle
   const handleMapClick = useCallback(
     (e: MapLayerMouseEvent) => {
       const map = mapRef.current?.getMap();
@@ -529,7 +529,7 @@ export function MapContainer() {
         // Tap fell on a non-address feature (POI, transit stop, hazard zone,
         // etc.). Before the fix these clicks were silently dropped. Now we
         // surface the feature's own label in a toast so users can at least
-        // see what they tapped on — particularly important on mobile where
+        // see what they tapped on. particularly important on mobile where
         // hover tooltips don't exist.
         for (const f of features) {
           const info = getFeatureLabel(f);
@@ -547,12 +547,12 @@ export function MapContainer() {
     [selectAddress, selectProperty],
   );
 
-  // Hover tooltip — throttled to avoid excessive state updates
+  // Hover tooltip. throttled to avoid excessive state updates
   const lastHoverRef = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
 
   const handleMouseMove = useCallback(
     (e: MapLayerMouseEvent) => {
-      // Skip on touch devices — no hover concept
+      // Skip on touch devices. no hover concept
       if ('ontouchstart' in window) return;
       const map = mapRef.current?.getMap();
       if (!map) return;
@@ -606,7 +606,7 @@ export function MapContainer() {
       }
 
       // Update hover highlight data (stable Source, just update data)
-      // Strip to plain GeoJSON — MapGeoJSONFeature has internal classes that
+      // Strip to plain GeoJSON. MapGeoJSONFeature has internal classes that
       // can't be serialized by maplibre's web worker.
       setHoverBuildingData(
         building
@@ -703,7 +703,7 @@ export function MapContainer() {
             they do by watching the tour use them. */}
         <NavigationControl position="top-right" showCompass={false} visualizePitch={false} />
 
-        {/* Distance ring around selected property — 500m dashed circle */}
+        {/* Distance ring around selected property. 500m dashed circle */}
         {selectedAddress && pinVisible && (
           <Source
             id="source-distance-ring"
@@ -741,7 +741,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Addresses layer — invisible hit target + visible dots at high zoom */}
+        {/* Addresses layer. invisible hit target + visible dots at high zoom */}
         {mapLoaded && (
           <Source
             id="source-addresses-click"
@@ -799,7 +799,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Notable places — supermarkets, schools, parks etc */}
+        {/* Notable places. supermarkets, schools, parks etc */}
         {mapLoaded && (
           <Source
             id="source-notable-places"
@@ -808,7 +808,7 @@ export function MapContainer() {
             minzoom={15}
             maxzoom={18}
           >
-            {/* Google Maps-style POI icons — white symbol on colored circle */}
+            {/* Google Maps-style POI icons. white symbol on colored circle */}
             <Layer
               id="layer-notable-places"
               source="source-notable-places"
@@ -853,7 +853,7 @@ export function MapContainer() {
                 'symbol-sort-key': ['get', 'priority'],
               }}
             />
-            {/* Name label below the icon circle — colored for medical/nature, white otherwise */}
+            {/* Name label below the icon circle. colored for medical/nature, white otherwise */}
             <Layer
               id="layer-notable-places-label"
               source="source-notable-places"
@@ -895,7 +895,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Address number labels — centred on building outlines via Martin function */}
+        {/* Address number labels. centred on building outlines via Martin function */}
         {mapLoaded && (
           <Source
             id="source-address-labels"
@@ -940,7 +940,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Hover feedback — stable Sources that update data instead of mount/unmount */}
+        {/* Hover feedback. stable Sources that update data instead of mount/unmount */}
         {mapLoaded && (
           <Source
             id="source-hover-building"
@@ -1005,7 +1005,7 @@ export function MapContainer() {
             </Source>
           ))}
 
-        {/* SA2 area labels — NZ statistical areas, visible below suburb zoom where OFM labels take over */}
+        {/* SA2 area labels. NZ statistical areas, visible below suburb zoom where OFM labels take over */}
         {mapLoaded && (
           <Source
             id="source-sa2-labels"
@@ -1049,7 +1049,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Vector labels on satellite/dark basemaps — Google-style white text with dark outlines */}
+        {/* Vector labels on satellite/dark basemaps. Google-style white text with dark outlines */}
         {mapLoaded && (SATELLITE_STYLE_IDS.has(baseStyleId) || baseStyleId === 'dark') && (
           <Source
             id={LABEL_SOURCE_ID}
@@ -1063,7 +1063,7 @@ export function MapContainer() {
           </Source>
         )}
 
-        {/* Compass rose on distance ring — north indicator */}
+        {/* Compass rose on distance ring. north indicator */}
         {selectedAddress && pinVisible && (() => {
           const earthR = 6371000;
           const latRad = (selectedAddress.lat * Math.PI) / 180;
@@ -1125,16 +1125,16 @@ export function MapContainer() {
         <MapLayerChipBar />
       </div>
 
-      {/* Map controls — right side */}
+      {/* Map controls. right side */}
       <MapControls mapRef={mapRef} />
 
-      {/* Map style picker — bottom left */}
+      {/* Map style picker. bottom left */}
       <MapStylePicker />
 
       {/* Legend */}
       <MapLegend />
 
-      {/* Hover tooltip — desktop only (no hover on touch devices) */}
+      {/* Hover tooltip. desktop only (no hover on touch devices) */}
       {hoverInfo && bp !== 'mobile' && (
         <div
           className="pointer-events-none absolute z-20 max-w-xs rounded-lg bg-background/95 backdrop-blur border border-border shadow-md px-3 py-2 text-sm"
@@ -1151,7 +1151,7 @@ export function MapContainer() {
         </div>
       )}
 
-      {/* Zoom hint — contextual based on zoom level. Positioned 16 px
+      {/* Zoom hint. contextual based on zoom level. Positioned 16 px
           above the mobile drawer's peek height (220 px sheet + handle
           padding = ~240 px) so it can't overlap the drag handle; on
           desktop it sits above the attribution bar. */}

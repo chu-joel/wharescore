@@ -11,7 +11,7 @@ export function useAISummary(addressId: number | null, enabled: boolean = true) 
     queryKey: ['ai-summary', addressId],
     queryFn: () => apiFetch<AISummaryResponse>(`/api/v1/property/${addressId}/ai-summary`),
     enabled: addressId !== null && enabled,
-    staleTime: 24 * 60 * 60 * 1000, // 24h — same as backend cache
+    staleTime: 24 * 60 * 60 * 1000, // 24h. same as backend cache
     retry: false,
   });
 }

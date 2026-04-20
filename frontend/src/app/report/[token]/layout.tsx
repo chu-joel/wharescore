@@ -30,20 +30,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const locationParts = [suburb, city].filter(Boolean).join(', ');
     const scoreStr = score != null ? ` Score: ${Math.round(score)}/100.` : '';
-    const title = `${tierPrefix} — ${address}`;
+    const title = `${tierPrefix}. ${address}`;
     const description = `WhareScore ${tierPrefix.toLowerCase()} for ${address}${locationParts ? ` in ${locationParts}` : ''}.${scoreStr} Hazards, schools, transit, market data and more.`;
 
     return {
       title,
       description,
       openGraph: {
-        title: `${address} — WhareScore Report`,
+        title: `${address}. WhareScore Report`,
         description,
         type: 'article',
       },
       twitter: {
         card: 'summary',
-        title: `${address} — WhareScore`,
+        title: `${address}. WhareScore`,
         description,
       },
       robots: {

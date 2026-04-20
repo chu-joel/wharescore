@@ -49,7 +49,7 @@ async def create_checkout_session(
     # Get or create Stripe customer for this user
     customer_id = await _get_or_create_customer(user_id)
 
-    # Map plan to Stripe price — Pro users get discounted extras ($4.99)
+    # Map plan to Stripe price. Pro users get discounted extras ($4.99)
     price_map = {
         "full_single": settings.STRIPE_PRICE_FULL_SINGLE,
         "pro": settings.STRIPE_PRICE_PRO,
@@ -114,7 +114,7 @@ async def _get_or_create_customer(user_id: str) -> str:
                 stripe.Customer.retrieve(row["stripe_customer_id"])
                 return row["stripe_customer_id"]
             except Exception:
-                logger.info(f"Stored Stripe customer {row['stripe_customer_id']} not found — creating new one")
+                logger.info(f"Stored Stripe customer {row['stripe_customer_id']} not found. creating new one")
 
         # Get user email for Stripe
         cur = await conn.execute(
@@ -196,7 +196,7 @@ async def exchange_guest_token(request: Request, session_id: str):
         try:
             token = await app_redis.redis_client.get(f"guest_token:{session_id}")
             if token:
-                # Delete immediately — one-time exchange
+                # Delete immediately. one-time exchange
                 await app_redis.redis_client.delete(f"guest_token:{session_id}")
         except Exception as e:
             logger.warning(f"Redis guest token lookup failed: {e}")
@@ -213,7 +213,7 @@ async def exchange_guest_token(request: Request, session_id: str):
             raise HTTPException(404, "Purchase not found")
         return {"token": token, "address_id": row["address_id"], "persona": row["persona"]}
 
-    # Token not in Redis — check if DB record exists (token already exchanged)
+    # Token not in Redis. check if DB record exists (token already exchanged)
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             "SELECT 1 FROM guest_purchases WHERE stripe_session_id = %s",
@@ -222,4 +222,4 @@ async def exchange_guest_token(request: Request, session_id: str):
         if cur.fetchone():
             raise HTTPException(410, "Token already retrieved. Check your email or contact support.")
 
-    raise HTTPException(404, "Purchase not found. Payment may still be processing — try again in a few seconds.")
+    raise HTTPException(404, "Purchase not found. Payment may still be processing. try again in a few seconds.")

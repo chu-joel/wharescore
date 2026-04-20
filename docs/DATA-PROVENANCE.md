@@ -44,6 +44,8 @@
 | `hazards.council_liquefaction` | Council liquefaction rating (Very High / High / Moderate / Low) | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region (~16 loaders) | varies | `liquefaction_detail` | ~16 councils |
 | `hazards.liquefaction` | National liquefaction zone class | Regional councils | `backend/scripts/load_regional_hazards.py` (bulk load) | `-` | `liquefaction_zones` | Bulk — Wellington region |
 
+**Scale normalization.** Councils emit liquefaction susceptibility in wildly different vocabularies — standard "Very High/High/Moderate/Low", Canterbury "Liquefaction damage is possible - High vulnerability", Auckland "Possible/Unlikely", Marlborough "Investigation Zone A–F", Christchurch "Management Zone Category 1", Porirua/Invercargill bare "Liquefaction", Southland "Medium", Waimakariri verbose "Extremely low to no liquefaction potential". All four fields above are collapsed to a canonical scale (`very_high | high | moderate | low | very_low | none | unknown`) by `normalize_liquefaction()` in `backend/app/services/report_html.py` (and mirrored in `frontend/src/lib/hazards.ts`). `pick_liquefaction_rating()` takes the worst signal across all four fields. When adding a new council vocabulary, extend both normalizers.
+
 ### Earthquake
 | Field path | Label | Authority | Dataset / endpoint | DataSource key | Table | Coverage |
 |---|---|---|---|---|---|---|

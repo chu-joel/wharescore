@@ -13,7 +13,7 @@ import {
 import { MapLayerPicker } from './MapLayerPicker';
 import { toast } from 'sonner';
 
-// Quick-toggle preset chips — the most commonly used layer groups.
+// Quick-toggle preset chips. the most commonly used layer groups.
 // Each toggles a group on/off. Individual control is in the Layers picker.
 const QUICK_PRESETS = [
   {
@@ -110,7 +110,7 @@ export function MapLayerChipBar() {
         );
       })}
 
-      {/* Layers button — opens the full layer picker dialog */}
+      {/* Layers button. opens the full layer picker dialog */}
       <MapLayerPicker />
     </div>
   );

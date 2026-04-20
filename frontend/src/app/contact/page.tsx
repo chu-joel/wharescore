@@ -2,7 +2,7 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 import { MessageSquare, Mail } from 'lucide-react';
 
 export const metadata = {
-  title: 'Contact WhareScore — Bug Reports, Feedback & Coverage Requests',
+  title: 'Contact WhareScore. Bug Reports, Feedback & Coverage Requests',
   description: 'Contact the WhareScore team for bug reports, feature requests, data corrections, or coverage expansion requests. Currently covering Wellington, Auckland, and Christchurch.',
   alternates: { canonical: 'https://wharescore.co.nz/contact' },
 };
@@ -13,7 +13,7 @@ export default function ContactPage() {
       <section className="space-y-4">
         <p>
           We&rsquo;d love to hear from you. Whether you&rsquo;ve found a bug, have a feature
-          idea, or just want to say hello — reach out.
+          idea, or just want to say hello. reach out.
         </p>
 
         <div className="rounded-lg border p-4">

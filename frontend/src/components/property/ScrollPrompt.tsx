@@ -118,7 +118,7 @@ function getPromptVariant(report: PropertyReport, price: string): PromptVariant 
       icon: ShieldAlert,
       iconColor: 'text-red-500',
       message: `${totalRisks} risk findings affect this property. See the full hazard analysis.`,
-      cta: `Unlock full report — ${price}`,
+      cta: `Unlock full report. ${price}`,
     };
   }
 
@@ -127,7 +127,7 @@ function getPromptVariant(report: PropertyReport, price: string): PromptVariant 
       icon: ShieldAlert,
       iconColor: 'text-amber-500',
       message: `${totalRisks} finding${totalRisks > 1 ? 's' : ''} to review before making a decision.`,
-      cta: `Get the complete analysis — ${price}`,
+      cta: `Get the complete analysis. ${price}`,
     };
   }
 
@@ -135,6 +135,6 @@ function getPromptVariant(report: PropertyReport, price: string): PromptVariant 
     icon: TrendingUp,
     iconColor: 'text-piq-primary',
     message: 'Get the full 40+ risk-check analysis with AI insights and personalised recommendations.',
-    cta: `Download full report — ${price}`,
+    cta: `Download full report. ${price}`,
   };
 }

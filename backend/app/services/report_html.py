@@ -3,12 +3,13 @@
 Premium property report renderer.
 
 Orchestrates: insight rule engine → lifestyle fit engine → Jinja2 template.
-Used by the /export/pdf endpoint — browser renders and prints to PDF.
+Used by the /export/pdf endpoint. browser renders and prints to PDF.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -36,8 +37,8 @@ def _get_env() -> Environment:
 
 ANZECC_EXPLANATIONS: dict[str, str] = {
     "A": "confirmed contamination requiring investigation/remediation",
-    "B": "potentially contaminated — likely historic industrial or commercial use",
-    "C": "possibly affected — land use history suggests possible contamination",
+    "B": "potentially contaminated. likely historic industrial or commercial use",
+    "C": "possibly affected. land use history suggests possible contamination",
     "D": "unlikely to be contaminated but included in register precautionarily",
 }
 
@@ -48,44 +49,44 @@ ANZECC_EXPLANATIONS: dict[str, str] = {
 
 WIND_ZONE_LABELS: dict[str, tuple[str, str]] = {
     # key → (human label, risk_class)
-    "EH":  ("Extra High (EH) — most exposed NZ wind classification", "warn"),
-    "SED": ("Semi-Exposed Design (SED) — very high wind exposure area", "warn"),
-    "VH":  ("Very High — significantly above average wind exposure", "warn"),
-    "H":   ("High — above average wind exposure", "info"),
-    "M":   ("Medium — typical sheltered exposure", "ok"),
-    "L":   ("Low — well-sheltered location", "ok"),
+    "EH":  ("Extra High (EH). most exposed NZ wind classification", "warn"),
+    "SED": ("Semi-Exposed Design (SED). very high wind exposure area", "warn"),
+    "VH":  ("Very High. significantly above average wind exposure", "warn"),
+    "H":   ("High. above average wind exposure", "info"),
+    "M":   ("Medium. typical sheltered exposure", "ok"),
+    "L":   ("Low. well-sheltered location", "ok"),
 }
 
 LIQUEFACTION_LABELS: dict[str, tuple[str, str]] = {
-    "very high": ("Very High — ground highly likely to deform in a major earthquake", "warn"),
-    "high":      ("High — significant liquefaction potential", "warn"),
-    "moderate":  ("Moderate — partial settlement possible in significant seismic event", "info"),
-    "low":       ("Low — limited liquefaction risk", "ok"),
-    "very low":  ("Very Low — minimal liquefaction risk", "ok"),
-    "none":      ("None — outside known liquefaction zone", "ok"),
+    "very high": ("Very High. ground highly likely to deform in a major earthquake", "warn"),
+    "high":      ("High. significant liquefaction potential", "warn"),
+    "moderate":  ("Moderate. partial settlement possible in significant seismic event", "info"),
+    "low":       ("Low. limited liquefaction risk", "ok"),
+    "very low":  ("Very Low. minimal liquefaction risk", "ok"),
+    "none":      ("None. outside known liquefaction zone", "ok"),
     "not applicable": ("Not applicable for this land type", "ok"),
 }
 
 WILDFIRE_TREND_LABELS: dict[str, tuple[str, str]] = {
-    "very likely increasing": ("Very likely increasing — strong upward trend in fire danger days", "warn"),
-    "likely increasing":      ("Likely increasing — moderate upward trend", "info"),
-    "unclear":                ("Unclear — no significant trend detected", "info"),
-    "likely decreasing":      ("Likely decreasing — fire danger trending down", "ok"),
-    "very likely decreasing": ("Very likely decreasing — significant reduction in fire danger days", "ok"),
+    "very likely increasing": ("Very likely increasing. strong upward trend in fire danger days", "warn"),
+    "likely increasing":      ("Likely increasing. moderate upward trend", "info"),
+    "unclear":                ("Unclear. no significant trend detected", "info"),
+    "likely decreasing":      ("Likely decreasing. fire danger trending down", "ok"),
+    "very likely decreasing": ("Very likely decreasing. significant reduction in fire danger days", "ok"),
 }
 
 COASTAL_EROSION_LABELS: dict[str, tuple[str, str]] = {
-    "extreme": ("Extreme — high likelihood of coastal retreat within 50 years", "warn"),
+    "extreme": ("Extreme. high likelihood of coastal retreat within 50 years", "warn"),
     "high":    ("High erosion risk", "warn"),
     "medium":  ("Medium erosion risk", "info"),
     "low":     ("Low erosion risk", "ok"),
-    "stable":  ("Stable coastline — low erosion risk", "ok"),
+    "stable":  ("Stable coastline. low erosion risk", "ok"),
 }
 
 TSUNAMI_CLASS_LABELS: dict[int, tuple[str, str]] = {
-    3: ("Zone 3 — highest local government warning tier (evacuate immediately)", "warn"),
-    2: ("Zone 2 — moderate risk, evacuation area for distant events", "info"),
-    1: ("Zone 1 — low probability, mainly coastal flooding risk", "info"),
+    3: ("Zone 3. highest local government warning tier (evacuate immediately)", "warn"),
+    2: ("Zone 2. moderate risk, evacuation area for distant events", "info"),
+    1: ("Zone 1. low probability, mainly coastal flooding risk", "info"),
 }
 
 
@@ -96,14 +97,144 @@ def _humanize_wind(raw: str | None) -> tuple[str, str]:
     return WIND_ZONE_LABELS.get(key, (f"{raw} wind zone", "info"))
 
 
+# Canonical NZ liquefaction scale — used everywhere that reads liquefaction fields.
+# Councils emit susceptibility in wildly different vocabularies; this is the
+# single point where we collapse them so findings, risk score, and display
+# all agree. Ordering matters: left → right is worst → least-risk.
+CANONICAL_LIQ_SCALE = ("very_high", "high", "moderate", "low", "very_low", "none", "unknown")
+_CANONICAL_LIQ_RANK = {label: rank for rank, label in enumerate(CANONICAL_LIQ_SCALE)}
+
+
+def normalize_liquefaction(raw: str | None) -> str:
+    """Collapse varied council liquefaction terminology to a single canonical scale.
+
+    Vocabularies observed across councils (verified against prod on 2026-04-21):
+      * Standard (GWRC, Gisborne, Horizons, Wairarapa, Southland, Tauranga,
+        Invercargill, Whanganui): Very High / High / Moderate / Medium / Low /
+        Very Low / Negligible / None
+      * Canterbury + Hawke's Bay damage scale (Ashburton, Mackenzie, Waimate,
+        Waitaki, Tasman, Hawke's Bay): "Liquefaction damage is possible - {High
+        | Medium | very low} liquefaction vulnerability" / "damage is unlikely"
+      * Auckland / BOP / Waikato / Rotorua / New Plymouth: Possible / Unlikely
+        / Very Low / Undetermined
+      * Marlborough: "Liquefaction Investigation Zone A" through F (A = highest)
+      * Christchurch: "Liquefaction Management Zone Category 1"
+      * Porirua, Invercargill (alt), Timaru DP, Nelson overlay: bare
+        "Liquefaction" — polygon marks risk presence without grading severity
+      * Waimakariri: "{Extremely low to no | Very low | Low | Low to high}
+        liquefaction potential"
+      * Upper Hutt: "Peat Subsidence Hazard" (not liquefaction — treat as none)
+      * Placeholders: Ice / Water / Unknown / Undetermined / empty
+
+    Returns one of CANONICAL_LIQ_SCALE. "unknown" ≠ "none" — unknown means we
+    have a value we couldn't score, which is different from confirmed absence.
+    """
+    if not raw or not str(raw).strip():
+        return "none"
+    s = str(raw).strip().lower()
+
+    # Non-risk placeholders
+    if s in ("ice", "water", "peat subsidence hazard", "none"):
+        return "none"
+    if s in ("unknown", "undetermined"):
+        return "unknown"
+    if "negligible" in s or "not applicable" in s:
+        return "none"
+
+    # Christchurch Management Zone Category 1 = liquefaction confirmed. Checked
+    # BEFORE Marlborough zone letters because "zone category" contains "zone c"
+    # as a substring.
+    if "management zone category 1" in s or "management zone 1" in s:
+        return "high"
+
+    # Marlborough investigation zones. Use a regex with word boundaries to
+    # avoid matching "zone c" inside "zone category" (Christchurch) or similar.
+    if re.search(r"\bzone\s+a\b", s):
+        return "very_high"
+    if re.search(r"\bzone\s+b\b", s):
+        return "high"
+    if re.search(r"\bzone\s+[cd]\b", s):
+        return "moderate"
+    if re.search(r"\bzone\s+[ef]\b", s):
+        return "low"
+
+    # Canterbury / Hawke's Bay "damage possible/unlikely" — vulnerability suffix
+    # decides severity; bare "damage is possible" = moderate.
+    if "damage is possible" in s or "damage possible" in s:
+        if "high" in s:
+            return "high"
+        if "medium" in s or "moderate" in s:
+            return "moderate"
+        if "very low" in s:
+            return "low"
+        return "moderate"
+    if "damage is unlikely" in s or "damage unlikely" in s:
+        if "very low" in s:
+            return "very_low"
+        return "low"
+
+    # Standard severity words. Check specific before general so "very high"
+    # wins over "high", and "extremely low" maps down rather than hitting "low".
+    if "very high" in s:
+        return "very_high"
+    if "very low" in s or "extremely low" in s:
+        return "very_low"
+    # Waimakariri "Low to high liquefaction potential" falls through to "high"
+    # — conservative, correct: mapped as potentially-high, so flag.
+    if "high" in s:
+        return "high"
+    if "moderate" in s or "medium" in s:
+        return "moderate"
+    if "low" in s:
+        return "low"
+
+    # Auckland / Waikato / BOP scale — "Possible" means polygon flags this site
+    # at-risk; treat as moderate. "Unlikely" → low.
+    if "possible" in s:
+        return "moderate"
+    if "unlikely" in s:
+        return "low"
+
+    # Bare "Liquefaction" (Porirua, Invercargill, Nelson overlay, Timaru DP).
+    # Polygon presence without grading = assume moderate.
+    if "liquefaction" in s:
+        return "moderate"
+
+    return "unknown"
+
+
+def pick_liquefaction_rating(hazards: dict) -> str:
+    """Take the WORST canonical rating across all four liquefaction fields
+    (`liquefaction`, `gwrc_liquefaction`, `council_liquefaction`,
+    `liquefaction_zone`). Different councils populate different fields; taking
+    the worst keeps us honest when e.g. GWRC says "Moderate" and the national
+    bulk layer is empty — the old rule would miss this."""
+    ratings = [
+        normalize_liquefaction(hazards.get(k))
+        for k in ("liquefaction", "gwrc_liquefaction", "council_liquefaction", "liquefaction_zone")
+    ]
+    known = [r for r in ratings if r != "unknown"]
+    if not known:
+        return "unknown" if any(r == "unknown" for r in ratings) else "none"
+    return min(known, key=lambda r: _CANONICAL_LIQ_RANK[r])
+
+
 def _humanize_liquefaction(raw: str | None) -> tuple[str, str]:
     if not raw:
         return "No liquefaction data", "none"
-    key = str(raw).strip().lower()
-    for k, v in LIQUEFACTION_LABELS.items():
-        if k in key:
-            return v
-    return (f"{raw}", "info")
+    canon = normalize_liquefaction(raw)
+    if canon == "unknown":
+        # Fall back to surfacing the raw string so we don't drop previously-seen
+        # values silently — a cue to extend the normalizer.
+        return (f"{raw}", "info")
+    return {
+        "very_high": LIQUEFACTION_LABELS["very high"],
+        "high":      LIQUEFACTION_LABELS["high"],
+        "moderate":  LIQUEFACTION_LABELS["moderate"],
+        "low":       LIQUEFACTION_LABELS["low"],
+        "very_low":  LIQUEFACTION_LABELS["very low"],
+        "none":      LIQUEFACTION_LABELS["none"],
+    }[canon]
 
 
 def _humanize_wildfire_trend(raw: str | None) -> tuple[str, str]:
@@ -124,25 +255,25 @@ def noise_context(db: float | None) -> str:
     if db is None:
         return ""
     if db >= 70:
-        return "very loud street — comparable to a loud restaurant or busy factory floor"
+        return "very loud street. comparable to a loud restaurant or busy factory floor"
     if db >= 65:
         return "busy restaurant or open-plan office"
     if db >= 60:
         return "conversational speech at close range"
     if db >= 55:
-        return "moderate — quiet office environment"
+        return "moderate. quiet office environment"
     if db >= 50:
         return "quiet residential hum"
     return "very quiet"
 
 
 # =============================================================================
-# Humanized Hazard Rows (comprehensive — all 8 hazards always shown)
+# Humanized Hazard Rows (comprehensive. all 8 hazards always shown)
 # =============================================================================
 
 def build_humanized_hazards(hazards: dict) -> list[dict]:
     """Return a list of 9 standardised hazard row dicts for the template table.
-    Every hazard is always listed — absent data shown as 'Not detected / No data'.
+    Every hazard is always listed. absent data shown as 'Not detected / No data'.
     Each dict: {label, status, detail, risk_class, detected}
     """
     rows: list[dict] = []
@@ -189,8 +320,8 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
         status, risk_class = _humanize_wind(str(wind_raw))
         detail_map = {
             "warn": "Confirm roof fastening meets NZS 3604 for wind zone. Expect higher heating bills from draughts.",
-            "info": "Above-average wind exposure — standard construction applies.",
-            "ok":   "Sheltered location — no special wind zone requirements.",
+            "info": "Above-average wind exposure. standard construction applies.",
+            "ok":   "Sheltered location. no special wind zone requirements.",
         }
         rows.append({"label": "Wind Zone", "status": status,
                      "detail": detail_map.get(risk_class, ""), "risk_class": risk_class, "detected": True})
@@ -308,7 +439,7 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
             label_desc = "low seismic activity"
         rows.append({
             "label": "Earthquakes (30km, 10yr)",
-            "status": f"{eq_int} M4+ earthquakes recorded — {label_desc}",
+            "status": f"{eq_int} M4+ earthquakes recorded. {label_desc}",
             "detail": "Review earthquake strengthening for any pre-1976 masonry structures." if risk_class in ("warn", "info") else "",
             "risk_class": risk_class,
             "detected": True,
@@ -326,7 +457,7 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
             epb_int = 0
         if epb_int >= 5:
             risk_class = "warn"
-            context = "This is a concentration of older building stock — walk the area and note building age and condition."
+            context = "This is a concentration of older building stock. walk the area and note building age and condition."
         elif epb_int >= 1:
             risk_class = "info"
             context = "Check the MBIE EPB register to see if the subject property itself is listed."
@@ -359,7 +490,7 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
             rows.append({"label": "Slope Stability", "status": "High landslide susceptibility",
                          "detail": "Elevated risk of slope failure during earthquakes. Inspect retaining walls, "
                                    "check for ground movement signs (cracked concrete, shifted fence lines). "
-                                   "Consider geotechnical report — especially if hillside property.",
+                                   "Consider geotechnical report. especially if hillside property.",
                          "risk_class": "warn", "detected": True})
         elif "medium" in sf_str:
             rows.append({"label": "Slope Stability", "status": "Medium landslide susceptibility",
@@ -372,7 +503,7 @@ def build_humanized_hazards(hazards: dict) -> list[dict]:
                          "risk_class": "ok", "detected": True})
         else:
             rows.append({"label": "Slope Stability", "status": "Very Low landslide susceptibility",
-                         "detail": "Minimal slope failure risk — flat or gently sloping terrain.",
+                         "detail": "Minimal slope failure risk. flat or gently sloping terrain.",
                          "risk_class": "ok", "detected": True})
     else:
         rows.append({"label": "Slope Stability", "status": "No slope failure data",
@@ -403,9 +534,9 @@ def build_exec_summary_fallback(report: dict, insights: dict) -> str:
         level_context = {
             "Very Low":  "an excellent risk profile",
             "Low":       "a low-risk profile",
-            "Moderate":  "a moderate risk profile — some issues warrant attention",
-            "High":      "a high-risk profile — multiple issues require careful review",
-            "Very High": "a very high risk profile — significant due diligence required",
+            "Moderate":  "a moderate risk profile. some issues warrant attention",
+            "High":      "a high-risk profile. multiple issues require careful review",
+            "Very High": "a very high risk profile. significant due diligence required",
         }.get(rating, "a risk profile that warrants review")
         loc_str = f" in {suburb}" if suburb else ""
         parts.append(
@@ -428,11 +559,11 @@ def build_exec_summary_fallback(report: dict, insights: dict) -> str:
     # Warn count
     warn_count = sum(len([i for i in v if i.get("level") == "warn"]) for v in insights.values())
     if warn_count >= 3:
-        parts.append(f"{warn_count} issues were flagged across hazards, environment, and planning — review each section carefully.")
+        parts.append(f"{warn_count} issues were flagged across hazards, environment, and planning. review each section carefully.")
     elif warn_count > 0:
-        parts.append(f"{warn_count} issue{'s' if warn_count != 1 else ''} flagged — see highlighted sections below.")
+        parts.append(f"{warn_count} issue{'s' if warn_count != 1 else ''} flagged. see highlighted sections below.")
     else:
-        parts.append("No critical issues flagged — a clean result across all categories.")
+        parts.append("No critical issues flagged. a clean result across all categories.")
 
     # Market note
     rental_list = (market.get("rental_overview") or [])
@@ -499,7 +630,7 @@ def build_map_url(addr: dict) -> str | None:
 # Insight Rule Engine
 # =============================================================================
 
-# Source attribution catalog — used by Insight(source=_src("key")) to surface
+# Source attribution catalog. used by Insight(source=_src("key")) to surface
 # "who said so" in findings. Keys match DATA-PROVENANCE.md. Adding a new
 # authority here is cheap; the frontend renders {authority, url} when present
 # and falls back gracefully when absent (old cached reports).
@@ -551,7 +682,7 @@ def _src(key: str) -> dict | None:
     rather than crashing. Emits a one-time warning in logs for the unknown key."""
     src = SOURCE_CATALOG.get(key)
     if src is None:
-        logger.warning("Unknown source_key %r — add to SOURCE_CATALOG in report_html.py", key)
+        logger.warning("Unknown source_key %r. add to SOURCE_CATALOG in report_html.py", key)
     return src
 
 
@@ -563,7 +694,7 @@ class Insight:
         self.text = text
         self.action = action
         # source is optional: {"authority": str, "url": str} or None.
-        # Old Insight call sites without source= remain unchanged — attribution
+        # Old Insight call sites without source= remain unchanged. attribution
         # is additive and gracefully absent in the rendered finding.
         self.source = source
 
@@ -576,7 +707,7 @@ class Insight:
 
 def build_insights(report: dict) -> dict[str, list[dict]]:
     """Run the insight rule engine over all sections.
-    Returns {section: [insight_dict, ...]} — Jinja2 templates consume dicts."""
+    Returns {section: [insight_dict, ...]}. Jinja2 templates consume dicts."""
     hazards = report.get("hazards") or {}
     env = report.get("environment") or {}
     live = report.get("liveability") or {}
@@ -603,14 +734,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if is_leasehold:
         result["planning"].append(Insight(
             "warn",
-            "Leasehold title — you own the building, not the land. Ground rent reviews (typically every 7–21 years) can jump 20–50%.",
+            "Leasehold title. you own the building, not the land. Ground rent reviews (typically every 7–21 years) can jump 20–50%.",
             "Ask for current ground rent, next review date, and lessor identity. Not every bank lends on leasehold; "
             "confirm mortgage eligibility before unconditional. A property lawyer should review the ground lease clauses.",
         ).to_dict())
     elif is_cross_lease:
         result["planning"].append(Insight(
             "info",
-            "Cross-lease title — shared land ownership with the other flats. Any structural change outside the flat plan needs co-owner consent.",
+            "Cross-lease title. shared land ownership with the other flats. Any structural change outside the flat plan needs co-owner consent.",
             "Compare as-built to the flats plan. Unapproved additions (decks, extensions, garages) are the most common "
             "cross-lease pitfall and routinely block sale or refinance until remedied.",
         ).to_dict())
@@ -621,15 +752,15 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if "1%" in flood or "100" in flood:
         result["hazards"].append(Insight(
             "warn",
-            "1-in-100-year flood zone — 1% annual chance of inundation.",
+            "1-in-100-year flood zone. 1% annual chance of inundation.",
             "Request LIM. Check floor level was elevated to consent. Ask lender about flood insurance requirement.",
             source=_src("council_flood"),
         ).to_dict())
     elif "0.2%" in flood or "430" in flood:
         result["hazards"].append(Insight(
             "info",
-            "Low-probability flood zone (1-in-430 years) — mainly affects mortgage eligibility.",
-            "Check with your lender — some banks require flood insurance for any mapped zone.",
+            "Low-probability flood zone (1-in-430 years). mainly affects mortgage eligibility.",
+            "Check with your lender. some banks require flood insurance for any mapped zone.",
             source=_src("council_flood"),
         ).to_dict())
 
@@ -642,30 +773,34 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if tz >= 3:
             result["hazards"].append(Insight(
                 "warn",
-                f"Tsunami Zone {tz} — highest local government warning tier for this area.",
+                f"Tsunami Zone {tz}. highest local government warning tier for this area.",
                 "Identify your inland evacuation route. Zone 3 affects resale times in some coastal suburbs.",
                 source=_src("council_tsunami"),
             ).to_dict())
         elif tz >= 1:
             result["hazards"].append(Insight(
                 "info",
-                f"Tsunami Zone {tz} — low-to-moderate wave inundation risk from distant events.",
+                f"Tsunami Zone {tz}. low-to-moderate wave inundation risk from distant events.",
                 "",
                 source=_src("council_tsunami"),
             ).to_dict())
 
-    liquefaction = str(hazards.get("liquefaction") or "").lower()
-    if "very high" in liquefaction or "high" in liquefaction:
+    # Liquefaction is emitted under different field names and wildly different
+    # scales depending on which council populated it. pick_liquefaction_rating
+    # normalises all four fields and returns the worst canonical rating so the
+    # finding fires regardless of which field or vocabulary a council uses.
+    liq_rating = pick_liquefaction_rating(hazards)
+    if liq_rating in ("very_high", "high"):
         result["hazards"].append(Insight(
             "warn",
-            f"High liquefaction potential — ground likely to deform in a major earthquake.",
+            "High liquefaction potential. ground likely to deform in a major earthquake.",
             "Inspect foundations carefully. Request geotechnical report if available.",
             source=_src("council_liquefaction"),
         ).to_dict())
-    elif "moderate" in liquefaction:
+    elif liq_rating == "moderate":
         result["hazards"].append(Insight(
             "info",
-            "Moderate liquefaction — partial settlement possible in significant seismic event.",
+            "Moderate liquefaction. partial settlement possible in significant seismic event.",
             "Standard building inspection should note any existing foundation movement cracks.",
             source=_src("council_liquefaction"),
         ).to_dict())
@@ -679,7 +814,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if eq_count is not None and eq_count >= 20:
         result["hazards"].append(Insight(
             "warn",
-            f"{eq_count} M4+ earthquakes within 30km in 10 years — active seismic area.",
+            f"{eq_count} M4+ earthquakes within 30km in 10 years. active seismic area.",
             "Review earthquake strengthening, especially pre-1976 unreinforced masonry.",
             source=_src("geonet_earthquakes"),
         ).to_dict())
@@ -688,7 +823,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if wind in ("EH", "SED", "EXTRA HIGH", "SEMI-EXPOSED DESIGN"):
         result["hazards"].append(Insight(
             "warn",
-            f"Extreme wind zone ({wind}) — one of NZ's most exposed classifications.",
+            f"Extreme wind zone ({wind}). one of NZ's most exposed classifications.",
             "Confirm roof fastening meets NZS 3604 for wind zone. Expect higher heating bills.",
         ).to_dict())
 
@@ -701,7 +836,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if epb_count is not None and epb_count >= 5:
         result["hazards"].append(Insight(
             "warn",
-            f"{epb_count} earthquake-prone buildings within 300m — older building stock nearby.",
+            f"{epb_count} earthquake-prone buildings within 300m. older building stock nearby.",
             "Check MBIE EPB register for this specific property. EPB status affects insurance.",
             source=_src("mbie_epb"),
         ).to_dict())
@@ -715,11 +850,11 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if wildfire_days is not None and wildfire_days >= 15:
         result["hazards"].append(Insight(
             "warn",
-            f"{wildfire_days:.0f} Very High/Extreme fire danger days/yr — above national median.",
+            f"{wildfire_days:.0f} Very High/Extreme fire danger days/yr. above national median.",
             "Review home and contents insurance for wildfire. Clear vegetation buffers.",
         ).to_dict())
 
-    # GNS Landslide Database (NZLD) — historical landslide events
+    # GNS Landslide Database (NZLD). historical landslide events
     ls_count = hazards.get("landslide_count_500m") or 0
     if ls_count >= 3:
         result["hazards"].append(Insight(
@@ -749,7 +884,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if "very high" in slope_failure:
         result["hazards"].append(Insight(
             "warn",
-            "Very High earthquake-induced landslide susceptibility — steep terrain in this area "
+            "Very High earthquake-induced landslide susceptibility. steep terrain in this area "
             "is highly prone to slope failure. Recent storms have caused significant slips "
             "across NZ in zones like this.",
             "Commission geotechnical assessment ($2,000-5,000). Check retaining walls, drainage, "
@@ -759,7 +894,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     elif "high" in slope_failure:
         result["hazards"].append(Insight(
             "warn",
-            "High landslide susceptibility — this area is prone to slope failure during earthquakes "
+            "High landslide susceptibility. this area is prone to slope failure during earthquakes "
             "and heavy rainfall events.",
             "During building inspection, specifically check retaining walls, subfloor drainage, and "
             "any evidence of ground movement. Request LIM for landslide/slip history on the property.",
@@ -767,14 +902,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     elif "medium" in slope_failure:
         result["hazards"].append(Insight(
             "info",
-            "Medium landslide susceptibility — moderate slope failure risk that increases during "
+            "Medium landslide susceptibility. moderate slope failure risk that increases during "
             "heavy rainfall and seismic events.",
             "Ask about drainage and retaining wall maintenance during inspection.",
         ).to_dict())
 
-    # ── Compound Hazard Rules (Section 2 — combinations the data supports) ───
+    # ── Compound Hazard Rules (Section 2. combinations the data supports) ───
 
-    # 2.1 — Compounding seismic vulnerability. A site that's both slope-prone AND
+    # 2.1. Compounding seismic vulnerability. A site that's both slope-prone AND
     # liquefaction-prone can fail two ways in a single quake; the geotech bill
     # to assess both is meaningfully higher than for either alone.
     _slope_high = "high" in slope_failure  # catches "high" and "very high"
@@ -787,13 +922,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if _slope_high and _liq_high:
         result["hazards"].append(Insight(
             "warn",
-            "Double seismic vulnerability — slope failure AND liquefaction are both rated High here. "
+            "Double seismic vulnerability. slope failure AND liquefaction are both rated High here. "
             "A single significant earthquake can trigger both ground-failure modes.",
             "Combined geotechnical + slope-stability assessment costs $5,000–$8,000, not the usual $2,000–$3,000. "
             "Get this BEFORE going unconditional, not after.",
         ).to_dict())
 
-    # 2.3 — Tsunami evacuation feasibility. Mapped tsunami zone is one signal;
+    # 2.3. Tsunami evacuation feasibility. Mapped tsunami zone is one signal;
     # being on low, flat ground with the nearest high ground far away is what
     # makes the evacuation window genuinely tight.
     _tsunami_signal = (
@@ -814,14 +949,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if _tsunami_signal and _coastal_cm_f is not None and _coastal_cm_f <= 300 and _terrain_elev_m_f is not None and _terrain_elev_m_f <= 5:
         result["hazards"].append(Insight(
             "warn",
-            f"Tsunami zone on low, flat ground — {int(_coastal_cm_f)}cm above MHWS, {_terrain_elev_m_f:.1f}m elevation. "
+            f"Tsunami zone on low, flat ground. {int(_coastal_cm_f)}cm above MHWS, {_terrain_elev_m_f:.1f}m elevation. "
             "A local tsunami gives 5–20 minutes' warning.",
-            "Walk the evacuation route to high ground (≥15m elevation) BEFORE you sign — at average walking pace, "
+            "Walk the evacuation route to high ground (≥15m elevation) BEFORE you sign. at average walking pace, "
             "every 100m of horizontal distance is roughly a minute lost from your evacuation budget. "
             "Long or strong shaking = move immediately, don't wait for the official alert.",
         ).to_dict())
 
-    # 2.10 — Saturated slope. A slope-prone site is materially more dangerous when
+    # 2.10. Saturated slope. A slope-prone site is materially more dangerous when
     # it also has a water source nearby (overland flow, depression, waterway) because
     # rainfall-saturated soil is the #1 NZ slip trigger (NZ Fire Service / GNS).
     _slope_med_or_high = ("medium" in slope_failure) or _slope_high
@@ -850,13 +985,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Slip-susceptible slope with surface water nearby ({_trigger_text}). "
             "Rainfall-saturated soil is the most common slip trigger in NZ.",
             "Geotech assessment should specifically cover subfloor drainage, cut-slope retaining walls, "
-            "and any geotextile treatments — ask the builder's report to document them. "
+            "and any geotextile treatments. ask the builder's report to document them. "
             "Recent NZ events (Auckland 2023, Cyclone Gabrielle) hit slopes like this hardest.",
         ).to_dict())
 
-    # ── Section 4 Gap Findings — silent fields now surfaced ────────────────
+    # ── Section 4 Gap Findings. silent fields now surfaced ────────────────
 
-    # §4-a — Landslide nearest: use rich metadata (trigger/date/severity/damage)
+    # §4-a. Landslide nearest: use rich metadata (trigger/date/severity/damage)
     # instead of just the count. The existing rule uses count only; a specific
     # 2022 Cyclone Gabrielle slip 300m away is a very different signal from a
     # 1956 minor rockfall.
@@ -896,11 +1031,11 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 result["hazards"].append(Insight(
                     "info",
                     f"{_trig_plain.capitalize()} landslide{_name_str} {int(_ln_dist)}m away{_year_str}.{_damage_str}",
-                    "Ask the builder's report to check for signs of ground movement on this property — "
+                    "Ask the builder's report to check for signs of ground movement on this property. "
                     "cracked paths, leaning retaining walls, doors that don't close properly.",
                 ).to_dict())
 
-    # §4-b — Legacy industrial area. Count ≥10 contaminated sites within 2km
+    # §4-b. Legacy industrial area. Count ≥10 contaminated sites within 2km
     # means this is a historic industrial / commercial area, not just a single
     # point source. Matters for soil-disturbance rules (NES-CS) on any earthworks.
     _contam_count_2km = env.get("contam_count_2km")
@@ -911,12 +1046,12 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if _contam_count_2km_i >= 10:
         result["environment"].append(Insight(
             "info",
-            f"{_contam_count_2km_i} historically contaminated sites within 2km — this is a legacy industrial or commercial area.",
+            f"{_contam_count_2km_i} historically contaminated sites within 2km. this is a legacy industrial or commercial area.",
             "Even if your site is clean, the national NES-CS rules on soil disturbance apply to any earthworks "
             "(vegetable gardens, trenching, foundation work). A Preliminary Site Investigation may be required.",
         ).to_dict())
 
-    # §4-c — Height zoning permits significant intensification. ≥18m = ~6 storeys,
+    # §4-c. Height zoning permits significant intensification. ≥18m = ~6 storeys,
     # which means neighbouring sites can redevelop with material loss of outlook,
     # sun, and privacy. Relevant to both personas over a 5-10 year hold.
     _max_h = planning.get("max_height_m")
@@ -930,22 +1065,22 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Zoning permits buildings up to {_max_h_f:.0f}m ({_storeys} storeys) on this site and on neighbouring sites.",
             "Over a 5-10 year hold, neighbour redevelopment can materially change outlook, sun access, and privacy. "
-            "Check the district/unitary plan overlays — heritage or character precinct protection will push the realistic limit lower.",
+            "Check the district/unitary plan overlays. heritage or character precinct protection will push the realistic limit lower.",
         ).to_dict())
 
-    # §4-d — GWRC-flagged erosion-prone land. When true, the slope is categorised
+    # §4-d. GWRC-flagged erosion-prone land. When true, the slope is categorised
     # as too steep for standard building without specific engineering.
     if hazards.get("on_erosion_prone_land"):
         _min_angle = hazards.get("erosion_min_angle")
         _angle_str = f" (mapped as ≥{_min_angle}° slope)" if _min_angle else ""
         result["hazards"].append(Insight(
             "warn",
-            f"On erosion-prone land{_angle_str} — slope is steep enough that standard building consent may not apply.",
+            f"On erosion-prone land{_angle_str}. slope is steep enough that standard building consent may not apply.",
             "Any new structures, additions, or significant earthworks will likely require a slope stability report. "
             "Existing structures: check the LIM for any engineering consent notices on the title.",
         ).to_dict())
 
-    # §4-e — Coastal inundation scenario. Ranking High = within council-mapped
+    # §4-e. Coastal inundation scenario. Ranking High = within council-mapped
     # inundation zone under a future-climate sea-level rise scenario (+1m to +1.5m
     # depending on council). Material for insurance availability over a long hold.
     _cin_rank = str(hazards.get("coastal_inundation_ranking") or "").strip()
@@ -955,15 +1090,15 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         result["hazards"].append(Insight(
             "warn",
             f"Within council-mapped coastal inundation zone under a future sea-level rise scenario{_scen_note}.",
-            "This isn't today's flood risk — it's the projected reach of storm-surge flooding by mid-century under "
+            "This isn't today's flood risk. it's the projected reach of storm-surge flooding by mid-century under "
             "worst-case sea-level rise. Insurers are progressively tightening cover in mapped zones; ask your insurer "
             "about their coastal hazard policy before going unconditional.",
         ).to_dict())
 
-    # §2.15 — Site-value signal. When improvements are a very small share of CV,
+    # §2.15. Site-value signal. When improvements are a very small share of CV,
     # this property is priced as land. Next buyers will likely be redevelopers,
     # which affects both negotiating position and expected holding behaviour.
-    # Intentionally neutral wording — a character-cottage owner-occupier isn't
+    # Intentionally neutral wording. a character-cottage owner-occupier isn't
     # "wrong" to buy here, they just should know the market context.
     _imp_val = prop.get("improvements_value")
     _cv_val = prop.get("capital_value")
@@ -976,14 +1111,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         _ratio_pct = int((_imp_f / _cv_f) * 100)
         result["market"].append(Insight(
             "info",
-            f"Building improvements are only {_ratio_pct}% of the ${int(_cv_f):,} capital value — "
+            f"Building improvements are only {_ratio_pct}% of the ${int(_cv_f):,} capital value. "
             "this property is priced as land rather than as a house.",
             "Most likely next buyers will be redevelopers. That affects how aggressively you should negotiate "
             "building condition issues, and the realistic hold is until the land story plays out rather than "
             "until the house needs its next kitchen.",
         ).to_dict())
 
-    # §2.17 — Thin rental market with rising rents. Renter-relevant: hard to
+    # §2.17. Thin rental market with rising rents. Renter-relevant: hard to
     # benchmark rent increases in SA2s with few active bonds. Apply a minimum-
     # sample guard (bonds ≥10) to avoid false positives in tiny SA2s.
     _rental_list_s2 = market.get("rental_overview") or []
@@ -1011,12 +1146,12 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     ):
         result["market"].append(Insight(
             "info",
-            f"Thin rental market here — only {_bonds_i} active bonds in this suburb — with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
+            f"Thin rental market here. only {_bonds_i} active bonds in this suburb. with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
             "Thin markets are harder to benchmark. If your landlord proposes a rent increase, keep TradeMe and "
-            "realestate.co.nz listings for comparable properties — you'll need them to dispute or negotiate.",
+            "realestate.co.nz listings for comparable properties. you'll need them to dispute or negotiate.",
         ).to_dict())
 
-    # §2.20 — Rates trajectory. Council rates are CV-linked. When area values
+    # §2.20. Rates trajectory. Council rates are CV-linked. When area values
     # have risen sharply, rates bills rise too at the next revaluation cycle.
     # Softer wording than the original brief ("20-40%") because the actual
     # ratepayer impact depends on council-specific rating policies.
@@ -1028,7 +1163,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if _cv_f is not None and _cagr_5_f is not None and _cagr_5_f >= 5:
         result["market"].append(Insight(
             "info",
-            f"Area rental values rose {_cagr_5_f:.1f}%/yr over 5 years — well above rates-reset triggers.",
+            f"Area rental values rose {_cagr_5_f:.1f}%/yr over 5 years. well above rates-reset triggers.",
             "Council rates are linked to the capital value. When the whole area appreciates, the next triennial "
             "revaluation typically pushes rates bills up noticeably (often well beyond CPI). Budget for rates to "
             "climb, not stay flat, over your hold.",
@@ -1042,7 +1177,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         geo_str = f" Built on **{geology}**." if geology else ""
         result["hazards"].append(Insight(
             "warn",
-            f"High ground shaking amplification zone — earthquake shaking is amplified here.{geo_str}",
+            f"High ground shaking amplification zone. earthquake shaking is amplified here.{geo_str}",
             "Older buildings (pre-1976) are most at risk. Ask about seismic strengthening history. "
             "Modern foundations designed for amplification zones perform significantly better.",
         ).to_dict())
@@ -1051,8 +1186,8 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if "fill" in gwrc_geology or "reclaimed" in gwrc_geology:
         result["hazards"].append(Insight(
             "warn",
-            "Built on reclaimed/fill land — very high liquefaction and ground deformation risk.",
-            "Commission geotechnical assessment. Check foundation type — raft/deep pile foundations "
+            "Built on reclaimed/fill land. very high liquefaction and ground deformation risk.",
+            "Commission geotechnical assessment. Check foundation type. raft/deep pile foundations "
             "perform best on fill. Review EQC claim history. Insurance excesses may be higher.",
         ).to_dict())
 
@@ -1061,12 +1196,12 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         ranking = hazards.get("fault_zone_ranking") or "mapped"
         result["hazards"].append(Insight(
             "warn",
-            f"Within **{fault_name}** fault zone (ranking: {ranking}) — risk of surface rupture.",
+            f"Within **{fault_name}** fault zone (ranking: {ranking}). risk of surface rupture.",
             "District Plan rules restrict building in fault avoidance zones. Check if resource consent "
             "is required for modifications. Surface rupture cannot be mitigated by building design.",
         ).to_dict())
     else:
-        # GNS national active fault — falls back when no council-specific fault_zone_name is set
+        # GNS national active fault. falls back when no council-specific fault_zone_name is set
         af = hazards.get("active_fault_nearest")
         if isinstance(af, dict) and af.get("name") and af.get("distance_m") is not None:
             try:
@@ -1085,8 +1220,8 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             if af_dist is not None and af_dist <= 200 and af_slip is not None and af_slip >= 1.0:
                 result["hazards"].append(Insight(
                     "warn",
-                    f"Within 200m of the **{af['name']}** active fault (slip rate {af_slip} mm/yr) — direct surface-rupture risk.",
-                    "Fault rupture can cause 1–6m of ground offset — not mitigable by building design. "
+                    f"Within 200m of the **{af['name']}** active fault (slip rate {af_slip} mm/yr). direct surface-rupture risk.",
+                    "Fault rupture can cause 1–6m of ground offset. not mitigable by building design. "
                     "Check the title for any fault-avoidance consent notice and confirm MBIE/GNS setback compliance before offer.",
                 ).to_dict())
             elif af_dist is not None and af_dist <= 2000:
@@ -1095,7 +1230,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     "info",
                     f"Nearest active fault: **{af['name']}**, {af_dist_str} away.{slip_str}",
                     "Proximity to an active fault raises expected earthquake shaking at this site. "
-                    "Modern code-compliant design mitigates this — verify the building consent file and any seismic assessments.",
+                    "Modern code-compliant design mitigates this. verify the building consent file and any seismic assessments.",
                 ).to_dict())
 
     wcc_tsunami = hazards.get("wcc_tsunami_return_period")
@@ -1128,13 +1263,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if solar_kwh >= 1200:
             result["environment"].append(Insight(
                 "ok",
-                f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr — above average. Solar panels viable.",
+                f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr. above average. Solar panels viable.",
                 "",
             ).to_dict())
         elif solar_kwh < 800:
             result["environment"].append(Insight(
                 "info",
-                f"Low solar exposure: {solar_kwh:.0f} kWh/m²/yr — expect higher heating costs and less natural light in winter.",
+                f"Low solar exposure: {solar_kwh:.0f} kWh/m²/yr. expect higher heating costs and less natural light in winter.",
                 "Check north-facing window area. Passive solar design matters more in low-sun locations.",
             ).to_dict())
 
@@ -1187,7 +1322,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     elif "moderate" in ls_rating or "medium" in ls_rating:
         result["hazards"].append(Insight(
             "info",
-            "Moderate landslide susceptibility — some slope instability risk during heavy rain or earthquakes.",
+            "Moderate landslide susceptibility. some slope instability risk during heavy rain or earthquakes.",
             "Check retaining wall condition and drainage during inspection.",
         ).to_dict())
 
@@ -1198,7 +1333,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         hazard_str = f" Nearest report flags: **{nearest_hazard}**." if nearest_hazard else ""
         result["hazards"].append(Insight(
             "info",
-            f"{geotech_count} geotechnical reports filed within 500m — this area has known ground issues.{hazard_str}",
+            f"{geotech_count} geotechnical reports filed within 500m. this area has known ground issues.{hazard_str}",
             "Request copies of relevant geotech reports from the council. Previous investigations can save you thousands.",
         ).to_dict())
 
@@ -1206,7 +1341,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if hazards.get("overland_flow_within_50m"):
         result["hazards"].append(Insight(
             "info",
-            "Overland flow path within 50m — surface water may flow through or near this property during heavy rain.",
+            "Overland flow path within 50m. surface water may flow through or near this property during heavy rain.",
             "Check ground levels, drainage, and whether the building floor is raised above surrounding grade.",
         ).to_dict())
 
@@ -1221,7 +1356,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "warn",
                 f"Coastal erosion projection within {int(dist)}m"
                 + (f" (timeframe: {tf}yr)" if tf else "")
-                + (f" — {scenario}" if scenario else "") + ".",
+                + (f". {scenario}" if scenario else "") + ".",
                 "Review coastal hazard assessment before purchase. Erosion may affect insurance and resale value.",
             ).to_dict())
 
@@ -1253,7 +1388,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             if cm <= 50:
                 result["hazards"].append(Insight(
                     "warn",
-                    f"Property is only {cm:.0f}cm above mean high water springs — very low coastal elevation.",
+                    f"Property is only {cm:.0f}cm above mean high water springs. very low coastal elevation.",
                     "High risk of coastal inundation during storm surges. Check insurance and future sea level rise projections.",
                 ).to_dict())
             elif cm <= 150:
@@ -1272,7 +1407,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         result["hazards"].append(Insight(
             "warn" if fe_aep in ("2%", "1%") else "info",
             f"Within regional flood extent ({fe_aep} AEP)"
-            + (f" — {fe_label}" if fe_label else "") + ".",
+            + (f". {fe_label}" if fe_label else "") + ".",
             "Annual Exceedance Probability indicates likelihood of flooding in any given year. Check floor levels.",
         ).to_dict())
 
@@ -1301,7 +1436,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         result["planning"].append(Insight(
             "info",
             f"Within a **Significant Ecological Area** ({name})"
-            + (f" — {eco_type}" if eco_type else "") + ".",
+            + (f". {eco_type}" if eco_type else "") + ".",
             "Vegetation removal, earthworks, and building may require ecological assessment and resource consent.",
         ).to_dict())
 
@@ -1319,7 +1454,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if nt_count > 0:
         result["planning"].append(Insight(
             "info",
-            f"{nt_count} notable/scheduled tree{'s' if nt_count != 1 else ''} within 50m — protected under the district/unitary plan.",
+            f"{nt_count} notable/scheduled tree{'s' if nt_count != 1 else ''} within 50m. protected under the district/unitary plan.",
             "Removal or significant pruning requires resource consent. Root protection zones may restrict building.",
         ).to_dict())
 
@@ -1341,7 +1476,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             if d <= 300:
                 result["liveability"].append(Insight(
                     "ok",
-                    f"**{park_name}** is just {int(d)}m away — excellent green space access.",
+                    f"**{park_name}** is just {int(d)}m away. excellent green space access.",
                     "",
                 ).to_dict())
             elif d <= 800:
@@ -1366,7 +1501,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         depth_str = f" ({abs(depression_depth):.1f}m below surrounding terrain)" if depression_depth else ""
         result["hazards"].append(Insight(
             "warn" if flood_terrain in ("high", "moderate") else "info",
-            f"This property sits in a natural low point{depth_str} — water may collect here during heavy rain.",
+            f"This property sits in a natural low point{depth_str}. water may collect here during heavy rain.",
             "Check for signs of past ponding (staining on foundations, soft ground). Ensure stormwater "
             "drainage is adequate and not relying solely on soakage. Ask the council about overland flow paths.",
         ).to_dict())
@@ -1377,7 +1512,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         elev_str = f" at {elev:.0f}m elevation" if elev else ""
         result["hazards"].append(Insight(
             "info",
-            f"Flat, low-lying terrain{elev_str} with limited natural drainage — terrain suggests flood susceptibility.",
+            f"Flat, low-lying terrain{elev_str} with limited natural drainage. terrain suggests flood susceptibility.",
             "No council flood zone is mapped here, but flat low-lying ground is inherently vulnerable to "
             "surface flooding. Check floor levels relative to surrounding ground and nearest waterways.",
         ).to_dict())
@@ -1386,7 +1521,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if wind_exp == "very_exposed":
         result["hazards"].append(Insight(
             "warn",
-            f"{'Hilltop' if rel_pos == 'hilltop' else 'Ridgeline'} position — expect significantly "
+            f"{'Hilltop' if rel_pos == 'hilltop' else 'Ridgeline'} position. expect significantly "
             "stronger winds, especially from the prevailing westerly/northwesterly direction.",
             "Check roof fixings and cladding meet wind zone requirements. BRANZ recommends specific "
             "detailing for exposed sites. Budget for higher maintenance on external finishes.",
@@ -1394,7 +1529,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     elif wind_exp == "exposed":
         result["hazards"].append(Insight(
             "info",
-            "Elevated, exposed site — wind speeds are likely above average for this area.",
+            "Elevated, exposed site. wind speeds are likely above average for this area.",
             "Consider wind when planning outdoor spaces. Check cladding and roof condition during inspection.",
         ).to_dict())
 
@@ -1402,11 +1537,11 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if wind_exp == "sheltered" and rel_pos in ("depression", "valley"):
         result["liveability"].append(Insight(
             "ok",
-            f"Naturally sheltered {'valley' if rel_pos == 'valley' else 'low-lying'} position — wind exposure is low.",
+            f"Naturally sheltered {'valley' if rel_pos == 'valley' else 'low-lying'} position. wind exposure is low.",
             "",
         ).to_dict())
 
-    # Aspect / solar orientation — only meaningful when the site has slope.
+    # Aspect / solar orientation. only meaningful when the site has slope.
     # In NZ (southern hemisphere) north-facing captures winter sun; south-facing is shaded.
     aspect_label = terrain.get("aspect_label")
     slope_deg = terrain.get("slope_degrees")
@@ -1418,13 +1553,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if aspect_label in ("north", "northeast", "northwest"):
             result["liveability"].append(Insight(
                 "ok",
-                f"{aspect_label.capitalize()}-facing slope — captures winter sun, warmer and drier interiors, solar panels perform well.",
+                f"{aspect_label.capitalize()}-facing slope. captures winter sun, warmer and drier interiors, solar panels perform well.",
                 "",
             ).to_dict())
         elif aspect_label in ("south", "southeast", "southwest"):
             result["liveability"].append(Insight(
                 "info",
-                f"{aspect_label.capitalize()}-facing slope — limited winter sun. Heating costs typically 10–20% higher than a north-facing equivalent.",
+                f"{aspect_label.capitalize()}-facing slope. limited winter sun. Heating costs typically 10–20% higher than a north-facing equivalent.",
                 "Confirm heating capacity is adequate for the main living area and that bedrooms have ventilation. "
                 "South-facing sites need good insulation and moisture control to avoid mould in winter.",
             ).to_dict())
@@ -1440,7 +1575,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         name_str = f" (**{waterway_name}**)" if waterway_name else ""
         result["hazards"].append(Insight(
             "warn",
-            f"A {type_label}{name_str} is just {waterway_m}m away — very close proximity increases flood risk.",
+            f"A {type_label}{name_str} is just {waterway_m}m away. very close proximity increases flood risk.",
             "Check floor levels relative to the waterway. Ask the council about flood history for this "
             "specific location. Ensure building and contents insurance covers riverine flooding.",
         ).to_dict())
@@ -1448,14 +1583,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         name_str = f" ({waterway_name})" if waterway_name else ""
         result["hazards"].append(Insight(
             "info",
-            f"{type_label.capitalize()}{name_str} within {waterway_m}m — proximity to waterways increases flood exposure.",
+            f"{type_label.capitalize()}{name_str} within {waterway_m}m. proximity to waterways increases flood exposure.",
             "Properties near waterways face higher flood risk during heavy rain. Check council flood maps "
             "and whether the property has flooded before.",
         ).to_dict())
     elif waterway_m is not None and waterway_m <= 200 and waterway_count >= 2:
         result["hazards"].append(Insight(
             "info",
-            f"{waterway_count} waterways within 500m, nearest {waterway_m}m away — moderate proximity to water.",
+            f"{waterway_count} waterways within 500m, nearest {waterway_m}m away. moderate proximity to water.",
             "Multiple nearby waterways increase flood exposure during extreme rainfall events.",
         ).to_dict())
 
@@ -1481,13 +1616,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         result["hazards"].append(Insight(
             "info",
             f"{total_weather} extreme weather events recorded within 50km in the last 5 years.",
-            "Review property for weather resilience — drainage, roof condition, and tree proximity.",
+            "Review property for weather resilience. drainage, roof condition, and tree proximity.",
         ).to_dict())
 
     if worst_rain and worst_rain >= 80:
         result["hazards"].append(Insight(
             "warn" if worst_rain >= 120 else "info",
-            f"Heaviest recorded rainfall nearby: {worst_rain:.0f}mm in a single event — "
+            f"Heaviest recorded rainfall nearby: {worst_rain:.0f}mm in a single event. "
             + ("extreme" if worst_rain >= 120 else "very heavy") + " for NZ conditions.",
             "Intense rainfall events overwhelm stormwater systems. Check the property's "
             "drainage capacity and whether the floor level is raised above surrounding ground.",
@@ -1497,7 +1632,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         mag_str = f", largest M{largest_quake:.1f}" if largest_quake else ""
         result["hazards"].append(Insight(
             "warn" if quake_count >= 10 else "info",
-            f"{quake_count} earthquakes M4+ within 30km in the last 10 years{mag_str} — seismically active area.",
+            f"{quake_count} earthquakes M4+ within 30km in the last 10 years{mag_str}. seismically active area.",
             "Check the building's earthquake resilience. Older buildings (pre-1976) may not meet "
             "current seismic standards. Review EQC claim history via LIM.",
         ).to_dict())
@@ -1523,26 +1658,26 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if noise_db is not None:
         if noise_db >= 65:
             action = (
-                "Visit at peak traffic. Ask about glazing — double/triple glazing reduces noise significantly."
+                "Visit at peak traffic. Ask about glazing. double/triple glazing reduces noise significantly."
                 + (" **If multi-unit: higher floors may be meaningfully quieter; ask which floor.**" if is_multi_unit else "")
             )
             result["environment"].append(Insight(
                 "warn",
-                f"{noise_db:.0f} dB — equivalent to a busy restaurant. Audible indoors with standard windows.",
+                f"{noise_db:.0f} dB. equivalent to a busy restaurant. Audible indoors with standard windows.",
                 action,
                 source=_src("nzta_noise"),
             ).to_dict())
         elif noise_db >= 55:
             result["environment"].append(Insight(
                 "info",
-                f"{noise_db:.0f} dB — moderate road noise, similar to a conversational voice at close range.",
-                "Consider room orientation — bedrooms away from the road will be quieter.",
+                f"{noise_db:.0f} dB. moderate road noise, similar to a conversational voice at close range.",
+                "Consider room orientation. bedrooms away from the road will be quieter.",
                 source=_src("nzta_noise"),
             ).to_dict())
         elif noise_db < 45:
             result["environment"].append(Insight(
                 "ok",
-                f"{noise_db:.0f} dB — quiet. Well below WHO recommended 53 dB outdoor residential limit.",
+                f"{noise_db:.0f} dB. quiet. Well below WHO recommended 53 dB outdoor residential limit.",
                 "",
             ).to_dict())
 
@@ -1564,7 +1699,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if water_band and str(water_band).upper() in ("D", "E"):
         result["environment"].append(Insight(
             "warn",
-            f"Nearest water monitoring site rated {water_band} for E.coli — below NPS-FM standards.",
+            f"Nearest water monitoring site rated {water_band} for E.coli. below NPS-FM standards.",
             "Surface water only, not drinking water. If property has bore water, test before use.",
             source=_src("lawa_water"),
         ).to_dict())
@@ -1581,8 +1716,8 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         cat_exp = ANZECC_EXPLANATIONS.get(str(cat).upper(), "")
         count_2km = env.get("contam_count_2km")
         count_str = f" {count_2km} contaminated sites within 2km." if count_2km is not None else ""
-        cat_str = f" (ANZECC Category {cat} — {cat_exp})" if cat and cat_exp else ""
-        # Severity tracks the ANZECC hazard class used in risk_score.py:98 — Cat A
+        cat_str = f" (ANZECC Category {cat}. {cat_exp})" if cat and cat_exp else ""
+        # Severity tracks the ANZECC hazard class used in risk_score.py:98. Cat A
         # covers chemical/refuelling/metal-extraction/explosives sites, which carry
         # real groundwater-plume and soil-disturbance risk. Cat D (cemetery, general
         # waste) is almost always regulatory listing only.
@@ -1633,7 +1768,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if climate_change is not None and climate_change >= 2.0:
         result["environment"].append(Insight(
             "info",
-            f"+{climate_change:.1f}°C projected warming 2041–2060 (SSP2-4.5) — warmer winters, higher summer cooling loads.",
+            f"+{climate_change:.1f}°C projected warming 2041–2060 (SSP2-4.5). warmer winters, higher summer cooling loads.",
             "Review home insulation rating.",
             source=_src("niwa_climate"),
         ).to_dict())
@@ -1650,14 +1785,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if nzdep >= 8:
             result["liveability"].append(Insight(
                 "warn",
-                f"NZDep decile {nzdep}/10 — among the 30% most deprived NZ areas (2018 index covering income, employment, qualifications, access).",
+                f"NZDep decile {nzdep}/10. among the 30% most deprived NZ areas (2018 index covering income, employment, qualifications, access).",
                 "Decile does not reflect gentrification since 2018. Visit at different times to assess character.",
                 source=_src("nzdep"),
             ).to_dict())
         elif nzdep <= 3:
             result["liveability"].append(Insight(
                 "ok",
-                f"NZDep decile {nzdep}/10 — among the least deprived areas in NZ.",
+                f"NZDep decile {nzdep}/10. among the least deprived areas in NZ.",
                 "",
                 source=_src("nzdep"),
             ).to_dict())
@@ -1675,15 +1810,15 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             median_str = f" City median: {crime_median} victimisations." if crime_median else ""
             result["liveability"].append(Insight(
                 "warn",
-                f"{crime_pct:.0f}th percentile for crime victimisations — higher than {crime_pct:.0f}% of {city} areas.{median_str}",
-                "Check the specific crime categories — property crime and violent crime have different implications for insurance vs personal safety.",
+                f"{crime_pct:.0f}th percentile for crime victimisations. higher than {crime_pct:.0f}% of {city} areas.{median_str}",
+                "Check the specific crime categories. property crime and violent crime have different implications for insurance vs personal safety.",
                 source=_src("nz_police_crime"),
             ).to_dict())
         elif crime_pct >= 50:
             median_str = f" City median: {crime_median}." if crime_median else ""
             result["liveability"].append(Insight(
                 "info",
-                f"{crime_pct:.0f}th percentile — above {city} median for crime victimisations.{median_str}",
+                f"{crime_pct:.0f}th percentile. above {city} median for crime victimisations.{median_str}",
                 "",
                 source=_src("nz_police_crime"),
             ).to_dict())
@@ -1718,18 +1853,18 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if transit <= 2:
             result["liveability"].append(Insight(
                 "info",
-                f"Only {transit} transit stop{'s' if transit != 1 else ''} within 400m — car-dependent location.",
+                f"Only {transit} transit stop{'s' if transit != 1 else ''} within 400m. car-dependent location.",
                 "Factor in vehicle running costs. Check bus frequency before committing if car-free.",
             ).to_dict())
         elif transit >= 10 and (peak_trips is None or peak_trips >= 6):
             peak_str = f" Peak service: {int(peak_trips)} trips/hour." if peak_trips is not None else ""
             result["liveability"].append(Insight(
                 "ok",
-                f"{transit} public transport stops within 400m — excellent transit access.{peak_str}",
+                f"{transit} public transport stops within 400m. excellent transit access.{peak_str}",
                 "",
             ).to_dict())
         elif transit >= 5 and peak_trips is not None and peak_trips <= 3:
-            # Many stops, sparse services — the count-only rule reads "excellent"
+            # Many stops, sparse services. the count-only rule reads "excellent"
             # and mis-sells the commute. Surface the frequency caveat explicitly.
             result["liveability"].append(Insight(
                 "info",
@@ -1748,13 +1883,13 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if train_dist is not None and train_dist <= 500:
             result["liveability"].append(Insight(
                 "ok",
-                f"Train station ({train_name}) is {int(train_dist)}m — strong commuter connectivity.",
+                f"Train station ({train_name}) is {int(train_dist)}m. strong commuter connectivity.",
                 "",
             ).to_dict())
 
-    # 2.19 — Healthcare desert. Both GP and pharmacy ≥2km is a real daily-life
+    # 2.19. Healthcare desert. Both GP and pharmacy ≥2km is a real daily-life
     # tax for elderly, daily-medication users, families, and car-free households.
-    # Existing gp_far rule fires on GP distance only — combining with pharmacy
+    # Existing gp_far rule fires on GP distance only. combining with pharmacy
     # makes the message specific (it's not just "no GP", it's "no healthcare").
     _gp = live.get("nearest_gp")
     _ph = live.get("nearest_pharmacy")
@@ -1773,7 +1908,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if _gp_dist_m is not None and _gp_dist_m >= 2000 and _ph_dist_m is not None and _ph_dist_m >= 2000:
         result["liveability"].append(Insight(
             "info",
-            f"Healthcare 20+ minutes' walk away — nearest GP {int(_gp_dist_m)}m, nearest pharmacy {int(_ph_dist_m)}m.",
+            f"Healthcare 20+ minutes' walk away. nearest GP {int(_gp_dist_m)}m, nearest pharmacy {int(_ph_dist_m)}m.",
             "Daily medication users, elderly, and car-free households should plan for pharmacy delivery services "
             "and confirm GP enrolment is open at your nearest practice (some are capped).",
         ).to_dict())
@@ -1809,34 +1944,34 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             if yield_pct >= 5:
                 result["market"].append(Insight(
                     "ok",
-                    f"Indicative gross yield: {yield_pct}% — above NZ metro average (~3.5–4%).",
+                    f"Indicative gross yield: {yield_pct}%. above NZ metro average (~3.5–4%).",
                     "",
                 ).to_dict())
             elif yield_pct < 3:
                 result["market"].append(Insight(
                     "info",
-                    f"Indicative gross yield: {yield_pct}% — below typical NZ metro averages. Elevated price-to-rent ratio.",
+                    f"Indicative gross yield: {yield_pct}%. below typical NZ metro averages. Elevated price-to-rent ratio.",
                     "",
                 ).to_dict())
 
         if yoy_pct is not None and yoy_pct >= 5:
             result["market"].append(Insight(
                 "info",
-                f"Rents rising {yoy_pct:+.1f}% year-on-year — above general inflation.",
+                f"Rents rising {yoy_pct:+.1f}% year-on-year. above general inflation.",
                 "Buyers: rising rents support yield. Renters: factor likely increase on renewal.",
             ).to_dict())
 
         if cagr_5yr is not None and cagr_5yr >= 4:
             result["market"].append(Insight(
                 "info",
-                f"{cagr_5yr:.1f}% annualised rental growth over 5 years — ahead of CPI.",
+                f"{cagr_5yr:.1f}% annualised rental growth over 5 years. ahead of CPI.",
                 "",
             ).to_dict())
 
-        # 2.13 — Supply relief. When yoy_pct is rising AND there's significant
+        # 2.13. Supply relief. When yoy_pct is rising AND there's significant
         # construction pipeline nearby, rent pressure should ease as units land.
         # The only positive market signal we currently produce for the renter
-        # persona — important for retention.
+        # persona. important for retention.
         _consents_count = planning.get("resource_consents_500m_2yr")
         try:
             _consents_count_i = int(_consents_count) if _consents_count is not None else 0
@@ -1845,8 +1980,8 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if yoy_pct is not None and yoy_pct >= 5 and _consents_count_i >= 15:
             result["market"].append(Insight(
                 "ok",
-                f"Rents rising {yoy_pct:+.1f}% YoY, but {_consents_count_i} resource consents granted within 500m in 2 years — significant new supply pipeline.",
-                "Renters: expect rent pressure to ease as units land — useful leverage at your next renewal. "
+                f"Rents rising {yoy_pct:+.1f}% YoY, but {_consents_count_i} resource consents granted within 500m in 2 years. significant new supply pipeline.",
+                "Renters: expect rent pressure to ease as units land. useful leverage at your next renewal. "
                 "Buyers: short-term construction disruption, medium-term amenity uplift; weigh the timing.",
             ).to_dict())
 
@@ -1869,7 +2004,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if planning.get("is_heritage_listed"):
         result["planning"].append(Insight(
             "info",
-            "Heritage-listed — external alterations and demolition require resource consent.",
+            "Heritage-listed. external alterations and demolition require resource consent.",
             "Review the District Plan schedule entry for protected features.",
         ).to_dict())
 
@@ -1882,7 +2017,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if trans_dist is not None and trans_dist <= 100:
         result["planning"].append(Insight(
             "warn",
-            f"High-voltage transmission line {int(trans_dist)}m away — easement may restrict development.",
+            f"High-voltage transmission line {int(trans_dist)}m away. easement may restrict development.",
             "Confirm easement in title. Some lenders restrict LVR on properties near lines.",
         ).to_dict())
 
@@ -1895,7 +2030,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     if consents is not None and consents >= 10:
         result["planning"].append(Insight(
             "info",
-            f"{consents} resource consents granted within 500m in 2 years — active development area.",
+            f"{consents} resource consents granted within 500m in 2 years. active development area.",
             "Check WCC consent portal for project types. Nearby construction may affect short-term liveability.",
         ).to_dict())
 
@@ -2000,7 +2135,7 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     heritage_count = _int(planning.get("heritage_count_500m"))
     footprint = _float(prop.get("building_footprint_sqm"))
 
-    # Contamination severity note — tracks the ANZECC hazard class used in
+    # Contamination severity note. tracks the ANZECC hazard class used in
     # risk_score.py:98. Cat A (chemical/refuelling/metal/explosives) is the only
     # class that typically triggers a mandatory Phase-1 ESA for lenders.
     _contam_name_lower = str(env.get("contam_nearest_name") or "").lower()
@@ -2022,14 +2157,14 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     elif _is_cemetery_waste:
         contam_severity_note = (
             "This is a low-hazard register entry (cemetery or closed landfill). "
-            "These rarely have active soil or groundwater exposure. Informational — LIM check is usually sufficient."
+            "These rarely have active soil or groundwater exposure. Informational. LIM check is usually sufficient."
         )
     else:
         contam_severity_note = (
             "Severity depends on the historic land use. Treat as moderate hazard until the Phase-1 ESA clarifies."
         )
 
-    # Climate precipitation projection — used in flood_minor rec so users see
+    # Climate precipitation projection. used in flood_minor rec so users see
     # how the rainfall-intensity trajectory reshapes a low-probability flood zone.
     # Value is % change in annual precipitation by 2041-2060 (SSP2-4.5) and is
     # genuinely bidirectional in NZ: northern/eastern sites dry slightly, southern/
@@ -2039,21 +2174,21 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     if climate_precip_pct is not None and climate_precip_pct >= 5:
         climate_precip_line = (
             f"Climate projections for this area show annual rainfall rising {climate_precip_pct:.0f}% by 2041-2060 "
-            f"(SSP2-4.5) — at that trajectory, today's 0.2% AEP zone is projected to behave like a 0.5-1% AEP zone "
+            f"(SSP2-4.5). at that trajectory, today's 0.2% AEP zone is projected to behave like a 0.5-1% AEP zone "
             f"within 20-30 years. Reclassification affects insurance and lender treatment."
         )
     elif climate_precip_pct is not None and climate_precip_pct <= -5:
         climate_precip_line = (
             f"Climate projections for this area show annual rainfall falling {abs(climate_precip_pct):.0f}% by 2041-2060 "
             f"(SSP2-4.5). Overall drying reduces average-year flood risk, but extreme storm intensity can still rise "
-            f"independently — don't treat this as a safety margin."
+            f"independently. don't treat this as a safety margin."
         )
     else:
-        # Small or null precipitation change — skip the climate line entirely rather
+        # Small or null precipitation change. skip the climate line entirely rather
         # than print a misleading "0% change" sentence.
         climate_precip_line = ""
 
-    # Wildfire trend — 'Likely increasing' / 'Very likely increasing' / etc.
+    # Wildfire trend. 'Likely increasing' / 'Very likely increasing' / etc.
     # Skip entirely when raw is missing rather than emit "No wildfire trend data"
     # as a faux-confident bullet in the rec.
     wildfire_trend_raw = hazards.get("wildfire_trend")
@@ -2063,7 +2198,7 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     else:
         wildfire_trend_line = ""
 
-    # 3.1 — Active fault detail line for earthquake_moderate rec. Names the
+    # 3.1. Active fault detail line for earthquake_moderate rec. Names the
     # fault and gives slip rate so users see WHICH fault and HOW active.
     _af = hazards.get("active_fault_nearest")
     if isinstance(_af, dict) and _af.get("name") and _af.get("distance_m") is not None:
@@ -2079,13 +2214,13 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         _af_slip_str = f", slip rate {_af_slip} mm/yr" if _af_slip is not None else ""
         active_fault_line = (
             f"Nearest active fault: {_af['name']}, {_af_dist_str} away{_af_slip_str}. "
-            f"Modern code-compliant design mitigates fault-driven shaking — "
+            f"Modern code-compliant design mitigates fault-driven shaking. "
             f"verify the original consent file and any seismic assessments on record."
         )
     else:
         active_fault_line = ""
 
-    # 3.3 — Crime context line. Reader-friendly comparison instead of a percentile.
+    # 3.3. Crime context line. Reader-friendly comparison instead of a percentile.
     _crime_vics = live.get("crime_victimisations")
     _crime_med = live.get("crime_city_median_vics") or live.get("crime_city_median")
     try:
@@ -2097,13 +2232,13 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         _crime_ratio = _crime_vics_f / _crime_med_f
         crime_vics_line = (
             f"{int(_crime_vics_f)} recorded victimisations in this area unit vs the city median of "
-            f"{int(_crime_med_f)} — that's {_crime_ratio:.1f}× the city norm. NZ Police crime maps "
+            f"{int(_crime_med_f)}. that's {_crime_ratio:.1f}× the city norm. NZ Police crime maps "
             f"at police.govt.nz/statistics break this into property vs violent crime."
         )
     else:
         crime_vics_line = ""
 
-    # 3.7 — HPI sales volume + 5yr CAGR context for yield_low rec. Yield alone
+    # 3.7. HPI sales volume + 5yr CAGR context for yield_low rec. Yield alone
     # under-prices the capital-gain assumption; pair it with growth + sales to
     # show the real return picture.
     _hpi_latest = (market.get("hpi_latest") or {}) if isinstance(market.get("hpi_latest"), dict) else {}
@@ -2118,13 +2253,13 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         _sales_str = f" (national sales volume last quarter: {int(_hpi_sales):,})" if _hpi_sales else ""
         hpi_sales_line = (
             f"5-year rental growth in this area averaged {_cagr_5:.1f}%/yr{_sales_str}. "
-            f"Yield alone doesn't price the capital-gain assumption — if growth reverts to long-run NZ "
+            f"Yield alone doesn't price the capital-gain assumption. if growth reverts to long-run NZ "
             f"3-4% real, this deal needs leverage or rent growth to make sense."
         )
     else:
         hpi_sales_line = ""
 
-    # 3.9 — Pharmacy line for gp_far rec. Combining GP + pharmacy distance is
+    # 3.9. Pharmacy line for gp_far rec. Combining GP + pharmacy distance is
     # the more useful signal than GP alone.
     _ph = live.get("nearest_pharmacy")
     _ph_dist_m = None
@@ -2136,19 +2271,19 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     if _ph_dist_m is not None:
         if _ph_dist_m >= 2000:
             pharmacy_line = (
-                f"Pharmacy is also {int(_ph_dist_m)}m away — with neither GP nor pharmacy in walking range, "
+                f"Pharmacy is also {int(_ph_dist_m)}m away. with neither GP nor pharmacy in walking range, "
                 f"a car or pharmacy delivery service is essential for daily medication users."
             )
         elif _ph_dist_m <= 500:
             pharmacy_line = (
-                f"Pharmacy is closer ({int(_ph_dist_m)}m) — useful for repeats even when the GP visit means a drive."
+                f"Pharmacy is closer ({int(_ph_dist_m)}m). useful for repeats even when the GP visit means a drive."
             )
         else:
             pharmacy_line = ""
     else:
         pharmacy_line = ""
 
-    # 3.10 — Noise stack: aircraft + rail vibration context for noise_high rec.
+    # 3.10. Noise stack: aircraft + rail vibration context for noise_high rec.
     # Three noise datasets exist; the existing rec only speaks about road.
     _aircraft_dba = hazards.get("aircraft_noise_dba")
     _aircraft_name = hazards.get("aircraft_noise_name")
@@ -2167,45 +2302,45 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     if _noise_extras:
         noise_stack_line = (
             f"This site also sits within {' and '.join(_noise_extras)}. Cumulative exposure can exceed "
-            f"WHO sleep-disturbance thresholds on most nights — double glazing alone may not be enough; "
+            f"WHO sleep-disturbance thresholds on most nights. double glazing alone may not be enough; "
             f"factor in mechanical ventilation so windows can stay closed without overheating."
         )
     else:
         noise_stack_line = ""
 
-    # 3.6 — Transmission line tier line. Current rec fires the same text for a
-    # property 15m from the line (inside easement — title-level restriction,
+    # 3.6. Transmission line tier line. Current rec fires the same text for a
+    # property 15m from the line (inside easement. title-level restriction,
     # lender LVR cap) and 195m away (awareness only). Split into three tiers:
     #   ≤25m  easement-probable (Transpower easement corridors are typically
     #          ~25m each side of the line centreline)
     #   ≤100m NPSET setback-buffer (National Policy Statement on Electricity
-    #          Transmission — council may impose conditions on new builds)
+    #          Transmission. council may impose conditions on new builds)
     #   ≤200m awareness-only (EMF falls off ~1/d²; no legal restriction)
     if trans_dist is not None:
         if trans_dist <= 25:
             transmission_tier_line = (
-                f"Line is {int(trans_dist)}m away — within the typical Transpower easement corridor. "
+                f"Line is {int(trans_dist)}m away. within the typical Transpower easement corridor. "
                 f"The certificate of title will almost certainly carry an easement: development, tree planting, "
                 f"and building alterations inside the corridor are all restricted. Some lenders apply LVR caps "
                 f"or decline to lend altogether on easement properties."
             )
         elif trans_dist <= 100:
             transmission_tier_line = (
-                f"Line is {int(trans_dist)}m away — outside the usual easement but inside the NPSET "
+                f"Line is {int(trans_dist)}m away. outside the usual easement but inside the NPSET "
                 f"setback buffer. New builds and major alterations here may trigger council conditions. "
                 f"EMF measurement is available from the property boundary (Transpower publishes it on request)."
             )
         else:
             transmission_tier_line = (
-                f"Line is {int(trans_dist)}m away — outside both the easement and the NPSET setback buffer. "
+                f"Line is {int(trans_dist)}m away. outside both the easement and the NPSET setback buffer. "
                 f"No legal development restriction at this distance; EMF falls off rapidly with distance. "
-                f"Informational only — Transpower's EMF info is public if you want baseline numbers."
+                f"Informational only. Transpower's EMF info is public if you want baseline numbers."
             )
     else:
         transmission_tier_line = ""
 
-    # 3.11 — Maintenance line for large_footprint rec. Use improvements_value
-    # (the bit that depreciates) instead of full CV when available — gives a
+    # 3.11. Maintenance line for large_footprint rec. Use improvements_value
+    # (the bit that depreciates) instead of full CV when available. gives a
     # more honest annual maintenance budget. Fall back to a CV-based estimate
     # when improvements_value is null (only ~33% of council valuations carry it).
     _imp_value = _float(prop.get("improvements_value"))
@@ -2213,12 +2348,12 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         _maint_low = int(_imp_value * 0.01)
         _maint_high = int(_imp_value * 0.02)
         maintenance_line = (
-            f"Building improvements are valued at ${int(_imp_value):,} — at 1-2% maintenance per year "
+            f"Building improvements are valued at ${int(_imp_value):,}. at 1-2% maintenance per year "
             f"that's ${_maint_low:,}-${_maint_high:,}. Land doesn't depreciate; the improvements value "
             f"is what actually wears out."
         )
     elif cv and cv > 0:
-        # Estimate building portion at ~50% of CV — typical for NZ residential where
+        # Estimate building portion at ~50% of CV. typical for NZ residential where
         # land often makes up a large share of value. Conservative range.
         _est_imp = cv * 0.5
         _maint_low = int(_est_imp * 0.01)
@@ -2288,7 +2423,7 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
                 templates.extend(extra)
 
         # Interpolate placeholders safely. Drop any action that resolves to an
-        # empty string — rec templates can carry conditional placeholders (e.g.
+        # empty string. rec templates can carry conditional placeholders (e.g.
         # climate_precip_line) that compute to "" when the signal isn't applicable.
         actions = []
         for t in templates:
@@ -2373,8 +2508,8 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
         if not _is_disabled("slope_failure_moderate"):
             recs.append(_make("slope_failure_moderate"))
 
-    # 2.1 — Compounding seismic vulnerability (slope + liquefaction both High).
-    # Fires IN ADDITION to slope_failure_high or liquefaction_high — the combined
+    # 2.1. Compounding seismic vulnerability (slope + liquefaction both High).
+    # Fires IN ADDITION to slope_failure_high or liquefaction_high. the combined
     # geotech assessment cost ($5k–$8k) is the new information.
     _slope_high_rec = "high" in sf
     _liq_high_rec = any(
@@ -2384,8 +2519,8 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
     if _slope_high_rec and _liq_high_rec and not _is_disabled("compounding_seismic"):
         recs.append(_make("compounding_seismic"))
 
-    # 2.10 — Saturated slope (slope medium+ + nearby surface water).
-    # Fires IN ADDITION to the slope_failure rec — adds the drainage-focused
+    # 2.10. Saturated slope (slope medium+ + nearby surface water).
+    # Fires IN ADDITION to the slope_failure rec. adds the drainage-focused
     # action checklist that a generic slope report wouldn't necessarily include.
     _slope_med_or_high_rec = ("medium" in sf) or _slope_high_rec
     _terrain_for_rec = report.get("terrain") or {}
@@ -2537,7 +2672,7 @@ def build_recommendations(report: dict, overrides: dict | None = None) -> list[d
 # =============================================================================
 
 def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
-    """Returns (persona_cards, practical_tips) from existing data — no fabrication."""
+    """Returns (persona_cards, practical_tips) from existing data. no fabrication."""
     live = report.get("liveability") or {}
     env = report.get("environment") or {}
     market = report.get("market") or {}
@@ -2714,7 +2849,7 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
 
     if noise_db is not None and noise_db >= 60 and is_multi_unit:
         tips.append(
-            "Higher floors in this building are likely to be meaningfully quieter — "
+            "Higher floors in this building are likely to be meaningfully quieter. "
             "ask which floor before committing."
         )
 
@@ -2722,25 +2857,25 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
         tips.append(
             f"With {transit} bus stops within 400m, a car is optional for city errands. "
             f"The nearest supermarket is {int(supermarket_dist)}m away"
-            + (" — manageable on foot." if supermarket_dist <= 600 else ".")
+            + (". manageable on foot." if supermarket_dist <= 600 else ".")
         )
 
     if cbd_dist is not None and cbd_dist <= 1500:
         tips.append(
-            f"Being {int(cbd_dist)}m from the CBD, street parking is limited — "
+            f"Being {int(cbd_dist)}m from the CBD, street parking is limited. "
             "if you have a car, factor in a parking space (~$200–350/month in central areas)."
         )
 
     if supermarket_dist is not None and supermarket_dist >= 1000:
         name_str = f" ({supermarket_name})" if supermarket_name else ""
         tips.append(
-            f"The nearest supermarket{name_str} is {int(supermarket_dist)}m away — "
+            f"The nearest supermarket{name_str} is {int(supermarket_dist)}m away. "
             "you'll want a car or regular delivery for the weekly shop."
         )
 
     if gp_dist is not None and gp_dist >= 2000:
         tips.append(
-            f"Nearest GP is {int(gp_dist)}m away — consider this if healthcare access is important to your household."
+            f"Nearest GP is {int(gp_dist)}m away. consider this if healthcare access is important to your household."
         )
 
     if transit is not None and transit <= 2:
@@ -2752,13 +2887,13 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
 
     if train_dist is not None and train_name and train_dist <= 800:
         tips.append(
-            f"Train station ({train_name}) is {int(train_dist)}m — commuting to the CBD by train is practical."
+            f"Train station ({train_name}) is {int(train_dist)}m. commuting to the CBD by train is practical."
         )
 
     if conservation_dist is not None and conservation_name and conservation_dist <= 500:
         type_str = f" ({conservation_type})" if conservation_type else ""
         tips.append(
-            f"{conservation_name}{type_str} is {int(conservation_dist)}m away — "
+            f"{conservation_name}{type_str} is {int(conservation_dist)}m away. "
             "good access to green space for exercise and recreation."
         )
 
@@ -2766,7 +2901,7 @@ def build_lifestyle_fit(report: dict) -> tuple[list[dict], list[str]]:
 
 
 # =============================================================================
-# Phase 4: Premium PDF Toolkit — Comparison Bars, Rent Bars, Checklist
+# Phase 4: Premium PDF Toolkit. Comparison Bars, Rent Bars, Checklist
 # =============================================================================
 
 def _build_comparison_bars(report: dict, suburb_name: str = "") -> list[dict]:
@@ -2883,7 +3018,7 @@ def _build_comparison_bars(report: dict, suburb_name: str = "") -> list[dict]:
                     insight = f"Less deprived than {area} average"
             elif "epb" in m["label"].lower():
                 if prop_val == 0:
-                    insight = f"None nearby — better than {area} average"
+                    insight = f"None nearby. better than {area} average"
                     sentiment = "positive"
                 else:
                     d = round(abs_diff)
@@ -3058,7 +3193,7 @@ def _build_hazard_bars(report: dict) -> list[dict]:
 
 
 def _build_rent_bars(report: dict) -> list[dict]:
-    """Build bar chart data from rent history — last 5 periods."""
+    """Build bar chart data from rent history. last 5 periods."""
     rent_history = report.get("rent_history") or {}
     data = rent_history.get("data") or []
 
@@ -3086,7 +3221,7 @@ def _build_rent_bars(report: dict) -> list[dict]:
         except (TypeError, ValueError):
             continue
         bars.append({
-            "period": entry.get("period") or entry.get("date") or "—",
+            "period": entry.get("period") or entry.get("date") or ".",
             "median": median_f,
             "pct": round((median_f / max_median) * 100, 1),
         })
@@ -3096,7 +3231,7 @@ def _build_rent_bars(report: dict) -> list[dict]:
 
 def _build_checklist(insights: list) -> dict:
     """Build a printable before-you-buy checklist grouped by priority."""
-    # Static checklist items — the insights/red_flags inform which are most relevant
+    # Static checklist items. the insights/red_flags inform which are most relevant
     # but we always show the full checklist for the PDF
     essential = [
         {"text": "Check MBIE earthquake-prone building register for this address", "checked": False},
@@ -3110,7 +3245,7 @@ def _build_checklist(insights: list) -> dict:
         {"text": "Order a title search and check for easements, covenants, and caveats", "checked": False},
     ]
     optional = [
-        {"text": "Conduct a noise assessment — visit at peak traffic times", "checked": False},
+        {"text": "Conduct a noise assessment. visit at peak traffic times", "checked": False},
         {"text": "Verify school enrolment zone boundaries with the Ministry of Education", "checked": False},
         {"text": "Check public transport routes and frequency for your commute", "checked": False},
     ]
@@ -3334,7 +3469,7 @@ def _build_rent_trend_chart(rent_history: list) -> dict | None:
     band_lower.reverse()
     polygon_band = " ".join(band_upper + band_lower)
 
-    # X labels — show ~5 evenly spaced
+    # X labels. show ~5 evenly spaced
     x_labels = []
     step = max(1, len(points) // 5)
     for i in range(0, len(points), step):
@@ -3518,7 +3653,7 @@ def _build_monthly_cost(report: dict, rates_data: dict | None = None) -> dict | 
     else:
         monthly_mortgage = loan / n_payments
 
-    # Rates — handle both flat and nested (current_valuation.total_rates) formats
+    # Rates. handle both flat and nested (current_valuation.total_rates) formats
     monthly_rates = cv * 0.004 / 12  # default estimate
     if rates_data and isinstance(rates_data, dict):
         annual_rates = (
@@ -3999,11 +4134,11 @@ def _build_rag_grid(
     composite = scores.get("composite")
     if composite is not None:
         if composite <= 30:
-            items.append({"label": "Hazard Risk", "status": "green", "tooltip": f"Score {int(composite)}/100 — low risk"})
+            items.append({"label": "Hazard Risk", "status": "green", "tooltip": f"Score {int(composite)}/100. low risk"})
         elif composite <= 60:
-            items.append({"label": "Hazard Risk", "status": "amber", "tooltip": f"Score {int(composite)}/100 — moderate risk"})
+            items.append({"label": "Hazard Risk", "status": "amber", "tooltip": f"Score {int(composite)}/100. moderate risk"})
         else:
-            items.append({"label": "Hazard Risk", "status": "red", "tooltip": f"Score {int(composite)}/100 — elevated risk"})
+            items.append({"label": "Hazard Risk", "status": "red", "tooltip": f"Score {int(composite)}/100. elevated risk"})
     else:
         items.append({"label": "Hazard Risk", "status": "grey", "tooltip": "No data"})
 
@@ -4016,11 +4151,11 @@ def _build_rag_grid(
     crime_pct = live.get("crime_percentile")
     if crime_pct is not None:
         if crime_pct <= 25:
-            items.append({"label": "Crime", "status": "green", "tooltip": f"{int(crime_pct)}th percentile — low crime"})
+            items.append({"label": "Crime", "status": "green", "tooltip": f"{int(crime_pct)}th percentile. low crime"})
         elif crime_pct <= 60:
-            items.append({"label": "Crime", "status": "amber", "tooltip": f"{int(crime_pct)}th percentile — moderate"})
+            items.append({"label": "Crime", "status": "amber", "tooltip": f"{int(crime_pct)}th percentile. moderate"})
         else:
-            items.append({"label": "Crime", "status": "red", "tooltip": f"{int(crime_pct)}th percentile — above average"})
+            items.append({"label": "Crime", "status": "red", "tooltip": f"{int(crime_pct)}th percentile. above average"})
     else:
         items.append({"label": "Crime", "status": "grey", "tooltip": "No data"})
 
@@ -4033,11 +4168,11 @@ def _build_rag_grid(
             db = None
         if db is not None:
             if db < 55:
-                items.append({"label": "Noise", "status": "green", "tooltip": f"{db:.0f} dB — quiet"})
+                items.append({"label": "Noise", "status": "green", "tooltip": f"{db:.0f} dB. quiet"})
             elif db <= 65:
-                items.append({"label": "Noise", "status": "amber", "tooltip": f"{db:.0f} dB — moderate"})
+                items.append({"label": "Noise", "status": "amber", "tooltip": f"{db:.0f} dB. moderate"})
             else:
-                items.append({"label": "Noise", "status": "red", "tooltip": f"{db:.0f} dB — loud"})
+                items.append({"label": "Noise", "status": "red", "tooltip": f"{db:.0f} dB. loud"})
         else:
             items.append({"label": "Noise", "status": "grey", "tooltip": "No data"})
     else:
@@ -4045,11 +4180,11 @@ def _build_rag_grid(
 
     # Walkability
     if walkability >= 65:
-        items.append({"label": "Walkability", "status": "green", "tooltip": f"Score {walkability} — very walkable"})
+        items.append({"label": "Walkability", "status": "green", "tooltip": f"Score {walkability}. very walkable"})
     elif walkability >= 40:
-        items.append({"label": "Walkability", "status": "amber", "tooltip": f"Score {walkability} — somewhat walkable"})
+        items.append({"label": "Walkability", "status": "amber", "tooltip": f"Score {walkability}. somewhat walkable"})
     else:
-        items.append({"label": "Walkability", "status": "red", "tooltip": f"Score {walkability} — car-dependent"})
+        items.append({"label": "Walkability", "status": "red", "tooltip": f"Score {walkability}. car-dependent"})
 
     # Schools
     schools = live.get("schools_1500m") or []
@@ -4105,7 +4240,7 @@ def _build_rag_grid(
             if median <= median:  # always true for the area median
                 items.append({"label": "Rent", "status": "green", "tooltip": f"Median ${int(median)}/wk for area"})
             elif median <= uq:
-                items.append({"label": "Rent", "status": "amber", "tooltip": f"${int(median)}/wk — near upper range"})
+                items.append({"label": "Rent", "status": "amber", "tooltip": f"${int(median)}/wk. near upper range"})
             else:
                 items.append({"label": "Rent", "status": "red", "tooltip": f"Above upper quartile"})
         else:
@@ -4123,7 +4258,7 @@ def _build_active_fault_section(hazards: dict) -> dict | None:
 
     SQL shape (from migration 0022/0051): active_fault_nearest is a dict with
     keys {name, type, slip_rate_mm_yr, distance_m}. fault_avoidance_zone is a
-    bare string (zone_type) when present, NOT a dict — the SQL only joins to
+    bare string (zone_type) when present, NOT a dict. the SQL only joins to
     fault_avoidance_zones.zone_type. Earlier code in this function read the
     wrong keys (fault_name, fault_class, recurrence_interval) and treated
     fault_avoidance_zone as a dict, so the entire box rendered empty in PDF.
@@ -4143,7 +4278,7 @@ def _build_active_fault_section(hazards: dict) -> dict | None:
         result["fault_class"] = fault_nearest.get("type") or ""
         result["distance_m"] = fault_nearest.get("distance_m")
         result["slip_rate"] = fault_nearest.get("slip_rate_mm_yr")
-        # SQL doesn't provide recurrence interval — leave None and the template skips the row.
+        # SQL doesn't provide recurrence interval. leave None and the template skips the row.
         result["recurrence"] = None
 
     if isinstance(faz, str) and faz.strip():
@@ -4221,7 +4356,7 @@ def _build_healthy_homes_signals(report: dict) -> list[dict]:
             "check": "Window and door seals intact, no draughts",
             "status": "flagged" if high_wind else "unknown",
             "flagged": high_wind,
-            "flag_reason": f"Wind zone {wind_raw} — higher draught risk" if high_wind else "",
+            "flag_reason": f"Wind zone {wind_raw}. higher draught risk" if high_wind else "",
         },
     ]
     return rows
@@ -4322,7 +4457,7 @@ def _build_rent_verdict(report: dict, budget_inputs: dict | None, user_rent_cont
         result["position"] = None
         result["color"] = None
 
-    # Rental income potential (for buyer persona) — what could this property rent for?
+    # Rental income potential (for buyer persona). what could this property rent for?
     cv_raw = (report.get("property") or {}).get("capital_value")
     if cv_raw and median > 0:
         try:
@@ -4369,7 +4504,7 @@ def _build_section_interpretations(
                 f"{worst} is the most significant concern."
             )
         else:
-            interp["hazards"] = "No hazard concerns — clean safety profile."
+            interp["hazards"] = "No hazard concerns. clean safety profile."
 
     # Money
     if monthly_cost and isinstance(monthly_cost, dict):
@@ -4396,7 +4531,7 @@ def _build_section_interpretations(
                 else:
                     health = "stressed"
                 interp["money"] = (
-                    f"Rent takes {rent_pct}% of your monthly budget — {health}. "
+                    f"Rent takes {rent_pct}% of your monthly budget. {health}. "
                     f"The average NZ renter spends 32%."
                 )
             elif total:
@@ -4411,11 +4546,11 @@ def _build_section_interpretations(
     if trajectory and isinstance(trajectory, dict):
         direction = trajectory.get("direction", "stable")
         if direction == "improving":
-            interp["trajectory"] = "Neighbourhood shows positive signals — improving trajectory."
+            interp["trajectory"] = "Neighbourhood shows positive signals. improving trajectory."
         elif direction == "declining":
-            interp["trajectory"] = "Neighbourhood shows negative signals — declining trajectory."
+            interp["trajectory"] = "Neighbourhood shows negative signals. declining trajectory."
         else:
-            interp["trajectory"] = "Neighbourhood shows mixed signals — stable trajectory."
+            interp["trajectory"] = "Neighbourhood shows mixed signals. stable trajectory."
 
     # Investment (buyer only)
     if persona == "buyer" and investment_cards and isinstance(investment_cards, dict):
@@ -4554,15 +4689,15 @@ def render(
 ) -> str:
     """Generate premium HTML from a property report dict.
 
-    python_insights      — output of build_insights(report)
-    lifestyle_fit        — output of build_lifestyle_fit(report) → (personas, tips)
-    ai_insights          — output of generate_pdf_insights() → parsed JSON dict
-    recommendations      — output of build_recommendations(report) → list of rec dicts
-    nearby_supermarkets  — list of up to 5 nearby supermarkets from OSM
-    nearby_highlights    — {"good": [...], "caution": [...], "info": [...]} categorised amenities
-    rent_history_data    — 10yr rent time series from bonds_detailed
-    hpi_data             — national HPI trend from rbnz_housing
-    rates_data           — WCC rates breakdown (Wellington only)
+    python_insights     . output of build_insights(report)
+    lifestyle_fit       . output of build_lifestyle_fit(report) → (personas, tips)
+    ai_insights         . output of generate_pdf_insights() → parsed JSON dict
+    recommendations     . output of build_recommendations(report) → list of rec dicts
+    nearby_supermarkets . list of up to 5 nearby supermarkets from OSM
+    nearby_highlights   . {"good": [...], "caution": [...], "info": [...]} categorised amenities
+    rent_history_data   . 10yr rent time series from bonds_detailed
+    hpi_data            . national HPI trend from rbnz_housing
+    rates_data          . WCC rates breakdown (Wellington only)
     """
     if python_insights is None:
         python_insights = build_insights(report)
@@ -4593,7 +4728,7 @@ def render(
     categories: dict = {}
     for cat_name, cat_data in _raw_cats.items():
         if isinstance(cat_data, dict):
-            # Already a dict — ensure rating is populated
+            # Already a dict. ensure rating is populated
             cat_score = cat_data.get("score")
             if cat_score is not None and not cat_data.get("rating"):
                 lbl, clr = _score_to_rating(cat_score)
@@ -4672,7 +4807,7 @@ def render(
     # Executive summary fallback (used when AI unavailable)
     exec_summary_fallback = build_exec_summary_fallback(report, python_insights)
 
-    # In-zone schools first, then rest — for display
+    # In-zone schools first, then rest. for display
     all_schools = live.get("schools_1500m") or []
     in_zone_schools = [s for s in all_schools if s.get("in_zone")]
     other_schools   = [s for s in all_schools if not s.get("in_zone")]
@@ -4875,14 +5010,14 @@ def render(
         methodology_notes=(
             "WhareScore computes a composite risk score (0-100) using a weighted average of five category scores: "
             "Hazards (30%), Liveability (25%), Environment (15%), Market (15%), and Planning (15%). "
-            "Higher scores indicate higher risk. Each category score is derived from normalised sub-indicators — "
+            "Higher scores indicate higher risk. Each category score is derived from normalised sub-indicators. "
             "for example, Hazards aggregates flood zone presence, liquefaction class, seismic activity, wind zone, "
             "tsunami zone, wildfire danger days, coastal erosion risk, earthquake-prone building proximity, and slope "
             "failure susceptibility. Liveability incorporates NZDep deprivation index, crime victimisation percentile, "
             "transit access, school quality (EQI), and road crash history. Environment covers road noise, air quality "
             "trends, water quality grades, contaminated land proximity, and climate projections. Market uses rental "
             "median, yield, and growth trends. Planning considers EPB status, heritage listing, contaminated land "
-            "schedule, transmission line proximity, and development activity. Data freshness varies by source — most "
+            "schedule, transmission line proximity, and development activity. Data freshness varies by source. most "
             "datasets are updated annually or quarterly. Scores are indicative and should not replace professional advice."
         ),
         data_quality=[
@@ -4945,14 +5080,14 @@ def render(
         # Rent advisor (premium)
         rent_advisor=rent_advisor_result,
         rent_inputs=rent_inputs or {},
-        # Price advisor (premium — buyer)
+        # Price advisor (premium. buyer)
         price_advisor=price_advisor_result,
         buyer_inputs=buyer_inputs or {},
     )
 
 
 # =============================================================================
-# Badge Finding Selection — shared between extension badge + on-screen report
+# Badge Finding Selection. shared between extension badge + on-screen report
 # =============================================================================
 #
 # Ranking rules (EXTENSION-BRIEF.md § User Value Ladder):
@@ -4972,10 +5107,10 @@ def render(
 _CRITICAL_MARKERS = (
     "1-in-100-year flood",
     "tsunami zone",
-    "liquefaction — very high",
+    "liquefaction. very high",
     "liquefaction very high",
     "liquefaction high",
-    "slope failure — very high",
+    "slope failure. very high",
     "slope failure very high",
     "leasehold",
     "epb",
@@ -5049,7 +5184,7 @@ def _level_to_severity(level: str, text: str) -> str:
 
 def _match_weight(text: str, table: dict[str, float]) -> float:
     """Return the maximum weight across every keyword match in the table.
-    Defaults to 1.0 when no keyword matches — keeps unknown findings in the
+    Defaults to 1.0 when no keyword matches. keeps unknown findings in the
     list but with lower priority than keyword-matched ones."""
     lowered = (text or "").lower()
     best = 1.0
@@ -5097,13 +5232,13 @@ def select_findings_for_badge(
     """Rank-and-select findings for the badge or on-screen free tier.
 
     Inputs:
-        report      — enriched report dict (post enrich_with_scores)
-        persona     — "renter" | "buyer" | None (None → generic; used for anon badge)
-        max_count   — take the top N ranked findings
+        report     . enriched report dict (post enrich_with_scores)
+        persona    . "renter" | "buyer" | None (None → generic; used for anon badge)
+        max_count  . take the top N ranked findings
 
     Returns a list of {severity, title, detail} dicts in ranked order.
 
-    The helper is deterministic and pure — tests feed a dict report in and
+    The helper is deterministic and pure. tests feed a dict report in and
     compare the ranked output. See backend/tests/test_report_html_badge.py.
     """
     insights = build_insights(report)
@@ -5141,7 +5276,7 @@ def select_findings_for_badge(
 
     scored.sort(key=lambda t: t[0], reverse=True)
 
-    # Dedupe by (title) — some rules can produce identically-phrased findings
+    # Dedupe by (title). some rules can produce identically-phrased findings
     # via different code paths; keep the first (highest-ranked) occurrence.
     seen: set[str] = set()
     result: list[dict] = []

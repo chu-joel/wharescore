@@ -15,7 +15,7 @@ interface PremiumGateProps {
 }
 
 /**
- * Wraps premium content — renders children with a blur overlay + lock icon.
+ * Wraps premium content. renders children with a blur overlay + lock icon.
  * Clicking the overlay opens the upgrade modal.
  *
  * Usage: <PremiumGate label="Commute times"><TransportTimes .../></PremiumGate>
@@ -30,14 +30,14 @@ export function PremiumGate({
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
 
-  // In hosted report mode, user has paid — show content ungated
+  // In hosted report mode, user has paid. show content ungated
   if (hosted) {
     return <>{children}</>;
   }
 
   return (
     <div className="relative">
-      {/* Render blurred content at fixed height — teases structure without wasting space */}
+      {/* Render blurred content at fixed height. teases structure without wasting space */}
       <div className="select-none pointer-events-none max-h-24 overflow-hidden" aria-hidden>
         <div className="blur-[6px] opacity-40">
           {children}

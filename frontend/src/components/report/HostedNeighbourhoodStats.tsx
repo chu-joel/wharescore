@@ -39,24 +39,24 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const hazards = (rawReport.hazards ?? {}) as unknown as Record<string, unknown>;
   const planning = (rawReport.planning ?? {}) as unknown as Record<string, unknown>;
 
-  // Nearest essentials — SQL returns these as JSON objects with {name, distance_m}
+  // Nearest essentials. SQL returns these as JSON objects with {name, distance_m}
   const essentials: { label: string; value: string }[] = [];
   const addEssentialObj = (label: string, key: string) => {
     const obj = live[key] as { name?: string; distance_m?: number } | null;
     if (!obj) return;
     const name = obj.name;
     const dist = obj.distance_m;
-    if (name || dist) essentials.push({ label, value: `${name || label} — ${dist ? Math.round(dist) + ' m' : 'nearby'}` });
+    if (name || dist) essentials.push({ label, value: `${name || label}. ${dist ? Math.round(dist) + ' m' : 'nearby'}` });
   };
   addEssentialObj('GP / Medical', 'nearest_gp');
   addEssentialObj('Pharmacy', 'nearest_pharmacy');
   addEssentialObj('Supermarket', 'nearest_supermarket');
   const nearestPark = planning.nearest_park_name as string;
   const nearestParkDist = planning.nearest_park_distance_m as number;
-  if (nearestPark || nearestParkDist) essentials.push({ label: 'Park', value: `${nearestPark || 'Park'} — ${nearestParkDist ? Math.round(nearestParkDist) + ' m' : 'nearby'}` });
+  if (nearestPark || nearestParkDist) essentials.push({ label: 'Park', value: `${nearestPark || 'Park'}. ${nearestParkDist ? Math.round(nearestParkDist) + ' m' : 'nearby'}` });
   const conservation = live.conservation_nearest as string;
   const conservationDist = live.conservation_nearest_distance_m as number;
-  if (conservation) essentials.push({ label: 'Reserve', value: `${conservation} — ${conservationDist ? Math.round(conservationDist) + 'm' : 'nearby'}` });
+  if (conservation) essentials.push({ label: 'Reserve', value: `${conservation}. ${conservationDist ? Math.round(conservationDist) + 'm' : 'nearby'}` });
 
   // Notable trees
   const notableTreeCount = (planning.notable_trees_50m ?? planning.notable_tree_count_50m) as number;
@@ -91,7 +91,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const climatePrecip = env.climate_precip_change_pct as number;
   const solarMean = hazards.solar_mean_kwh as number;
 
-  // Walking reach (10-min walk via Valhalla) — preferred over 800m radius
+  // Walking reach (10-min walk via Valhalla). preferred over 800m radius
   const walkingReach = (rawReport.walking_reach ?? null) as { minutes: number; method: string; total_stops: number; bus_stops: number; rail_stops: number; ferry_stops: number } | null;
   const hasWalkingReach = walkingReach && walkingReach.method !== 'none' && walkingReach.total_stops > 0;
 
@@ -245,7 +245,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               </div>
             )}
 
-            {/* Transit travel times — AM peak */}
+            {/* Transit travel times. AM peak */}
             {travelTimes.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold mb-2">
@@ -269,7 +269,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
               </div>
             )}
 
-            {/* Transit travel times — PM peak */}
+            {/* Transit travel times. PM peak */}
             {travelTimesPm.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold mb-2">Evening Peak (4:30-6:30 PM)</h4>
@@ -318,7 +318,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   <div>
                     <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Contaminated Land</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {contamName ? `${contamName} — ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} in area (2km)`}.
+                      {contamName ? `${contamName}. ${Math.round(contamDist || 0)} m away` : `${contamCount} site${contamCount !== 1 ? 's' : ''} in area (2km)`}.
                       {contamCat && ` Category: ${contamCat}.`}
                     </p>
                   </div>
@@ -366,13 +366,13 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {cf.nearest_hospital && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">Hospital</span>
-                      <span className="text-muted-foreground text-xs">{cf.nearest_hospital.name} — {Math.round(cf.nearest_hospital.distance_m / 1000)}km</span>
+                      <span className="text-muted-foreground text-xs">{cf.nearest_hospital.name}. {Math.round(cf.nearest_hospital.distance_m / 1000)}km</span>
                     </div>
                   )}
                   {cf.nearest_ev_charger && (
                     <div className="flex justify-between py-2 text-sm">
                       <span className="font-medium">EV Charger</span>
-                      <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'} — {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} wider area (5km))` : ''}</span>
+                      <span className="text-muted-foreground text-xs">{cf.nearest_ev_charger.name || 'Charger'}. {cf.nearest_ev_charger.distance_m < 1000 ? `${Math.round(cf.nearest_ev_charger.distance_m)}m` : `${(cf.nearest_ev_charger.distance_m / 1000).toFixed(1)}km`}{cf.ev_chargers_5km ? ` (${cf.ev_chargers_5km} wider area (5km))` : ''}</span>
                     </div>
                   )}
                   {(cf.libraries_2km ?? 0) > 0 && (
@@ -410,9 +410,9 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                       <span className="font-medium">Cycle paths nearby</span>
                       <span className="text-muted-foreground text-xs">
                         {cf.cycleway_km_2km >= 10
-                          ? <><span className="text-green-600 font-medium">{cf.cycleway_km_2km}km</span> — excellent cycling network</>
+                          ? <><span className="text-green-600 font-medium">{cf.cycleway_km_2km}km</span>. excellent cycling network</>
                           : cf.cycleway_km_2km >= 3
-                            ? <><span className="text-blue-600 font-medium">{cf.cycleway_km_2km}km</span> — good cycling options</>
+                            ? <><span className="text-blue-600 font-medium">{cf.cycleway_km_2km}km</span>. good cycling options</>
                             : <>{cf.cycleway_km_2km}km of cycle paths</>
                         }
                       </span>
@@ -545,7 +545,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
             {/* Corrosion zone */}
             {inCorrosionZone && (
               <p className="text-xs text-muted-foreground">
-                <span className="font-medium">Corrosion zone:</span> This area has higher corrosion risk — affects exterior paint and metalwork choices.
+                <span className="font-medium">Corrosion zone:</span> This area has higher corrosion risk. affects exterior paint and metalwork choices.
               </p>
             )}
           </CollapsibleGroup>
@@ -564,9 +564,9 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                     <p>
                       {heritageCount} heritage item{heritageCount > 1 ? 's' : ''} nearby (500m)
                       {heritageCount >= 50
-                        ? ' — dense heritage area. Development restrictions likely apply to surrounding buildings.'
+                        ? '. dense heritage area. Development restrictions likely apply to surrounding buildings.'
                         : heritageCount >= 10
-                          ? '. Heritage-rich neighbourhood — check for view protection or character area rules.'
+                          ? '. Heritage-rich neighbourhood. check for view protection or character area rules.'
                           : '.'}
                     </p>
                   )}
@@ -583,7 +583,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   {notableTreeCount > 0 && (
                     <p>{notableTreeCount} notable/protected tree{notableTreeCount > 1 ? 's' : ''} nearby (50m).
                       {notableTreeNearest?.name && ` Nearest: ${notableTreeNearest.name}${notableTreeNearest.tree_type ? ` (${notableTreeNearest.tree_type})` : ''}.`}
-                      {' '}Protected trees cannot be removed — check before planning building work.
+                      {' '}Protected trees cannot be removed. check before planning building work.
                     </p>
                   )}
                   {parkCount > 0 && <p>{parkCount} park{parkCount > 1 ? 's' : ''} nearby (500m).</p>}
@@ -606,7 +606,7 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                   }`} />
                   <div>
                     <p className="text-sm font-semibold">
-                      High-voltage transmission line — {Math.round(transmissionDist)} m away
+                      High-voltage transmission line. {Math.round(transmissionDist)} m away
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {transmissionDist <= 100
@@ -649,13 +649,13 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
           </div>
         )}
 
-        {/* Comparison benchmarks — columns show suburb and city AVERAGES (not this property's
+        {/* Comparison benchmarks. columns show suburb and city AVERAGES (not this property's
             own values). Heading makes that clear so renters don't mistake the suburb avg
             transit/deprivation numbers for their specific property's stats. */}
         {(suburbAvg || cityAvg) && (
           <div className="pt-3">
             <h4 className="text-sm font-semibold mb-0.5">Area Benchmarks</h4>
-            <p className="text-xs text-muted-foreground/70 mb-2">Suburb vs city averages — use as context alongside the property-specific numbers above.</p>
+            <p className="text-xs text-muted-foreground/70 mb-2">Suburb vs city averages. use as context alongside the property-specific numbers above.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>

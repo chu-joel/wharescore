@@ -67,7 +67,7 @@ export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: Repor
     <div className="p-4 space-y-5">
       <div>
         <h3 className="text-sm font-bold mb-1">Your details</h3>
-        <p className="text-xs text-muted-foreground">Adjust to match this property — estimates update as you type.</p>
+        <p className="text-xs text-muted-foreground">Adjust to match this property. estimates update as you type.</p>
       </div>
 
       {/* Bedrooms */}
@@ -109,7 +109,7 @@ export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: Repor
         )}
       </div>
 
-      {/* Toggles — persona-aware */}
+      {/* Toggles. persona-aware */}
       <div className="space-y-2">
         <Toggle label="Has parking" value={store.hasParking} onChange={store.setHasParking} />
         <Toggle label="Has outdoor space" value={store.hasOutdoorSpace} onChange={store.setHasOutdoorSpace} />
@@ -164,7 +164,7 @@ export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: Repor
         </div>
       )}
 
-      {/* Live result — renter: rent band, buyer: price estimate */}
+      {/* Live result. renter: rent band, buyer: price estimate */}
       {persona === 'renter' && rentBand.baseline && (
         <div className="rounded-xl border border-border bg-card p-3 space-y-3">
           <div className="text-center">
@@ -197,7 +197,7 @@ export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: Repor
 
       {persona === 'buyer' && (
         <div className="space-y-3">
-          {/* Expected rent — dynamic, updates with sidebar inputs */}
+          {/* Expected rent. dynamic, updates with sidebar inputs */}
           {rentBand.baseline && (
             <div className="rounded-xl border border-border bg-card p-3 space-y-2">
               <div className="text-center">
@@ -220,7 +220,7 @@ export function ReportSidebar({ snapshot, rentBand, instanceId = 'main' }: Repor
             </div>
           )}
 
-          {/* Price estimate — fixed from snapshot */}
+          {/* Price estimate. fixed from snapshot */}
           {snapshot.price_advisor && (
             <div className="rounded-xl border border-border bg-card p-3 space-y-2">
               <div className="text-center">

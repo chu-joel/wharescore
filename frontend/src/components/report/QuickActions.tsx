@@ -27,7 +27,7 @@ const SEVERITY_COLOR = {
 } as const;
 
 // Persona-specific filters (same as HostedRecommendations)
-const BUYER_ONLY = new Set(['Request a LIM Report', "Get a Builder's Report", 'Conveyancing & Legal Checklist', 'Ground Conditions — Foundation Check']);
+const BUYER_ONLY = new Set(['Request a LIM Report', "Get a Builder's Report", 'Conveyancing & Legal Checklist', 'Ground Conditions. Foundation Check']);
 const RENTER_ONLY = new Set(['Healthy Homes Compliance']);
 
 export function QuickActions({ snapshot, persona }: Props) {
@@ -42,7 +42,7 @@ export function QuickActions({ snapshot, persona }: Props) {
 
   // Take top items by severity priority. Always include all critical + important items,
   // then fill with advisory up to 5 total so a Quick report with one critical item still
-  // shows context (previously a single-critical property rendered as "Before You Move In —
+  // shows context (previously a single-critical property rendered as "Before You Move In .
   // Contaminated Land" with no other advice, making Quick look empty next to Full).
   const severityOrder: Record<string, number> = { critical: 0, important: 1, advisory: 2 };
   const sorted = [...filtered].sort(

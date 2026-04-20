@@ -14,6 +14,7 @@ import {
   hasHighCoastalErosionRisk,
   hasHighWildfireRisk,
   isInLandslideRisk,
+  isHighOrVeryHighLiquefaction,
 } from '@/lib/hazards';
 
 interface Props {
@@ -48,7 +49,7 @@ const SECTION_DOT = {
 };
 
 /**
- * Unified buyer snapshot — ONE card that replaces BuyerPropertyInsights.
+ * Unified buyer snapshot. ONE card that replaces BuyerPropertyInsights.
  * Covers: insurability, building era risk, ownership costs, renovation potential,
  * climate/managed retreat, capital growth.
  */
@@ -62,8 +63,7 @@ export function BuyerSnapshot({ report }: Props) {
     const flags: string[] = [];
     const isFlood = isInFloodZone(hazards);
     const nearFlood = isNearFloodZone(hazards);
-    const liqStr = String(hazards.liquefaction_zone || '').toLowerCase();
-    const isHighLiq = liqStr.includes('high') || liqStr.includes('very');
+    const isHighLiq = isHighOrVeryHighLiquefaction(hazards);
     const isTsunami = isInTsunamiZone(hazards);
     const isEPB = planning?.epb_listed;
     const isCoastalErosion = hasHighCoastalErosionRisk(hazards);

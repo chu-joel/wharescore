@@ -23,7 +23,7 @@ async def search_suburbs(query: str, limit: int = 8) -> list[dict]:
         if results:
             return results
 
-        # Fallback: trigram similarity — handles partial/fuzzy matches
+        # Fallback: trigram similarity. handles partial/fuzzy matches
         # e.g. "Te Aro" → "Aro Valley" (similarity on individual words)
         cur = await conn.execute(
             """

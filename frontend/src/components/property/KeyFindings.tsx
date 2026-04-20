@@ -10,7 +10,7 @@ interface KeyFindingsProps {
   report: PropertyReport;
   /** Max findings to show for free. Remaining are shown as blurred cards. */
   maxFree?: number;
-  /** Current persona — affects finding order */
+  /** Current persona. affects finding order */
   persona?: Persona;
   /** Address ID for upgrade CTA */
   addressId?: number;
@@ -20,7 +20,7 @@ interface KeyFindingsProps {
 // FindingCard. Backend returns {severity, title, detail, source?}; FindingCard
 // wants {headline, interpretation, severity, category, source, sourceUrl?}.
 // When the backend has annotated the Insight with a source (SOURCE_CATALOG),
-// surface the authority name — otherwise fall back to a generic label so the
+// surface the authority name. otherwise fall back to a generic label so the
 // card still renders for older cached/snapshotted findings.
 function asFrontendFinding(
   ranked: { severity: string; title: string; detail: string; source?: { authority: string; url: string } },
@@ -91,7 +91,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         </h3>
       </div>
 
-      {/* Summary line — must sum to allFindings.length. Vocabulary matches FindingCard
+      {/* Summary line. must sum to allFindings.length. Vocabulary matches FindingCard
           badges (Critical / Watch / Note / Good). */}
       <p className="text-xs text-muted-foreground">
         {criticalCount > 0 && (
@@ -128,7 +128,7 @@ export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFind
         ))}
       </div>
 
-      {/* Blurred ghost cards — show severity colors through blur */}
+      {/* Blurred ghost cards. show severity colors through blur */}
       {hiddenFindings.length > 0 && (
         <BlurredFindingCards
           findings={hiddenFindings}

@@ -33,7 +33,7 @@ export function QuickHazardSummary({ report }: Props) {
     { label: 'Contamination', status: (h.contamination_count && h.contamination_count > 0) ? 'concern' : 'clear' },
   ];
 
-  // Only show hazards that exist (have data) — always show flooding + earthquake
+  // Only show hazards that exist (have data). always show flooding + earthquake
   const watchCount = items.filter(i => i.status === 'watch').length;
   const concernCount = items.filter(i => i.status === 'concern').length;
 

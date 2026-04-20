@@ -14,8 +14,8 @@ interface Props {
 const UPGRADE_BENEFITS = [
   { icon: Shield, text: 'Full hazard intelligence with timeline, severity mapping, and advice' },
   { icon: BarChart3, text: 'Rent & price advisor with methodology, adjustable inputs, and confidence bands' },
-  { icon: MapPin, text: 'Terrain analysis — elevation, slope, flood proximity, walking isochrone' },
-  { icon: Home, text: 'Neighbourhood deep-dive — noise, air quality, crime trends, infrastructure' },
+  { icon: MapPin, text: 'Terrain analysis. elevation, slope, flood proximity, walking isochrone' },
+  { icon: Home, text: 'Neighbourhood deep-dive. noise, air quality, crime trends, infrastructure' },
 ];
 
 export function QuickUpgradeBanner({ token }: Props) {
@@ -38,7 +38,7 @@ export function QuickUpgradeBanner({ token }: Props) {
         { method: 'POST', headers },
       );
       if (res.upgraded) {
-        // Credit was used — reload to show Full Report
+        // Credit was used. reload to show Full Report
         window.location.reload();
       } else if (res.checkout_url) {
         safeRedirect(res.checkout_url);
@@ -61,7 +61,7 @@ export function QuickUpgradeBanner({ token }: Props) {
         <h3 className="text-lg font-bold">Unlock the Full Report</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           Your Quick Report covers the essentials. The Full Report gives you everything
-          you need to make a confident decision — 25+ sections of detailed analysis.
+          you need to make a confident decision. 25+ sections of detailed analysis.
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export function QuickUpgradeBanner({ token }: Props) {
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          Upgrade to Full Report — {fullPrice}
+          Upgrade to Full Report. {fullPrice}
         </button>
         {error && <p className="text-xs text-destructive">{error}</p>}
         <p className="text-xs text-muted-foreground">

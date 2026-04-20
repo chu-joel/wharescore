@@ -34,7 +34,7 @@ def _extract_suburb_phrase(addr: str) -> str:
     Auckland Council search results follow '<street>, <suburb>[, ...]'. The
     LINZ canonical address used as the search term follows
     '<street>, <suburb>, <city>'. We take the second comma-separated piece in
-    both cases and lowercase + strip — that's the most reliable way to compare
+    both cases and lowercase + strip. that's the most reliable way to compare
     suburbs without maintaining a hardcoded suburb list.
     """
     parts = [p.strip() for p in addr.split(",")]
@@ -112,7 +112,7 @@ def _best_match(
         if scored and scored[0][0] <= 2000:  # 2 km hard ceiling
             return scored[0][1].get("id")
         if scored and scored[0][0] != float("inf"):
-            logger.debug(f"AC nearest result is {scored[0][0]:.0f}m away — rejecting")
+            logger.debug(f"AC nearest result is {scored[0][0]:.0f}m away. rejecting")
             return None
 
     # Pass 3: word-overlap fallback within the (suburb-filtered) candidates.
@@ -171,7 +171,7 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
             except Exception as e:
                 logger.debug(f"AC rates ref coord lookup failed: {e}")
 
-        # Find best match — verify suburb/street + distance align with search to
+        # Find best match. verify suburb/street + distance align with search to
         # avoid "1 Queen Street Auckland Central" matching "1 Queen Street Pukekohe".
         # Pass the FULL comma-separated address (not the search-simplified one)
         # so _best_match's suburb extraction can read parts[1] reliably.

@@ -80,7 +80,7 @@ export const useHostedReportStore = create<HostedReportState>()((set) => ({
 
 /**
  * Compute the current rent band from snapshot data + user inputs.
- * All client-side — no API calls.
+ * All client-side. no API calls.
  */
 export function computeRentBand(
   snapshot: ReportSnapshot,

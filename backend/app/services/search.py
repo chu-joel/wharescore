@@ -11,7 +11,7 @@ _RESULT_COLUMNS = """
     a.gd2000_xcoord AS lng, a.gd2000_ycoord AS lat
 """
 
-# Road type words — used to extract road name from query
+# Road type words. used to extract road name from query
 _ROAD_TYPES = {
     "street", "road", "avenue", "drive", "place", "crescent", "terrace",
     "court", "lane", "highway", "esplanade", "parade", "square", "grove",
@@ -46,12 +46,12 @@ async def search(query: str, limit: int) -> list[dict]:
     """Three-tier search: B-tree prefix → tsvector → trigram fallback.
     Each tier is progressively slower but handles more query types."""
 
-    # Tier 1: B-tree prefix (< 0.2ms) — matches when user types start of address
+    # Tier 1: B-tree prefix (< 0.2ms). matches when user types start of address
     results = await _btree_prefix(query, limit)
     if len(results) >= limit:
         return results
 
-    # Tier 2: tsvector full-text (3-35ms) — word-order independent, partial last token
+    # Tier 2: tsvector full-text (3-35ms). word-order independent, partial last token
     exclude_ids = [r["address_id"] for r in results]
     ts_results = await _tsvector_search(query, limit - len(results), exclude_ids)
     results.extend(ts_results)
@@ -65,18 +65,18 @@ async def search(query: str, limit: int) -> list[dict]:
             matched = [r for r in results if road_lower in (r.get("road_name") or "").lower()]
             if matched:
                 return matched
-            # No road name match — fall through to trigram for better fuzzy matching
+            # No road name match. fall through to trigram for better fuzzy matching
 
     if results:
         return results
 
-    # Tier 3: trigram similarity (26ms-2s) — typo correction, only when tiers 1+2 fail
+    # Tier 3: trigram similarity (26ms-2s). typo correction, only when tiers 1+2 fail
     return await _trigram_fallback(query, limit)
 
 
 async def _btree_prefix(query: str, limit: int) -> list[dict]:
     """B-tree index scan on full_address_ascii with LIKE prefix.
-    Fastest path — works for '162 Cuba', '10 The Terr'."""
+    Fastest path. works for '162 Cuba', '10 The Terr'."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             f"""
@@ -119,7 +119,7 @@ async def _tsvector_search(
 
 
 async def _trigram_fallback(query: str, limit: int) -> list[dict]:
-    """Fuzzy fallback for typos. pg_trgm similarity — slowest tier.
+    """Fuzzy fallback for typos. pg_trgm similarity. slowest tier.
     Only reached when prefix + tsvector both return 0 results.
     Uses a higher similarity threshold (0.4) and statement timeout (3s)
     to avoid slow scans on 2M rows."""
@@ -141,5 +141,5 @@ async def _trigram_fallback(query: str, limit: int) -> list[dict]:
             )
             return cur.fetchall()
         except Exception:
-            # Timeout or other error — return empty rather than slow response
+            # Timeout or other error. return empty rather than slow response
             return []

@@ -26,10 +26,10 @@ export function showPaymentToast(type: ToastType, credits?: number, resetDate?: 
       toast.warning('Report generated! That was your last credit');
       break;
     case 'daily_limit':
-      toast.info('Daily limit reached — resets at midnight');
+      toast.info('Daily limit reached. resets at midnight');
       break;
     case 'monthly_limit':
-      toast.info(`Monthly limit reached — resets ${resetDate ?? 'next month'}`);
+      toast.info(`Monthly limit reached. resets ${resetDate ?? 'next month'}`);
       break;
     case 'signed_out':
       toast('Signed out successfully');

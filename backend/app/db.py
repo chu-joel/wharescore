@@ -50,7 +50,7 @@ class _ConnectionContextManager:
         def _execute():
             cur = self.conn.cursor()
             cur.execute(query, params or [])
-            # Only fetch for SELECT/RETURNING queries — INSERTs/UPDATEs have no rows
+            # Only fetch for SELECT/RETURNING queries. INSERTs/UPDATEs have no rows
             try:
                 rows = cur.fetchall()
             except Exception:

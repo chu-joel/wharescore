@@ -5,11 +5,11 @@ import { useAISummary } from '@/hooks/useAISummary';
 import { usePropertyRates } from '@/hooks/usePropertyRates';
 import { useAreaFeed } from '@/hooks/useAreaFeed';
 import { PropertySummaryCard } from './PropertySummaryCard';
-// ScoreGauge + ScoreStrip removed — Snapshots now provide the verdict
+// ScoreGauge + ScoreStrip removed. Snapshots now provide the verdict
 import { AISummaryCard } from './AISummaryCard';
 import { QuestionAccordion } from './QuestionAccordion';
 import { PersonaToggle } from './PersonaToggle';
-// HeroQuestion removed — renters get LandlordChecklist as hero, buyers use accordion
+// HeroQuestion removed. renters get LandlordChecklist as hero, buyers use accordion
 import { BuildingInfoBanner } from './BuildingInfoBanner';
 import { KeyTakeaways } from './KeyTakeaways';
 import { BetaBanner } from './BetaBanner';
@@ -51,9 +51,9 @@ const FREE_FINDINGS = 2;
 export function PropertyReport({ addressId }: { addressId: number }) {
   const { data: report, isLoading, isEnriching, error, refetch } = usePropertyReport(addressId);
   const { data: aiData, isLoading: aiLoading } = useAISummary(addressId, !isLoading && !error);
-  // Lazily fetch live council rates — DB CV shown first, updates inline when this resolves
+  // Lazily fetch live council rates. DB CV shown first, updates inline when this resolves
   const { data: liveRates, isLoading: ratesLoading } = usePropertyRates(addressId, !isLoading && !error);
-  // Area activity feed — seismic, weather, emergency events near the property
+  // Area activity feed. seismic, weather, emergency events near the property
   const { data: areaFeed } = useAreaFeed(addressId, !isLoading && !error);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
@@ -144,7 +144,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   // Score data used by Snapshot components internally
 
-  // Skip checklist questions from accordion — they're promoted to hero sections.
+  // Skip checklist questions from accordion. they're promoted to hero sections.
   // All other questions (including daily-life, neighbourhood, rent-fair) stay in accordion.
   const skipIds = persona === 'renter'
     ? new Set(['renter-checklist'])
@@ -159,7 +159,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
         {/* Persona toggle sits ABOVE the summary card so persona-specific
             copy (median rent vs CV, etc.) in the card always matches the
-            tab the user has selected. Moved from below the card — users
+            tab the user has selected. Moved from below the card. users
             were seeing a renter-flavoured headline before realising they
             hadn't chosen their persona yet. */}
         <PersonaToggle />
@@ -186,7 +186,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           )}
         </div>
 
-        {/* Earthquake-Prone Building Warning — always show (safety) */}
+        {/* Earthquake-Prone Building Warning. always show (safety) */}
         {report.planning?.epb_listed && (
           <div className="flex items-start gap-3 rounded-lg border-2 border-red-500 bg-red-50 p-3 dark:bg-red-950/30">
             <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
@@ -210,7 +210,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* Multi-unit banner — always show (informational) */}
+        {/* Multi-unit banner. always show (informational) */}
         {report.property_detection?.is_multi_unit && report.property_detection.unit_count && (
           <BuildingInfoBanner
             unitCount={report.property_detection.unit_count}
@@ -223,21 +223,21 @@ export function PropertyReport({ addressId }: { addressId: number }) {
             VERDICT → EVIDENCE → ACTION → UPGRADE → DEEP DIVE
             ═══════════════════════════════════════════════════════ */}
 
-        {/* 1. VERDICT — persona-specific snapshot with overall assessment */}
+        {/* 1. VERDICT. persona-specific snapshot with overall assessment */}
         {persona === 'renter' && <RenterSnapshot report={report} />}
         {persona === 'buyer' && <BuyerSnapshot report={report} />}
 
-        {/* 2. EVIDENCE — key findings that support the verdict */}
+        {/* 2. EVIDENCE. key findings that support the verdict */}
         <div className="section-divider">
           <KeyFindings report={report} maxFree={FREE_FINDINGS} persona={persona} addressId={addressId} />
         </div>
 
-        {/* Area activity — recent events near property */}
+        {/* Area activity. recent events near property */}
         {areaFeed && areaFeed.summary.total_events > 0 && (
           <AreaEventTeaser feed={areaFeed} addressId={addressId} />
         )}
 
-        {/* 3. ACTION — what to do about it (highest-value free content) */}
+        {/* 3. ACTION. what to do about it (highest-value free content) */}
         {persona === 'renter' && (
           <div className="section-divider">
             <LandlordChecklist report={report} />
@@ -249,7 +249,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           </div>
         )}
 
-        {/* 4. UPGRADE — conversion point. Divide CV by unit_count for
+        {/* 4. UPGRADE. conversion point. Divide CV by unit_count for
             multi-unit properties so the "to protect a $X decision" line
             reflects the user's likely purchase, not the whole-building
             rateable value. */}
@@ -269,12 +269,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           );
         })()}
 
-        {/* 5a. COMPARISON — property vs suburb vs city. Sits below the
+        {/* 5a. COMPARISON. property vs suburb vs city. Sits below the
             upgrade CTA so the paywall is the first post-Action surface the
             user sees; this is context for readers who kept scrolling. */}
         {report.comparisons && <ComparisonBars report={report} />}
 
-        {/* 5b. DEEP DIVE — question sections for users who want more */}
+        {/* 5b. DEEP DIVE. question sections for users who want more */}
         <div className="section-divider space-y-3 sm:space-y-5">
           <p className="section-heading">
             {persona === 'renter' ? 'More about this rental' : 'More about this property'}
@@ -285,8 +285,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         </div>
 
-        {/* AI Summary — area narrative, in the deep dive zone */}
-        {/* AI narrative is written per SA2 — keep sa2_name as the label so the
+        {/* AI Summary. area narrative, in the deep dive zone */}
+        {/* AI narrative is written per SA2. keep sa2_name as the label so the
             header matches the content's subject (which may differ from the
             user-facing suburb, e.g. 'Kelburn SA2' vs 'Aro Valley' suburb). */}
         <AISummaryCard
@@ -296,7 +296,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           loading={aiLoading}
         />
 
-        {/* Email capture — below the fold */}
+        {/* Email capture. below the fold */}
         <div className="section-divider">
           <EmailSummaryCapture
             addressId={addressId}
@@ -306,12 +306,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
           />
         </div>
 
-        {/* Data coverage — compact, for users who want to verify */}
+        {/* Data coverage. compact, for users who want to verify */}
         {report.coverage && (
           <DataLayersAccordion coverage={report.coverage} compact />
         )}
 
-        {/* Key Takeaways — simplified (just CTA buttons) */}
+        {/* Key Takeaways. simplified (just CTA buttons) */}
         <div className="section-divider">
           <KeyTakeaways report={report} onSearchAnother={handleSearchAnother} />
         </div>
@@ -321,13 +321,13 @@ export function PropertyReport({ addressId }: { addressId: number }) {
       </div>
       <AppFooter />
 
-      {/* Floating download button — contextual CTA copy */}
+      {/* Floating download button. contextual CTA copy */}
       <FloatingReportButton addressId={addressId} riskCount={riskCount} />
 
       {/* Scroll-triggered upgrade prompt */}
       <ScrollPrompt report={report} />
 
-      {/* Signup nudge for anon users — 60s first visit, 30s returning.
+      {/* Signup nudge for anon users. 60s first visit, 30s returning.
           Value props: save properties + free shareable report link.
           Z-index below ScrollPrompt so the paid-upgrade prompt wins
           if both would be visible at once. */}

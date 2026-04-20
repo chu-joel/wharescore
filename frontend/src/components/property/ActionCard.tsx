@@ -194,7 +194,7 @@ export function generateActions(report: {
   // --- EPB listed (the property itself) ---
   if (p.epb_listed) {
     actions.push({
-      title: 'This building IS earthquake-prone — understand the remediation timeline',
+      title: 'This building IS earthquake-prone. understand the remediation timeline',
       description:
         h.epb_deadline
           ? `The building is on the earthquake-prone register with a compliance deadline of ${h.epb_deadline}. Ask the vendor about seismic strengthening plans, costs, and who bears the cost.`

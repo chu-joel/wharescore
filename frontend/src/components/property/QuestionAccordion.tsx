@@ -126,8 +126,8 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
                       {summaryText}
                     </p>
                   ) : null}
-                  {/* Teaser line — complements the data chips with a
-                      content hint ("what's in here"). Always shown —
+                  {/* Teaser line. complements the data chips with a
+                      content hint ("what's in here"). Always shown .
                       the base-ui Accordion.Trigger doesn't expose a
                       simple data-state attribute we can target with a
                       Tailwind group-data selector, and duplicating a

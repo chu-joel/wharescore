@@ -127,7 +127,7 @@ export function HostedClimate({ snapshot }: Props) {
           </div>
         </div>
 
-        {/* Seasonal summary — card stack on mobile, table on desktop */}
+        {/* Seasonal summary. card stack on mobile, table on desktop */}
         <SeasonalSummary seasons={seasons} />
       </div>
 

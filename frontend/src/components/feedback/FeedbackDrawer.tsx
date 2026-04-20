@@ -190,7 +190,7 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={
                   tab === 'bug'
-                    ? 'Describe the issue — what did you expect vs. what happened?'
+                    ? 'Describe the issue. what did you expect vs. what happened?'
                     : tab === 'feature'
                       ? 'Describe the feature and why it would help...'
                       : 'Share your thoughts...'
@@ -232,7 +232,7 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
             {/* Email */}
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Email <span className="font-normal">(optional — for follow-up)</span>
+                Email <span className="font-normal">(optional. for follow-up)</span>
               </label>
               <Input
                 type="email"
@@ -262,7 +262,7 @@ export function FeedbackDrawer({ open, onOpenChange }: FeedbackDrawerProps) {
               {submitting ? (
                 'Sending...'
               ) : cooldown ? (
-                'Sent — wait 30s'
+                'Sent. wait 30s'
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />

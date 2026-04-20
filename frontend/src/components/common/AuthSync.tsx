@@ -23,7 +23,7 @@ export function AuthSync() {
       return;
     }
 
-    // Authenticated — fetch credits from backend
+    // Authenticated. fetch credits from backend
     let cancelled = false;
     (async () => {
       try {
@@ -35,7 +35,7 @@ export function AuthSync() {
         });
 
         if (!res.ok) {
-          // User might not be in DB yet — set as free
+          // User might not be in DB yet. set as free
           setUser({
             plan: 'free',
             creditsRemaining: null,

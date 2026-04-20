@@ -13,7 +13,7 @@ from ..redis import cache_get, cache_set
 
 router = APIRouter()
 
-CACHE_TTL = 3600  # 1h — pages change at most daily
+CACHE_TTL = 3600  # 1h. pages change at most daily
 
 
 @router.get("/suburbs/guides")

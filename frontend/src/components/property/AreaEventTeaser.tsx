@@ -29,7 +29,7 @@ function pluralise(count: number, singular: string): string {
 export function AreaEventTeaser({ feed, addressId }: Props) {
   const { summary, events } = feed;
 
-  // No events — show a green "all clear" message
+  // No events. show a green "all clear" message
   if (summary.total_events === 0) {
     return (
       <div className="rounded-lg border border-green-200 bg-green-50/50 dark:bg-green-950/10 p-4">

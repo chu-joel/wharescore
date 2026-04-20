@@ -18,13 +18,13 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Assessment layer — has LOCATIONADDRESS, SUBURB, VNZ
+# Assessment layer. has LOCATIONADDRESS, SUBURB, VNZ
 TCC_ASSESSMENT_URL = (
     "https://gis.tauranga.govt.nz/server/rest/services/"
     "Assessment/FeatureServer/2/query"
 )
 
-# Capital Value layer — has CV, LV, VI, AnnualRates for 2023 + 2021
+# Capital Value layer. has CV, LV, VI, AnnualRates for 2023 + 2021
 TCC_VALUATION_URL = (
     "https://gis.tauranga.govt.nz/server/rest/services/"
     "Capital_Value_Total_2023/FeatureServer/10/query"
@@ -124,7 +124,7 @@ def _format_response(assessment: dict, valuation: dict) -> dict:
 
     annual_rates = _safe_float(valuation.get("AnnualRates"))
 
-    # Build levy breakdown — TCC doesn't split council/regional in this data
+    # Build levy breakdown. TCC doesn't split council/regional in this data
     levy_breakdown = []
     if annual_rates:
         levy_breakdown.append({

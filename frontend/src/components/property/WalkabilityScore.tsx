@@ -28,7 +28,7 @@ function computeWalkability(report: PropertyReport): { total: number; factors: F
   const transitScore = Math.min(25, Math.round((transitCount / 10) * 25));
   factors.push({ label: 'Transit access', score: transitScore, maxScore: 25, available: l.transit_count != null });
 
-  // CBD distance (weight: 20) — closer = higher
+  // CBD distance (weight: 20). closer = higher
   const cbdDist = l.cbd_distance_m ?? 10000;
   const cbdScore = Math.max(0, Math.round(20 * (1 - Math.min(cbdDist, 5000) / 5000)));
   factors.push({ label: 'CBD proximity', score: cbdScore, maxScore: 20, available: l.cbd_distance_m != null });
@@ -38,7 +38,7 @@ function computeWalkability(report: PropertyReport): { total: number; factors: F
   const schoolScore = Math.min(15, Math.round((schoolCount / 5) * 15));
   factors.push({ label: 'Schools', score: schoolScore, maxScore: 15, available: l.school_count != null });
 
-  // Inverse of noise (weight: 15) — quieter = more walkable
+  // Inverse of noise (weight: 15). quieter = more walkable
   const noiseDb = report.environment.noise_db ?? 50;
   const noiseScore = Math.max(0, Math.round(15 * (1 - Math.max(0, noiseDb - 40) / 40)));
   factors.push({ label: 'Quiet streets', score: noiseScore, maxScore: 15, available: report.environment.noise_db != null });

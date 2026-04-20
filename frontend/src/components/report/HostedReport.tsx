@@ -67,7 +67,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
     return computeRentBand(snapshot, store);
   }, [snapshot, store.bedrooms, store.bathrooms, store.finishTier, store.weeklyRent, store.hasParking, store.isFurnished, store.isPartiallyFurnished, store.notInsulated, store.sharedKitchen, store.utilitiesIncluded, store.hasOutdoorSpace, store.isCharacterProperty]);
 
-  // Live area feed — fetch seismic/weather/emergency events even for hosted report
+  // Live area feed. fetch seismic/weather/emergency events even for hosted report
   const { data: areaFeed } = useAreaFeed(snapshot.meta.address_id);
 
   // Tab from URL hash
@@ -90,7 +90,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      await navigator.share({ title: `Property Report — ${snapshot.meta.full_address}`, url });
+      await navigator.share({ title: `Property Report. ${snapshot.meta.full_address}`, url });
     } else {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -110,7 +110,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   const propertyType = (titleType && titleType !== 'Unknown' ? titleType : null)
     || (buildingUse && buildingUse !== 'Unknown' ? buildingUse : null);
   const allQuestions = getQuestionsForPersona(persona);
-  // Filter out checklist questions — they're rendered standalone after the question sections
+  // Filter out checklist questions. they're rendered standalone after the question sections
   const skipIds = persona === 'renter'
     ? new Set(['renter-checklist'])
     : new Set(['buyer-checklist']);
@@ -133,7 +133,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
             <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snapshot.meta.full_address}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] justify-center" title="Copy link to clipboard" aria-label="Share — copy report link">
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] justify-center" title="Copy link to clipboard" aria-label="Share. copy report link">
               <Share2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
                 {copied ? 'Copied!' : 'Share'}
@@ -284,7 +284,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 <HostedRentAdvisor snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} />
               </div>
 
-              {/* Renter-specific: Healthy Homes + Mould Risk + Sun — right after rent (their #1 concern) */}
+              {/* Renter-specific: Healthy Homes + Mould Risk + Sun. right after rent (their #1 concern) */}
               {persona === 'renter' && (
                 <>
                   <div className="pb-6">
@@ -309,7 +309,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 <HostedPriceAdvisor snapshot={snapshot} persona={persona} />
               </div>
 
-              {/* HPI chart is a buyer signal — renters have no price exposure. Keep it off the renter report. */}
+              {/* HPI chart is a buyer signal. renters have no price exposure. Keep it off the renter report. */}
               {persona === 'buyer' && snapshot.hpi_data?.length > 0 && (
                 <div className="pb-6">
                   <HostedHPIChart snapshot={snapshot} />
@@ -331,7 +331,7 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                 ))}
               </HostedReportProvider>
 
-              {/* Renter-specific: Landlord checklist + Rights — after questions, before hazard advice */}
+              {/* Renter-specific: Landlord checklist + Rights. after questions, before hazard advice */}
               {persona === 'renter' && (
                 <>
                   <div className="pb-6">

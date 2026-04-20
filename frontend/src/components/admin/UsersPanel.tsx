@@ -142,7 +142,7 @@ export function UsersPanel() {
                           </span>
                         )}
                         {user.full_credits === 0 && user.quick_credits === 0 && (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">.</span>
                         )}
                       </div>
                     </td>

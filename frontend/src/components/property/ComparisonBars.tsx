@@ -54,7 +54,7 @@ function buildRows(report: PropertyReport, comparisons: ComparisonData): BarRow[
 
   if (report.environment.noise_db != null) {
     // Match NoiseLevelGauge (and the rest of the noise UI) which rounds
-    // to whole decibels — prevents "66dB here, 69dB two sections down"
+    // to whole decibels. prevents "66dB here, 69dB two sections down"
     // on the same report.
     rows.push({
       label: 'Road noise',
@@ -158,7 +158,7 @@ export function ComparisonBars({ report }: ComparisonBarsProps) {
 
           return (
             <div key={row.label} className="space-y-1.5">
-              {/* Stack label + insight on narrow viewports — on a 360px
+              {/* Stack label + insight on narrow viewports. on a 360px
                   phone the two were colliding and the insight text
                   wrapped under the label in a single cramped row. */}
               <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">

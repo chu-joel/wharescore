@@ -1,5 +1,5 @@
 # backend/app/routers/rates.py
-"""Live council rates endpoint — supports all 25 councils.
+"""Live council rates endpoint. supports all 25 councils.
 
 Returns current_valuation (CV/LV/IV) and rates breakdown for a property.
 Used by the frontend to lazily enrich the DB-sourced CV after page load.

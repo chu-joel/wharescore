@@ -15,7 +15,7 @@ interface EmailSummaryCaptureProps {
 }
 
 /**
- * "Email me a summary" — registration wall before paywall.
+ * "Email me a summary". registration wall before paywall.
  * User gets a short summary emailed. We get their email for nurture campaigns.
  * If already signed in, sends immediately. If not, triggers Google sign-in.
  */

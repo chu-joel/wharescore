@@ -10,7 +10,7 @@
  *
  * Implementation notes:
  *   - Targets are `data-tour="<id>"` attributes on existing components.
- *     This keeps the tour decoupled from internal layout changes — as
+ *     This keeps the tour decoupled from internal layout changes. as
  *     long as the attribute exists somewhere, the step positions itself.
  *   - Uses pure DOM measurements (`getBoundingClientRect`) rather than
  *     refs so it works across portal boundaries (FloatingReportButton).
@@ -34,8 +34,8 @@ import { apiFetch } from '@/lib/api';
 
 const STORAGE_KEY = 'whare:onboarding_seen';
 
-// Tour demo property. Wellington CBD address — good coverage across
-// hazards, transit, census, rates, market data — and known to have
+// Tour demo property. Wellington CBD address. good coverage across
+// hazards, transit, census, rates, market data. and known to have
 // flood extent, council hazard overlays and transmission-line
 // proximity, so the report the user sees during the tour is populated
 // rather than sparse. Fetched by address query so we don't hard-code
@@ -51,7 +51,7 @@ interface Step {
   body: string;
   /** Optional bullet points shown below the body. Keep each bullet to ~60 chars. */
   bullets?: string[];
-  /** Optional call-to-action line — rendered in primary colour above the buttons. */
+  /** Optional call-to-action line. rendered in primary colour above the buttons. */
   cta?: string;
   advance: StepAdvance;
   placement?: 'below' | 'above' | 'left' | 'right' | 'auto' | 'center';
@@ -99,7 +99,7 @@ const STEPS: Step[] = [
   {
     id: 'scroll',
     // Special sentinel resolved by readRect() to the current
-    // PropertyReport scroll container — so the spotlight cutout
+    // PropertyReport scroll container. so the spotlight cutout
     // lands on the panel being scrolled, and the rest of the page
     // (map / sidebar chrome) dims around it.
     target: 'report-panel',
@@ -192,7 +192,7 @@ function scrollReportSmooth(targetTop: number) {
 
 export function OnboardingTour() {
   const [mounted, setMounted] = useState(false);
-  // Welcome gate — a centred "Take the tour?" dialog shown before the
+  // Welcome gate. a centred "Take the tour?" dialog shown before the
   // spotlight tour actually starts. Lets a user who clearly doesn't
   // want a tour opt out immediately without seeing step 1 for a beat.
   // true = show the welcome; false = either past it or skipped.
@@ -206,7 +206,7 @@ export function OnboardingTour() {
   // the action shifts from the chip bar to the dialog content.
   // Clears back to step.target on step change.
   const [overrideTarget, setOverrideTarget] = useState<string | null>(null);
-  // Click/tap ripple — rendered over the target centre when the tour
+  // Click/tap ripple. rendered over the target centre when the tour
   // auto-clicks something. Keyed by timestamp so remount re-triggers
   // the CSS animation even if two consecutive steps both want a
   // ripple at roughly the same coordinates.
@@ -221,7 +221,7 @@ export function OnboardingTour() {
 
   // Decide whether to run at all. Only on first visit (or explicit
   // ?tour=1) AND only when the user lands without a property already
-  // selected — coming in on a shared link is deeper-funnel.
+  // selected. coming in on a shared link is deeper-funnel.
   // Shows the welcome gate first; entering the spotlight tour happens
   // only when the user clicks "Take the tour".
   useEffect(() => {
@@ -233,7 +233,7 @@ export function OnboardingTour() {
     const onProperty = params.has('address');
     if (force || (!seen && !onProperty)) {
       // Small delay so the page has painted before we overlay the
-      // welcome dialog — abrupt modals feel jarring.
+      // welcome dialog. abrupt modals feel jarring.
       const t = setTimeout(() => setWelcome(true), 600);
       return () => clearTimeout(t);
     }
@@ -268,13 +268,13 @@ export function OnboardingTour() {
 
   const step = STEPS[stepIdx];
 
-  // Clear any stale override when the step changes — otherwise a
+  // Clear any stale override when the step changes. otherwise a
   // previous step's override would carry into the next.
   useEffect(() => {
     setOverrideTarget(null);
   }, [stepIdx]);
 
-  // Position tracking — re-measure on step change, resize, and a short
+  // Position tracking. re-measure on step change, resize, and a short
   // interval (targets can shift as their host components render).
   const activeTarget = overrideTarget ?? step.target;
   useEffect(() => {
@@ -296,10 +296,10 @@ export function OnboardingTour() {
   // Previously we auto-advanced step 3 when selectedAddress appeared
   // (polled for the PersonaToggle to finish loading). Tour now requires
   // an explicit Next click on every step, so this effect is no longer
-  // needed — the user watches the property load and clicks Next when
+  // needed. the user watches the property load and clicks Next when
   // they're ready.
 
-  // Helper — show a tap ripple at the centre of the current target so
+  // Helper. show a tap ripple at the centre of the current target so
   // the user sees WHERE the tour is clicking, not just the effect.
   const pulseAtTarget = () => {
     const r = readRect(step.target);
@@ -367,7 +367,7 @@ export function OnboardingTour() {
       };
     }
     if (step.onEnter === 'auto-toggle-persona') {
-      // Always flip to BUYER — the preceding 'rent-fair' step assumes
+      // Always flip to BUYER. the preceding 'rent-fair' step assumes
       // renter persona (that's where the section exists), so this
       // step's job is to showcase the buyer recomputation. Scroll
       // back up first, then tap + flip after the element settles.
@@ -393,13 +393,13 @@ export function OnboardingTour() {
     }
     if (step.onEnter === 'expand-rent-fair') {
       // Three phases:
-      //   1. Make sure persona is 'renter' — the rent-fair accordion
+      //   1. Make sure persona is 'renter'. the rent-fair accordion
       //      only exists for that persona.
       //   2. Scroll the rent-fair AccordionItem into view inside the
       //      report scroll container.
       //   3. Click the AccordionTrigger button so the panel expands,
       //      so the tour's spotlight lands on an open section.
-      // Each phase polls briefly for its own element to settle —
+      // Each phase polls briefly for its own element to settle .
       // persona switches cause the report to remount.
       setPersona('renter');
       let settled = false;
@@ -414,7 +414,7 @@ export function OnboardingTour() {
         const container = findReportScrollContainer();
         if (container) {
           // Scroll so the item top sits ~80px below the container top
-          // — leaves room for the sticky persona toggle and the
+          //. leaves room for the sticky persona toggle and the
           // tooltip placed above the spotlight.
           const containerTop = container.getBoundingClientRect().top;
           const itemTop = item.getBoundingClientRect().top;
@@ -514,7 +514,7 @@ export function OnboardingTour() {
     }
     if (step.onEnter === 'demo-map-navigation') {
       // Simple left/right swipe gesture so the user sees that the
-      // map can be panned. No zoom, no vertical pan — that felt
+      // map can be panned. No zoom, no vertical pan. that felt
       // busy. We pan left, then right of centre, then back, so the
       // map clearly ends where it started.
       const v = useMapStore.getState().viewport;
@@ -569,7 +569,7 @@ export function OnboardingTour() {
         fly(v.longitude, v.zoom, 800);
       }, 2250));
 
-      // Tiny drag nudge — a few streets across, to show panning
+      // Tiny drag nudge. a few streets across, to show panning
       // is also a thing.
       const NUDGE = 0.003;
       timers.push(setTimeout(() => {
@@ -580,7 +580,7 @@ export function OnboardingTour() {
       }, 4200));
 
       // Final marker over the map to suggest "click a property to
-      // open its report" — the implicit next action for the user.
+      // open its report". the implicit next action for the user.
       timers.push(setTimeout(() => tapOnMap(0.5, 0.5), 5000));
 
       return () => {
@@ -726,7 +726,7 @@ interface OverlayProps {
 function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }: OverlayProps) {
   // Spotlight: a solid rgba overlay with a transparent cutout around
   // the target. Implemented as 4 dim rectangles (top, bottom, left,
-  // right of the target) rather than an SVG mask — simpler, pixel
+  // right of the target) rather than an SVG mask. simpler, pixel
   // perfect, and clickable-through via pointer-events: none.
   const pad = 8;
   const haveTarget = rect && rect.width > 0 && rect.height > 0;
@@ -741,7 +741,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
       }
     : null;
 
-  // Tooltip placement — try user-preferred side, fall back to whatever
+  // Tooltip placement. try user-preferred side, fall back to whatever
   // fits without overflowing the viewport. Tooltip is ~320px wide.
   const tooltip = computeTooltipPos(step.placement ?? 'auto', tr);
 
@@ -749,7 +749,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
 
   return (
     <div className="fixed inset-0 z-[10000] pointer-events-none">
-      {/* Dim layers — 4 rectangles around the target cutout, or full
+      {/* Dim layers. 4 rectangles around the target cutout, or full
           overlay if the target couldn't be measured. Clicks pass
           through so the user can still interact with the target
           (crucial for steps 3 "click a property" and the spotlight
@@ -787,7 +787,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
             style={{ top: tr.top, height: tr.height, left: tr.right, right: 0 }}
             onClick={onSkip}
           />
-          {/* Ring around target — same transition so it tracks the
+          {/* Ring around target. same transition so it tracks the
               cutout. Pulse on top of the transition for attention. */}
           <div
             className="absolute rounded-xl ring-2 ring-piq-primary ring-offset-2 ring-offset-background/50 animate-pulse transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-none"
@@ -801,7 +801,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
         />
       )}
 
-      {/* Tap ripple — a small pulse at the target centre when the tour
+      {/* Tap ripple. a small pulse at the target centre when the tour
           auto-clicks something, so the user sees where the action
           happened. Remount-on-key re-triggers the CSS animation. */}
       {tap && (
@@ -812,7 +812,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }:
         />
       )}
 
-      {/* Tooltip — same cubic-bezier so position, fade and the spotlight
+      {/* Tooltip. same cubic-bezier so position, fade and the spotlight
           all move together. Fades in on mount via the `opacity` class
           below combined with the initial render. */}
       <div
@@ -904,7 +904,7 @@ function computeTooltipPos(
 
   // 'center' always centres the tooltip in the viewport regardless
   // of where the target is. The spotlight still highlights the
-  // target — used for the final "Get the full report" step so the
+  // target. used for the final "Get the full report" step so the
   // sales pitch reads from the middle of the screen.
   if (preferred === 'center') {
     return { top: (vh - tipH) / 2, left: (vw - tipW) / 2 };
@@ -953,6 +953,6 @@ function computeTooltipPos(
       return { top: options[side].top, left: options[side].left };
     }
   }
-  // Nothing fits — centre.
+  // Nothing fits. centre.
   return { top: (vh - tipH) / 2, left: (vw - tipW) / 2 };
 }

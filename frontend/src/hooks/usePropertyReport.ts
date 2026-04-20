@@ -7,8 +7,8 @@ import { transformReport } from '@/lib/transformReport';
  * Progressive property report loader.
  *
  * Two-phase fetch to avoid connection congestion:
- *  1. ?fast=true  — skips Valhalla terrain (~1-3s). Renders the report immediately.
- *  2. full        — only starts AFTER fast resolves, so it doesn't steal a
+ *  1. ?fast=true . skips Valhalla terrain (~1-3s). Renders the report immediately.
+ *  2. full       . only starts AFTER fast resolves, so it doesn't steal a
  *     connection slot from critical parallel requests (AI, rates, crime, tiles).
  *     Includes terrain/walking_reach (~5-15s). Silently upgrades data when ready.
  */
@@ -23,7 +23,7 @@ export function usePropertyReport(addressId: number | null) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Only start the full request after fast has resolved — prevents the slow
+  // Only start the full request after fast has resolved. prevents the slow
   // Valhalla call from blocking a connection slot while critical data loads.
   const fullQuery = useQuery({
     queryKey: ['property-report', addressId],

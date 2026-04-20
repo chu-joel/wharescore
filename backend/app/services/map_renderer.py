@@ -59,7 +59,7 @@ ZONE_OUTLINE_COLORS = {
     "rural":        (139, 195, 74, 100),
 }
 
-# Legend — only types that appear on the map are shown
+# Legend. only types that appear on the map are shown
 LEGEND_ORDER = [
     ("property",       (13, 115, 119),  "Property"),
     ("school_inzone",  (46, 125, 50),   "In-zone School"),

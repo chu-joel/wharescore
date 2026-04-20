@@ -39,12 +39,12 @@ export function HostedAtAGlance({ report }: Props) {
     return null;
   };
 
-  // Insurance — derive from actual hazard data fields (not indicator search, which can miss)
+  // Insurance. derive from actual hazard data fields (not indicator search, which can miss)
   const hazards = report.hazards;
   const insuranceFactors = [isInFloodZone(hazards), hazards?.tsunami_zone, hazards?.liquefaction_zone, hazards?.coastal_erosion].filter(Boolean).length;
   const insuranceStatus: GlanceStatus = insuranceFactors === 0 ? 'good' : insuranceFactors <= 2 ? 'moderate' : 'concern';
 
-  // Noise — derive from real environment / aircraft data, not from a risk indicator score which
+  // Noise. derive from real environment / aircraft data, not from a risk indicator score which
   // was frequently null (giving a confusing "Noise (?)" pill). If we don't have any measurement,
   // we omit the Noise pill entirely rather than rendering a phantom "(?)".
   const env = (report as unknown as { environment?: Record<string, unknown> }).environment ?? {};
@@ -57,7 +57,7 @@ export function HostedAtAGlance({ report }: Props) {
     noiseStatus = maxNoise >= 70 ? 'concern' : maxNoise >= 60 ? 'moderate' : 'good';
   }
 
-  // Schools — derive from the real school count around the property, not from a risk indicator.
+  // Schools. derive from the real school count around the property, not from a risk indicator.
   // Previously this was pulling a liveability sub-score that often flagged urban areas with
   // plenty of schools as "Risk", contradicting the findings copy right below it.
   const live = (report as unknown as { liveability?: Record<string, unknown> }).liveability ?? {};

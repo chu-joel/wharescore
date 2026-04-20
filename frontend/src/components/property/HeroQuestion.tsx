@@ -51,7 +51,7 @@ export function HeroQuestion({ question, report }: HeroQuestionProps) {
           </div>
         </div>
       </div>
-      {/* Content — always expanded */}
+      {/* Content. always expanded */}
       <div className="px-4 pb-4">
         <QuestionContent questionId={question.id} report={report} />
       </div>

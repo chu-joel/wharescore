@@ -36,7 +36,7 @@ interface BudgetState {
   getEntry: (addressId: number, cv?: number | null, medianRent?: number | null) => BudgetEntry;
   updateBuyer: (addressId: number, partial: Partial<BuyerInputs>) => void;
   updateRenter: (addressId: number, partial: Partial<RenterInputs>) => void;
-  /** Sync without flipping hasInteracted — used by parent components to push external inputs. */
+  /** Sync without flipping hasInteracted. used by parent components to push external inputs. */
   syncRenter: (addressId: number, partial: Partial<RenterInputs>) => void;
   markInteracted: (addressId: number) => void;
 }
@@ -44,7 +44,7 @@ interface BudgetState {
 /**
  * Default owner-occupier floating mortgage rate used when the user hasn't
  * overridden it. Centralised so we only update one number when RBNZ/main
- * bank rates move — previously 6.5 was hard-coded in four places.
+ * bank rates move. previously 6.5 was hard-coded in four places.
  * Last refreshed: 2026-04 (ANZ/ASB/Westpac 1-year fixed ~6.49%).
  */
 export const DEFAULT_NZ_MORTGAGE_RATE_PCT = 6.5;

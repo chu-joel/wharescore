@@ -10,7 +10,7 @@
 //   4. Check address-level dismissal (7-day memory).
 //   5. Mount the badge, fetch data, render.
 //
-// Everything is silent-on-failure per the brief — no console spam, no alert,
+// Everything is silent-on-failure per the brief. no console spam, no alert,
 // no visual error if the host page simply doesn't have an address yet.
 import { API_BASE, type BadgeResponse, type SourceSite } from "@/lib/constants";
 import { fetchBadge, fetchJwt } from "@/lib/api";
@@ -29,7 +29,7 @@ const EXTRACT_MAX_WAIT_MS = 3000;
 const EXTRACT_INTERVAL_MS = 250;
 
 export async function mountBadge(opts: MountOpts): Promise<void> {
-  // 1. Gate checks — silent return if the user paused or toggled off.
+  // 1. Gate checks. silent return if the user paused or toggled off.
   const pausedUntil = await getPauseUntil();
   if (pausedUntil && pausedUntil > Date.now()) return;
 
@@ -42,7 +42,7 @@ export async function mountBadge(opts: MountOpts): Promise<void> {
     if (sites?.[opts.site]?.badge_enabled === false) return;
   }
 
-  // 2. Extract — poll the DOM until the address appears or we time out.
+  // 2. Extract. poll the DOM until the address appears or we time out.
   const address = await waitForAddress(opts.extractor);
   if (!address) return;
 
@@ -82,11 +82,11 @@ async function fetchAndRender(badge: Badge, site: SourceSite, address: string): 
   const sourceUrl = window.location.href;
   const data = await fetchBadge(site, address, sourceUrl);
   if (!data) {
-    badge.renderError("WhareScore unavailable — try again.");
+    badge.renderError("WhareScore unavailable. try again.");
     return;
   }
   if (!data.matched) {
-    // Spec: silent — the listing address couldn't be resolved against LINZ.
+    // Spec: silent. the listing address couldn't be resolved against LINZ.
     badge.remove();
     return;
   }

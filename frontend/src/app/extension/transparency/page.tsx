@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'WhareScore Badge — Transparency',
+  title: 'WhareScore Badge. Transparency',
   description:
     'Plain-language summary of what the WhareScore Badge browser extension sees, sends, and stores. No listing content is captured.',
   alternates: { canonical: 'https://wharescore.co.nz/extension/transparency' },
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function ExtensionTransparencyPage() {
   return (
-    <StaticPageLayout title="WhareScore Badge — Transparency">
+    <StaticPageLayout title="WhareScore Badge. Transparency">
       <p className="text-sm text-muted-foreground">
         Plain-language summary of what the extension sees and sends. For the
         formal policy, see <a href="/extension/privacy">/extension/privacy</a>.
@@ -24,7 +24,7 @@ export default function ExtensionTransparencyPage() {
           </li>
           <li>
             The <strong>URL path</strong> of the listing, with query string and
-            fragment stripped — we use this only to detect whether you are on a
+            fragment stripped. we use this only to detect whether you are on a
             sale or rental listing so we can tailor the findings.
           </li>
           <li>
@@ -54,14 +54,14 @@ export default function ExtensionTransparencyPage() {
           table recording the WhareScore <code>address_id</code>, the source
           site (e.g. <code>homes.co.nz</code>), your tier (anon / free / pro),
           and the detected persona (renter / buyer). Raw address text is not
-          stored — only the resolved LINZ address id.
+          stored. only the resolved LINZ address id.
         </p>
       </section>
 
       <section className="mt-8 space-y-3">
         <h2 className="text-lg font-semibold">Why so little?</h2>
         <p className="text-sm">
-          Phase 1 is deliberately a pure annotation tool — it augments the page
+          Phase 1 is deliberately a pure annotation tool. it augments the page
           you are already viewing, it does not copy content off it. We reviewed
           each host site&rsquo;s terms of service before shipping; they
           explicitly restrict copying listing content for commercial use, so we
@@ -72,7 +72,7 @@ export default function ExtensionTransparencyPage() {
       <section className="mt-8 space-y-3">
         <h2 className="text-lg font-semibold">Delete your data</h2>
         <p className="text-sm">
-          Uninstall the extension via Chrome&rsquo;s extension manager — every
+          Uninstall the extension via Chrome&rsquo;s extension manager. every
           per-browser setting (dismissals, pause state, site toggles, cached
           JWT) is discarded on uninstall. To remove your server-side telemetry
           events, contact <a href="mailto:privacy@wharescore.co.nz">privacy@wharescore.co.nz</a>.

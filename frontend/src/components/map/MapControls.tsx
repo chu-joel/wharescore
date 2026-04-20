@@ -97,7 +97,7 @@ export function MapControls({ mapRef }: MapControlsProps) {
     };
 
     const onError = (err: GeolocationPositionError) => {
-      // iOS sometimes fails with high accuracy — retry with low accuracy
+      // iOS sometimes fails with high accuracy. retry with low accuracy
       if (err.code === err.TIMEOUT) {
         navigator.geolocation.getCurrentPosition(
           onSuccess,

@@ -49,12 +49,12 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.ENVIRONMENT == "development" else None,
 )
 
-# --- Middleware stack (order matters — outermost runs first) ---
+# --- Middleware stack (order matters. outermost runs first) ---
 
-# 1. Trusted Host — reject requests with spoofed Host header
+# 1. Trusted Host. reject requests with spoofed Host header
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 
-# 2. Security headers — applied to ALL responses
+# 2. Security headers. applied to ALL responses
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -68,7 +68,7 @@ async def security_headers(request: Request, call_next):
         )
     return response
 
-# 3. CORS — strict origin list + optional chrome-extension regex.
+# 3. CORS. strict origin list + optional chrome-extension regex.
 _cors_kwargs: dict = {
     "allow_origins": settings.CORS_ORIGINS,
     "allow_methods": ["GET", "POST", "PATCH", "PUT"],
@@ -80,11 +80,11 @@ if settings.CORS_ALLOW_EXTENSIONS:
     _cors_kwargs["allow_origin_regex"] = settings.EXTENSION_ORIGIN_REGEX
 app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
-# 4. Bot detection — block scrapers, detect scraping patterns
+# 4. Bot detection. block scrapers, detect scraping patterns
 from .middleware.bot_detection import bot_detection_middleware
 app.middleware("http")(bot_detection_middleware)
 
-# 5. Request metrics — timing, request IDs, perf logging
+# 5. Request metrics. timing, request IDs, perf logging
 from .middleware.request_metrics import request_metrics_middleware
 app.middleware("http")(request_metrics_middleware)
 

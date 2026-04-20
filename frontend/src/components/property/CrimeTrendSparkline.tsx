@@ -28,7 +28,7 @@ export function CrimeTrendSparkline({ addressId }: CrimeTrendSparklineProps) {
   // Use snapshot data in hosted mode
   const chartData = hosted?.snapshot?.crime_trend ?? data;
 
-  // Don't show anything while loading or on error — this is a supplementary widget
+  // Don't show anything while loading or on error. this is a supplementary widget
   if (!hosted && (isLoading || isError)) return null;
   if (!chartData || !Array.isArray(chartData) || chartData.length < 3) return null;
 

@@ -12,7 +12,7 @@ from .. import db
 
 logger = logging.getLogger(__name__)
 
-# Bounded queue — silently drops events if full to avoid memory pressure
+# Bounded queue. silently drops events if full to avoid memory pressure
 _queue: asyncio.Queue | None = None
 _flush_task: asyncio.Task | None = None
 _MAX_QUEUE = 10_000
@@ -32,7 +32,7 @@ def client_ip_from_request(request) -> str | None:
 
     Reads X-Forwarded-For and X-Real-IP first (host nginx sets these),
     falls back to request.client.host. With uvicorn running under
-    --proxy-headers the fallback is ALSO safe — it reads from
+    --proxy-headers the fallback is ALSO safe. it reads from
     X-Forwarded-For under the hood. Without --proxy-headers the
     fallback returns the Docker bridge gateway IP, which would hash
     the same for every user (the exact bug we just fixed).
@@ -57,7 +57,7 @@ def client_ip_from_request(request) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Public API — all non-blocking
+# Public API. all non-blocking
 # ---------------------------------------------------------------------------
 
 def track_event(
@@ -124,7 +124,7 @@ def log_error(
 
 
 # ---------------------------------------------------------------------------
-# Lifecycle — called from main.py lifespan
+# Lifecycle. called from main.py lifespan
 # ---------------------------------------------------------------------------
 
 async def start_writer() -> None:
@@ -158,7 +158,7 @@ def _enqueue(table: str, data: dict) -> None:
     try:
         _queue.put_nowait((table, data))
     except asyncio.QueueFull:
-        pass  # Drop silently — better than blocking a request
+        pass  # Drop silently. better than blocking a request
 
 
 async def _flush_loop() -> None:
@@ -244,7 +244,7 @@ async def _aggregate_day(day: date) -> None:
                 DO UPDATE SET metric_value = EXCLUDED.metric_value
             """, [day_str, day_str, day_str])
 
-            # Aggregate perf_metrics — total requests and avg duration
+            # Aggregate perf_metrics. total requests and avg duration
             await conn.execute("""
                 INSERT INTO daily_metrics (day, metric_name, metric_value)
                 SELECT %s::date, 'total_requests', COUNT(*)

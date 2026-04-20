@@ -1,4 +1,4 @@
-"""Account endpoints — credits, saved reports, subscription management."""
+"""Account endpoints. credits, saved reports, subscription management."""
 from __future__ import annotations
 
 import logging

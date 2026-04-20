@@ -7,7 +7,7 @@ const SESSION_KEY = 'wharescore_visited';
 const UPSELL_SHOWN_KEY = 'wharescore_upsell_shown';
 const SCROLL_PROMPT_SHOWN_KEY = 'wharescore_scroll_prompt_shown';
 const SIGNUP_NUDGE_SHOWN_KEY = 'wharescore_signup_nudge_shown';
-// Persistent (not session) — used to detect "returning visitor"
+// Persistent (not session). used to detect "returning visitor"
 // across different browsing sessions. No PII, just a "yes they've
 // been here before" flag.
 const RETURN_VISITOR_KEY = 'wharescore_has_visited_before';
@@ -37,7 +37,7 @@ export function isSecondVisit(): boolean {
   return getVisited().length >= 2;
 }
 
-/** Returns true only once per session — use to gate the "comparing" upsell. */
+/** Returns true only once per session. use to gate the "comparing" upsell. */
 export function shouldShowComparisonUpsell(): boolean {
   if (typeof window === 'undefined') return false;
   if (!isSecondVisit()) return false;
@@ -46,7 +46,7 @@ export function shouldShowComparisonUpsell(): boolean {
   return true;
 }
 
-/** Returns true only once per session — use to gate the scroll prompt. */
+/** Returns true only once per session. use to gate the scroll prompt. */
 export function shouldShowScrollPrompt(): boolean {
   if (typeof window === 'undefined') return false;
   if (sessionStorage.getItem(SCROLL_PROMPT_SHOWN_KEY)) return false;
@@ -61,7 +61,7 @@ export function markScrollPromptShown(): void {
 
 /**
  * Returns true if the user has visited the site before (different
- * browsing session — persists in localStorage, not session). Used
+ * browsing session. persists in localStorage, not session). Used
  * to fire the signup nudge faster for returners than first-timers.
  */
 export function isReturningVisitor(): boolean {
@@ -77,7 +77,7 @@ export function markVisitedEver(): void {
   }
 }
 
-/** True only once per session — gate for the signup nudge. */
+/** True only once per session. gate for the signup nudge. */
 export function shouldShowSignupNudge(): boolean {
   if (typeof window === 'undefined') return false;
   if (sessionStorage.getItem(SIGNUP_NUDGE_SHOWN_KEY)) return false;

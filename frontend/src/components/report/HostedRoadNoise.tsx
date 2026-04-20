@@ -22,19 +22,19 @@ export function HostedRoadNoise({ snapshot }: Props) {
   if (db >= 70) {
     level = 'Very High';
     color = 'text-risk-high';
-    description = 'Significant road noise — may affect sleep and outdoor enjoyment. Consider double glazing.';
+    description = 'Significant road noise. may affect sleep and outdoor enjoyment. Consider double glazing.';
   } else if (db >= 65) {
     level = 'High';
     color = 'text-amber-600';
-    description = 'Noticeable road noise — conversation outdoors may be difficult at peak times.';
+    description = 'Noticeable road noise. conversation outdoors may be difficult at peak times.';
   } else if (db >= 60) {
     level = 'Moderate';
     color = 'text-yellow-600';
-    description = 'Moderate traffic noise — generally manageable but noticeable with windows open.';
+    description = 'Moderate traffic noise. generally manageable but noticeable with windows open.';
   } else if (db >= 55) {
     level = 'Low–Moderate';
     color = 'text-piq-success';
-    description = 'Some background traffic noise — typical for suburban streets near main roads.';
+    description = 'Some background traffic noise. typical for suburban streets near main roads.';
   } else {
     level = 'Low';
     color = 'text-piq-success';

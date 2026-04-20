@@ -191,11 +191,11 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
       );
     }
 
-    // ── Buyer Q2: True cost — FREE (collects user data via sendBeacon) ──
+    // ── Buyer Q2: True cost. FREE (collects user data via sendBeacon) ──
     case 'true-cost': {
       return (
         <div className="space-y-4">
-          {/* Skip PriceAdvisorCard in hosted mode — HostedPriceAdvisor shown above */}
+          {/* Skip PriceAdvisorCard in hosted mode. HostedPriceAdvisor shown above */}
           {!hosted && <PriceAdvisorCard addressId={report.address.address_id} />}
           <BuyerBudgetCalculator report={report} />
         </div>
@@ -253,7 +253,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
         <div className="space-y-4">
           <TrajectoryIndicator report={report} />
           {/* Crime trend chart is part of the buyer's free experience
-              but sits behind the paywall for renters — matches the old
+              but sits behind the paywall for renters. matches the old
               neighbourhood-improving gating before the two sections
               were merged. */}
           {isRenter ? (
@@ -286,9 +286,9 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
     case 'renter-checklist':
       return (
         <div className="space-y-4">
-          {/* Landlord checklist is FREE — high-value conversion hook */}
+          {/* Landlord checklist is FREE. high-value conversion hook */}
           <LandlordChecklist report={report} />
-          {/* Know Your Rights — FREE, builds trust */}
+          {/* Know Your Rights. FREE, builds trust */}
           <KnowYourRights report={report} userRent={userWeeklyRent} />
           {/* Detailed renter checklist behind paywall */}
           <PremiumGate label="Full personalised checklist with cost estimates" trigger="default">

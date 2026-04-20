@@ -21,19 +21,19 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Parcels layer — addresses, legal descriptions, ValuationID
+# Parcels layer. addresses, legal descriptions, ValuationID
 WBOP_PARCELS_URL = (
     "https://map.westernbay.govt.nz/arcgisext/rest/services/"
     "Property/MapServer/12/query"
 )
 
-# Capital Value layer — CV by ValuationNumber
+# Capital Value layer. CV by ValuationNumber
 WBOP_CV_URL = (
     "https://map.westernbay.govt.nz/arcgisext/rest/services/"
     "Property/MapServer/4/query"
 )
 
-# Land Value layer — LV by ValuationNumber
+# Land Value layer. LV by ValuationNumber
 WBOP_LV_URL = (
     "https://map.westernbay.govt.nz/arcgisext/rest/services/"
     "Property/MapServer/5/query"

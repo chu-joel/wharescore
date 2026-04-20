@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { CoverageInfo } from '@/lib/types';
 
 /**
- * Download gate store — controls paywall for PDF exports.
+ * Download gate store. controls paywall for PDF exports.
  *
  * Free users: can browse on-screen, no PDF downloads.
  * Paid users: credits-based (single/3-pack) or Pro (10/day, 30/month).
@@ -26,7 +26,7 @@ interface UserCredits {
   downloadsThisMonth: number;
 }
 
-/** Context for why the upgrade modal was triggered — drives headline copy */
+/** Context for why the upgrade modal was triggered. drives headline copy */
 export type ModalTrigger = 'default' | 'risk' | 'market' | 'rent-advisor' | 'price-advisor' | 'no_credits' | 'daily_limit' | 'monthly_limit' | 'comparing';
 
 interface DownloadGateState {
@@ -36,7 +36,7 @@ interface DownloadGateState {
   credits: UserCredits | null;
   /** Whether the upgrade modal is open */
   showUpgradeModal: boolean;
-  /** What triggered the modal — for contextual headlines */
+  /** What triggered the modal. for contextual headlines */
   modalTrigger: ModalTrigger;
   /** Extra context (e.g. risk count) */
   modalContext: Record<string, number | string>;
@@ -61,7 +61,7 @@ interface DownloadGateState {
   recordDownload: () => void;
   /** Toggle upgrade modal with optional trigger context */
   setShowUpgradeModal: (show: boolean, trigger?: ModalTrigger, context?: Record<string, number | string>, addressId?: number | null, persona?: string) => void;
-  /** Redeem a promo code via backend — returns { success, message } */
+  /** Redeem a promo code via backend. returns { success, message } */
   redeemPromo: (code: string) => Promise<{ success: boolean; message: string }>;
 }
 
@@ -84,7 +84,7 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
       return { allowed: false, reason: 'login' };
     }
 
-    // Free plan — never
+    // Free plan. never
     if (credits.plan === 'free') {
       return { allowed: false, reason: 'upgrade' };
     }
@@ -97,7 +97,7 @@ export const useDownloadGateStore = create<DownloadGateState>((set, get) => ({
       return { allowed: true, reason: '' };
     }
 
-    // Pro plan — check daily + monthly limits
+    // Pro plan. check daily + monthly limits
     if (credits.plan === 'pro') {
       if (credits.monthlyLimit && credits.downloadsThisMonth >= credits.monthlyLimit) {
         return {

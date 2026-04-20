@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle, Circle, AlertTriangle, ClipboardCheck, ChevronDown } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
-import { isInFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isHighOrVeryHighLiquefaction } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -27,7 +27,7 @@ interface DiligenceItem {
 }
 
 /**
- * "What we've covered vs what you still need" — buyer due diligence tracker.
+ * "What we've covered vs what you still need". buyer due diligence tracker.
  * Shows 12 standard NZ due diligence items, marks which ones our report
  * already addresses, and highlights what the buyer still needs to do.
  *
@@ -45,7 +45,7 @@ export function BuyerDueDiligence({ report }: Props) {
     name: 'Natural hazard check',
     cost: 'Included',
     coveredByUs: true,
-    ourCoverage: `${report.coverage?.available ?? '30+'} risk layers checked — flood, earthquake, tsunami, liquefaction, slope, wind, wildfire, coastal erosion`,
+    ourCoverage: `${report.coverage?.available ?? '30+'} risk layers checked. flood, earthquake, tsunami, liquefaction, slope, wind, wildfire, coastal erosion`,
     priority: 'essential',
   });
 
@@ -91,8 +91,7 @@ export function BuyerDueDiligence({ report }: Props) {
 
   // === ITEMS BUYER STILL NEEDS ===
   const hasFlood = isInFloodZone(hazards);
-  const liqStr = String(hazards?.liquefaction_zone || '').toLowerCase();
-  const isHighLiq = liqStr.includes('high') || liqStr.includes('very');
+  const isHighLiq = isHighOrVeryHighLiquefaction(hazards);
   const slopeStr = String(hazards?.slope_failure || '').toLowerCase();
   const isHighSlope = slopeStr.includes('high') || slopeStr.includes('very');
   const isEPB = planning?.epb_listed;
@@ -105,7 +104,7 @@ export function BuyerDueDiligence({ report }: Props) {
       name: 'Building inspection + seismic assessment',
       cost: '$2,000–$5,000',
       coveredByUs: false,
-      propertyNote: 'CRITICAL — earthquake-prone building. A seismic assessment is required in addition to a standard inspection to scope strengthening works.',
+      propertyNote: 'CRITICAL. earthquake-prone building. A seismic assessment is required in addition to a standard inspection to scope strengthening works.',
       priority: 'essential',
       scope: 'personalised',
     });
@@ -155,7 +154,7 @@ export function BuyerDueDiligence({ report }: Props) {
     });
   }
 
-  // Universal buyer checks — every property, regardless of hazards.
+  // Universal buyer checks. every property, regardless of hazards.
   if (!isEPB) {
     items.push({
       name: 'Building inspection',
@@ -170,7 +169,7 @@ export function BuyerDueDiligence({ report }: Props) {
     name: 'LIM report (council records)',
     cost: '$300–$500',
     coveredByUs: false,
-    propertyNote: 'Reveals building consent history, code compliance status, and any notices to fix. We cover hazards and zoning — the LIM adds consent and compliance records.',
+    propertyNote: 'Reveals building consent history, code compliance status, and any notices to fix. We cover hazards and zoning. the LIM adds consent and compliance records.',
     priority: 'essential',
     scope: 'universal',
   });
@@ -180,7 +179,7 @@ export function BuyerDueDiligence({ report }: Props) {
       name: 'Insurance quotes',
       cost: 'Free',
       coveredByUs: false,
-      propertyNote: 'Get at least 3 quotes. EQC covers first $300K earthquake damage — check the gap to rebuild cost.',
+      propertyNote: 'Get at least 3 quotes. EQC covers first $300K earthquake damage. check the gap to rebuild cost.',
       priority: 'essential',
       scope: 'universal',
     });
@@ -244,10 +243,7 @@ function DueDiligenceRow({ item }: { item: DiligenceItem }) {
         <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
       )}
       <div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{item.name}</span>
-          <span className="text-xs text-muted-foreground">{item.cost}</span>
-        </div>
+        <span className="text-sm font-medium">{item.name}</span>
         {item.propertyNote && (
           <p className="text-xs text-muted-foreground">{item.propertyNote}</p>
         )}
@@ -265,7 +261,7 @@ function DueDiligenceCard({
   universal,
 }: CardProps) {
   const hasPersonalised = personalised.length > 0;
-  // If nothing personalised fired, show the universal list inline — same
+  // If nothing personalised fired, show the universal list inline. same
   // pattern as LandlordChecklist. Otherwise collapse universals behind an
   // expander so the property-specific items stay in focus.
   const [expanded, setExpanded] = useState(!hasPersonalised);
@@ -277,7 +273,7 @@ function DueDiligenceCard({
         <span className="text-sm font-bold">Your due diligence</span>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        We've covered {coveredCount} of {totalCount} checks. {essentialRemaining} essential items remaining.
+        We've covered {coveredCount} of {totalCount} checks. A few more are worth doing before you commit.
       </p>
 
       <div className="space-y-1.5 mb-3">

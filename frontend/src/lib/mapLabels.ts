@@ -1,5 +1,5 @@
 /**
- * Custom vector label layers — Google Maps-style white text with dark outlines.
+ * Custom vector label layers. Google Maps-style white text with dark outlines.
  * Uses OpenFreeMap vector tiles (OpenMapTiles schema, free, no API key).
  *
  * Layer hierarchy (low zoom → high zoom):
@@ -13,7 +13,7 @@ export const LABEL_SOURCE_ID = 'source-ofm-labels';
 export const LABEL_TILE_URL = 'https://tiles.openfreemap.org/planet/20260311_001001_pt/{z}/{x}/{y}.pbf';
 
 // ---------------------------------------------------------------------------
-// Shared paint — white text, dark semi-transparent halo (like Google satellite)
+// Shared paint. white text, dark semi-transparent halo (like Google satellite)
 // ---------------------------------------------------------------------------
 const WHITE_ON_DARK = {
   'text-color': '#FFFFFF',
@@ -22,7 +22,7 @@ const WHITE_ON_DARK = {
   'text-halo-blur': 0.5,
 } as const;
 
-// For light basemaps — dark text, white halo
+// For light basemaps. dark text, white halo
 const DARK_ON_LIGHT = {
   'text-color': '#333333',
   'text-halo-color': 'rgba(255, 255, 255, 0.9)',
@@ -189,7 +189,7 @@ function makeLabelLayers(paint: Record<string, unknown>): LayerProps[] {
       },
     } as LayerProps,
 
-    // --- Street labels (zoom 13+) — follow road lines ---
+    // --- Street labels (zoom 13+). follow road lines ---
     {
       id: 'ofm-label-road-major',
       source: LABEL_SOURCE_ID,
@@ -244,8 +244,8 @@ function makeLabelLayers(paint: Record<string, unknown>): LayerProps[] {
   ];
 }
 
-/** White text with dark halo — for satellite and dark basemaps */
+/** White text with dark halo. for satellite and dark basemaps */
 export const LABEL_LAYERS_LIGHT = makeLabelLayers(WHITE_ON_DARK);
 
-/** Dark text with white halo — for light basemaps */
+/** Dark text with white halo. for light basemaps */
 export const LABEL_LAYERS_DARK = makeLabelLayers(DARK_ON_LIGHT);

@@ -84,7 +84,7 @@ export function InvestmentMetrics({ report }: InvestmentMetricsProps) {
     });
   }
 
-  // CV — show the effective (per-unit where applicable) value.
+  // CV. show the effective (per-unit where applicable) value.
   if (effectiveCv) {
     const isEstimated =
       !!report.property_detection?.is_multi_unit &&

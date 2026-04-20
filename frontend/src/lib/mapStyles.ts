@@ -1,7 +1,7 @@
-// lib/mapStyles.ts — MapLibre image assets: risk patterns + layer icons
+// lib/mapStyles.ts. MapLibre image assets: risk patterns + layer icons
 
 // ---------------------------------------------------------------------------
-// Layer icons — canvas-rendered marker images for point layers
+// Layer icons. canvas-rendered marker images for point layers
 // ---------------------------------------------------------------------------
 
 type IconDrawFn = (ctx: CanvasRenderingContext2D, s: number) => void;
@@ -155,7 +155,7 @@ export function addLayerIcons(map: maplibregl.Map) {
 }
 
 // ---------------------------------------------------------------------------
-// Google Maps-style POI icons — white symbol on colored circle
+// Google Maps-style POI icons. white symbol on colored circle
 // ---------------------------------------------------------------------------
 
 interface PoiIconDef {

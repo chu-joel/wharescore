@@ -1,4 +1,4 @@
-// lib/reportSections.ts — Question-based section definitions per persona
+// lib/reportSections.ts. Question-based section definitions per persona
 //
 // Each "question" maps to existing report data sections.
 // The frontend renders these as accordion items with natural-language triggers.
@@ -27,7 +27,7 @@ export interface QuestionSection {
   iconColor: string;
   iconBg: string;
   /**
-   * One section per persona is the primary reason the user came — rent
+   * One section per persona is the primary reason the user came. rent
    * fairness for renters, deal-breakers for buyers. QuestionAccordion
    * renders these with a piq-primary accent + "Most useful" badge so
    * they stand out among the collapsed list.
@@ -103,7 +103,7 @@ const BUYER_QUESTIONS: QuestionSection[] = [
     iconColor: 'text-red-500',
     iconBg: 'bg-red-100 dark:bg-red-900/30',
     featured: true,
-    teaser: 'Critical hazard + insurance flags that can kill a sale — read first.',
+    teaser: 'Critical hazard + insurance flags that can kill a sale. read first.',
   },
   {
     id: 'investment',
@@ -121,7 +121,7 @@ const BUYER_QUESTIONS: QuestionSection[] = [
     icon: 'Calculator',
     iconColor: 'text-piq-primary',
     iconBg: 'bg-teal-100 dark:bg-teal-900/30',
-    teaser: 'Mortgage + rates + insurance + body corp — the full monthly number.',
+    teaser: 'Mortgage + rates + insurance + body corp. the full monthly number.',
   },
   {
     id: 'daily-life',

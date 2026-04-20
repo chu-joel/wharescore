@@ -25,28 +25,28 @@ export function FlatmateFriendly({ report }: Props) {
 
   // Bedrooms
   if (bedrooms >= 4) {
-    traits.push({ icon: Users, label: `${bedrooms} bedrooms — great for a flat`, good: true });
+    traits.push({ icon: Users, label: `${bedrooms} bedrooms. great for a flat`, good: true });
   } else if (bedrooms >= 3) {
-    traits.push({ icon: Users, label: `${bedrooms} bedrooms — suits 2-3 flatmates`, good: true });
+    traits.push({ icon: Users, label: `${bedrooms} bedrooms. suits 2-3 flatmates`, good: true });
   } else {
-    traits.push({ icon: Users, label: `${bedrooms} bedrooms — suits a couple or 1 flatmate`, good: true });
+    traits.push({ icon: Users, label: `${bedrooms} bedrooms. suits a couple or 1 flatmate`, good: true });
   }
 
   // Size per person
   if (buildingArea && bedrooms >= 2) {
     const sqmPerPerson = buildingArea / bedrooms;
     if (sqmPerPerson >= 25) {
-      traits.push({ icon: Maximize2, label: `${Math.round(sqmPerPerson)}m² per room — spacious`, good: true });
+      traits.push({ icon: Maximize2, label: `${Math.round(sqmPerPerson)}m² per room. spacious`, good: true });
     } else if (sqmPerPerson < 15) {
-      traits.push({ icon: Maximize2, label: `${Math.round(sqmPerPerson)}m² per room — compact`, good: false });
+      traits.push({ icon: Maximize2, label: `${Math.round(sqmPerPerson)}m² per room. compact`, good: false });
     }
   }
 
   // Multi-unit / standalone
   if (detectedType === 'house' && !isMultiUnit) {
-    traits.push({ icon: Car, label: 'Standalone house — more privacy, likely parking', good: true });
+    traits.push({ icon: Car, label: 'Standalone house. more privacy, likely parking', good: true });
   } else if (isMultiUnit) {
-    traits.push({ icon: Car, label: 'Multi-unit — check parking and shared areas', good: false });
+    traits.push({ icon: Car, label: 'Multi-unit. check parking and shared areas', good: false });
   }
 
   if (traits.length === 0) return null;

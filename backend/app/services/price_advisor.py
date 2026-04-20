@@ -13,7 +13,7 @@ Methodology (transparent to user):
 6. Band = inner ±1%, outer ±3%
 
 Key insight: CVs already price in hazards. Council valuations are based on
-sales evidence — flood zone properties sell for less, so the CV reflects that.
+sales evidence. flood zone properties sell for less, so the CV reflects that.
 Hazards are shown as COST FLAGS (insurance, strengthening, rates), not percentage
 adjustments, to avoid double-counting.
 """
@@ -43,7 +43,7 @@ from .rent_advisor import (
 )
 
 # ---------------------------------------------------------------------------
-# Hazard cost flags — ownership cost impact, NOT percentage adjustments
+# Hazard cost flags. ownership cost impact, NOT percentage adjustments
 # ---------------------------------------------------------------------------
 
 HAZARD_COST_FLAGS = {
@@ -83,7 +83,7 @@ HAZARD_COST_FLAGS = {
     "overland_flow": {
         "label": "Overland flow path",
         "insurance_uplift_pct": (10, 30),
-        "description": "Property on or near an overland flow path — surface flooding risk during heavy rain.",
+        "description": "Property on or near an overland flow path. surface flooding risk during heavy rain.",
         "action": "Check floor level relative to flow path. Consider drainage improvements.",
     },
     "slope_failure": {
@@ -213,7 +213,7 @@ async def compute_price_advice(
         improvements_value = capital_value - land_value
 
     if capital_value is None and prop.get("capital_value") is None:
-        # No CV at all — try rates cache by address
+        # No CV at all. try rates cache by address
         pass
 
     # Valuation date
@@ -365,7 +365,7 @@ async def compute_price_advice(
 
     # (Removed: quality-per-room-vs-SA2 block. The subject used actual
     # beds+baths as the denominator while the SA2 median used a hardcoded
-    # 3 or 4, so the ratio was systematically biased by property size —
+    # 3 or 4, so the ratio was systematically biased by property size .
     # bigger homes flagged "Below-average build", smaller ones "Above-average".
     # The imp_ratio age/renovation proxy below covers the same
     # "above/below local norm" signal without the room-count asymmetry.)
@@ -462,9 +462,9 @@ async def compute_price_advice(
         if abs(lo) >= 0.005 or abs(hi) >= 0.005:
             typical_b = "1" if bedrooms_str in ("1", "2") else "2"
             if lo >= 0:
-                reason = f"{bathrooms} bath — above typical ({typical_b}) for {bedrooms_str}-bed"
+                reason = f"{bathrooms} bath. above typical ({typical_b}) for {bedrooms_str}-bed"
             else:
-                reason = f"{bathrooms} bath — below typical ({typical_b}) for {bedrooms_str}-bed"
+                reason = f"{bathrooms} bath. below typical ({typical_b}) for {bedrooms_str}-bed"
             adjustments.append({
                 "factor": "bathrooms",
                 "label": f"{bathrooms} bathroom{'s' if bathrooms != '1' else ''}",

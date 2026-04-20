@@ -14,7 +14,7 @@
 
 export interface ExtractResult {
   address: string;   // human-formatted address: "42 Queen Street, Auckland Central, Auckland"
-  source: string;    // debug tag — which strategy won (jsonld | h1 | title | og-title | url)
+  source: string;    // debug tag. which strategy won (jsonld | h1 | title | og-title | url)
 }
 
 /**
@@ -107,7 +107,7 @@ export function stripTitleSuffix(title: string, patterns: RegExp[]): string | nu
 }
 
 /**
- * Light sanity check — a valid address must contain at least one digit
+ * Light sanity check. a valid address must contain at least one digit
  * (street number) and at least one alphabetic word (street name). Rejects
  * things like "For Sale" or "123".
  */

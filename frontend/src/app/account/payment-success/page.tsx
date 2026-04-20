@@ -36,7 +36,7 @@ export default function PaymentSuccessPage() {
 
     async function fetchCredits(attempt: number) {
       if (cancelled || attempt > 10) {
-        // Give up waiting — show fallback UI with whatever plan we have
+        // Give up waiting. show fallback UI with whatever plan we have
         if (!cancelled) {
           setPlan((p) => p || 'pending');
           setStage((s) => s === 'waiting' ? 'fallback' : s);
@@ -153,7 +153,7 @@ export default function PaymentSuccessPage() {
             } else {
               gate.deductCredit();
             }
-            // Show success — don't navigate, let user go to My Reports
+            // Show success. don't navigate, let user go to My Reports
             if (!cancelled) setStage('fallback');
             showPaymentToast('report_generated');
             return;
@@ -203,7 +203,7 @@ export default function PaymentSuccessPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating your report — this takes about a minute...
+              Generating your report. this takes about a minute...
             </div>
           </div>
         )}
@@ -216,7 +216,7 @@ export default function PaymentSuccessPage() {
           </div>
         )}
 
-        {/* Guest checkout — prompt account creation so the purchase isn't
+        {/* Guest checkout. prompt account creation so the purchase isn't
             lost the next time the user loses their hosted report link. We
             don't block access (the link is always emailed), but an account
             gives them My Reports + cross-device access. */}
@@ -225,7 +225,7 @@ export default function PaymentSuccessPage() {
             <div className="flex items-start gap-3">
               <BookmarkPlus className="h-5 w-5 text-piq-primary shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Claim this report — create a free account</p>
+                <p className="text-sm font-semibold">Claim this report. create a free account</p>
                 <p className="text-xs text-muted-foreground">
                   So you can find it again on any device, re-open the interactive version, and get a dashboard of every property you research.
                 </p>

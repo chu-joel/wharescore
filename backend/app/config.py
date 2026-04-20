@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # Stripe payments
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_QUICK_SINGLE: str = ""  # DEPRECATED — Quick Reports are now free with sign-in
+    STRIPE_PRICE_QUICK_SINGLE: str = ""  # DEPRECATED. Quick Reports are now free with sign-in
     STRIPE_PRICE_FULL_SINGLE: str = ""  # price_xxx for $9.99 Full Report (non-Pro users)
     STRIPE_PRICE_PRO: str = ""          # price_xxx for $140/mo Pro (30 Full reports/month)
     STRIPE_PRICE_UPGRADE: str = ""      # price_xxx for $9.99 Quick→Full upgrade (same as full_single)
@@ -59,11 +59,11 @@ class Settings(BaseSettings):
     def validate_secrets(self):
         """Warn if secrets missing in production."""
         if self.ENVIRONMENT == "production":
-            # Fatal — admin panel won't work without this
+            # Fatal. admin panel won't work without this
             if not self.ADMIN_EMAILS:
                 raise RuntimeError("Missing required secret: ADMIN_EMAILS")
 
-            # Warn-only — features degrade gracefully without these
+            # Warn-only. features degrade gracefully without these
             optional = {
                 "AUTH_SECRET": self.AUTH_SECRET,
                 "STRIPE_SECRET_KEY": self.STRIPE_SECRET_KEY,

@@ -69,7 +69,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
     ? Math.round(((demo.population_2023 - demo.population_2018) / demo.population_2018) * 100)
     : null;
 
-  // Commute mode percentages — include an "Other" bucket so the bars always sum to 100%
+  // Commute mode percentages. include an "Other" bucket so the bars always sum to 100%
   // (previously the five named modes totalled only ~89% with no visible remainder).
   const commuteTotal = commute?.total_stated || 0;
   const commuteModesRaw = commuteTotal > 0 ? [
@@ -121,7 +121,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
       </div>
 
       <div className="p-3 sm:p-5 space-y-4 sm:space-y-6">
-        {/* Population & Age — always shown */}
+        {/* Population & Age. always shown */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-indigo-700">{fmt(demo?.population_2023)}</div>
@@ -143,7 +143,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         </div>
 
-        {/* Commute — always shown (good hook) */}
+        {/* Commute. always shown (good hook) */}
         {commuteModes.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
@@ -154,7 +154,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         )}
 
-        {/* Local Economy — always shown */}
+        {/* Local Economy. always shown */}
         {biz && biz.employee_count_2024 != null && (
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
@@ -180,7 +180,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         )}
 
-        {/* Household income — Full only */}
+        {/* Household income. Full only */}
         {isFull && hh?.income_median && (
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
@@ -195,7 +195,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         )}
 
-        {/* Tenure & Housing — Full only */}
+        {/* Tenure & Housing. Full only */}
         {isFull && hh && (
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
@@ -218,7 +218,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         )}
 
-        {/* Connectivity — Full only */}
+        {/* Connectivity. Full only */}
         {isFull && hh && (
           <div className="flex gap-4">
             {hh.internet_access != null && hh.internet_total && (
@@ -242,7 +242,7 @@ export function HostedDemographics({ snapshot, isFull = false }: Props) {
           </div>
         )}
 
-        {/* Ethnicity — Full only */}
+        {/* Ethnicity. Full only */}
         {isFull && ethnicityBars.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2">Ethnic Composition</h3>

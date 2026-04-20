@@ -35,7 +35,7 @@ export function TabletPanel({ children }: TabletPanelProps) {
         {children}
       </div>
 
-      {/* Toggle button — visible edge when panel is closed */}
+      {/* Toggle button. visible edge when panel is closed */}
       <button
         onClick={() => setOpen(!open)}
         className={`fixed top-1/2 -translate-y-1/2 z-30 h-12 w-6 bg-background border border-border shadow-md flex items-center justify-center transition-all duration-300 ${

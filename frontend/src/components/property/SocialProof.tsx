@@ -19,7 +19,7 @@ export function SocialProof({ suburbName }: SocialProofProps) {
   const hash = suburbName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const reportCount = 15 + (hash % 71);
 
-  // "Recently researched" — show for ~60% of properties
+  // "Recently researched". show for ~60% of properties
   const showRecent = hash % 5 < 3;
   const daysAgo = 1 + (hash % 5);
 

@@ -11,7 +11,7 @@ interface MonthlyCostEstimateProps {
 }
 
 export function MonthlyCostEstimate({ report }: MonthlyCostEstimateProps) {
-  // Per-unit CV when the raw value looks like a whole-building total —
+  // Per-unit CV when the raw value looks like a whole-building total .
   // prevents the mortgage calc from returning numbers like $469k/month on
   // multi-unit apartment complexes where only a building-total CV exists.
   const cv = effectivePerUnitCv(report.property.capital_value, {

@@ -9,7 +9,7 @@ At purchase time, pre-computes all variant combinations and stores as JSONB:
 - Delta tables for client-side recalculation (finish, bathrooms, toggles)
 - Chart data (rent history, HPI, crime trend)
 
-The snapshot is immutable — works forever regardless of code changes.
+The snapshot is immutable. works forever regardless of code changes.
 """
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
 
     pre = preloaded or {}
 
-    # ── Phase 1: Report + SA2 + property data (sequential — everything depends on these) ──
+    # ── Phase 1: Report + SA2 + property data (sequential. everything depends on these) ──
 
     # 1. Full report from PL/pgSQL function
     if "report" in pre:
@@ -69,7 +69,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
             return None
         report = enrich_with_scores(row["report"])
 
-    # 1b. Transit overlay — the SQL function only queries metlink_stops (Wellington).
+    # 1b. Transit overlay. the SQL function only queries metlink_stops (Wellington).
     #     For Auckland (at_stops) and regional cities (transit_stops), we need to
     #     call get_transit_data() separately, matching what property.py does.
     liveability = report.get("liveability") or {}
@@ -788,7 +788,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
 
     prevalence = await _compute_prevalence(conn, sa2["sa2_code"], detected_keys) if detected_keys else {}
 
-    # 24. Walking isochrone + terrain data (skipped for Quick reports — backfilled later)
+    # 24. Walking isochrone + terrain data (skipped for Quick reports. backfilled later)
     terrain_data = {}
     isochrone_data = {}
     if not skip_terrain:
@@ -904,7 +904,7 @@ def _compute_property_hazard_adjustments(cache: dict) -> list[dict]:
                 "factor": key,
                 "label": cfg["label"],
                 "prevalence_pct": prev_pct,
-                "description": f"{cfg['label']} — area-wide ({prev_pct}% of properties), already reflected in local rents",
+                "description": f"{cfg['label']}. area-wide ({prev_pct}% of properties), already reflected in local rents",
             })
         else:
             lo = cfg["low"] * scale
@@ -1067,7 +1067,7 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
                     }
 
         # (Removed: quality-per-room-vs-SA2 adjustment. Same denominator
-        # asymmetry as the advisors' versions — subject uses beds+1 as rooms,
+        # asymmetry as the advisors' versions. subject uses beds+1 as rooms,
         # SA2 median divides by hardcoded 3/4, biasing by property size.
         # The price side now relies on imp_ratio (age/renovation proxy) in
         # compute_price_advice(); rent doesn't need a replacement.)
@@ -1117,7 +1117,7 @@ async def compute_rent_baselines(conn, cache: dict, dwelling_type: str) -> dict:
             "area_context": full_area_context,
             # SA2 log-normal dispersion (log_std_dev_weekly_rent from bonds_detailed).
             # Surfaces here so the frontend can compute a user-rent percentile live
-            # against the frozen median — can't pre-compute because user's weekly_rent
+            # against the frozen median. can't pre-compute because user's weekly_rent
             # isn't known at snapshot time.
             "sigma": baseline.get("sigma"),
             # Market quartiles mirror the on-screen advisor's shape so the hosted
@@ -1196,9 +1196,9 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "severity": "warning",
             "title": "Flood Risk Preparedness",
             "actions": [
-                "Check your insurance covers flood damage — standard policies may exclude it in known flood zones",
+                "Check your insurance covers flood damage. standard policies may exclude it in known flood zones",
                 "Store important documents above potential flood level or in waterproof containers",
-                "Know your evacuation route to higher ground — practice with household members",
+                "Know your evacuation route to higher ground. practice with household members",
                 "Install non-return valves on drains to prevent sewage backflow during floods",
                 "Consider flood barriers or sandbags for doorways if property has flooded before",
             ],
@@ -1211,9 +1211,9 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "severity": "critical",
             "title": "Tsunami Evacuation Zone",
             "actions": [
-                "LONG OR STRONG = GET GONE — if shaking lasts more than a minute, evacuate immediately",
+                "LONG OR STRONG = GET GONE. if shaking lasts more than a minute, evacuate immediately",
                 "Know your nearest high ground or tsunami evacuation assembly point",
-                "Do NOT wait for an official warning — natural warning (earthquake) may be the only one",
+                "Do NOT wait for an official warning. natural warning (earthquake) may be the only one",
                 "Keep a grab bag ready with 3 days of water, food, medications, and documents",
                 "Register for NZ Emergency Alerts at getready.govt.nz",
             ],
@@ -1226,7 +1226,7 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "severity": "warning",
             "title": "Liquefaction Risk Area",
             "actions": [
-                "Get a geotechnical report before purchasing — liquefaction can cause severe foundation damage",
+                "Get a geotechnical report before purchasing. liquefaction can cause severe foundation damage",
                 "Check if the property has TC3 foundation requirements (increased building costs)",
                 "Review EQC settlement history for properties in this area",
                 "Consider earthquake strengthening for older unreinforced masonry buildings",
@@ -1243,7 +1243,7 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
                 "The building must be strengthened or demolished within the council's deadline",
                 "Check the MBIE EPB Register for the specific notice and deadline",
                 "Strengthening costs typically range from $500-$3,000 per square metre",
-                "Tenants: landlords must disclose EPB status — you may negotiate reduced rent",
+                "Tenants: landlords must disclose EPB status. you may negotiate reduced rent",
                 "Buyers: factor strengthening costs into your offer price",
             ],
             "source": "MBIE / Building Act 2004",
@@ -1255,10 +1255,10 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "severity": "warning",
             "title": "High Wind Exposure",
             "actions": [
-                "Ensure roof fixings meet NZS 3604 for this wind zone — get a building inspection",
+                "Ensure roof fixings meet NZS 3604 for this wind zone. get a building inspection",
                 "Secure outdoor furniture, trampolines, and loose items before storms",
                 "Consider wind-rated fencing and shelter planting for exposed sides",
-                "Check insurance covers storm damage — excess may be higher in high-wind zones",
+                "Check insurance covers storm damage. excess may be higher in high-wind zones",
             ],
             "source": "BRANZ / NZS 3604",
         })
@@ -1285,9 +1285,9 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
         wind_events = [w for w in critical_weather if w["type"] == "extreme_wind"]
         actions = []
         if rain_events:
-            actions.append(f"{len(rain_events)} extreme rainfall events (80mm+) recorded nearby in the last 5 years — check drainage and guttering")
+            actions.append(f"{len(rain_events)} extreme rainfall events (80mm+) recorded nearby in the last 5 years. check drainage and guttering")
         if wind_events:
-            actions.append(f"{len(wind_events)} destructive wind events (120km/h+) recorded nearby — check roof condition and secure loose items")
+            actions.append(f"{len(wind_events)} destructive wind events (120km/h+) recorded nearby. check roof condition and secure loose items")
         actions.append("Keep emergency supplies: torch, radio, water, first aid kit, warm clothing")
         actions.append("Sign up for regional council flood warnings and MetService alerts")
         advice.append({
@@ -1304,7 +1304,7 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "severity": "info",
             "title": "Noise Exposure",
             "actions": [
-                "Double glazing can reduce noise by 25-35 dB — significant improvement for sleep quality",
+                "Double glazing can reduce noise by 25-35 dB. significant improvement for sleep quality",
                 "Check if the property qualifies for acoustic insulation subsidies (common near airports)",
                 "Noise exposure above 65 dB is linked to increased cardiovascular risk (WHO guidelines)",
             ],
@@ -1319,7 +1319,7 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
             "actions": [
                 "Request a Detailed Site Investigation (DSI) report from the regional council",
                 "Check if the contamination is on the HAIL list (Hazardous Activities and Industries List)",
-                "Contaminated land may affect bore water quality — test before using for drinking/irrigation",
+                "Contaminated land may affect bore water quality. test before using for drinking/irrigation",
             ],
             "source": "MfE NES for Contaminated Soil",
         })
@@ -1335,13 +1335,13 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
         advice.append({
             "hazard": "steep_terrain",
             "severity": "warning" if slope < 25 else "critical",
-            "title": f"{'Very steep' if slope >= 25 else 'Steep'} Site — {slope:.0f}° Slope",
+            "title": f"{'Very steep' if slope >= 25 else 'Steep'} Site. {slope:.0f}° Slope",
             "actions": [
-                f"Commission a geotechnical investigation (typically $3,000-$8,000 for a slope stability assessment) — slopes above 15° have elevated landslide risk in NZ",
+                f"Commission a geotechnical investigation (typically $3,000-$8,000 for a slope stability assessment). slopes above 15° have elevated landslide risk in NZ",
                 "Check council records for any natural hazard conditions or engineering requirements on the title",
-                "Inspect all retaining walls — look for cracking, tilting, or bulging that indicates ground movement",
-                "Ensure stormwater drainage directs water away from the slope face — poor drainage is the #1 trigger for residential slope failures in NZ",
-                "After heavy rain, check for new cracks in the ground, tilting fences, or doors/windows that suddenly stick — these are early warning signs of slope movement",
+                "Inspect all retaining walls. look for cracking, tilting, or bulging that indicates ground movement",
+                "Ensure stormwater drainage directs water away from the slope face. poor drainage is the #1 trigger for residential slope failures in NZ",
+                "After heavy rain, check for new cracks in the ground, tilting fences, or doors/windows that suddenly stick. these are early warning signs of slope movement",
             ],
             "source": "GNS Science / BRANZ",
         })
@@ -1350,13 +1350,13 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
         advice.append({
             "hazard": "sun_exposure",
             "severity": "info",
-            "title": f"{aspect.capitalize()}-Facing — Managing Low Sun Exposure",
+            "title": f"{aspect.capitalize()}-Facing. Managing Low Sun Exposure",
             "actions": [
-                "Prioritise wall and ceiling insulation (R4.0+ for walls, R6.0+ for ceiling) — south-facing homes need more thermal mass to stay warm",
-                "Install a high-efficiency heat pump rated for the room size — heating demand will be above average for this orientation",
-                "Ensure bathrooms and laundry have extractor fans vented to outside — condensation and mould risk is higher on south-facing properties",
-                "Check for adequate ventilation under the house (if on piles) and in the roof space — trapped moisture causes framing rot over time",
-                "If renting: check Healthy Homes heating standard compliance — south-facing rooms need larger heating capacity",
+                "Prioritise wall and ceiling insulation (R4.0+ for walls, R6.0+ for ceiling). south-facing homes need more thermal mass to stay warm",
+                "Install a high-efficiency heat pump rated for the room size. heating demand will be above average for this orientation",
+                "Ensure bathrooms and laundry have extractor fans vented to outside. condensation and mould risk is higher on south-facing properties",
+                "Check for adequate ventilation under the house (if on piles) and in the roof space. trapped moisture causes framing rot over time",
+                "If renting: check Healthy Homes heating standard compliance. south-facing rooms need larger heating capacity",
             ],
             "source": "BRANZ / Healthy Homes Standards",
         })
@@ -1365,11 +1365,11 @@ def _build_hazard_advice(cache: dict) -> list[dict]:
         advice.append({
             "hazard": "low_elevation",
             "severity": "warning",
-            "title": f"Low Elevation — {elev:.0f}m Above Sea Level",
+            "title": f"Low Elevation. {elev:.0f}m Above Sea Level",
             "actions": [
-                "Check your insurance policy explicitly covers storm surge and coastal inundation — many standard policies exclude this for properties below 5m",
+                "Check your insurance policy explicitly covers storm surge and coastal inundation. many standard policies exclude this for properties below 5m",
                 "Review the regional council's coastal hazard maps for current and projected (2100) inundation extents",
-                "Ensure the property has floor levels raised above known flood levels — council may have minimum floor level requirements",
+                "Ensure the property has floor levels raised above known flood levels. council may have minimum floor level requirements",
                 "Consider the long-term implications of IPCC sea level rise projections (0.3-1.0m by 2100) on property value and insurability",
                 "Check if the local council has a managed retreat policy or climate adaptation plan for low-lying areas",
             ],
@@ -1403,7 +1403,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             insights.append({
                 "severity": "critical",
                 "title": "Very low elevation",
-                "detail": f"This property sits at just {elev:.0f}m above sea level — within the range of projected sea level rise and storm surge flooding. Even minor coastal weather events could affect this location.",
+                "detail": f"This property sits at just {elev:.0f}m above sea level. within the range of projected sea level rise and storm surge flooding. Even minor coastal weather events could affect this location.",
                 "action": "Obtain a coastal hazard assessment from the regional council. Check whether your insurer covers coastal inundation. Consider future-proofing: NIWA projects up to 1m sea level rise by 2100 for NZ coastlines.",
                 "category": "terrain",
             })
@@ -1412,7 +1412,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "severity": "warning",
                 "title": "Low-lying in a hazard zone",
                 "detail": f"At {elev:.0f}m elevation and within a mapped {'tsunami' if 'tsunami' in detected else 'flood'} zone, this property's low elevation confirms its vulnerability. Water has a direct path here.",
-                "action": "Know your evacuation route to higher ground. Ensure contents and building insurance explicitly covers flood/tsunami damage — standard policies may exclude it in mapped zones. Keep a 72-hour emergency kit ready.",
+                "action": "Know your evacuation route to higher ground. Ensure contents and building insurance explicitly covers flood/tsunami damage. standard policies may exclude it in mapped zones. Keep a 72-hour emergency kit ready.",
                 "category": "terrain",
             })
         elif elev < 10 and not any(k in detected for k in ("tsunami", "flood", "coastal_erosion")):
@@ -1420,7 +1420,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "severity": "info",
                 "title": "Low elevation",
                 "detail": f"At {elev:.0f}m above sea level, this property is low-lying. While not in a currently mapped flood or tsunami zone, low elevation increases exposure to future coastal hazards as sea levels rise.",
-                "action": "Monitor council long-term hazard planning for this area. The NZ Coastal Policy Statement requires councils to plan for at least 1m of sea level rise — future zone classifications may change.",
+                "action": "Monitor council long-term hazard planning for this area. The NZ Coastal Policy Statement requires councils to plan for at least 1m of sea level rise. future zone classifications may change.",
                 "category": "terrain",
             })
         elif elev > 200:
@@ -1429,7 +1429,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "severity": "info" if not wind_high else "warning",
                 "title": "Elevated site" + (" with wind exposure" if wind_high else ""),
                 "detail": f"At {elev:.0f}m elevation, this property is well above coastal hazard levels{' but is exposed to stronger winds at this height' if wind_high else ' and likely enjoys expansive views'}. Higher elevations in NZ typically mean lower flood and tsunami risk but greater wind and weather exposure.",
-                "action": "Check roof fixings and cladding meet wind zone requirements for this elevation. If building, ensure the design accounts for exposure — BRANZ recommends specific detailing for sites above 150m." if wind_high else "This elevation is a natural advantage for flood and tsunami resilience. Views from elevated sites can add 5-15% to property value in NZ markets.",
+                "action": "Check roof fixings and cladding meet wind zone requirements for this elevation. If building, ensure the design accounts for exposure. BRANZ recommends specific detailing for sites above 150m." if wind_high else "This elevation is a natural advantage for flood and tsunami resilience. Views from elevated sites can add 5-15% to property value in NZ markets.",
                 "category": "terrain",
             })
 
@@ -1439,33 +1439,33 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             has_landslide_data = hazards.get("slope_failure") or any(k for k in detected if "slope" in k)
             insights.append({
                 "severity": "critical",
-                "title": "Very steep terrain — high landslide risk",
-                "detail": f"The {slope:.0f}° slope at this property falls in the 'very steep' category where shallow landslides are likely during heavy or prolonged rainfall. {'Mapped landslide data confirms historical instability in this area.' if has_landslide_data else 'No historical landslides are mapped here, but unmapped does not mean safe — many slopes in NZ have not been systematically surveyed.'}",
+                "title": "Very steep terrain. high landslide risk",
+                "detail": f"The {slope:.0f}° slope at this property falls in the 'very steep' category where shallow landslides are likely during heavy or prolonged rainfall. {'Mapped landslide data confirms historical instability in this area.' if has_landslide_data else 'No historical landslides are mapped here, but unmapped does not mean safe. many slopes in NZ have not been systematically surveyed.'}",
                 "action": "Commission a geotechnical investigation before purchasing. A slope stability assessment (typically $3,000-$8,000) will identify whether the site needs engineered retaining, drainage, or foundation solutions. Check if council requires a natural hazard assessment for building consent on slopes >20°.",
                 "category": "terrain",
             })
         elif slope >= 15:
             insights.append({
                 "severity": "warning",
-                "title": "Steep site — slope stability considerations",
+                "title": "Steep site. slope stability considerations",
                 "detail": f"At {slope:.0f}°, this is a steep residential site. Soil creep (slow downhill movement) and shallow slope failures can occur during intense rainfall events, particularly on clay-rich NZ soils.",
-                "action": "Request a geotechnical report if one hasn't been done. Check council records for any slope stability conditions on the title. Ensure stormwater drainage directs water away from the slope face — poor drainage is the most common trigger for residential slope failures in NZ.",
+                "action": "Request a geotechnical report if one hasn't been done. Check council records for any slope stability conditions on the title. Ensure stormwater drainage directs water away from the slope face. poor drainage is the most common trigger for residential slope failures in NZ.",
                 "category": "terrain",
             })
         elif slope < 2:
             insights.append({
                 "severity": "positive",
                 "title": "Flat, stable terrain",
-                "detail": f"At {slope:.0f}°, this is essentially flat ground — ideal for building, landscaping, and accessibility. Landslide risk from slope alone is negligible.",
-                "action": "Flat sites are straightforward for foundation design, reducing construction costs. However, flat low-lying sites can be prone to ponding and poor drainage — check for overland flow paths that may cross the property.",
+                "detail": f"At {slope:.0f}°, this is essentially flat ground. ideal for building, landscaping, and accessibility. Landslide risk from slope alone is negligible.",
+                "action": "Flat sites are straightforward for foundation design, reducing construction costs. However, flat low-lying sites can be prone to ponding and poor drainage. check for overland flow paths that may cross the property.",
                 "category": "terrain",
             })
         elif slope < 5:
             insights.append({
                 "severity": "positive",
-                "title": "Gentle slope — good site conditions",
+                "title": "Gentle slope. good site conditions",
                 "detail": f"A {slope:.0f}° slope provides natural drainage away from the building without creating stability concerns. This is considered ideal building terrain in NZ.",
-                "action": "A gentle slope is an advantage — natural drainage reduces the risk of damp and ponding around foundations. Ensure the slope falls away from the house, not towards it.",
+                "action": "A gentle slope is an advantage. natural drainage reduces the risk of damp and ponding around foundations. Ensure the slope falls away from the house, not towards it.",
                 "category": "terrain",
             })
 
@@ -1474,17 +1474,17 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
         if aspect in ("north", "northeast", "northwest"):
             insights.append({
                 "severity": "positive",
-                "title": f"{aspect.capitalize()}-facing — excellent sun exposure",
+                "title": f"{aspect.capitalize()}-facing. excellent sun exposure",
                 "detail": f"In NZ's southern hemisphere, a {aspect}-facing slope captures maximum winter sun. This means warmer, drier interiors, lower heating costs, and better conditions for gardens and outdoor living.",
-                "action": "North-facing aspect is the most desirable orientation in NZ and typically commands a price premium. If considering solar panels, a north-facing roof slope of 30-40° is optimal for NZ latitudes — this property's terrain naturally supports good solar generation.",
+                "action": "North-facing aspect is the most desirable orientation in NZ and typically commands a price premium. If considering solar panels, a north-facing roof slope of 30-40° is optimal for NZ latitudes. this property's terrain naturally supports good solar generation.",
                 "category": "terrain",
             })
         elif aspect in ("south", "southeast", "southwest"):
             insights.append({
                 "severity": "warning" if slope >= 10 else "info",
-                "title": f"{aspect.capitalize()}-facing — limited winter sun",
+                "title": f"{aspect.capitalize()}-facing. limited winter sun",
                 "detail": f"South-facing slopes in NZ receive significantly less direct sunlight, especially in winter. {'Combined with the steep angle, this property may receive very limited direct sun from May to August, increasing heating costs and moisture risk.' if slope >= 10 else 'This affects indoor warmth and may increase heating costs during winter months.'}",
-                "action": "Prioritise insulation and ventilation to manage moisture — south-facing properties in NZ are more prone to condensation and mould. Check the Healthy Homes Standards compliance if renting. Consider heat pump efficiency ratings for a south-facing home, as heating demand will be higher than average.",
+                "action": "Prioritise insulation and ventilation to manage moisture. south-facing properties in NZ are more prone to condensation and mould. Check the Healthy Homes Standards compliance if renting. Consider heat pump efficiency ratings for a south-facing home, as heating demand will be higher than average.",
                 "category": "terrain",
             })
 
@@ -1500,12 +1500,12 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
         in_flood = "flood" in detected
         insights.append({
             "severity": "warning" if flood_terrain == "high" else "info",
-            "title": "Depression — water pooling risk",
+            "title": "Depression. water pooling risk",
             "detail": f"This property sits in a natural low point{depth_str} where water naturally collects. "
                        + ("This is confirmed by council flood mapping for this area." if in_flood
                           else "While no council flood zone is mapped here, the terrain itself creates ponding risk during heavy rain."),
             "action": "Check for signs of past water damage (staining on foundations, efflorescence on concrete, soft ground). "
-                      "Ensure stormwater drainage is adequate — gravity cannot help water leave a depression. "
+                      "Ensure stormwater drainage is adequate. gravity cannot help water leave a depression. "
                       "Consider installing a sump pump if the property has a basement or sub-floor space.",
             "category": "terrain",
         })
@@ -1521,10 +1521,10 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
     if flood_terrain in ("moderate", "high") and not is_depression and "flood" not in detected and elev is not None:
         insights.append({
             "severity": "info",
-            "title": "Flat, low-lying terrain — flood susceptibility",
+            "title": "Flat, low-lying terrain. flood susceptibility",
             "detail": f"At {elev:.0f}m elevation on flat ground, this property has limited natural drainage. "
                       "No council flood zone is mapped here, but terrain shape suggests vulnerability to surface flooding during extreme rainfall.",
-            "action": "Flat terrain doesn't drain naturally. Check the property's stormwater capacity, floor levels relative to surrounding ground, and proximity to waterways. Monitor council hazard plan updates — unmapped doesn't mean zero risk.",
+            "action": "Flat terrain doesn't drain naturally. Check the property's stormwater capacity, floor levels relative to surrounding ground, and proximity to waterways. Monitor council hazard plan updates. unmapped doesn't mean zero risk.",
             "category": "terrain",
         })
 
@@ -1537,7 +1537,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
         pos_label = "hilltop" if rel_pos == "hilltop" else "ridgeline"
         insights.append({
             "severity": "warning",
-            "title": f"Very exposed {pos_label} — high wind risk",
+            "title": f"Very exposed {pos_label}. high wind risk",
             "detail": f"This {pos_label} position{f' at {elev:.0f}m elevation' if elev else ''} is exposed to NZ's prevailing westerly and northwesterly winds. "
                       f"{'Council wind zone data confirms elevated wind exposure here.' if wind_zone else 'No official wind zone is mapped, but the terrain profile indicates significantly above-average wind speeds.'}",
             "action": "Check roof fixings, cladding, and flashings meet NZS 3604 requirements for exposed sites. "
@@ -1548,8 +1548,8 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
     elif wind_exp == "exposed":
         insights.append({
             "severity": "info",
-            "title": "Exposed site — above-average wind",
-            "detail": f"{'Elevated position' if rel_pos in ('hilltop', 'ridgeline') else 'West-facing mid-slope'}{f' at {elev:.0f}m' if elev else ''} — wind speeds are likely above average for this area, particularly during westerly weather patterns.",
+            "title": "Exposed site. above-average wind",
+            "detail": f"{'Elevated position' if rel_pos in ('hilltop', 'ridgeline') else 'West-facing mid-slope'}{f' at {elev:.0f}m' if elev else ''}. wind speeds are likely above average for this area, particularly during westerly weather patterns.",
             "action": "Consider wind when planning outdoor spaces and garden plantings. Check cladding and roof condition during building inspection.",
             "category": "terrain",
         })
@@ -1558,7 +1558,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             "severity": "positive",
             "title": "Naturally sheltered from wind",
             "detail": f"This {'valley' if rel_pos == 'valley' else 'low-lying'} position is naturally protected from prevailing winds by surrounding higher terrain. Wind damage risk is lower than average.",
-            "action": "Sheltered sites are an advantage for outdoor comfort and reduce wear on exterior finishes. However, sheltered valleys can trap cold air in winter — check for frost pockets if you're a keen gardener.",
+            "action": "Sheltered sites are an advantage for outdoor comfort and reduce wear on exterior finishes. However, sheltered valleys can trap cold air in winter. check for frost pockets if you're a keen gardener.",
             "category": "terrain",
         })
 
@@ -1576,10 +1576,10 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             "title": f"Very close to {'the ' + waterway_name if waterway_name else 'a ' + type_label}",
             "detail": f"A {type_label}{' (' + waterway_name + ')' if waterway_name else ''} is just {waterway_m}m from this property. "
                       f"{'Council flood mapping confirms flood risk in this area.' if in_flood else 'Even without a mapped flood zone, proximity this close to a waterway significantly increases flood risk during heavy or prolonged rainfall.'}"
-                      f"{' The flat, low-lying terrain compounds this — water has nowhere to drain except towards the property.' if is_depression or (slope is not None and slope < 2) else ''}",
+                      f"{' The flat, low-lying terrain compounds this. water has nowhere to drain except towards the property.' if is_depression or (slope is not None and slope < 2) else ''}",
             "action": "Check the property's floor level relative to the waterway's normal and flood levels. "
                       "Ask the council for flood modelling specific to this waterway. "
-                      "Ensure your insurance explicitly covers riverine flooding — many standard policies exclude or limit cover near waterways.",
+                      "Ensure your insurance explicitly covers riverine flooding. many standard policies exclude or limit cover near waterways.",
             "category": "terrain",
         })
     elif waterway_m is not None and waterway_m <= 100:
@@ -1588,7 +1588,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             "title": f"Waterway within {waterway_m}m",
             "detail": f"A {type_label}{' (' + waterway_name + ')' if waterway_name else ''} passes within {waterway_m}m of this property. "
                       "Properties near waterways face elevated flood risk during extreme rainfall, particularly if the terrain is flat or low-lying.",
-            "action": "Check council flood maps for this specific waterway. During heavy rain events, waterways can rise rapidly — "
+            "action": "Check council flood maps for this specific waterway. During heavy rain events, waterways can rise rapidly. "
                       "know whether this property is above the waterway's expected flood level.",
             "category": "terrain",
         })
@@ -1628,7 +1628,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "severity": "critical",
                 "title": "Steep terrain with mapped landslide history",
                 "detail": f"This {slope:.0f}° slope has {landslide_count} documented landslide{'s' if landslide_count > 1 else ''} within 500m in the GNS Science database. The combination of steep terrain and historical instability is a strong indicator of ongoing risk.",
-                "action": "This is a high-priority site for geotechnical assessment. Ask the council for any existing geotechnical reports filed for this area — there are likely relevant assessments from neighbouring properties. Consider the cost of slope remediation (retaining walls, ground anchors, drainage) when evaluating the property price.",
+                "action": "This is a high-priority site for geotechnical assessment. Ask the council for any existing geotechnical reports filed for this area. there are likely relevant assessments from neighbouring properties. Consider the cost of slope remediation (retaining walls, ground anchors, drainage) when evaluating the property price.",
                 "category": "terrain",
             })
 
@@ -1656,8 +1656,8 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
             insights.append({
                 "severity": "positive",
                 "title": "Excellent transit access",
-                "detail": f"{total_stops} transit stops are within a 10-minute walk ({', '.join(modes)} stop{'s' if total_stops > 1 else ''}). This calculation accounts for hills and the actual street network — not just straight-line distance.",
-                "action": "Strong transit access typically supports property values and provides resilience against fuel price increases. Check peak-hour service frequency — stop count alone doesn't tell you how often services run.",
+                "detail": f"{total_stops} transit stops are within a 10-minute walk ({', '.join(modes)} stop{'s' if total_stops > 1 else ''}). This calculation accounts for hills and the actual street network. not just straight-line distance.",
+                "action": "Strong transit access typically supports property values and provides resilience against fuel price increases. Check peak-hour service frequency. stop count alone doesn't tell you how often services run.",
                 "category": "walkability",
             })
         elif total_stops < 3:
@@ -1665,7 +1665,7 @@ def _build_terrain_insights(cache: dict) -> list[dict]:
                 "severity": "info",
                 "title": "Limited transit access",
                 "detail": f"Only {total_stops} transit stop{'s are' if total_stops > 1 else ' is'} reachable within a 10-minute walk. {'Hills in the area reduce how far you can walk in 10 minutes compared to flat terrain.' if slope and slope >= 5 else 'The street network limits direct walking routes to nearby stops.'}",
-                "action": "Check the specific routes serving these stops — limited stops don't necessarily mean poor service if they're on a frequent route. Consider whether cycling or e-scooter access extends your practical transit reach.",
+                "action": "Check the specific routes serving these stops. limited stops don't necessarily mean poor service if they're on a frequent route. Consider whether cycling or e-scooter access extends your practical transit reach.",
                 "category": "walkability",
             })
 
@@ -1728,7 +1728,7 @@ async def generate_snapshot(
     # Phase E3: Terrain & walkability insights
     terrain_insights = _build_terrain_insights(cache)
 
-    # Phase F: AI narrative (Claude/OpenAI — async, may take 10-30s)
+    # Phase F: AI narrative (Claude/OpenAI. async, may take 10-30s)
     # Skip when called from PDF background task (which handles AI separately)
     ai_insights = None
     if not skip_ai:
@@ -1806,7 +1806,7 @@ async def create_report_snapshot(
 ) -> str | None:
     """Generate snapshot, store in DB, return plaintext share_token.
 
-    report_tier: 'quick' or 'full' — controls frontend rendering only.
+    report_tier: 'quick' or 'full'. controls frontend rendering only.
     Snapshot data is identical regardless of tier.
     preloaded: dict of already-fetched data to skip re-querying.
     """
@@ -1840,7 +1840,7 @@ async def create_report_snapshot(
         ],
     )
 
-    # Explicit commit — our AsyncPoolWrapper doesn't auto-commit
+    # Explicit commit. our AsyncPoolWrapper doesn't auto-commit
     await conn.execute("COMMIT")
 
     # For Quick reports: backfill terrain data in the background

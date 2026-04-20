@@ -2,7 +2,7 @@ import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 import { Chrome, MousePointerClick, Search } from 'lucide-react';
 
 export const metadata = {
-  title: 'WhareScore Badge — Welcome',
+  title: 'WhareScore Badge. Welcome',
   description:
     'You have installed the WhareScore Badge. Here is how it works on homes.co.nz, OneRoof, and realestate.co.nz, and what controls you have over it.',
   alternates: { canonical: 'https://wharescore.co.nz/extension/welcome' },
@@ -36,7 +36,7 @@ export default function ExtensionWelcomePage() {
         Thanks for installing the WhareScore Badge. It annotates the listings you
         are already viewing with the same risk analysis that powers{' '}
         <a href="https://wharescore.co.nz">wharescore.co.nz</a>. Nothing from the
-        listing page is copied or stored — only the address is sent to WhareScore.
+        listing page is copied or stored. only the address is sent to WhareScore.
       </p>
 
       <section className="mt-8 space-y-4">
@@ -64,11 +64,11 @@ export default function ExtensionWelcomePage() {
       <section className="mt-10 space-y-3">
         <h2 className="text-lg font-semibold">Supported sites</h2>
         <ul className="list-disc pl-6 text-sm space-y-1">
-          <li>homes.co.nz — listing pages under <code>/address/*</code></li>
-          <li>OneRoof — listing pages under <code>/property/*</code></li>
-          <li>realestate.co.nz — listing pages under <code>/residential/sale/*</code></li>
+          <li>homes.co.nz. listing pages under <code>/address/*</code></li>
+          <li>OneRoof. listing pages under <code>/property/*</code></li>
+          <li>realestate.co.nz. listing pages under <code>/residential/sale/*</code></li>
           <li>
-            Trade Me — <em>temporarily disabled</em> while we verify the badge
+            Trade Me. <em>temporarily disabled</em> while we verify the badge
             mounts correctly against the Angular-rendered page.
           </li>
         </ul>
@@ -78,9 +78,9 @@ export default function ExtensionWelcomePage() {
         <h2 className="text-lg font-semibold">Your controls</h2>
         <ul className="list-disc pl-6 text-sm space-y-1">
           <li>Click the toolbar icon to pause the badge for 24 hours.</li>
-          <li>Toggle any site off in the popup — the badge stops appearing there.</li>
+          <li>Toggle any site off in the popup. the badge stops appearing there.</li>
           <li>Click <strong>×</strong> on the badge to dismiss it for that specific address (remembered for 7 days).</li>
-          <li>Drag the badge by its header to reposition it — we remember where you put it per site.</li>
+          <li>Drag the badge by its header to reposition it. we remember where you put it per site.</li>
           <li>Uninstall via Chrome&rsquo;s standard extension manager. All extension state is discarded on uninstall.</li>
         </ul>
       </section>

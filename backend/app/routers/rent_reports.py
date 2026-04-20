@@ -16,7 +16,7 @@ router = APIRouter()
 @limiter.limit("3/hour")
 async def submit_rent_report(request: Request, body: RentReportSubmit):
     """Submit a user rent report. 5-layer validation pipeline."""
-    if body.website:  # honeypot triggered — bot
+    if body.website:  # honeypot triggered. bot
         return {"status": "accepted"}
 
     ip_hash = hashlib.sha256(request.client.host.encode()).hexdigest()

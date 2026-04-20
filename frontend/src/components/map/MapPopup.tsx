@@ -85,7 +85,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
             </div>
           ) : (
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted text-muted-foreground text-xs shrink-0">
-              —
+              .
             </div>
           )}
 
@@ -113,7 +113,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
         </div>
       </div>
 
-      {/* CTA — above the fold, primary action */}
+      {/* CTA. above the fold, primary action */}
       <div className="px-4 pb-3">
         <Button
           className="w-full h-auto px-4 py-2 text-sm font-semibold inline-flex items-center justify-center gap-1.5 flex-wrap"
@@ -127,7 +127,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
         </p>
       </div>
 
-      {/* Notable findings — teasers that reinforce clicking */}
+      {/* Notable findings. teasers that reinforce clicking */}
       {summary.notable_findings && summary.notable_findings.length > 0 && (
         <div className="px-4 pb-3">
           <ul className="text-xs text-muted-foreground space-y-0.5">
@@ -141,7 +141,7 @@ export function MapPopup({ addressId, onViewReport, onClose, overlayLines, ctaLa
         </div>
       )}
 
-      {/* Overlay context — visible layers at this location (replaces hover tooltip on touch) */}
+      {/* Overlay context. visible layers at this location (replaces hover tooltip on touch) */}
       {overlayLines && overlayLines.length > 0 && (
         <div className="px-4 pb-3">
           <ul className="text-xs text-muted-foreground space-y-0.5 bg-muted/40 rounded-md px-2.5 py-1.5">

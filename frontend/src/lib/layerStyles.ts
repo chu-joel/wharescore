@@ -1,4 +1,4 @@
-// lib/layerStyles.ts — MapLibre style definitions for vector tile layers
+// lib/layerStyles.ts. MapLibre style definitions for vector tile layers
 //
 // Each layer served by Martin is a vector tile source. This file defines
 // the visual style (fill, circle, line) and color for each layer.
@@ -26,12 +26,12 @@ interface LayerStyleConfig {
   lineWidth?: number;
   /** Line dash array */
   dashArray?: number[];
-  /** MapLibre image name for icon (point layers only — enables circle+icon dual layers) */
+  /** MapLibre image name for icon (point layers only. enables circle+icon dual layers) */
   iconImage?: string;
 }
 
 const LAYER_STYLES: Record<string, LayerStyleConfig> = {
-  // --- Hazards (polygons) — severity-driven colors applied via getLayerStyles() ---
+  // --- Hazards (polygons). severity-driven colors applied via getLayerStyles() ---
   flood_zones:        { type: 'fill', color: '#56B4E9', outlineColor: '#3A8FBF', fillOpacity: 0.35 },
   tsunami_zones:      { type: 'fill', color: '#0D7377', outlineColor: '#0A5C5F', fillOpacity: 0.32 },
   liquefaction_zones: { type: 'fill', color: '#E69F00', outlineColor: '#C48700', fillOpacity: 0.30 },
@@ -52,7 +52,7 @@ const LAYER_STYLES: Record<string, LayerStyleConfig> = {
   // --- Landslide events (points) ---
   landslide_events:   { type: 'circle', color: '#F97316', radius: 5, strokeWidth: 1.5 },
 
-  // --- Transport (points) — icons at zoom 13+ ---
+  // --- Transport (points). icons at zoom 13+ ---
   transit_stops:      { type: 'circle', color: '#0D7377', radius: 5, strokeWidth: 2, iconImage: 'icon-transit' },
   crashes:            { type: 'circle', color: '#C42D2D', radius: 4, strokeWidth: 1.5, iconImage: 'icon-crash' },
 
@@ -78,7 +78,7 @@ const LAYER_STYLES: Record<string, LayerStyleConfig> = {
 // ---------------------------------------------------------------------------
 // Severity-driven color ramps for hazard polygon layers.
 // Each expression uses MapLibre's data-driven styling to color polygons
-// by their severity/classification property — bolder = more intense risk.
+// by their severity/classification property. bolder = more intense risk.
 // Colors go from cool/light (low risk) → warm/bold (high risk).
 // ---------------------------------------------------------------------------
 
@@ -95,7 +95,7 @@ const RISK_RAMP = {
 type SeverityExpr = any;
 
 /**
- * Slope failure: susceptibility column — "Very Low" / "Low" / "Medium" / "High" / "Very High"
+ * Slope failure: susceptibility column. "Very Low" / "Low" / "Medium" / "High" / "Very High"
  * Maps to 0-100 risk scale (5, 20, 45, 75, 90)
  */
 const SLOPE_FAILURE_FILL: SeverityExpr = [
@@ -118,7 +118,7 @@ const SLOPE_FAILURE_OPACITY: SeverityExpr = [
 ];
 
 /**
- * Liquefaction: liquefaction column — "Low" / "Moderate" / "High" / "Very High"
+ * Liquefaction: liquefaction column. "Low" / "Moderate" / "High" / "Very High"
  */
 const LIQUEFACTION_FILL: SeverityExpr = [
   'match', ['get', 'liquefaction'],
@@ -138,7 +138,7 @@ const LIQUEFACTION_OPACITY: SeverityExpr = [
 ];
 
 /**
- * Tsunami: zone_class column — 1 (highest risk) / 2 / 3 (lowest)
+ * Tsunami: zone_class column. 1 (highest risk) / 2 / 3 (lowest)
  */
 const TSUNAMI_FILL: SeverityExpr = [
   'match', ['get', 'zone_class'],
@@ -156,7 +156,7 @@ const TSUNAMI_OPACITY: SeverityExpr = [
 ];
 
 /**
- * Wind zones: zone_name — "M" / "H" / "VH" / "EH" / "SED"
+ * Wind zones: zone_name. "M" / "H" / "VH" / "EH" / "SED"
  */
 const WIND_FILL: SeverityExpr = [
   'match', ['get', 'zone_name'],
@@ -178,7 +178,7 @@ const WIND_OPACITY: SeverityExpr = [
 ];
 
 /**
- * Noise contours: laeq24h — continuous dB scale (50–70+)
+ * Noise contours: laeq24h. continuous dB scale (50–70+)
  */
 const NOISE_FILL: SeverityExpr = [
   'interpolate', ['linear'], ['get', 'laeq24h'],
@@ -198,7 +198,7 @@ const NOISE_OPACITY: SeverityExpr = [
 ];
 
 /**
- * Coastal erosion: csi_in — CSI index (numeric, 0–100+)
+ * Coastal erosion: csi_in. CSI index (numeric, 0–100+)
  */
 const COASTAL_FILL: SeverityExpr = [
   'interpolate', ['linear'], ['get', 'csi_in'],
@@ -273,7 +273,7 @@ function makeIconLayer(layerId: string, config: LayerStyleConfig): LayerProps {
  *   - building_outlines (subtle fill + teal line outline)
  */
 export function getLayerStyles(layerId: string): LayerProps[] {
-  // Special: SA2 boundaries — show suburb/locality labels at low zoom, hide at zoom 15+
+  // Special: SA2 boundaries. show suburb/locality labels at low zoom, hide at zoom 15+
   if (layerId === 'sa2_boundaries') {
     return [
       {
@@ -324,7 +324,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: school zones — very subtle fill so underlying basemap shows through,
+  // Special: school zones. very subtle fill so underlying basemap shows through,
   // dashed green outline for zone boundary, school name labels at zoom 13+
   if (layerId === 'school_zones') {
     return [
@@ -374,7 +374,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: building outlines — color-coded by use type
+  // Special: building outlines. color-coded by use type
   // Residential = teal, Commercial = amber, Other = slate
   // Boosted opacity for better visibility
   if (layerId === 'building_outlines') {
@@ -434,7 +434,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: district plan zones — color-coded by zone type
+  // Special: district plan zones. color-coded by zone type
   // Zone names are mixed (numeric codes + text), so we use case expressions
   // to pattern-match into categories: Residential, Commercial, Industrial, etc.
   if (layerId === 'district_plan_zones') {
@@ -445,7 +445,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
         ['in', 'residential', ['get', 'zone_name']],
         ['in', 'Living', ['get', 'zone_name']],
         ['in', 'Township', ['get', 'zone_name']],
-      ], '#F59E0B',  // amber — residential
+      ], '#F59E0B',  // amber. residential
       ['any',
         ['in', 'Business', ['get', 'zone_name']],
         ['in', 'BUSINESS', ['get', 'zone_name']],
@@ -453,31 +453,31 @@ export function getLayerStyles(layerId: string): LayerProps[] {
         ['in', 'Centre', ['get', 'zone_name']],
         ['in', 'Retail', ['get', 'zone_name']],
         ['in', 'Mixed Use', ['get', 'zone_name']],
-      ], '#3B82F6',  // blue — commercial/business
+      ], '#3B82F6',  // blue. commercial/business
       ['any',
         ['in', 'Industrial', ['get', 'zone_name']],
         ['in', 'INDUSTRIAL', ['get', 'zone_name']],
         ['in', 'Airport', ['get', 'zone_name']],
         ['in', 'AIRPORT', ['get', 'zone_name']],
         ['in', 'Port', ['get', 'zone_name']],
-      ], '#7C3AED',  // purple — industrial
+      ], '#7C3AED',  // purple. industrial
       ['any',
         ['in', 'Rural', ['get', 'zone_name']],
         ['in', 'RURAL', ['get', 'zone_name']],
         ['in', 'Coastal', ['get', 'zone_name']],
-      ], '#16A34A',  // green — rural/coastal
+      ], '#16A34A',  // green. rural/coastal
       ['any',
         ['in', 'Open Space', ['get', 'zone_name']],
         ['in', 'Recreation', ['get', 'zone_name']],
         ['in', 'Conservation', ['get', 'zone_name']],
         ['in', 'Reserve', ['get', 'zone_name']],
-      ], '#059669',  // emerald — open space
+      ], '#059669',  // emerald. open space
       ['any',
         ['in', 'Road', ['get', 'zone_name']],
         ['in', 'Rail', ['get', 'zone_name']],
         ['in', 'Corridor', ['get', 'zone_name']],
-      ], '#6B7280',  // gray — transport corridors
-      '#D4863B',  // fallback — original orange for numeric/unknown codes
+      ], '#6B7280',  // gray. transport corridors
+      '#D4863B',  // fallback. original orange for numeric/unknown codes
     ];
     const outlineColor: SeverityExpr = [
       'case',
@@ -514,7 +514,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: crashes — severity-driven colors and sizes
+  // Special: crashes. severity-driven colors and sizes
   // Fatal = large red, Serious = orange, Minor = amber, Non-injury = gray
   if (layerId === 'crashes') {
     const colorExpr: SeverityExpr = [
@@ -567,15 +567,15 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: OSM amenities — color-coded circles by category
+  // Special: OSM amenities. color-coded circles by category
   if (layerId === 'osm_amenities') {
     const colorExpr: SeverityExpr = [
       'match', ['get', 'category'],
-      'shop',       '#2563EB',  // blue — retail (supermarket, pharmacy, etc.)
-      'healthcare', '#DC2626',  // red — health
-      'amenity',    '#D97706',  // amber — general amenities (cafe, restaurant, etc.)
-      'leisure',    '#16A34A',  // green — parks, sports
-      'tourism',    '#9333EA',  // purple — attractions
+      'shop',       '#2563EB',  // blue. retail (supermarket, pharmacy, etc.)
+      'healthcare', '#DC2626',  // red. health
+      'amenity',    '#D97706',  // amber. general amenities (cafe, restaurant, etc.)
+      'leisure',    '#16A34A',  // green. parks, sports
+      'tourism',    '#9333EA',  // purple. attractions
       '#78716C',                // stone fallback
     ];
     return [
@@ -600,16 +600,16 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: NZDep choropleth — green (decile 1) to red (decile 10)
+  // Special: NZDep choropleth. green (decile 1) to red (decile 10)
   if (layerId === 'mv_nzdep_choropleth') {
     const fillColor: SeverityExpr = [
       'interpolate', ['linear'], ['get', 'nzdep'],
-      1, '#22C55E',   // green — least deprived
+      1, '#22C55E',   // green. least deprived
       3, '#84CC16',   // lime
       5, '#EAB308',   // yellow
       7, '#F97316',   // orange
       9, '#EF4444',   // red
-      10, '#DC2626',  // dark red — most deprived
+      10, '#DC2626',  // dark red. most deprived
     ];
     return [
       {
@@ -631,16 +631,16 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: Crime density choropleth — transparent (no crime) to red (high crime)
+  // Special: Crime density choropleth. transparent (no crime) to red (high crime)
   if (layerId === 'mv_crime_choropleth') {
     const fillColor: SeverityExpr = [
       'match', ['get', 'crime_level'],
       0, 'transparent',
-      1, '#FDE68A',    // pale yellow — very low
-      2, '#F59E0B',    // amber — low
-      3, '#F97316',    // orange — moderate
-      4, '#EF4444',    // red — high
-      5, '#DC2626',    // dark red — very high
+      1, '#FDE68A',    // pale yellow. very low
+      2, '#F59E0B',    // amber. low
+      3, '#F97316',    // orange. moderate
+      4, '#EF4444',    // red. high
+      5, '#DC2626',    // dark red. very high
       'transparent',
     ];
     return [
@@ -663,7 +663,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
     ];
   }
 
-  // Special: parcels — fade in at high zoom, invisible when zoomed out
+  // Special: parcels. fade in at high zoom, invisible when zoomed out
   if (layerId === 'parcels') {
     return [
       {
@@ -746,7 +746,7 @@ export function getLayerStyles(layerId: string): LayerProps[] {
 }
 
 /**
- * Legacy single-layer accessor — kept for non-toggled layers (addresses-click).
+ * Legacy single-layer accessor. kept for non-toggled layers (addresses-click).
  */
 export function getLayerStyle(layerId: string): LayerProps | null {
   return getLayerStyles(layerId)[0] ?? null;
@@ -754,7 +754,7 @@ export function getLayerStyle(layerId: string): LayerProps | null {
 
 /**
  * Build the tile URL for a Martin vector tile source.
- * Must be absolute — MapLibre fetches tiles inside a Web Worker with no window.location.
+ * Must be absolute. MapLibre fetches tiles inside a Web Worker with no window.location.
  */
 export function getTileUrl(layerId: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';

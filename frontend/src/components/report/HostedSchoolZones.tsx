@@ -19,7 +19,7 @@ interface Props {
 }
 
 // Private schools (Catholic, independent, integrated) often have country-wide enrolment
-// zones — a Wellington property is technically "in zone" for a Hutt or Upper Hutt private
+// zones. a Wellington property is technically "in zone" for a Hutt or Upper Hutt private
 // school 25 km away, which is nonsense in context. Drop anything further than this threshold
 // so the "In School Enrolment Zones" list stays relevant to the renter.
 const IN_ZONE_DISTANCE_CAP_M = 5000;
@@ -74,7 +74,7 @@ export function HostedSchoolZones({ snapshot }: Props) {
         ))}
       </div>
       <p className="text-xs text-muted-foreground mt-2">
-        Source: Ministry of Education enrolment zone boundaries. Zones may change — verify with school.
+        Source: Ministry of Education enrolment zone boundaries. Zones may change. verify with school.
       </p>
     </div>
   );

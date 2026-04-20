@@ -87,7 +87,7 @@ export function BuildingInfoBanner({
                 </table>
                 {siblingValuations.length > MAX_MINI_TABLE_ROWS && (
                   <p className="text-xs text-muted-foreground px-2 py-1.5 border-t border-border">
-                    {siblingValuations.length - MAX_MINI_TABLE_ROWS} more units — see full comparison below
+                    {siblingValuations.length - MAX_MINI_TABLE_ROWS} more units. see full comparison below
                   </p>
                 )}
               </div>

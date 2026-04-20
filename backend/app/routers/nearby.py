@@ -15,7 +15,7 @@ router = APIRouter()
 # sentiment: "good" = family/lifestyle positive, "caution" = may concern some buyers, "info" = neutral/informative
 
 AMENITY_CLASSES: Dict[str, tuple] = {
-    # Good — family, health, culture, recreation
+    # Good. family, health, culture, recreation
     "library": ("good", "Library"),
     "playground": ("good", "Playground"),
     "community_centre": ("good", "Community Centre"),
@@ -51,7 +51,7 @@ AMENITY_CLASSES: Dict[str, tuple] = {
     "bakery": ("good", "Bakery"),
     "greengrocer": ("good", "Greengrocer"),
 
-    # Caution — noise, alcohol, adult, industrial
+    # Caution. noise, alcohol, adult, industrial
     "bar": ("caution", "Bar"),
     "pub": ("caution", "Pub"),
     "nightclub": ("caution", "Nightclub"),
@@ -69,7 +69,7 @@ AMENITY_CLASSES: Dict[str, tuple] = {
     "smoking_area": ("caution", "Smoking Area"),
     "fast_food": ("caution", "Fast Food"),
 
-    # Info — neutral, just useful to know
+    # Info. neutral, just useful to know
     "place_of_worship": ("info", "Place of Worship"),
     "social_facility": ("info", "Social Services"),
     "shelter": ("info", "Shelter"),
@@ -139,7 +139,7 @@ async def nearby_crashes(
     radius: int = Query(300, le=1000),
 ):
     """Serious/fatal crashes within radius, last 5 years.
-    bbox pre-filter critical — crashes table has 904K rows."""
+    bbox pre-filter critical. crashes table has 904K rows."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
@@ -232,7 +232,7 @@ async def nearby_consents(
     Note: commencement_date is stored as raw text from ArcGIS (epoch ms for GWRC,
     text for ECan) so we can't filter by it server-side. We return recent-looking
     consents sorted by distance. Status match uses ILIKE to tolerate casing variants
-    ("Granted", "granted", "GRANTED") — mirrors the report SQL in migration 0022."""
+    ("Granted", "granted", "GRANTED"). mirrors the report SQL in migration 0022."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
@@ -264,7 +264,7 @@ async def nearby_earthquakes(
     radius: int = Query(30000, le=50000),
 ):
     """M4+ earthquakes within radius, last 10 years.
-    Large radius (30km default) — no bbox pre-filter needed (only 20K rows)."""
+    Large radius (30km default). no bbox pre-filter needed (only 20K rows)."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """
@@ -327,7 +327,7 @@ async def nearby_buildings(
     radius: int = Query(50, le=200),
 ):
     """Building footprints as GeoJSON polygons (not points).
-    bbox pre-filter CRITICAL — building_outlines has 3.2M rows."""
+    bbox pre-filter CRITICAL. building_outlines has 3.2M rows."""
     async with db.pool.connection() as conn:
         cur = await conn.execute(
             """

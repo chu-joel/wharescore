@@ -76,7 +76,7 @@ export function HostedHPIChart({ snapshot }: Props) {
             )}
           </AreaChart>
         </ResponsiveContainer>
-        <p className="text-xs text-muted-foreground mt-2">Source: RBNZ. National index — not property-specific.</p>
+        <p className="text-xs text-muted-foreground mt-2">Source: RBNZ. National index. not property-specific.</p>
       </div>
     </div>
   );

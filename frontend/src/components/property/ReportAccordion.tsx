@@ -34,7 +34,7 @@ interface ReportAccordionProps {
   report: PropertyReport;
   orderedSections: SectionRelevance[];
   defaultOpenSection?: string;
-  /** If true, section content is partially gated — shows preview + upsell */
+  /** If true, section content is partially gated. shows preview + upsell */
   locked?: boolean;
 }
 

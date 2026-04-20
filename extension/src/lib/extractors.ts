@@ -3,7 +3,7 @@
 // the exact address string that will be sent to WhareScore.
 //
 // Order of fallbacks reflects what was observed in the captured fixtures for
-// each site. Never guess — every fallback is keyed to something present in
+// each site. Never guess. every fallback is keyed to something present in
 // the actual HTML checked into extension/tests/fixtures.
 import {
   looksLikeAddress, parseJsonLdAddress, readH1, readMeta, stripTitleSuffix,
@@ -18,7 +18,7 @@ export type Extractor = (doc: Document) => string | null;
 //   og:title content matches the <title>.
 // There is no JSON-LD on homes.co.nz listing pages.
 export const extractHomes: Extractor = (doc) => {
-  // H1 with a class that contains "summary_address" — Angular adds extra
+  // H1 with a class that contains "summary_address". Angular adds extra
   // _ngcontent suffixes, so use an attribute-contains selector for safety.
   const h1 = doc.querySelector<HTMLHeadingElement>('h1[class*="summary_address"]');
   if (h1 && h1.textContent) {
@@ -44,7 +44,7 @@ export const extractHomes: Extractor = (doc) => {
 //   JSON-LD {"@type":"SingleFamilyResidence","address":{"streetAddress":"10 Lorne Street",
 //            "addressLocality":"Wellington City","addressRegion":"Wellington"}}
 //   <h1 class="text-font text-3xl font-bold not-italic text-black">10 Lorne Street, Te Aro, Wellington City</h1>
-// og:title is marketing copy ("PREMIUM CAR PARKS HIT THE MARKET") — do not use.
+// og:title is marketing copy ("PREMIUM CAR PARKS HIT THE MARKET"). do not use.
 export const extractOneRoof: Extractor = (doc) => {
   const fromLd = parseJsonLdAddress(doc);
   if (looksLikeAddress(fromLd)) return fromLd;

@@ -1,7 +1,7 @@
 import { StaticPageLayout } from '@/components/layout/StaticPageLayout';
 
 export const metadata = {
-  title: 'Help & FAQ — How WhareScore Property Reports Work',
+  title: 'Help & FAQ. How WhareScore Property Reports Work',
   description: 'Common questions about WhareScore: how risk scores are calculated, where data comes from, rent estimate accuracy, pricing, and data coverage across New Zealand.',
   alternates: { canonical: 'https://wharescore.co.nz/help' },
 };
@@ -25,11 +25,11 @@ const FAQ = [
   },
   {
     q: 'Why is some data missing for my property?',
-    a: 'We cover Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson with council-specific data. National datasets (earthquakes, schools, crime, heritage) cover all of NZ. Some councils publish more data than others — the coverage badge on each report shows how many risk checks are available for your address.',
+    a: 'We cover Auckland, Wellington, Christchurch, Hamilton, Tauranga, Dunedin, Napier/Hastings, and Nelson with council-specific data. National datasets (earthquakes, schools, crime, heritage) cover all of NZ. Some councils publish more data than others. the coverage badge on each report shows how many risk checks are available for your address.',
   },
   {
     q: 'How much does WhareScore cost?',
-    a: 'Every address gets a free on-screen report with risk scores, hazard flags, and neighbourhood overview. Sign in to get a free Quick Report — a shareable hosted link with key findings and hazard summary. Full Reports ($9.99, or $4.99 for Pro subscribers) add AI-written summary, rent/price advice, terrain analysis, and 25+ sections of detailed analysis. Professionals can get 30 Full Reports per month for $140, plus extras at $4.99 each.',
+    a: 'Every address gets a free on-screen report with risk scores, hazard flags, and neighbourhood overview. Sign in to get a free Quick Report. a shareable hosted link with key findings and hazard summary. Full Reports ($9.99, or $4.99 for Pro subscribers) add AI-written summary, rent/price advice, terrain analysis, and 25+ sections of detailed analysis. Professionals can get 30 Full Reports per month for $140, plus extras at $4.99 each.',
   },
   {
     q: 'Can I use this data for legal or financial decisions?',

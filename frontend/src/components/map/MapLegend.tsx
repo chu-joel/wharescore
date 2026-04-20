@@ -32,7 +32,7 @@ const LAYER_COLORS: Record<string, string> = {
   landslide_areas: '#F97316',
 };
 
-/** Layers with category-based coloring — show multi-dot or multi-fill swatches */
+/** Layers with category-based coloring. show multi-dot or multi-fill swatches */
 const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: string }[] }> = {
   building_outlines: {
     items: [
@@ -61,9 +61,9 @@ const CATEGORY_COLOR_LAYERS: Record<string, { items: { color: string; label: str
   },
 };
 
-/** Layers with data-driven severity gradients — show a gradient swatch in legend.
+/** Layers with data-driven severity gradients. show a gradient swatch in legend.
  * labels[0] is the LEFT (least severe) end, labels[1] is the RIGHT (most severe)
- * end. Copy should make the direction explicit — e.g. "Zone 3 → Zone 1 (most
+ * end. Copy should make the direction explicit. e.g. "Zone 3 → Zone 1 (most
  * severe)" rather than a bare "Zone 3 → Zone 1" that leaves direction ambiguous. */
 const SEVERITY_GRADIENT_LAYERS: Record<string, { colors: string[]; labels: [string, string] }> = {
   mv_nzdep_choropleth: {

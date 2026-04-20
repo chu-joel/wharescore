@@ -275,7 +275,7 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
             </div>
           </div>
 
-          {/* Insulation — checkbox warning flag, not a toggle */}
+          {/* Insulation. checkbox warning flag, not a toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -353,7 +353,7 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
                 </div>
               )}
 
-              {/* Premium CTA — area context, full breakdown, advice in the report */}
+              {/* Premium CTA. area context, full breakdown, advice in the report */}
               <button
                 onClick={() => {
                   useDownloadGateStore.getState().setShowUpgradeModal(true, 'rent-advisor', {}, addressId, 'renter');

@@ -14,7 +14,7 @@ interface CrimeCardProps {
 function getSeverity(pct: number) {
   if (pct <= 25) return { label: 'Low Crime Area', color: '#2D6A4F', bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-200 dark:border-green-800', desc: 'Less crime than most areas in the city. Good for families and personal safety.' };
   if (pct <= 50) return { label: 'Below Average', color: '#0D7377', bg: 'bg-teal-50 dark:bg-teal-950/20', border: 'border-teal-200 dark:border-teal-800', desc: 'Crime levels are below the city average. A relatively safe area.' };
-  if (pct <= 75) return { label: 'Above Average', color: '#E69F00', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-800', desc: 'More crime reported here than in most areas. Check specific crime types — property crime is most common.' };
+  if (pct <= 75) return { label: 'Above Average', color: '#E69F00', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-800', desc: 'More crime reported here than in most areas. Check specific crime types. property crime is most common.' };
   return { label: 'High Crime Area', color: '#C42D2D', bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-200 dark:border-red-800', desc: 'This area has significantly higher crime rates. Factor in insurance costs and security measures.' };
 }
 
@@ -95,7 +95,7 @@ export function CrimeCard({ percentile, victimisations, cityMedian }: CrimeCardP
         </div>
       </div>
 
-      {/* Comparison to city average — the card version replaces an earlier
+      {/* Comparison to city average. the card version replaces an earlier
           ContextBadge render that showed the same comparisonText twice. */}
       {comparisonText && (
         <div className="flex items-center gap-2 rounded-lg bg-card dark:bg-card/50 border border-border p-2.5">

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-# Road type abbreviations — only expand when preceded by another word
+# Road type abbreviations. only expand when preceded by another word
 # to avoid "St Heliers" → "Street Heliers"
 ROAD_ABBREVS = {
     "st": "street", "rd": "road", "ave": "avenue", "dr": "drive",
@@ -13,7 +13,7 @@ ROAD_ABBREVS = {
     "bvd": "boulevard", "blvd": "boulevard", "cct": "circuit",
 }
 
-# Suburb/city abbreviations — always expand
+# Suburb/city abbreviations. always expand
 GENERAL_ABBREVS = {
     "wgtn": "wellington", "wlg": "wellington", "welly": "wellington",
     "chch": "christchurch", "akl": "auckland", "dn": "dunedin",
@@ -38,10 +38,10 @@ def expand_abbreviations(query: str) -> str:
     result = []
     for i, word in enumerate(words):
         lower = word.lower().rstrip(".,")
-        # Road type abbreviation — only expand if not first word
+        # Road type abbreviation. only expand if not first word
         if i > 0 and lower in ROAD_ABBREVS:
             result.append(ROAD_ABBREVS[lower])
-        # General abbreviation — always expand
+        # General abbreviation. always expand
         elif lower in GENERAL_ABBREVS:
             result.append(GENERAL_ABBREVS[lower])
         else:

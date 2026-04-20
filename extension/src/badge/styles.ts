@@ -1,5 +1,5 @@
 // Shadow DOM stylesheet. Kept as a TS constant (rather than an imported CSS
-// file) so content scripts don't need web_accessible_resources juggling —
+// file) so content scripts don't need web_accessible_resources juggling .
 // the shadow root adopts this via CSSStyleSheet.replaceSync at mount time.
 export const BADGE_CSS = `
 :host {

@@ -1,5 +1,5 @@
 """
-walking_isochrone.py — Hill-aware walking isochrone via Valhalla.
+walking_isochrone.py. Hill-aware walking isochrone via Valhalla.
 
 Replaces simple 400m/800m radius circles with real walking polygons
 that follow the street network and account for elevation (hills).
@@ -28,7 +28,7 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
-# Valhalla endpoint — Docker service name in compose, or localhost for dev
+# Valhalla endpoint. Docker service name in compose, or localhost for dev
 VALHALLA_URL = os.environ.get("VALHALLA_URL", settings.VALHALLA_URL)
 
 
@@ -44,7 +44,7 @@ def _build_isochrone_request(
         "costing": "pedestrian",
         "costing_options": {
             "pedestrian": {
-                "walking_speed": 5.0,       # km/h — standard walking speed
+                "walking_speed": 5.0,       # km/h. standard walking speed
                 "use_hills": 0.5,           # 0=avoid hills, 1=ignore hills
                 "step_penalty": 30,         # seconds penalty per set of steps
                 "max_hiking_difficulty": 1,  # 1=basic walking (not hiking)
@@ -80,7 +80,7 @@ async def get_walking_isochrone(
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.ConnectionError:
-        logger.warning("Valhalla not available at %s — falling back to radius", VALHALLA_URL)
+        logger.warning("Valhalla not available at %s. falling back to radius", VALHALLA_URL)
         return None
     except requests.exceptions.Timeout:
         logger.warning("Valhalla isochrone timed out for (%.4f, %.4f)", lat, lon)
@@ -277,7 +277,7 @@ async def count_stops_in_isochrone(
             "isochrone_geojson": feature["geometry"],
         }
 
-    # Fallback: simple radius. Same mode math as the isochrone path above —
+    # Fallback: simple radius. Same mode math as the isochrone path above .
     # metlink_stops (Wellington) + at_stops (Auckland) + transit_stops
     # (regional GTFS for Christchurch, Queenstown, Hamilton, Dunedin, Tauranga,
     # Palmerston North, Rotorua, Napier, Whangarei). Before this included
@@ -359,7 +359,7 @@ async def count_stops_in_isochrone(
 
 async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
     """
-    Get terrain data for a property — tries Valhalla /height first,
+    Get terrain data for a property. tries Valhalla /height first,
     falls back to PostGIS SRTM raster if loaded.
 
     Returns:
@@ -427,7 +427,7 @@ async def get_terrain_at_property(conn, address_id: int) -> dict[str, Any]:
                     **inferences,
                 }
     except Exception:
-        # PostGIS raster query failed — fall through to Valhalla
+        # PostGIS raster query failed. fall through to Valhalla
         pass
 
     # Valhalla /height with multi-point slope estimation
@@ -608,9 +608,9 @@ def classify_landslide_risk_from_slope(slope_degrees: float | None) -> dict[str,
     Based on NZ GeoNet / GNS Science slope thresholds:
       - <5°: Very low risk
       - 5-15°: Low risk
-      - 15-25°: Moderate risk — soil creep possible
-      - 25-35°: High risk — shallow landslides likely
-      - >35°: Very high risk — rockfall and deep-seated failures
+      - 15-25°: Moderate risk. soil creep possible
+      - 25-35°: High risk. shallow landslides likely
+      - >35°: Very high risk. rockfall and deep-seated failures
 
     This supplements the existing slope_failure table data with
     continuous slope-based risk even where no mapped landslides exist.

@@ -1,4 +1,4 @@
-// lib/basemapStyles.ts — available basemap styles for the map style picker
+// lib/basemapStyles.ts. available basemap styles for the map style picker
 //
 // All raster styles use the SAME source name ("basemap") and layer ID ("basemap-tiles")
 // so react-map-gl's style diffing can swap tile URLs without tearing down sources mid-request.
@@ -12,7 +12,7 @@ export interface BasemapStyle {
   color: string;
   /** Real tile image URL for the picker thumbnail (Wellington, z=10, x=1008, y=642) */
   previewUrl: string;
-  /** MapLibre style — either a URL (vector) or a StyleSpecification (raster) */
+  /** MapLibre style. either a URL (vector) or a StyleSpecification (raster) */
   style: string | maplibregl.StyleSpecification;
 }
 
@@ -77,7 +77,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
       OSM_ATTRIBUTION,
     ),
   },
-  // Esri World Imagery + CARTO labels — hybrid satellite mode
+  // Esri World Imagery + CARTO labels. hybrid satellite mode
   {
     id: 'satellite',
     label: 'Satellite',
@@ -88,7 +88,7 @@ export const BASEMAP_STYLES: BasemapStyle[] = [
       ESRI_ATTRIBUTION,
     ),
   },
-  // LINZ styles — only available when API key is configured
+  // LINZ styles. only available when API key is configured
   ...(LINZ_KEY
     ? [
         {

@@ -83,14 +83,14 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           "save & sign in" path (captures 95% of browsers), and the paid
           Full Report sits underneath as a deliberate secondary link for
           buyers who already know they want it. Signed-in users see a
-          single primary button — the ReportConfirmModal lets them pick
+          single primary button. the ReportConfirmModal lets them pick
           Quick (free) vs Full ($9.99) after they click. */}
       {isAuthenticated ? (
         <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('full')} disabled={pdf.isGenerating}>
           {pdf.isGenerating ? (
             <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Generating report…</>
           ) : (
-            <><Download className="h-4 w-4 mr-1.5" /> Generate Full Report — {fullPrice}</>
+            <><Download className="h-4 w-4 mr-1.5" /> Generate Full Report. {fullPrice}</>
           )}
         </Button>
       ) : (
@@ -99,7 +99,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
             {pdf.isGenerating ? (
               <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Saving report…</>
             ) : (
-              <><BookmarkPlus className="h-4 w-4 mr-1.5" /> Save free report — sign in</>
+              <><BookmarkPlus className="h-4 w-4 mr-1.5" /> Save free report. sign in</>
             )}
           </Button>
           <button
@@ -108,7 +108,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
             disabled={pdf.isGenerating}
             className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 py-1 transition-colors disabled:opacity-50"
           >
-            Or skip ahead — buy the Full Report ({fullPrice})
+            Or skip ahead. buy the Full Report ({fullPrice})
           </button>
         </div>
       )}

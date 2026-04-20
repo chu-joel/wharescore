@@ -4,7 +4,7 @@ Lightweight SQL migration runner.
 
 Runs at app startup (synchronously, before the async pool is created).
 Uses a PostgreSQL advisory lock so only one Uvicorn worker executes
-migrations — the others skip immediately.
+migrations. the others skip immediately.
 """
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ def run_migrations(database_url: str) -> None:
     """Apply pending SQL migrations from MIGRATIONS_DIR."""
     conn = psycopg.connect(database_url, autocommit=True)
     try:
-        # Advisory lock — non-blocking. Loser returns immediately.
+        # Advisory lock. non-blocking. Loser returns immediately.
         row = conn.execute("SELECT pg_try_advisory_lock(7483201)").fetchone()
         if not row or not row[0]:
-            logger.info("migrations: another worker holds the lock — skipping")
+            logger.info("migrations: another worker holds the lock. skipping")
             return
 
         # Ensure tracking table exists
@@ -44,7 +44,7 @@ def run_migrations(database_url: str) -> None:
 
         # Discover pending migration files
         if not MIGRATIONS_DIR.is_dir():
-            logger.info("migrations: directory %s not found — skipping", MIGRATIONS_DIR)
+            logger.info("migrations: directory %s not found. skipping", MIGRATIONS_DIR)
             return
 
         pending = sorted(
@@ -55,7 +55,7 @@ def run_migrations(database_url: str) -> None:
             logger.info("migrations: 0 pending")
             return
 
-        logger.info("migrations: %d pending — %s", len(pending), [f.name for f in pending])
+        logger.info("migrations: %d pending. %s", len(pending), [f.name for f in pending])
 
         for migration_file in pending:
             sql = migration_file.read_text(encoding="utf-8")

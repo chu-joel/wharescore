@@ -1,4 +1,4 @@
-// lib/constants.ts — all frontend constants
+// lib/constants.ts. all frontend constants
 
 import type { RatingBin } from './types';
 
@@ -31,7 +31,7 @@ export const CATEGORIES = [
 
 // --- Map layer configuration ---
 export const TILE_LAYERS = [
-  // Hazards — most important for property buyers
+  // Hazards. most important for property buyers
   { id: 'flood_zones', group: 'Hazards', label: 'Flood Zones', minzoom: 8 },
   { id: 'liquefaction_zones', group: 'Hazards', label: 'Liquefaction', minzoom: 10 },
   { id: 'slope_failure_zones', group: 'Hazards', label: 'Slope Failure', minzoom: 10 },
@@ -46,12 +46,12 @@ export const TILE_LAYERS = [
   { id: 'tsunami_hazard', group: 'Hazards', label: 'Tsunami Hazard (Council)', minzoom: 8 },
   { id: 'fault_zones', group: 'Hazards', label: 'Fault Zones (Council)', minzoom: 10 },
   { id: 'flood_extent', group: 'Hazards', label: 'Flood Extent', minzoom: 8 },
-  // Property — users want to see their parcel/building
+  // Property. users want to see their parcel/building
   { id: 'parcels', group: 'Property', label: 'Parcels', minzoom: 15 },
   { id: 'building_outlines', group: 'Property', label: 'Buildings', minzoom: 13 },
-  // Schools — key for families
+  // Schools. key for families
   { id: 'school_zones', group: 'Schools', label: 'School Zones', minzoom: 10 },
-  // Planning — due diligence
+  // Planning. due diligence
   { id: 'district_plan_zones', group: 'Planning', label: 'District Zones', minzoom: 10 },
   { id: 'contaminated_land', group: 'Planning', label: 'Contamination', minzoom: 12 },
   { id: 'heritage_sites', group: 'Planning', label: 'Heritage', minzoom: 12 },

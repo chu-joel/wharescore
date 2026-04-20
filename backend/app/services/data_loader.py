@@ -1,5 +1,5 @@
 """
-Data source loader — triggered from admin panel.
+Data source loader. triggered from admin panel.
 
 Each source is a self-contained loader function that:
 1. Fetches data from an external API or file
@@ -44,7 +44,7 @@ def _db_url_to_sync() -> str:
 
 
 def _fetch_url(url: str, timeout: int = 120, extra_headers: dict | None = None) -> bytes:
-    """Fetch URL with SSL fallback (dev only — prod always verifies)."""
+    """Fetch URL with SSL fallback (dev only. prod always verifies)."""
     headers = {"User-Agent": "WhareScore/1.0"}
     if extra_headers:
         headers.update(extra_headers)
@@ -56,10 +56,10 @@ def _fetch_url(url: str, timeout: int = 120, extra_headers: dict | None = None) 
                 return resp.read()
         except ssl.SSLCertVerificationError:
             if settings.ENVIRONMENT == "production":
-                logger.error(f"SSL verification failed for {url} — refusing in production")
+                logger.error(f"SSL verification failed for {url}. refusing in production")
                 raise
             if attempt == 0:
-                logger.error(f"SSL verification failed for {url} — using unverified (dev only)")
+                logger.error(f"SSL verification failed for {url}. using unverified (dev only)")
                 continue
             raise
         except (TimeoutError, urllib.error.URLError) as e:
@@ -81,11 +81,11 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1",
                    max_allowable_offset: float | None = None):
     """Fetch all features from ArcGIS REST with pagination (streaming generator).
 
-    Yields features one at a time — constant memory regardless of dataset size.
+    Yields features one at a time. constant memory regardless of dataset size.
     Callers iterate with ``for f in _fetch_arcgis(...):`` exactly as before.
 
     Handles two pagination strategies:
-    1. Offset-based (if server supports resultOffset) — default
+    1. Offset-based (if server supports resultOffset). default
     2. ObjectID-based (fallback for MapServer layers that don't support offset)
        Uses ``where=OBJECTID > {last_oid}`` with ``orderByFields=OBJECTID ASC``
 
@@ -126,7 +126,7 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1",
                 break
             yield from features
             offset += len(features)
-            # Check exceededTransferLimit — if true, there are more records
+            # Check exceededTransferLimit. if true, there are more records
             if data.get("exceededTransferLimit"):
                 time.sleep(0.3)
                 continue
@@ -164,10 +164,10 @@ def _fetch_arcgis(base_url: str, max_per_page: int = 1000, where: str = "1=1",
                 for f in features
             )
             if last_oid <= 0:
-                # No OBJECTID field found — can't paginate further
+                # No OBJECTID field found. can't paginate further
                 logger.warning(f"No OBJECTID field found in features from {base_url}, stopping after first page")
                 break
-            # Check exceededTransferLimit — if true, there are more records
+            # Check exceededTransferLimit. if true, there are more records
             if data.get("exceededTransferLimit"):
                 time.sleep(0.3)
                 continue
@@ -568,7 +568,7 @@ def load_metlink_gtfs(conn: psycopg.Connection, log: Callable = None) -> int:
                 entry["times"].append(mins)
                 entry["routes"].add(f"{rname} ({mode})")
 
-    # Insert travel times — use median of peak-hour trips, one row per (stop, dest, window)
+    # Insert travel times. use median of peak-hour trips, one row per (stop, dest, window)
     cur.execute("TRUNCATE transit_travel_times RESTART IDENTITY")
     # Add peak_window column if missing (backward-compat)
     cur.execute("""
@@ -729,12 +729,12 @@ def load_resource_consents(conn: psycopg.Connection, log: Callable = None) -> in
 
 
 def _load_ecan_consents(conn: psycopg.Connection, log: Callable = None) -> int:
-    """ECan (Canterbury) resource consents — ~115K active consents."""
+    """ECan (Canterbury) resource consents. ~115K active consents."""
     url = "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Resource_Consents/MapServer/0"
     _progress(log, "Fetching ECan resource consents (Canterbury)...")
     features = _fetch_arcgis(url, 2000, where="1=1")
     cur = conn.cursor()
-    # Don't truncate — append alongside GWRC consents. Delete ECan rows (CRC prefix).
+    # Don't truncate. append alongside GWRC consents. Delete ECan rows (CRC prefix).
     cur.execute("DELETE FROM resource_consents WHERE consent_id LIKE 'CRC%' OR consent_id LIKE 'RC%'")
     conn.commit()
     count = 0
@@ -842,7 +842,7 @@ def load_height_controls(conn: psycopg.Connection, log: Callable = None) -> int:
 # ── GWRC Landslide (Layer 21) ─────────────────────────────────
 
 def load_gwrc_landslide(conn: psycopg.Connection, log: Callable = None) -> int:
-    """GWRC Layer 21 — GNS QMap landslide polylines."""
+    """GWRC Layer 21. GNS QMap landslide polylines."""
     url = "https://mapping.gw.govt.nz/arcgis/rest/services/GW/Emergencies_P/MapServer/21"
     council = "greater_wellington"
     _progress(log, "Fetching GWRC landslide (Layer 21)...")
@@ -901,7 +901,7 @@ def load_coastal_elevation(conn: psycopg.Connection, log: Callable = None) -> in
 # ── GWRC Flood Hazard Extents (regional) ─────────────────────
 
 def load_gwrc_flood_extents(conn: psycopg.Connection, log: Callable = None) -> int:
-    """GWRC regional flood extents — 2%, 1%, 0.23% AEP."""
+    """GWRC regional flood extents. 2%, 1%, 0.23% AEP."""
     base = "https://mapping.gw.govt.nz/arcgis/rest/services/Flood_Hazard_Extents_P/MapServer"
     council = "greater_wellington"
     cur = conn.cursor()
@@ -1090,7 +1090,7 @@ def load_rail_vibration(conn: psycopg.Connection, log: Callable = None) -> int:
 # ── GWRC Erosion Prone Land ──────────────────────────────────
 
 def load_erosion_prone_land(conn: psycopg.Connection, log: Callable = None) -> int:
-    """GWRC Regional Planning — erosion prone land."""
+    """GWRC Regional Planning. erosion prone land."""
     url = "https://mapping.gw.govt.nz/arcgis/rest/services/GW/Regional_Planning_P/MapServer/22"
     _progress(log, "Fetching GWRC erosion prone land...")
     features = _fetch_arcgis(url)
@@ -1119,7 +1119,7 @@ def load_erosion_prone_land(conn: psycopg.Connection, log: Callable = None) -> i
 # ── GNS Landslide Database (NZLD) ─────────────────────────────
 
 def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Load GNS NZ Landslide Database — point events + polygon areas (NATIONAL)."""
+    """Load GNS NZ Landslide Database. point events + polygon areas (NATIONAL)."""
     cur = conn.cursor()
 
     # Create tables if they don't exist
@@ -1158,7 +1158,7 @@ def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
     """)
     conn.commit()
 
-    # National — no bbox filter. Fetch in regional chunks to stay under WFS limits.
+    # National. no bbox filter. Fetch in regional chunks to stay under WFS limits.
     nz_regions = [
         ("Northland/Auckland", "172.0,-37.8,177.0,-34.3"),
         ("Waikato/BOP", "174.5,-39.0,178.5,-36.5"),
@@ -1172,7 +1172,7 @@ def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
     ]
     total = 0
 
-    # 1. Point events — fetch per region
+    # 1. Point events. fetch per region
     _progress(log, "Fetching GNS landslide point events (National)...")
     cur.execute("TRUNCATE landslide_events RESTART IDENTITY")
     event_count = 0
@@ -1222,7 +1222,7 @@ def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
     total += event_count
     _progress(log, f"  Inserted {event_count} point events")
 
-    # 2. Polygon areas — fetch per region
+    # 2. Polygon areas. fetch per region
     _progress(log, "Fetching GNS landslide polygon areas (National)...")
     cur.execute("TRUNCATE landslide_areas RESTART IDENTITY")
     area_count = 0
@@ -1277,11 +1277,11 @@ def load_gns_landslides(conn: psycopg.Connection, log: Callable = None) -> int:
 # ── GNS Active Faults Database (National) ────────────────────
 
 def load_gns_active_faults(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Load GNS Active Faults Database — national fault lines + avoidance zones."""
+    """Load GNS Active Faults Database. national fault lines + avoidance zones."""
     cur = conn.cursor()
     total = 0
 
-    # 1. Active fault traces (lines) — from maps.gns.cri.nz
+    # 1. Active fault traces (lines). from maps.gns.cri.nz
     _progress(log, "Fetching GNS active fault traces (National)...")
     url = (
         "https://maps.gns.cri.nz/gns/ows?service=wfs&version=1.0.0"
@@ -1328,7 +1328,7 @@ def load_gns_active_faults(conn: psycopg.Connection, log: Callable = None) -> in
     total += count
     _progress(log, f"  Inserted {count} fault traces")
 
-    # 2. Fault avoidance zones (polygons) — try to fetch
+    # 2. Fault avoidance zones (polygons). try to fetch
     _progress(log, "Fetching GNS fault avoidance zones...")
     faz_url = (
         "https://maps.gns.cri.nz/gns/ows?service=wfs&version=1.0.0"
@@ -1497,7 +1497,7 @@ def _load_council_wfs(
 
 def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
     """Auckland flood prone areas. The AC 'Flood_Prone_Areas' FeatureServer has
-    no human-readable name field — only FPA_ID (numeric), depth, and volume — so
+    no human-readable name field. only FPA_ID (numeric), depth, and volume. so
     we synthesize a descriptive label from the 100-year ARI depth instead of
     leaking OBJECTIDs into hazards.flood_extent_label."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0"
@@ -1850,7 +1850,7 @@ def load_auckland_heritage(conn: psycopg.Connection, log: Callable = None) -> in
 
 
 def load_auckland_aircraft_noise(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland aircraft noise overlay (Unitary Plan — 15 noise zones)."""
+    """Auckland aircraft noise overlay (Unitary Plan. 15 noise zones)."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Aircraft_Noise_Overlay/FeatureServer/0"
     # TYPE coded domain → name + dBA level
     type_map = {
@@ -2043,7 +2043,7 @@ def load_auckland_ecological_areas(conn: psycopg.Connection, log: Callable = Non
 
 
 def load_auckland_coastal_erosion(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland Coastal Instability and Erosion (ASCIE) — polylines."""
+    """Auckland Coastal Instability and Erosion (ASCIE). polylines."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/CoastalInstabilityAndErosion/FeatureServer/0"
 
     cur = conn.cursor()
@@ -2345,7 +2345,7 @@ def load_auckland_viewshafts(conn: psycopg.Connection, log: Callable = None) -> 
 
 
 def load_auckland_heritage_extent(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland Historic Heritage Overlay — Extent of Place (polygon boundaries)."""
+    """Auckland Historic Heritage Overlay. Extent of Place (polygon boundaries)."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Historic_Heritage_Overlay_Extent_of_Place/FeatureServer/0"
 
     cur = conn.cursor()
@@ -2703,7 +2703,7 @@ def _load_regional_gtfs(
     gtfs_url: str, region_name: str,
     extra_headers: dict | None = None,
 ) -> int:
-    """Regional GTFS loader — loads stops + computes travel times to key destinations."""
+    """Regional GTFS loader. loads stops + computes travel times to key destinations."""
     _progress(log, f"Downloading {region_name} GTFS...")
     zip_data = _fetch_url(gtfs_url, timeout=180, extra_headers=extra_headers)
     if not zip_data:
@@ -2735,7 +2735,7 @@ def _load_regional_gtfs(
                 except (ValueError, KeyError):
                     continue
 
-        # Routes — determine mode
+        # Routes. determine mode
         route_info = {}
         try:
             with zf.open("routes.txt") as f:
@@ -2757,7 +2757,7 @@ def _load_regional_gtfs(
         except KeyError:
             pass
 
-        # Stop times — build trip sequences + route type lookups
+        # Stop times. build trip sequences + route type lookups
         stop_route_types = defaultdict(set)
         trip_stops = defaultdict(list)
         try:
@@ -2808,7 +2808,7 @@ def _load_regional_gtfs(
     # Compute travel times if destinations are defined for this region
     destinations = REGIONAL_DESTINATIONS.get(region_name)
     if not destinations or not trip_stops:
-        _progress(log, f"{region_name} GTFS: {stop_count} stops loaded (no travel times — no destinations or stop_times)")
+        _progress(log, f"{region_name} GTFS: {stop_count} stops loaded (no travel times. no destinations or stop_times)")
         return stop_count
 
     AM_START, AM_END = 7 * 3600, 9 * 3600
@@ -3026,7 +3026,7 @@ def _load_uhcc(conn: psycopg.Connection, log: Callable) -> int:
 # ═══════════════════════════════════════════════════════════════
 
 def load_christchurch_liquefaction(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Christchurch liquefaction — CCC district plan zones + ECan regional susceptibility."""
+    """Christchurch liquefaction. CCC district plan zones + ECan regional susceptibility."""
     total = 0
     # 1. CCC District Plan liquefaction management zones (legally binding)
     url1 = "https://gis.ccc.govt.nz/arcgis/rest/services/OpenData/GCSP/FeatureServer/39"
@@ -3052,8 +3052,8 @@ def load_christchurch_liquefaction(conn: psycopg.Connection, log: Callable = Non
 
 
 def load_christchurch_flood(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Christchurch inundation zones — hazard_zone, depth, ARI from CCC Hosted layer."""
-    # CCC InundationZonesPortal — SRID 3857 (Web Mercator)
+    """Christchurch inundation zones. hazard_zone, depth, ARI from CCC Hosted layer."""
+    # CCC InundationZonesPortal. SRID 3857 (Web Mercator)
     url = "https://gis.ccc.govt.nz/arcgis/rest/services/Hosted/InundationZonesPortal/FeatureServer/0"
 
     def _hazard_ranking(a: dict) -> str:
@@ -3454,7 +3454,7 @@ def load_nzta_noise_contours(conn: psycopg.Connection, log: Callable = None) -> 
 # ── Northland Regional Council Contaminated Land ─────────────
 
 def load_nrc_contaminated_land(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Northland Regional Council contaminated land (IRIS SLUs) — point geometry."""
+    """Northland Regional Council contaminated land (IRIS SLUs). point geometry."""
     url = "https://services2.arcgis.com/J8errK5dyxu7Xjf7/arcgis/rest/services/IRIS_SLUs/FeatureServer/0"
     _progress(log, "Fetching NRC contaminated land (IRIS SLUs)...")
     features = _fetch_arcgis(url, 2000)
@@ -3509,7 +3509,7 @@ def load_nrc_contaminated_land(conn: psycopg.Connection, log: Callable = None) -
 def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
     """Load NZ river/stream/drain centrelines from LINZ WFS (Topo50 layer 103632).
 
-    Dataset: NZ River Name Lines (Pilot) — 774K features including rivers,
+    Dataset: NZ River Name Lines (Pilot). 774K features including rivers,
     drains, and canals. Coordinates in NZTM (EPSG:2193), transformed to WGS84.
     Used for waterway proximity analysis in property reports.
     """
@@ -3517,7 +3517,7 @@ def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
 
     api_key = settings.LINZ_API_KEY
     if not api_key:
-        _progress(log, "LINZ_API_KEY not set — skipping waterways")
+        _progress(log, "LINZ_API_KEY not set. skipping waterways")
         return 0
 
     base_url = f"https://data.linz.govt.nz/services;key={api_key}/wfs"
@@ -3541,7 +3541,7 @@ def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
     cur.execute("TRUNCATE nz_waterways RESTART IDENTITY")
     conn.commit()
 
-    _progress(log, "Fetching LINZ waterways via WFS (774K features — this takes a few minutes)...")
+    _progress(log, "Fetching LINZ waterways via WFS (774K features. this takes a few minutes)...")
 
     count = 0
     page_size = 10000
@@ -3580,7 +3580,7 @@ def load_linz_waterways(conn: psycopg.Connection, log: Callable = None) -> int:
             if not coords:
                 continue
 
-            # Build WKT — handle both LineString and MultiLineString
+            # Build WKT. handle both LineString and MultiLineString
             if geom["type"] == "LineString":
                 wkt = "LINESTRING(" + ", ".join(f"{c[0]} {c[1]}" for c in coords) + ")"
             else:
@@ -3860,7 +3860,7 @@ def load_census_households(conn: psycopg.Connection, log: Callable = None) -> in
 
 def load_census_commute(conn: psycopg.Connection, log: Callable = None) -> int:
     """Load Census 2023 commute mode by SA2 from Stats NZ ArcGIS CSV.
-    Source is an origin-destination matrix — we aggregate by residence SA2."""
+    Source is an origin-destination matrix. we aggregate by residence SA2."""
     import csv, io
     url = "https://statsnz.maps.arcgis.com/sharing/rest/content/items/fedc12523d4f4da08f094cf13bb21807/data"
     _progress(log, "Downloading Census 2023 commute mode CSV (~11MB)...")
@@ -4250,7 +4250,7 @@ out geom;"""
                 name = tags.get("name", "")
                 surface = tags.get("surface", "")
 
-                # Build LineString WKT — coords need comma separation
+                # Build LineString WKT. coords need comma separation
                 coords = ",".join(f"{p['lon']} {p['lat']}" for p in geom)
                 wkt = f"LINESTRING({coords})"
 
@@ -4360,27 +4360,27 @@ def load_business_demography(conn: psycopg.Connection, log: Callable = None) -> 
 DATA_SOURCES: list[DataSource] = [
     # ── National (Stats NZ Census 2023) ──────────────────────
     DataSource(
-        "census_demographics", "Census 2023 Demographics (SA2 — population, age, ethnicity)",
+        "census_demographics", "Census 2023 Demographics (SA2. population, age, ethnicity)",
         ["census_demographics"],
         load_census_demographics,
     ),
     DataSource(
-        "census_households", "Census 2023 Households (SA2 — income, tenure, vehicles, internet)",
+        "census_households", "Census 2023 Households (SA2. income, tenure, vehicles, internet)",
         ["census_households"],
         load_census_households,
     ),
     DataSource(
-        "census_commute", "Census 2023 Commute Mode (SA2 — drive, bus, train, bike, WFH)",
+        "census_commute", "Census 2023 Commute Mode (SA2. drive, bus, train, bike, WFH)",
         ["census_commute"],
         load_census_commute,
     ),
     DataSource(
-        "climate_normals", "Climate Normals 1991-2020 (60 cities — temp, rain, sun, wind)",
+        "climate_normals", "Climate Normals 1991-2020 (60 cities. temp, rain, sun, wind)",
         ["climate_normals"],
         load_climate_normals,
     ),
     DataSource(
-        "business_demography", "Business Demography 2024 (SA2 — employee + business counts, growth)",
+        "business_demography", "Business Demography 2024 (SA2. employee + business counts, growth)",
         ["business_demography"],
         load_business_demography,
     ),
@@ -5320,7 +5320,7 @@ DATA_SOURCES: list[DataSource] = [
     # ══════════════════════════════════════════════════════════
     DataSource("chch_plan_zones", "Christchurch District Plan Zones",
         ["district_plan_zones"],
-        # Use the GCSPCombined MapServer, not GCSP FeatureServer — the
+        # Use the GCSPCombined MapServer, not GCSP FeatureServer. the
         # FeatureServer has a stale snapshot with null ZoneType/ZoneCode at
         # Central City addresses (e.g. Cathedral Square), while the MapServer
         # layer is up-to-date and returns 'City centre zone' / 'CCZ' correctly.
@@ -5736,7 +5736,7 @@ DATA_SOURCES: list[DataSource] = [
         lambda conn, log=None: _load_regional_gtfs(conn, log,
             "https://www.orc.govt.nz/transit/google_transit.zip", "queenstown")),
     # ══════════════════════════════════════════════════════════
-    # NORTH ISLAND — NEWLY DISCOVERED COUNCILS
+    # NORTH ISLAND. NEWLY DISCOVERED COUNCILS
     # ══════════════════════════════════════════════════════════
     # ── Wairarapa shared endpoint (Masterton, Carterton, South Wairarapa) ──
     DataSource("masterton_rates", "Masterton Rates/Valuations (~14K)",
@@ -5764,7 +5764,7 @@ DATA_SOURCES: list[DataSource] = [
             "https://gis.whakatane.govt.nz/arcgis/rest/services/Geocortex/PropertyRoadSearch/MapServer/2",
             "whakatane", "CapitalValue", "LandValue", None, "Location",
             page_size=1000)),
-    # ── Waikato Regional — additional TAs by VG_NUMBER prefix ──
+    # ── Waikato Regional. additional TAs by VG_NUMBER prefix ──
     DataSource("taupo_rates", "Taupo Rates/Valuations (~20K, partial WRC)",
         ["council_valuations"],
         lambda conn, log=None: _load_rates(conn, log,
@@ -5819,7 +5819,7 @@ DATA_SOURCES: list[DataSource] = [
         ),
     ),
     # ══════════════════════════════════════════════════════════
-    # QUEENSTOWN-LAKES (QLDC) — expanded hazards
+    # QUEENSTOWN-LAKES (QLDC). expanded hazards
     # ══════════════════════════════════════════════════════════
     DataSource("qldc_active_faults", "QLDC Active Faults (GNS 2019)",
         ["active_faults"],
@@ -5911,7 +5911,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("HAZ_TYPE")) or "Rainfall Flood",
             ))),
     # ══════════════════════════════════════════════════════════
-    # CANTERBURY (ECan) — expanded hazards
+    # CANTERBURY (ECan). expanded hazards
     # ══════════════════════════════════════════════════════════
     DataSource("ecan_liquefaction_ashburton", "Ashburton Liquefaction Vulnerability 2024",
         ["liquefaction_detail"],
@@ -6026,7 +6026,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("DISTRICT")) or _clean(a.get("STATUS")),
             ))),
     # ══════════════════════════════════════════════════════════
-    # ENVIRONMENT SOUTHLAND — hazards
+    # ENVIRONMENT SOUTHLAND. hazards
     # ══════════════════════════════════════════════════════════
     DataSource("southland_liquefaction", "Southland Liquefaction Risk",
         ["liquefaction_detail"],
@@ -6084,7 +6084,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="line")),
     # ══════════════════════════════════════════════════════════
-    # NORTHLAND (NRC) — hazards
+    # NORTHLAND (NRC). hazards
     # ══════════════════════════════════════════════════════════
     DataSource("northland_tsunami", "Northland Tsunami Inundation Zones 2024",
         ["tsunami_hazard"],
@@ -6135,7 +6135,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             srid=2193)),
     # ══════════════════════════════════════════════════════════
-    # BAY OF PLENTY REGIONAL COUNCIL — hazards
+    # BAY OF PLENTY REGIONAL COUNCIL. hazards
     # ══════════════════════════════════════════════════════════
     DataSource("bop_tsunami_evac", "BOP Tsunami Evacuation Zones 2023",
         ["tsunami_hazard"],
@@ -6215,7 +6215,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Volcanic Caldera",
             ))),
     # ══════════════════════════════════════════════════════════
-    # WAIKATO REGIONAL — expanded hazards
+    # WAIKATO REGIONAL. expanded hazards
     # ══════════════════════════════════════════════════════════
     DataSource("waikato_tsunami", "Waikato Tsunami Hazard Classification",
         ["tsunami_hazard"],
@@ -6267,7 +6267,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             srid=2193)),
     # ══════════════════════════════════════════════════════════
-    # GISBORNE DISTRICT — hazards
+    # GISBORNE DISTRICT. hazards
     # ══════════════════════════════════════════════════════════
     DataSource("gisborne_flood", "Gisborne Flood Hazard Overlays",
         ["flood_hazard"],
@@ -6340,7 +6340,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             srid=2193)),
     # ══════════════════════════════════════════════════════════
-    # NELSON — expanded hazards
+    # NELSON. expanded hazards
     # ══════════════════════════════════════════════════════════
     DataSource("nelson_flood_future", "Nelson Future Flooding 2130",
         ["flood_hazard"],
@@ -6365,7 +6365,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Floodway",
             ))),
     # ══════════════════════════════════════════════════════════
-    # MARLBOROUGH — hazards
+    # MARLBOROUGH. hazards
     # ══════════════════════════════════════════════════════════
     DataSource("marlborough_tsunami", "Marlborough Tsunami Inundation (GNS)",
         ["tsunami_hazard"],
@@ -6396,7 +6396,7 @@ DATA_SOURCES: list[DataSource] = [
             "liquefaction_detail", "marlborough_a",
             ["liquefaction", "simplified"],
             lambda a: (
-                _clean(a.get("ZoneName")) or "LIZ A — High Vulnerability",
+                _clean(a.get("ZoneName")) or "LIZ A. High Vulnerability",
                 "LIZ A",
             ))),
     DataSource("marlborough_liquefaction_b", "Marlborough Liquefaction Investigation Zone B",
@@ -6406,7 +6406,7 @@ DATA_SOURCES: list[DataSource] = [
             "liquefaction_detail", "marlborough_b",
             ["liquefaction", "simplified"],
             lambda a: (
-                _clean(a.get("ZoneName")) or "LIZ B — Moderate Vulnerability",
+                _clean(a.get("ZoneName")) or "LIZ B. Moderate Vulnerability",
                 "LIZ B",
             ))),
     DataSource("marlborough_liquefaction_c", "Marlborough Liquefaction Investigation Zone C",
@@ -6482,7 +6482,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # TASMAN — hazards
+    # TASMAN. hazards
     # ══════════════════════════════════════════════════════════
     DataSource("tasman_liquefaction", "Tasman Liquefaction Vulnerability (Level A)",
         ["liquefaction_detail"],
@@ -6552,7 +6552,7 @@ DATA_SOURCES: list[DataSource] = [
                 f"Historic Flood ({a.get('Year') or '?'})",
             ))),
     # ══════════════════════════════════════════════════════════
-    # TARANAKI — volcanic evacuation zones (addition)
+    # TARANAKI. volcanic evacuation zones (addition)
     # ══════════════════════════════════════════════════════════
     DataSource("taranaki_volcanic_evac", "Taranaki Volcanic Evacuation Zones",
         ["flood_hazard"],
@@ -6600,7 +6600,7 @@ DATA_SOURCES: list[DataSource] = [
         load_nrc_contaminated_land,
     ),
     # ══════════════════════════════════════════════════════════
-    # DISTRICT PLAN ZONES — all councils
+    # DISTRICT PLAN ZONES. all councils
     # ══════════════════════════════════════════════════════════
     DataSource("whangarei_zones_residential", "Whangarei Residential Zones",
         ["plan_zones"],
@@ -6755,7 +6755,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             srid=2193)),
     # ══════════════════════════════════════════════════════════
-    # HERITAGE SITES — all councils
+    # HERITAGE SITES. all councils
     # ══════════════════════════════════════════════════════════
     DataSource("whangarei_heritage", "Whangarei Heritage Items",
         ["heritage"],
@@ -6868,7 +6868,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="point")),
     # ══════════════════════════════════════════════════════════
-    # NOTABLE TREES — all councils
+    # NOTABLE TREES. all councils
     # ══════════════════════════════════════════════════════════
     DataSource("whangarei_trees", "Whangarei Notable Trees",
         ["notable_trees"],
@@ -6945,7 +6945,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="point")),
     # ══════════════════════════════════════════════════════════
-    # NOISE CONTOURS — additional cities
+    # NOISE CONTOURS. additional cities
     # ══════════════════════════════════════════════════════════
     DataSource("chch_airport_noise_65db", "Christchurch Airport Noise 65dB Envelope",
         ["noise_contours"],
@@ -7014,7 +7014,7 @@ DATA_SOURCES: list[DataSource] = [
                 f"Marlborough {_clean(a.get('NoiseType')) or 'Noise'} - {_clean(a.get('ActivityLimitation')) or '?'}",
             ))),
     # ══════════════════════════════════════════════════════════
-    # CONTAMINATED LAND — additional regions
+    # CONTAMINATED LAND. additional regions
     # ══════════════════════════════════════════════════════════
     DataSource("bop_contaminated", "BOP HAIL Contaminated Sites",
         ["contaminated_land"],
@@ -7029,7 +7029,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("HAILActivityDescription")) or _clean(a.get("HAILSummary")),
             ))),
     # ══════════════════════════════════════════════════════════
-    # INVERCARGILL — additional hazard layers
+    # INVERCARGILL. additional hazard layers
     # ══════════════════════════════════════════════════════════
     DataSource("invercargill_riverine_inundation", "Invercargill Riverine Inundation",
         ["flood_hazard"],
@@ -7077,7 +7077,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # PORIRUA — hazard layers
+    # PORIRUA. hazard layers
     # ══════════════════════════════════════════════════════════
     DataSource("porirua_flood", "Porirua Flood Hazard",
         ["flood_hazard"],
@@ -7091,7 +7091,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Flood Hazard",
             ))),
     # ══════════════════════════════════════════════════════════
-    # KAPITI COAST — hazard layers
+    # KAPITI COAST. hazard layers
     # ══════════════════════════════════════════════════════════
     DataSource("kapiti_flood", "Kapiti Coast Flood Hazard",
         ["flood_hazard"],
@@ -7117,7 +7117,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Kapiti Coast DC",
             ))),
     # ══════════════════════════════════════════════════════════
-    # PALMERSTON NORTH — flood prone areas
+    # PALMERSTON NORTH. flood prone areas
     # ══════════════════════════════════════════════════════════
     DataSource("pncc_flood_prone", "Palmerston North Flood Prone Areas",
         ["flood_hazard"],
@@ -7132,7 +7132,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             srid=2193)),
     # ══════════════════════════════════════════════════════════
-    # TIMARU — hazard layers
+    # TIMARU. hazard layers
     # ══════════════════════════════════════════════════════════
     DataSource("timaru_flood", "Timaru Flood Assessment Area",
         ["flood_hazard"],
@@ -7179,7 +7179,7 @@ DATA_SOURCES: list[DataSource] = [
                 None,
             ))),
     # ══════════════════════════════════════════════════════════
-    # WAIMAKARIRI — additional hazard layers
+    # WAIMAKARIRI. additional hazard layers
     # ══════════════════════════════════════════════════════════
     DataSource("waimakariri_fault_awareness", "Waimakariri Fault Awareness Overlay",
         ["active_faults"],
@@ -7206,7 +7206,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Waimakariri DC",
             ))),
     # ══════════════════════════════════════════════════════════
-    # NELSON — slope instability
+    # NELSON. slope instability
     # ══════════════════════════════════════════════════════════
     DataSource("nelson_slope_instability", "Nelson Slope Instability Overlay",
         ["slope_failure"],
@@ -7219,7 +7219,7 @@ DATA_SOURCES: list[DataSource] = [
                 "High",
             ))),
     # ══════════════════════════════════════════════════════════
-    # TAUPO — fault avoidance zones
+    # TAUPO. fault avoidance zones
     # ══════════════════════════════════════════════════════════
     DataSource("taupo_fault_avoidance", "Taupo Fault Avoidance Zones",
         ["active_faults"],
@@ -7246,7 +7246,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Taupo DC",
             ))),
     # ══════════════════════════════════════════════════════════
-    # GAP FILLS — session 65 second pass
+    # GAP FILLS. session 65 second pass
     # ══════════════════════════════════════════════════════════
     # ── Wellington heritage + trees (WCC 2024 District Plan) ──
     DataSource("wcc_heritage", "Wellington Heritage Buildings (2024 DP)",
@@ -7342,10 +7342,10 @@ DATA_SOURCES: list[DataSource] = [
                 f"Localised Flood gridcode={a.get('gridcode') or '?'}",
             ))),
     # ══════════════════════════════════════════════════════════════════════
-    #  SESSION 66 — Fill ALL remaining gaps for every district/region
+    #  SESSION 66. Fill ALL remaining gaps for every district/region
     # ══════════════════════════════════════════════════════════════════════
 
-    # ── Canterbury / ECan — flood, floodways, coastal ──
+    # ── Canterbury / ECan. flood, floodways, coastal ──
     DataSource("ecan_flood_kaikoura", "ECan Kaikoura Flood Assessment",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7400,7 +7400,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Description")) or "RCEP Boundary",
             ))),
 
-    # ── Marlborough — flood hazard, steep erosion, SLR, tsunami ──
+    # ── Marlborough. flood hazard, steep erosion, SLR, tsunami ──
     DataSource("marlborough_flood", "Marlborough Flood Hazard Areas (MEP)",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7424,8 +7424,8 @@ DATA_SOURCES: list[DataSource] = [
             ))),
     # marlborough_slr and marlborough_tsunami already exist earlier in the file
 
-    # ── Auckland — volcanic field, coastal erosion/instability ──
-    DataSource("auckland_volcanic_vents", "Auckland Volcanic Field — Past Vents",
+    # ── Auckland. volcanic field, coastal erosion/instability ──
+    DataSource("auckland_volcanic_vents", "Auckland Volcanic Field. Past Vents",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/AucklandsHazardViewer20181128/FeatureServer/2",
@@ -7481,7 +7481,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Hazard")) or "Erosion/Instability",
             ))),
 
-    # ── Nelson — plan zones, heritage, flooding, liquefaction, fault, slope, notable trees ──
+    # ── Nelson. plan zones, heritage, flooding, liquefaction, fault, slope, notable trees ──
     DataSource("nelson_plan_zones", "Nelson District Plan Zones (NRMP PC29)",
         ["district_plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7632,7 +7632,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Scenario")) or _clean(a.get("Description")) or "Coastal",
             ))),
 
-    # ── Nelson/Tasman — tsunami evacuation ──
+    # ── Nelson/Tasman. tsunami evacuation ──
     DataSource("nelson_tasman_tsunami", "Nelson/Tasman Tsunami Evacuation Zones",
         ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7645,7 +7645,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Nelson/Tasman Evacuation",
             ))),
 
-    # ── Tasman — plan zones ──
+    # ── Tasman. plan zones ──
     DataSource("tasman_plan_zones", "Tasman District Plan Zones",
         ["district_plan_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7657,7 +7657,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Category")) or "Zone",
             ))),
 
-    # ── Northland — coastal erosion, coastal flood, river flood, erosion prone, tsunami ──
+    # ── Northland. coastal erosion, coastal flood, river flood, erosion prone, tsunami ──
     DataSource("northland_coastal_erosion", "Northland Coastal Erosion Hazard Zones",
         ["coastal_erosion"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7726,7 +7726,7 @@ DATA_SOURCES: list[DataSource] = [
                 "High",
             ))),
 
-    # ── Far North — district plan hazards (via FNDC MapServer) ──
+    # ── Far North. district plan hazards (via FNDC MapServer) ──
     DataSource("far_north_flood", "Far North NRC Flood Susceptible Land",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7750,7 +7750,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="line")),
 
-    # ── Selwyn — district plan hazards (via ECAN-hosted) ──
+    # ── Selwyn. district plan hazards (via ECAN-hosted) ──
     DataSource("selwyn_flood_zones", "Selwyn ECan Defined Flood Zones",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7797,7 +7797,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("HazardArea")) or "Coastal",
             ))),
 
-    # ── Bay of Plenty — coastal hazard (Ohiwa Spit + Area Sensitive) ──
+    # ── Bay of Plenty. coastal hazard (Ohiwa Spit + Area Sensitive) ──
     DataSource("bop_coastal_hazard_ohiwa", "BOP Ohiwa Spit Coastal Hazard",
         ["coastal_erosion"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7819,7 +7819,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Sensitive Coastal Hazard",
             ))),
 
-    # ── Taranaki — active faults (tsunami + volcanic already exist earlier) ──
+    # ── Taranaki. active faults (tsunami + volcanic already exist earlier) ──
     DataSource("taranaki_active_faults", "Taranaki Active Faultlines",
         ["fault_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7832,7 +7832,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="line")),
 
-    # ── West Coast — active faults, folds, landslides ──
+    # ── West Coast. active faults, folds, landslides ──
     DataSource("westcoast_active_faults", "West Coast Active Faults",
         ["fault_zones"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7899,7 +7899,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("ZoneType")) or "Zone",
             ))),
 
-    # ── Marlborough — liquefaction zones A-F ──
+    # ── Marlborough. liquefaction zones A-F ──
     DataSource("marlborough_liq_a", "Marlborough Liquefaction Zone A",
         ["liquefaction_detail"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -7967,7 +7967,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Label")) or "Zone F",
             ))),
 
-    # ── Nelson/Top of South — additional hazard layers ──
+    # ── Nelson/Top of South. additional hazard layers ──
     DataSource("nelson_tsunami_evac", "Nelson Tsunami Evacuation Zones (TOTS)",
         ["tsunami_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8034,10 +8034,10 @@ DATA_SOURCES: list[DataSource] = [
                 "Tahunanui",
             ))),
     # ══════════════════════════════════════════════════════════════════════
-    #  SESSION 67b — Rural/regional gap fill from research agents
+    #  SESSION 67b. Rural/regional gap fill from research agents
     # ══════════════════════════════════════════════════════════════════════
 
-    # ── HBRC — Hawke's Bay Regional (flood, landslide, liquefaction, coastal, amplification) ──
+    # ── HBRC. Hawke's Bay Regional (flood, landslide, liquefaction, coastal, amplification) ──
     DataSource("hbrc_flood_risk", "HBRC Flood Risk Areas (region-wide)",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8060,7 +8060,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Medium",
                 "Ponding",
             ))),
-    DataSource("hbrc_landslide_high_delivery", "HBRC Landslide Risk — High (Delivery to Stream)",
+    DataSource("hbrc_landslide_high_delivery", "HBRC Landslide Risk. High (Delivery to Stream)",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/1",
@@ -8070,7 +8070,7 @@ DATA_SOURCES: list[DataSource] = [
                 "High Landslide (delivery to stream)",
                 "High",
             ))),
-    DataSource("hbrc_landslide_high_nodelivery", "HBRC Landslide Risk — High (Non-Delivery)",
+    DataSource("hbrc_landslide_high_nodelivery", "HBRC Landslide Risk. High (Non-Delivery)",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/2",
@@ -8080,7 +8080,7 @@ DATA_SOURCES: list[DataSource] = [
                 "High Landslide (non-delivery)",
                 "High",
             ))),
-    DataSource("hbrc_earthflow_moderate", "HBRC Earthflow Risk — Moderate",
+    DataSource("hbrc_earthflow_moderate", "HBRC Earthflow Risk. Moderate",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/3",
@@ -8090,7 +8090,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Moderate Earthflow Risk",
                 "Medium",
             ))),
-    DataSource("hbrc_earthflow_severe", "HBRC Earthflow Risk — Severe",
+    DataSource("hbrc_earthflow_severe", "HBRC Earthflow Risk. Severe",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Landslide_Risk/MapServer/4",
@@ -8142,7 +8142,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Name")) or _clean(a.get("Zone")) or "Amplification Zone",
                 _clean(a.get("Factor")) or _clean(a.get("Class")) or "Variable",
             ))),
-    DataSource("hbrc_coastal_erosion_present", "HBRC Coastal Erosion — Present Day",
+    DataSource("hbrc_coastal_erosion_present", "HBRC Coastal Erosion. Present Day",
         ["coastal_erosion"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.hbrc.govt.nz/server/rest/services/HazardPortal/Present_Day_Coastal_Erosion/MapServer/0",
@@ -8184,7 +8184,7 @@ DATA_SOURCES: list[DataSource] = [
                 "HB Tsunami Evacuation 2024",
             ))),
 
-    # ── Horizons — flood, floodways, lahar ──
+    # ── Horizons. flood, floodways, lahar ──
     DataSource("horizons_flood_200yr", "Horizons 200yr Modelled Flood Extent",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8240,7 +8240,7 @@ DATA_SOURCES: list[DataSource] = [
                 _clean(a.get("Type")) or "Coastal Hazard Zone",
             ))),
 
-    # ── GWRC — additional flood, storm surge ──
+    # ── GWRC. additional flood, storm surge ──
     DataSource("gwrc_flood_1pct", "GWRC 1% AEP Flood Hazard Extent",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8283,7 +8283,7 @@ DATA_SOURCES: list[DataSource] = [
                 "+100cm SLR",
             ))),
 
-    # ── ECan — Kaikoura landslide/debris, Mackenzie fault, Canterbury fault awareness ──
+    # ── ECan. Kaikoura landslide/debris, Mackenzie fault, Canterbury fault awareness ──
     DataSource("ecan_kaikoura_landslide", "ECan Kaikoura Landslide Assessment",
         ["slope_failure"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8336,7 +8336,7 @@ DATA_SOURCES: list[DataSource] = [
                 "Active Fault Hazard",
             ))),
 
-    # ── ORC — storm surge, Waitaki flood/landslide, coastal ──
+    # ── ORC. storm surge, Waitaki flood/landslide, coastal ──
     DataSource("orc_storm_surge", "ORC Storm Surge Affected Areas (all scenarios)",
         ["coastal_inundation"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8370,7 +8370,7 @@ DATA_SOURCES: list[DataSource] = [
             ),
             geom_type="line")),
 
-    # ── West Coast — coastal, rockfall, tsunami, TTPP flood ──
+    # ── West Coast. coastal, rockfall, tsunami, TTPP flood ──
     DataSource("westcoast_coastal_hazard", "West Coast Coastal Hazard",
         ["coastal_erosion"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8457,7 +8457,7 @@ DATA_SOURCES: list[DataSource] = [
                 "TTPP Tsunami Hazard",
             ))),
 
-    # ── Waipa District — flood hazard ──
+    # ── Waipa District. flood hazard ──
     DataSource("waipa_flood_hazard", "Waipa District Flood Hazard Area",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8470,7 +8470,7 @@ DATA_SOURCES: list[DataSource] = [
                 "District Plan Flood Hazard",
             ))),
 
-    # ── Waikato Regional — flood extent 1% AEP ──
+    # ── Waikato Regional. flood extent 1% AEP ──
     DataSource("waikato_flood_1pct", "Waikato Flood Extent 1% AEP (Lower Waikato & Waipa Rivers)",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8483,7 +8483,7 @@ DATA_SOURCES: list[DataSource] = [
                 "1% AEP Flood Extent (Oct 2021)",
             ))),
 
-    # ── NRC — Ruawai/Kaipara flood, flood susceptible land ──
+    # ── NRC. Ruawai/Kaipara flood, flood susceptible land ──
     DataSource("nrc_flood_susceptible", "NRC Flood Susceptible Land",
         ["flood_hazard"],
         lambda conn, log=None: _load_council_arcgis(conn, log,
@@ -8497,7 +8497,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # LOWER HUTT (HCC) — hazard + amenity layers
+    # LOWER HUTT (HCC). hazard + amenity layers
     # ══════════════════════════════════════════════════════════
     DataSource("hcc_plan_zones", "Lower Hutt District Plan Activity Areas",
         ["plan_zones"],
@@ -8623,7 +8623,7 @@ DATA_SOURCES: list[DataSource] = [
             geom_type="point")),
 
     # ══════════════════════════════════════════════════════════
-    # UPPER HUTT (UHCC) — hazard + amenity layers
+    # UPPER HUTT (UHCC). hazard + amenity layers
     # ══════════════════════════════════════════════════════════
     DataSource("uhcc_plan_zones", "Upper Hutt District Plan Zones",
         ["plan_zones"],
@@ -8755,7 +8755,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # PORIRUA — additional hazard layers (extends existing 3)
+    # PORIRUA. additional hazard layers (extends existing 3)
     # ══════════════════════════════════════════════════════════
     DataSource("porirua_fault_rupture", "Porirua Fault Rupture Zones",
         ["active_faults"],
@@ -8818,7 +8818,7 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 _clean(a.get("Location")) or "Coastal Erosion (Current)",
                 "High",
-                "Coastal Erosion — Present Day",
+                "Coastal Erosion. Present Day",
             ))),
     DataSource("porirua_coastal_erosion_slr", "Porirua Coastal Erosion (1m SLR)",
         ["coastal_erosion"],
@@ -8829,7 +8829,7 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 _clean(a.get("Location")) or "Coastal Erosion (+1m SLR)",
                 "High",
-                "Coastal Erosion — 1m Sea Level Rise",
+                "Coastal Erosion. 1m Sea Level Rise",
             ))),
     DataSource("porirua_coastal_inundation", "Porirua Coastal Inundation (Current)",
         ["coastal_inundation"],
@@ -8851,7 +8851,7 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 _clean(a.get("Location")) or "Coastal Inundation (+1m SLR)",
                 "High",
-                "Coastal Inundation — 1m Sea Level Rise",
+                "Coastal Inundation. 1m Sea Level Rise",
             ))),
     DataSource("porirua_tsunami_100yr", "Porirua Tsunami Inundation 1:100yr",
         ["tsunami_hazard"],
@@ -8898,7 +8898,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # KAPITI COAST — additional layers (extends existing 5)
+    # KAPITI COAST. additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("kapiti_tsunami", "Kapiti Coast Tsunami Evacuation Zones",
         ["tsunami_hazard"],
@@ -8921,7 +8921,7 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 "Present Day Coastal Erosion",
                 "High",
-                "Coastal Erosion — Present Day",
+                "Coastal Erosion. Present Day",
             ),
             geom_type="line")),
     DataSource("kapiti_coastal_erosion_2120", "Kapiti Coastal Erosion 2120 (+0.6m SLR)",
@@ -8933,7 +8933,7 @@ DATA_SOURCES: list[DataSource] = [
             lambda a: (
                 "Coastal Erosion 2120 (+0.6m RSLR)",
                 "High",
-                "Coastal Erosion — 2120 Projection",
+                "Coastal Erosion. 2120 Projection",
             ))),
     DataSource("kapiti_ecological", "Kapiti Ecological Sites",
         ["significant_ecological_areas"],
@@ -8969,7 +8969,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # WAIRARAPA — all layers (Masterton GIS hosts all 3 councils)
+    # WAIRARAPA. all layers (Masterton GIS hosts all 3 councils)
     # ══════════════════════════════════════════════════════════
     DataSource("wairarapa_plan_zones", "Wairarapa District Plan Zones (3 councils)",
         ["plan_zones"],
@@ -9103,7 +9103,7 @@ DATA_SOURCES: list[DataSource] = [
             geom_type="line")),
 
     # ══════════════════════════════════════════════════════════
-    # INVERCARGILL — additional layers (extends existing 5)
+    # INVERCARGILL. additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("invercargill_liquefaction", "Invercargill Liquefaction Susceptibility",
         ["liquefaction_detail"],
@@ -9181,7 +9181,7 @@ DATA_SOURCES: list[DataSource] = [
             skip_delete=True)),
 
     # ══════════════════════════════════════════════════════════
-    # SOUTHLAND — additional layers (extends existing 6)
+    # SOUTHLAND. additional layers (extends existing 6)
     # ══════════════════════════════════════════════════════════
     DataSource("southland_contaminated", "Southland Contaminated Land (HAIL)",
         ["contaminated_land"],
@@ -9238,7 +9238,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # OTAGO (ORC) — additional layers (extends existing 5)
+    # OTAGO (ORC). additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("orc_tsunami_affected", "ORC Tsunami Affected Areas",
         ["tsunami_hazard"],
@@ -9309,7 +9309,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # TASMAN — additional layers (extends existing 7)
+    # TASMAN. additional layers (extends existing 7)
     # ══════════════════════════════════════════════════════════
     DataSource("tasman_coastal_slr_05m", "Tasman Coastal SLR +0.5m Scenario",
         ["coastal_inundation"],
@@ -9347,7 +9347,7 @@ DATA_SOURCES: list[DataSource] = [
             geom_type="line")),
 
     # ══════════════════════════════════════════════════════════
-    # TIMARU — additional layers (extends existing 7)
+    # TIMARU. additional layers (extends existing 7)
     # ══════════════════════════════════════════════════════════
     DataSource("timaru_notable_trees_extra", "Timaru Street Trees (supplementary)",
         ["notable_trees"],
@@ -9383,7 +9383,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # WAIMAKARIRI — additional layers (extends existing 8)
+    # WAIMAKARIRI. additional layers (extends existing 8)
     # ══════════════════════════════════════════════════════════
     DataSource("waimakariri_liquefaction", "Waimakariri Liquefaction Susceptibility",
         ["liquefaction_detail"],
@@ -9407,7 +9407,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # HAMILTON — additional layers (extends existing 8)
+    # HAMILTON. additional layers (extends existing 8)
     # ══════════════════════════════════════════════════════════
     DataSource("hamilton_flood_extents", "Hamilton Flood Extents (100yr Rainfall)",
         ["flood_hazard"],
@@ -9454,7 +9454,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # TAURANGA — additional layers (extends existing 9)
+    # TAURANGA. additional layers (extends existing 9)
     # ══════════════════════════════════════════════════════════
     DataSource("tauranga_harbour_inundation", "Tauranga Harbour Inundation (2130 1%AEP)",
         ["coastal_inundation"],
@@ -9501,7 +9501,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # ROTORUA — 14 new layers (extends existing 1: zones)
+    # ROTORUA. 14 new layers (extends existing 1: zones)
     # ══════════════════════════════════════════════════════════
     DataSource("rotorua_geothermal", "Rotorua Geothermal Systems",
         ["flood_hazard"],
@@ -9645,7 +9645,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # WAIKATO REGIONAL — additional layers (extends existing 8)
+    # WAIKATO REGIONAL. additional layers (extends existing 8)
     # ══════════════════════════════════════════════════════════
     DataSource("waikato_geothermal", "Waikato Geothermal Systems",
         ["flood_hazard"],
@@ -9673,7 +9673,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # WAIPA — 9 new layers (extends existing 1: flood)
+    # WAIPA. 9 new layers (extends existing 1: flood)
     # ══════════════════════════════════════════════════════════
     DataSource("waipa_zones", "Waipa District Plan Zones",
         ["plan_zones"],
@@ -9735,7 +9735,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # TAUPO — additional layers (extends existing 5)
+    # TAUPO. additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("taupo_flood", "Taupo Flood Hazard Areas",
         ["flood_hazard"],
@@ -9791,7 +9791,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # TARANAKI / NEW PLYMOUTH (NPDC) — new layers
+    # TARANAKI / NEW PLYMOUTH (NPDC). new layers
     # ══════════════════════════════════════════════════════════
     DataSource("npdc_zones", "New Plymouth District Plan Zones",
         ["plan_zones"],
@@ -9937,7 +9937,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # HORIZONS — additional layers (extends existing 5)
+    # HORIZONS. additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("horizons_liquefaction", "Horizons Liquefaction Susceptibility",
         ["liquefaction_detail"],
@@ -9976,7 +9976,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # PALMERSTON NORTH — additional layers (extends existing 5)
+    # PALMERSTON NORTH. additional layers (extends existing 5)
     # ══════════════════════════════════════════════════════════
     DataSource("pncc_heritage_dp", "Palmerston North Heritage Sites (DP)",
         ["heritage"],
@@ -10017,7 +10017,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # GISBORNE — additional layers (extends existing 7)
+    # GISBORNE. additional layers (extends existing 7)
     # ══════════════════════════════════════════════════════════
     DataSource("gisborne_heritage", "Gisborne Heritage Alert Areas",
         ["heritage"],
@@ -10078,7 +10078,7 @@ DATA_SOURCES: list[DataSource] = [
             srid=2193)),
 
     # ══════════════════════════════════════════════════════════
-    # WHANGAREI — additional layers (extends existing 9)
+    # WHANGAREI. additional layers (extends existing 9)
     # ══════════════════════════════════════════════════════════
     DataSource("whangarei_coastal_hazard", "Whangarei Coastal Hazard Zones",
         ["coastal_erosion"],
@@ -10145,7 +10145,7 @@ DATA_SOURCES: list[DataSource] = [
             ))),
 
     # ══════════════════════════════════════════════════════════
-    # WHANGANUI — district data via GeoServer WFS
+    # WHANGANUI. district data via GeoServer WFS
     # Base: https://data.whanganui.govt.nz/geoserver/ows
     # ══════════════════════════════════════════════════════════
     DataSource("whanganui_plan_zones", "Whanganui District Plan Zones (ePlan)",

@@ -57,7 +57,7 @@ export function AppHeader() {
 
   function restartTour() {
     setShowHelpMenu(false);
-    // Tell the OnboardingTour component to start over — it listens for
+    // Tell the OnboardingTour component to start over. it listens for
     // this custom event, clears its "seen" flag, and re-enters step 0.
     window.dispatchEvent(new CustomEvent('tour:restart'));
   }
@@ -74,7 +74,7 @@ export function AppHeader() {
     router.push('/');
   }
 
-  // Hide header search on the desktop landing page — the panel has its own prominent search.
+  // Hide header search on the desktop landing page. the panel has its own prominent search.
   // Keep it everywhere else (mobile home, any page with a selection, static pages).
   const isDesktopLanding = isHome && !selectedAddress;
   const showHeaderSearch = true;

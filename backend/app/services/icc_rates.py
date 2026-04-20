@@ -4,7 +4,7 @@ Invercargill City Council ArcGIS property data client.
 Uses the ICC MapServer REST API to query property valuations and rates.
 
 Single-step lookup: search by address via ArcGIS query → full property data.
-No cache needed — ArcGIS queries are fast and stateless.
+No cache needed. ArcGIS queries are fast and stateless.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ OUT_FIELDS = ",".join([
 def _build_search(full_address: str) -> str:
     """Build ArcGIS WHERE clause from LINZ address.
     '25 Abbot Street, Invercargill' → "ADDRESS LIKE '25 Abbot Street%'"
-    Keep unit prefix — ICC stores addresses with units.
+    Keep unit prefix. ICC stores addresses with units.
     """
     parts = full_address.split(",")
     street = parts[0].strip()

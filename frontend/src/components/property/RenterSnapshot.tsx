@@ -14,7 +14,7 @@ import {
   Minus,
   Eye,
 } from 'lucide-react';
-import { isInFloodZone, isNearFloodZone } from '@/lib/hazards';
+import { isInFloodZone, isNearFloodZone, isHighOrVeryHighLiquefaction } from '@/lib/hazards';
 import type { PropertyReport } from '@/lib/types';
 
 interface Props {
@@ -46,7 +46,7 @@ const SECTION_DOT = {
 };
 
 /**
- * Unified renter snapshot — ONE card that replaces 5 separate cards.
+ * Unified renter snapshot. ONE card that replaces 5 separate cards.
  * Shows an overall verdict + sections for rent, market power, healthy homes,
  * mould/dampness, and sun/aspect. Only shows sections with meaningful data.
  */
@@ -124,7 +124,7 @@ export function RenterSnapshot({ report }: Props) {
   const environment = report.environment;
   const windZone = String(environment?.wind_zone || '').toUpperCase();
   const hasFlood = isInFloodZone(hazards) || isNearFloodZone(hazards);
-  const highLiquefaction = String(hazards?.liquefaction_zone || '').toLowerCase().includes('high');
+  const highLiquefaction = isHighOrVeryHighLiquefaction(hazards);
   const coastalErosion = !!(hazards?.coastal_erosion_exposure);
   const highWind = ['H', 'VH', 'EH', 'SED', 'HIGH', 'VERY HIGH'].includes(windZone);
 
@@ -155,7 +155,7 @@ export function RenterSnapshot({ report }: Props) {
   if (coastalErosion) dampFactors.push('coastal exposure');
 
   // Flood zone is a qualitatively different dampness factor to "limited sun"
-  // or "low-lying terrain" — rooms that have actually flooded carry long-term
+  // or "low-lying terrain". rooms that have actually flooded carry long-term
   // mould risk, contents insurance implications, and possible contamination.
   // Always surface it at 'warning' even when it's the only factor.
   const floodAmongFactors = hasFlood && dampFactors.includes('flood zone');
@@ -199,7 +199,7 @@ export function RenterSnapshot({ report }: Props) {
         verdict: 'caution',
       });
     }
-    // E/W — don't show, it's neutral/uninteresting
+    // E/W. don't show, it's neutral/uninteresting
   }
 
   // === CALCULATE OVERALL VERDICT ===

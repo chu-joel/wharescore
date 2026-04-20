@@ -58,7 +58,7 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
   }
 
   if (ground_shaking_severity != null) {
-    // severity is like "1 Low", "3 Moderate", "5 High" — use it directly
+    // severity is like "1 Low", "3 Moderate", "5 High". use it directly
     rows.push({ label: 'Ground Shaking', value: ground_shaking_severity });
   } else if (ground_shaking_zone != null) {
     const zoneLabels: Record<string, string> = { '1': 'Low', '2': 'Low–Moderate', '3': 'Moderate', '4': 'Moderate–High', '5': 'High' };
@@ -68,7 +68,7 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
   if (fault_zone_name != null) {
     let display = fault_zone_name;
     if (fault_zone_ranking) {
-      display += ` — ${fault_zone_ranking}`;
+      display += `. ${fault_zone_ranking}`;
     }
     rows.push({ label: 'Nearest Fault', value: display });
   }
@@ -93,7 +93,7 @@ export function EarthquakeDetailCard({ hazards }: EarthquakeDetailCardProps) {
         </div>
       )}
 
-      {/* Hazard index gauge — CHI (Combined Hazard Index), typically 0–20,000+ */}
+      {/* Hazard index gauge. CHI (Combined Hazard Index), typically 0–20,000+ */}
       {earthquake_hazard_index != null && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">

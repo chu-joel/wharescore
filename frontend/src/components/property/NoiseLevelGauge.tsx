@@ -30,7 +30,7 @@ function getZone(db: number) {
   if (db < 55) return { label: 'Moderate', color: 'text-teal-500', context: 'Normal conversation level' };
   if (db < 65) return { label: 'Noticeable', color: 'text-amber-500', context: 'Similar to a busy road during the day' };
   if (db < 75) return { label: 'Loud', color: 'text-orange-500', context: 'Comparable to a busy restaurant. Consider acoustic glazing' };
-  return { label: 'Very Loud', color: 'text-red-500', context: 'Very loud — similar to a vacuum cleaner at close range' };
+  return { label: 'Very Loud', color: 'text-red-500', context: 'Very loud. similar to a vacuum cleaner at close range' };
 }
 
 export function NoiseLevelGauge({ noiseDb, aircraftNoiseName, aircraftNoiseDba, aircraftNoiseCategory }: NoiseLevelGaugeProps) {
@@ -92,7 +92,7 @@ export function NoiseLevelGauge({ noiseDb, aircraftNoiseName, aircraftNoiseDba, 
       </div>
       <p className="text-xs text-muted-foreground">{zone.context}</p>
 
-      {/* Aircraft noise overlay — show prominently when present */}
+      {/* Aircraft noise overlay. show prominently when present */}
       {aircraftNoiseName && (
         <div className={`mt-3 pt-3 border-t border-border flex items-start gap-2.5 ${(aircraftNoiseDba ?? 0) >= 65 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
           <Plane className="h-4 w-4 shrink-0 mt-0.5" />
@@ -101,7 +101,7 @@ export function NoiseLevelGauge({ noiseDb, aircraftNoiseName, aircraftNoiseDba, 
               Aircraft noise zone{aircraftNoiseDba ? `: ${aircraftNoiseDba} dBA` : ''}
             </p>
             <p className="text-xs mt-0.5">
-              {aircraftNoiseCategory ? `${aircraftNoiseCategory} — ` : ''}
+              {aircraftNoiseCategory ? `${aircraftNoiseCategory}. ` : ''}
               {(aircraftNoiseDba ?? 0) >= 65
                 ? 'Significant aircraft noise. Check during peak flight times. Double glazing recommended.'
                 : 'Within an airport noise overlay. Visit at different times to assess impact.'}
