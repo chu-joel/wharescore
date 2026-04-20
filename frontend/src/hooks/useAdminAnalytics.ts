@@ -61,6 +61,26 @@ export interface AnalyticsOverview {
       pct: number;
     }[];
   };
+  /** Top cities users are actively viewing reports for (proxy for search
+   *  intent that converted to a click). 30-day window. */
+  top_cities_viewed?: {
+    city: string;
+    views: number;
+    distinct_visitors: number;
+  }[];
+  /** Top cities reports are being generated for (paid + free tier).
+   *  30-day window. */
+  top_cities_generated?: {
+    city: string;
+    generated: number;
+    distinct_users: number;
+  }[];
+  /** Top search queries (free text, noisy — dedupe by lowercase). 30-day window. */
+  top_search_queries?: {
+    query: string;
+    searches: number;
+    distinct_visitors: number;
+  }[];
 }
 
 export function useAdminAnalytics(days = 7) {

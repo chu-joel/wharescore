@@ -10,6 +10,7 @@ import { useAuthToken } from '@/hooks/useAuthToken';
 import {
   Search, Eye, FileText, CreditCard, Users, Activity,
   AlertTriangle, Clock, CheckCircle, XCircle, UserPlus, UserCheck, TrendingDown,
+  MapPin,
 } from 'lucide-react';
 
 const TIME_RANGES = [
@@ -85,7 +86,8 @@ export function AnalyticsPanel() {
 
   if (!data) return null;
 
-  const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h, visitors, funnel } = data;
+  const { today, trends, top_endpoints, slow_requests, recent_errors, unresolved_errors_24h, visitors, funnel,
+          top_cities_viewed, top_cities_generated, top_search_queries } = data;
 
   const handleResolve = async (errorId: number) => {
     const token = await getToken();
@@ -221,6 +223,90 @@ export function AnalyticsPanel() {
           )}
         </Card>
       )}
+
+      {/* Geography — where activity is happening. Each table is
+          independent: viewed ≠ generated ≠ searched. City is derived by
+          joining app_events on properties.address_id → addresses.town_city.
+          Search queries are free text, so we show them as-is rather than
+          trying to classify them; useful for spotting misspellings and
+          out-of-coverage requests. Always a 30-day window regardless of
+          the header time-range selector — geography patterns need volume
+          to be meaningful and the 1d / 7d slices tend to be noise. */}
+      {(top_cities_viewed?.length || top_cities_generated?.length || top_search_queries?.length) ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {top_cities_viewed && top_cities_viewed.length > 0 && (
+            <Card className="p-4 overflow-x-auto">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Top cities viewed</h3>
+                <span className="ml-auto text-xs text-muted-foreground">30d</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground text-left">
+                  <tr><th className="pb-1 font-medium">City</th><th className="pb-1 font-medium text-right">Views</th><th className="pb-1 font-medium text-right">Visitors</th></tr>
+                </thead>
+                <tbody>
+                  {top_cities_viewed.map((c) => (
+                    <tr key={c.city} className="border-t border-border">
+                      <td className="py-1.5">{c.city}</td>
+                      <td className="py-1.5 text-right tabular-nums">{c.views}</td>
+                      <td className="py-1.5 text-right tabular-nums text-muted-foreground">{c.distinct_visitors}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+
+          {top_cities_generated && top_cities_generated.length > 0 && (
+            <Card className="p-4 overflow-x-auto">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Top cities — reports generated</h3>
+                <span className="ml-auto text-xs text-muted-foreground">30d</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground text-left">
+                  <tr><th className="pb-1 font-medium">City</th><th className="pb-1 font-medium text-right">Reports</th><th className="pb-1 font-medium text-right">Users</th></tr>
+                </thead>
+                <tbody>
+                  {top_cities_generated.map((c) => (
+                    <tr key={c.city} className="border-t border-border">
+                      <td className="py-1.5">{c.city}</td>
+                      <td className="py-1.5 text-right tabular-nums">{c.generated}</td>
+                      <td className="py-1.5 text-right tabular-nums text-muted-foreground">{c.distinct_users}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+
+          {top_search_queries && top_search_queries.length > 0 && (
+            <Card className="p-4 overflow-x-auto">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Top search queries</h3>
+                <span className="ml-auto text-xs text-muted-foreground">30d</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground text-left">
+                  <tr><th className="pb-1 font-medium">Query</th><th className="pb-1 font-medium text-right">Hits</th><th className="pb-1 font-medium text-right">Visitors</th></tr>
+                </thead>
+                <tbody>
+                  {top_search_queries.map((q) => (
+                    <tr key={q.query} className="border-t border-border">
+                      <td className="py-1.5 truncate max-w-[180px]" title={q.query}>{q.query}</td>
+                      <td className="py-1.5 text-right tabular-nums">{q.searches}</td>
+                      <td className="py-1.5 text-right tabular-nums text-muted-foreground">{q.distinct_visitors}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </div>
+      ) : null}
 
       {/* Trend sparklines */}
       {Object.keys(trends).length > 0 && (

@@ -1551,23 +1551,31 @@ async def analytics_overview(request: Request, days: int = Query(7, le=90)):
         # Counts unique visitors who reached each stage at least once.
         # The top stage "visit" is any event. every session fires one,
         # so it's a reasonable proxy for "landed on the site" without
-        # needing a dedicated page_view event.
+        # needing a dedicated page_view event. payment_started fires when
+        # the Stripe checkout session is created (user clicked through to
+        # pay but may or may not have completed) — critical to see the
+        # gap between "saw the payment screen" and "actually paid".
+        # payment_started has no ip_hash (server-to-server Stripe call)
+        # so we count distinct user_ids for that stage only, then rely on
+        # the fact that anyone hitting payment is authenticated.
         cur = await conn.execute("""
             SELECT
                 COUNT(DISTINCT ip_hash) AS visits,
                 COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'search') AS searches,
                 COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'report_view') AS report_views,
                 COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'report_generated') AS reports_generated,
+                COUNT(DISTINCT user_id) FILTER (WHERE event_type = 'payment_started' AND user_id IS NOT NULL) AS payment_starts,
                 COUNT(DISTINCT ip_hash) FILTER (WHERE event_type = 'payment_completed') AS payments
             FROM app_events
-            WHERE ip_hash IS NOT NULL
-              AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+              AND (ip_hash IS NOT NULL OR event_type = 'payment_started')
         """)
         f = cur.fetchone() or {}
         visits = f.get("visits", 0) or 0
         searches = f.get("searches", 0) or 0
         report_views = f.get("report_views", 0) or 0
         reports_generated = f.get("reports_generated", 0) or 0
+        payment_starts = f.get("payment_starts", 0) or 0
         payments = f.get("payments", 0) or 0
 
         def _pct(n: int, d: int) -> float:
@@ -1580,9 +1588,68 @@ async def analytics_overview(request: Request, days: int = Query(7, le=90)):
                 {"name": "Search", "count": searches, "pct": _pct(searches, visits)},
                 {"name": "Report view", "count": report_views, "pct": _pct(report_views, visits)},
                 {"name": "Report generated", "count": reports_generated, "pct": _pct(reports_generated, visits)},
-                {"name": "Payment", "count": payments, "pct": _pct(payments, visits)},
+                {"name": "Payment screen", "count": payment_starts, "pct": _pct(payment_starts, visits)},
+                {"name": "Payment completed", "count": payments, "pct": _pct(payments, visits)},
             ],
         }
+
+        # --- Geography: top cities by search intent, report views, reports generated.
+        # Derived by joining app_events on properties->>'address_id' to the
+        # addresses table. `search` itself stores only the free-text query, so
+        # we use report_view as a proxy for "search that converted to a click".
+        # Falls back gracefully if app_events has no geo-tagged rows for the
+        # window (empty array rather than error).
+        cur = await conn.execute("""
+            SELECT
+                a.town_city AS city,
+                COUNT(*) AS views,
+                COUNT(DISTINCT e.ip_hash) AS distinct_visitors
+            FROM app_events e
+            JOIN addresses a ON a.address_id = (e.properties->>'address_id')::int
+            WHERE e.event_type = 'report_view'
+              AND e.created_at >= CURRENT_DATE - INTERVAL '30 days'
+              AND e.properties ? 'address_id'
+              AND a.town_city IS NOT NULL
+            GROUP BY a.town_city
+            ORDER BY views DESC
+            LIMIT 20
+        """)
+        result["top_cities_viewed"] = cur.fetchall()
+
+        cur = await conn.execute("""
+            SELECT
+                a.town_city AS city,
+                COUNT(*) AS generated,
+                COUNT(DISTINCT e.user_id) AS distinct_users
+            FROM app_events e
+            JOIN addresses a ON a.address_id = (e.properties->>'address_id')::int
+            WHERE e.event_type = 'report_generated'
+              AND e.created_at >= CURRENT_DATE - INTERVAL '30 days'
+              AND e.properties ? 'address_id'
+              AND a.town_city IS NOT NULL
+            GROUP BY a.town_city
+            ORDER BY generated DESC
+            LIMIT 20
+        """)
+        result["top_cities_generated"] = cur.fetchall()
+
+        # Top search queries (free-text) — noisy but directly answers "what are
+        # users typing in". Dedupes by lowercase, strips trailing whitespace.
+        cur = await conn.execute("""
+            SELECT
+                LOWER(TRIM(e.properties->>'query')) AS query,
+                COUNT(*) AS searches,
+                COUNT(DISTINCT e.ip_hash) AS distinct_visitors
+            FROM app_events e
+            WHERE e.event_type = 'search'
+              AND e.created_at >= CURRENT_DATE - INTERVAL '30 days'
+              AND e.properties->>'query' IS NOT NULL
+              AND LENGTH(TRIM(e.properties->>'query')) >= 3
+            GROUP BY LOWER(TRIM(e.properties->>'query'))
+            ORDER BY searches DESC
+            LIMIT 20
+        """)
+        result["top_search_queries"] = cur.fetchall()
 
     return result
 
