@@ -377,7 +377,11 @@ function BuyerFields({ addressId }: { addressId: number }) {
   const setBuyerFinishTier = useBuyerInputStore((s) => s.setFinishTier);
   const setBuyerAskingPrice = useBuyerInputStore((s) => s.setAskingPrice);
 
-  if (!b) return null;
+  // NOTE: do NOT early-return when the budget entry is missing. Bedrooms /
+  // bathrooms / finish all write to `buyerInputStore`, not `budgetStore`, so
+  // those pickers must render unconditionally — otherwise the user sees
+  // "Select the number of bedrooms" validation but no picker to satisfy it.
+  // Only the budget-dependent block below is gated on `b`.
 
   return (
     <div className="space-y-3">
@@ -421,93 +425,97 @@ function BuyerFields({ addressId }: { addressId: number }) {
         </div>
       </div>
 
-      {/* Purchase details. Previously had a separate "Asking / purchase
-          price" field above — removed because it was visually identical
-          to "Purchase price" here and the two auto-synced to the same
-          underlying value, which confused users about which to fill. */}
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField
-          label="Purchase price"
-          value={b.purchasePrice}
-          onChange={(v) => { updateBuyer(addressId, { purchasePrice: v ?? 0 }); setBuyerAskingPrice(v); }}
-          prefix="$"
-          placeholder="e.g. 850000"
-        />
-        <NumberField
-          label="Deposit"
-          value={b.depositPct}
-          onChange={(v) => updateBuyer(addressId, { depositPct: v ?? 20 })}
-          suffix="%"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <NumberField
-          label="Interest rate"
-          value={b.interestRate}
-          onChange={(v) => updateBuyer(addressId, { interestRate: v ?? DEFAULT_NZ_MORTGAGE_RATE_PCT })}
-          suffix="%"
-        />
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Loan term</label>
-          <div className="flex flex-wrap gap-1.5">
-            {LOAN_TERMS.map((t) => (
-              <Pill key={t} selected={b.loanTerm === t} onClick={() => updateBuyer(addressId, { loanTerm: t })}>
-                {t}yr
-              </Pill>
-            ))}
+      {b && (
+        <>
+          {/* Purchase details. Previously had a separate "Asking / purchase
+              price" field above — removed because it was visually identical
+              to "Purchase price" here and the two auto-synced to the same
+              underlying value, which confused users about which to fill. */}
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Purchase price"
+              value={b.purchasePrice}
+              onChange={(v) => { updateBuyer(addressId, { purchasePrice: v ?? 0 }); setBuyerAskingPrice(v); }}
+              prefix="$"
+              placeholder="e.g. 850000"
+            />
+            <NumberField
+              label="Deposit"
+              value={b.depositPct}
+              onChange={(v) => updateBuyer(addressId, { depositPct: v ?? 20 })}
+              suffix="%"
+            />
           </div>
-        </div>
-      </div>
 
-      <NumberField
-        label="Annual income (for affordability)"
-        value={b.annualIncome}
-        onChange={(v) => updateBuyer(addressId, { annualIncome: v })}
-        prefix="$"
-        placeholder="optional"
-      />
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Interest rate"
+              value={b.interestRate}
+              onChange={(v) => updateBuyer(addressId, { interestRate: v ?? DEFAULT_NZ_MORTGAGE_RATE_PCT })}
+              suffix="%"
+            />
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Loan term</label>
+              <div className="flex flex-wrap gap-1.5">
+                {LOAN_TERMS.map((t) => (
+                  <Pill key={t} selected={b.loanTerm === t} onClick={() => updateBuyer(addressId, { loanTerm: t })}>
+                    {t}yr
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          </div>
 
-      {/* Collapsible overrides */}
-      <button
-        type="button"
-        onClick={() => setShowMore(!showMore)}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ChevronDown className={`h-3 w-3 transition-transform ${showMore ? 'rotate-180' : ''}`} />
-        {showMore ? 'Hide' : 'Override'} monthly costs
-      </button>
-      {showMore && (
-        <div className="grid grid-cols-2 gap-3">
           <NumberField
-            label="Monthly rates"
-            value={b.rates}
-            onChange={(v) => updateBuyer(addressId, { rates: v })}
+            label="Annual income (for affordability)"
+            value={b.annualIncome}
+            onChange={(v) => updateBuyer(addressId, { annualIncome: v })}
             prefix="$"
-            placeholder="auto"
+            placeholder="optional"
           />
-          <NumberField
-            label="Monthly insurance"
-            value={b.insurance}
-            onChange={(v) => updateBuyer(addressId, { insurance: v })}
-            prefix="$"
-            placeholder="auto"
-          />
-          <NumberField
-            label="Monthly utilities"
-            value={b.utilities}
-            onChange={(v) => updateBuyer(addressId, { utilities: v })}
-            prefix="$"
-            placeholder="auto"
-          />
-          <NumberField
-            label="Monthly maintenance"
-            value={b.maintenance}
-            onChange={(v) => updateBuyer(addressId, { maintenance: v })}
-            prefix="$"
-            placeholder="auto"
-          />
-        </div>
+
+          {/* Collapsible overrides */}
+          <button
+            type="button"
+            onClick={() => setShowMore(!showMore)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className={`h-3 w-3 transition-transform ${showMore ? 'rotate-180' : ''}`} />
+            {showMore ? 'Hide' : 'Override'} monthly costs
+          </button>
+          {showMore && (
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Monthly rates"
+                value={b.rates}
+                onChange={(v) => updateBuyer(addressId, { rates: v })}
+                prefix="$"
+                placeholder="auto"
+              />
+              <NumberField
+                label="Monthly insurance"
+                value={b.insurance}
+                onChange={(v) => updateBuyer(addressId, { insurance: v })}
+                prefix="$"
+                placeholder="auto"
+              />
+              <NumberField
+                label="Monthly utilities"
+                value={b.utilities}
+                onChange={(v) => updateBuyer(addressId, { utilities: v })}
+                prefix="$"
+                placeholder="auto"
+              />
+              <NumberField
+                label="Monthly maintenance"
+                value={b.maintenance}
+                onChange={(v) => updateBuyer(addressId, { maintenance: v })}
+                prefix="$"
+                placeholder="auto"
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

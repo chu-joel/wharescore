@@ -111,7 +111,15 @@ export function FloatingReportButton({ addressId, riskCount }: FloatingReportBut
   const reportReady = !!(pdf.shareUrl || pdf.downloadUrl);
 
   return createPortal(
-    <div className={`fixed left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-all duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''} ${consentUp ? 'bottom-16' : 'bottom-5'}`}>
+    <div className={`fixed left-5 pb-[env(safe-area-inset-bottom)] z-[9999] flex items-center gap-2 transition-all duration-200 ${modalOpen ? 'opacity-30 pointer-events-none' : ''} ${
+      // On mobile the MobileDrawer handle sits at the top of the 80px mini
+      // sheet (bottom 36-80px of viewport). The FAB at bottom-5 with ~44px
+      // height overlaps that region and steals pointer events from the
+      // handle — users couldn't grab the drawer to expand it. Raise the
+      // FAB to bottom-24 on mobile so it clears the mini-sheet handle.
+      // Desktop has no drawer, so bottom-5 stays.
+      consentUp ? 'bottom-32 md:bottom-16' : 'bottom-24 md:bottom-5'
+    }`}>
       {/* Primary button */}
       <button
         onClick={handleClick}
