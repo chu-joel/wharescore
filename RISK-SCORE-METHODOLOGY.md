@@ -419,13 +419,16 @@ Trade-offs are acceptable in environment, liveability, market, and planning. Bad
 
 | Category | Weight | Rationale |
 |----------|--------|-----------|
-| **Natural Hazards** | **30%** | Physical safety is non-negotiable. NZ is among the most hazard-exposed developed countries (EQC, NIWA). Canterbury/Kaikoura earthquakes and Cyclone Gabrielle demonstrated real, devastating impact. Also: hazard zones directly affect insurance premiums and property values. |
-| **Liveability** | **25%** | Day-to-day quality of life is the primary concern for most property searchers. Crime, deprivation, schools, and transit are the factors people ask about most (per user research from Zillow, Redfin, Domain AU). |
-| **Environment** | **15%** | Environmental quality matters but is less immediately impactful than hazards or liveability. Noise is an exception (high daily impact) which is why it's weighted highest within this category. |
-| **Market** | **15%** | Financial fairness is core to the "consumer advocate" positioning. Weighted equal to environment because it answers a different question ("am I being ripped off?") that is immediately actionable. |
-| **Planning & Regulatory** | **15%** | Important for informed decisions but highly context-dependent (good or bad depending on user goals). Kept at 15% so it contributes without dominating. |
+| **Natural Hazards** | **50%** | Physical safety is the dominant concern for NZ property decisions. NZ is among the most hazard-exposed developed countries (EQC, NIWA). Canterbury/Kaikoura earthquakes and Cyclone Gabrielle demonstrated real, devastating impact. Hazard exposure directly drives insurance premiums, lender appetite and resale value in ways no other category does — enough to justify the composite leaning heavily on it. |
+| **Liveability** | **13%** | Day-to-day quality of life — crime, deprivation, schools, heritage density — scaled from the previous 25% as hazards absorbed the headline weight. Still the second-largest category. |
+| **Transport** | **10%** | Commute access, rail/bus proximity, road safety. Separated from Liveability in a later revision. |
+| **Market** | **10%** | Financial fairness (rent, capital trend, HPI heat) — the "am I being ripped off?" lens. |
+| **Planning & Regulatory** | **10%** | Zoning, consent activity, infrastructure. Context-dependent (good or bad depending on user goals). |
+| **Environment** | **7%** | Air/water quality, road noise, contamination, climate projection. Weighted lowest because most indicators are slow-moving or regionally uniform. |
 
-**Why Natural Hazards is 30%, not 50%:** While safety is the highest priority, weighting it too heavily would make the composite score effectively a hazard-only score. Most NZ properties outside flood/tsunami zones would all score similarly (low), reducing the composite's ability to differentiate on other factors. At 30%, hazards still dominate when present (a flood zone pushes the composite up significantly) but the composite remains useful for comparing two hazard-free properties on other dimensions.
+**Why Natural Hazards is 50% (was 30%):** physical safety in NZ is not just a "nice to have". A flood-zone or liquefaction-prone property carries concrete, immediate cost in insurance premiums (many insurers decline or load heavily), lender terms (LVR caps, mandatory insurance requirements), and resale (buyers price in the risk even when the current owner didn't). Weighting hazards at 30% understated that — two properties with identical hazards could look very different on the composite because of secondary factors, which contradicted the "safety first" consumer-advocate positioning. 50% lets hazards dominate the composite when present without zeroing out the other categories for hazard-free properties (the geometric mean preserves differentiation on the other 50%).
+
+**Handling the "everything scores Low in hazard-free areas" concern:** this was the reason to cap hazards at 30% originally. Mitigated by (a) the geometric mean still dropping the composite significantly when any single category is poor, (b) category-level tiles in the UI already surfacing liveability/transport/market/planning signals separately, and (c) the RatingBin thresholds being tuned so a hazard-free property with mid-range other scores lands in Low rather than Very Low.
 
 **Why not equal weights?** Equal weighting (20% each) is a valid baseline and we will test it in sensitivity analysis. However, equal weighting implicitly says "crime matters as much as flood risk" and "heritage density matters as much as earthquake proximity," which does not reflect consumer priorities or actual impact on property decisions.
 
@@ -459,11 +462,12 @@ Presets:
 
 ```
 composite = exp(
-    0.30 * ln(hazards + 1) +
-    0.15 * ln(environment + 1) +
-    0.25 * ln(liveability + 1) +
-    0.15 * ln(market + 1) +
-    0.15 * ln(planning + 1)
+    0.50 * ln(hazards + 1) +
+    0.13 * ln(liveability + 1) +
+    0.10 * ln(transport + 1) +
+    0.10 * ln(market + 1) +
+    0.10 * ln(planning + 1) +
+    0.07 * ln(environment + 1)
 ) - 1
 ```
 

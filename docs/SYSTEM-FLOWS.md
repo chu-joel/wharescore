@@ -282,12 +282,14 @@ Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expir
 ### Categories and weights
 | Category | Weight | Aggregation | # Indicators |
 |----------|--------|-------------|-------------|
-| Hazards | 0.25 | Softmax (worst-dominates, β=0.08) | 11-15 |
-| Environment | 0.10 | Weighted mean | 5 |
-| Liveability | 0.20 | Weighted mean | 4 |
-| Transport | 0.15 | Weighted mean | 6 |
-| Market | 0.15 | Weighted mean | 3 |
-| Planning | 0.15 | Weighted mean | 5 |
+| Hazards | **0.50** | Softmax (worst-dominates, β=0.08) | 11-15 |
+| Environment | 0.07 | Weighted mean | 5 |
+| Liveability | 0.13 | Weighted mean | 4 |
+| Transport | 0.10 | Weighted mean | 6 |
+| Market | 0.10 | Weighted mean | 3 |
+| Planning | 0.10 | Weighted mean | 5 |
+
+Hazards at 50% reflects the dominant role of physical safety in NZ property decisions — flood, liquefaction, tsunami, slope and earthquake exposure drive insurance premiums, lender appetite and resale value in ways no other category does. The other five categories share the remaining 50% in the original proportions (non-hazard sum was 0.75 → scale by 2/3). Previous value was 0.25.
 
 ### Composite score formula
 ```

@@ -263,10 +263,25 @@ WEIGHTS_PLANNING = {         # Sum = 1.0, WAM
     "school_zone": 0.15,
 }
 
-# Cross-category composite weights
+# Cross-category composite weights.
+#
+# Hazards is weighted 50% (was 0.25) because physical safety is the
+# dominant concern for NZ property decisions — flood, liquefaction,
+# tsunami, slope and earthquake exposure drive insurance premiums,
+# lender appetite and resale value in ways no other category does.
+# The other five categories share the remaining 50% in the original
+# proportions (non-hazard sum was 0.75 → scale by 2/3):
+#   env 0.10 × 2/3 ≈ 0.07
+#   liveability 0.20 × 2/3 ≈ 0.13
+#   transport 0.15 × 2/3 = 0.10
+#   market 0.15 × 2/3 = 0.10
+#   planning 0.15 × 2/3 = 0.10
+# Sum = 1.00. If you change these, also update:
+#   - docs/SYSTEM-FLOWS.md § Scoring-system
+#   - RISK-SCORE-METHODOLOGY.md § Cross-Category Weights + example formula
 COMPOSITE_WEIGHTS = {
-    "hazards": 0.25, "environment": 0.10, "liveability": 0.20,
-    "transport": 0.15, "market": 0.15, "planning": 0.15,
+    "hazards": 0.50, "environment": 0.07, "liveability": 0.13,
+    "transport": 0.10, "market": 0.10, "planning": 0.10,
 }
 
 
