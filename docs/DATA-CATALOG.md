@@ -123,11 +123,13 @@
 
 Service accounts are seeded rows in `users` + `report_credits` used by automated tooling to exercise authenticated endpoints without Stripe. Each is documented here so the row's intent is legible and revocable.
 
-| clerk_id | plan | credit_type | daily_limit | monthly_limit | Purpose | Seeded by |
-|----------|------|-------------|-------------|---------------|---------|-----------|
+| user_id | plan | credit_type | daily_limit | monthly_limit | Purpose | Seeded by |
+|---------|------|-------------|-------------|---------------|---------|-----------|
 | `verify-dev-service-account` | pro | pro | 20 | 200 | `/verify` + `/iterate` skills use this account via `backend/scripts/mint-dev-jwt.py` to mint 1-hour HS256 JWTs against `AUTH_SECRET`. Bypasses Stripe, exercises authed endpoints, generates test reports. Caps protect against runaway generation. | migration `0053_verify_dev_user.sql` |
 
-**Revoke:** a follow-up migration can `UPDATE users SET plan='free' WHERE clerk_id='verify-dev-service-account'` — or set `daily_limit=0` in `report_credits`. Rotating `AUTH_SECRET` invalidates every user's JWT; don't use that as a revocation mechanism.
+**Revoke:** a follow-up migration can `UPDATE users SET plan='free' WHERE user_id='verify-dev-service-account'` — or set `daily_limit=0` in `report_credits`. Rotating `AUTH_SECRET` invalidates every user's JWT; don't use that as a revocation mechanism.
+
+**Column name — users.user_id, not clerk_id.** Migration 0008 renamed `clerk_id → user_id` across `users`, `report_credits`, and `saved_reports` when auth moved from Clerk to Auth.js. Any new migration that seeds rows into these tables MUST use `user_id`. Migration 0053 was originally written against the pre-0008 schema and crashed `migrate.py` on boot with `column "clerk_id" of relation "users" does not exist` until it was fixed.
 
 ---
 

@@ -5,25 +5,32 @@
 -- limits so a bug in the autonomous loop can't generate unbounded snapshots.
 --
 -- Rollback:
---   DELETE FROM report_credits WHERE clerk_id = 'verify-dev-service-account';
---   DELETE FROM users          WHERE clerk_id = 'verify-dev-service-account';
+--   DELETE FROM report_credits WHERE user_id = 'verify-dev-service-account';
+--   DELETE FROM users          WHERE user_id = 'verify-dev-service-account';
 --
 -- Notes:
 --   - Idempotent via ON CONFLICT — safe to re-run migrate.py on any env.
 --   - The JWT minter (backend/scripts/mint-dev-jwt.py) signs tokens with sub =
---     'verify-dev-service-account', which matches the clerk_id below.
+--     'verify-dev-service-account', which matches the user_id below.
 --   - Plan = 'pro' unlocks all paywalled endpoints without touching Stripe.
 --   - Daily limit of 20 + monthly of 200 means a runaway /iterate still can't
 --     generate thousands of hosted reports before the credit system blocks it.
+--   - Column name is `user_id`, not `clerk_id` — migration 0008 renamed the
+--     column when auth moved from Clerk to Auth.js. Earlier versions of this
+--     file used `clerk_id` and crashed migrate.py on boot ("UndefinedColumn:
+--     clerk_id of relation users"). Fixed in place because this migration
+--     had never successfully applied on any environment (a failed
+--     migration leaves no row in schema_migrations, so the corrected file
+--     re-runs cleanly).
 
-INSERT INTO users (clerk_id, email, display_name, plan)
+INSERT INTO users (user_id, email, display_name, plan)
 VALUES (
     'verify-dev-service-account',
     'verify-dev@speculo.co.nz',
     'Verify Dev Service Account',
     'pro'
 )
-ON CONFLICT (clerk_id) DO UPDATE
+ON CONFLICT (user_id) DO UPDATE
     SET email = EXCLUDED.email,
         display_name = EXCLUDED.display_name,
         plan = 'pro',
@@ -37,7 +44,7 @@ ON CONFLICT (clerk_id) DO UPDATE
 -- If a future change needs to update the limits, add a new migration that
 -- explicitly UPDATEs specific columns and gate it via human review.
 INSERT INTO report_credits (
-    clerk_id,
+    user_id,
     credit_type,
     credits_remaining,
     daily_limit,
@@ -58,5 +65,5 @@ SELECT
     NULL,
     NULL             -- no expiry
 WHERE NOT EXISTS (
-    SELECT 1 FROM report_credits WHERE clerk_id = 'verify-dev-service-account'
+    SELECT 1 FROM report_credits WHERE user_id = 'verify-dev-service-account'
 );
