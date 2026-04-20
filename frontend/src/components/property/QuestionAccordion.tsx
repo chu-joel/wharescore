@@ -11,6 +11,7 @@ import {
   TreePine,
   Landmark,
   Lock,
+  Sparkles,
 } from 'lucide-react';
 import {
   Accordion,
@@ -73,20 +74,35 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
         const Icon = ICON_MAP[q.icon] ?? ShieldAlert;
         const { text: summaryText, chips } = summaries[q.id] ?? { text: '', chips: [] };
 
+        // Featured sections (rent-fair for renters, deal-breakers for
+        // buyers) get a piq-primary accent so they stand out from the
+        // collapsed list. Everything else keeps the neutral card style
+        // but gains a hover ring so it still reads as tappable.
+        const featured = !!q.featured;
+        const itemClass = featured
+          ? 'rounded-xl border-2 border-piq-primary/40 bg-gradient-to-br from-piq-primary/5 to-transparent card-elevated overflow-hidden transition-colors hover:border-piq-primary/60'
+          : 'rounded-xl border border-border bg-card card-elevated overflow-hidden transition-colors hover:border-piq-primary/40';
+
         return (
           <AccordionItem
             key={q.id}
             value={q.id}
-            className="rounded-xl border border-border bg-card card-elevated overflow-hidden"
+            className={itemClass}
           >
-            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline group">
               <div className="flex items-start gap-3 flex-1 min-w-0 text-left">
                 <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${q.iconBg} shrink-0 mt-0.5`}>
                   <Icon className={`h-4 w-4 ${q.iconColor}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold">{q.question}</span>
+                    {featured && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-piq-primary/15 text-piq-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                        <Sparkles className="h-3 w-3" />
+                        Start here
+                      </span>
+                    )}
                     {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                   </div>
                   {/* Chips communicate the same data as the text summary; prefer chips when we have them. */}
@@ -106,6 +122,18 @@ export function QuestionAccordion({ report, questions, locked = false }: Questio
                       {summaryText}
                     </p>
                   ) : null}
+                  {/* Teaser line — complements the data chips with a
+                      content hint ("what's in here"). Always shown —
+                      the base-ui Accordion.Trigger doesn't expose a
+                      simple data-state attribute we can target with a
+                      Tailwind group-data selector, and duplicating a
+                      1-line italic hint under the expanded content is
+                      harmless. */}
+                  {q.teaser && (
+                    <p className="text-xs text-muted-foreground/80 mt-1.5 italic">
+                      {q.teaser}
+                    </p>
+                  )}
                 </div>
               </div>
             </AccordionTrigger>
