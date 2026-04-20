@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 .env.*
-scripts/
 server.log
 run.py
+# NOTE: do NOT ignore scripts/ — Dockerfile COPYs them in so the image has
+# mint-dev-jwt.py, smoke-endpoints.sh, etc. available at runtime (see 41ac4b8).
