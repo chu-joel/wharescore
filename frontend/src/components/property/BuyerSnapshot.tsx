@@ -6,7 +6,15 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
-import { isInFloodZone, isNearFloodZone, floodProximityM } from '@/lib/hazards';
+import {
+  isInFloodZone,
+  isNearFloodZone,
+  floodProximityM,
+  isInTsunamiZone,
+  hasHighCoastalErosionRisk,
+  hasHighWildfireRisk,
+  isInLandslideRisk,
+} from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -56,11 +64,13 @@ export function BuyerSnapshot({ report }: Props) {
     const nearFlood = isNearFloodZone(hazards);
     const liqStr = String(hazards.liquefaction_zone || '').toLowerCase();
     const isHighLiq = liqStr.includes('high') || liqStr.includes('very');
-    const isTsunami = !!hazards.tsunami_zone;
+    const isTsunami = isInTsunamiZone(hazards);
     const isEPB = planning?.epb_listed;
-    const isCoastalErosion = !!(hazards.coastal_erosion_exposure);
-    const slopeStr = String(hazards.slope_failure || '').toLowerCase();
+    const isCoastalErosion = hasHighCoastalErosionRisk(hazards);
+    const slopeStr = String(hazards.slope_failure ?? hazards.council_slope_severity ?? '').toLowerCase();
     const isHighSlope = slopeStr.includes('high') || slopeStr.includes('very');
+    const isLandslide = isInLandslideRisk(hazards);
+    const isWildfire = hasHighWildfireRisk(hazards);
 
     if (isFlood) flags.push('flood zone');
     else if (nearFlood) flags.push(`close to flood zone (${floodProximityM(hazards)}m)`);
@@ -69,6 +79,8 @@ export function BuyerSnapshot({ report }: Props) {
     if (isCoastalErosion) flags.push('coastal erosion');
     if (isHighSlope) flags.push('slope failure');
     if (isTsunami) flags.push('tsunami zone');
+    if (isLandslide) flags.push('landslide risk');
+    if (isWildfire) flags.push('wildfire risk');
 
     if (flags.length >= 3 || isEPB) {
       sections.push({
