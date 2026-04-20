@@ -29,7 +29,7 @@ WhareScore is a property intelligence platform for New Zealand. Users search any
 - Persona-specific: renter (rent fairness, healthy homes) vs buyer (price estimate, mortgage calc)
 
 ## Stack
-Next.js 14 + FastAPI + PostgreSQL 17/PostGIS + Redis 7 + Docker Compose on Azure VM (B2ms). Auth: NextAuth/Google OAuth + JWT. Payments: Stripe test mode. Deploy: push to `main` → GitHub Actions SSH.
+Next.js 14 + FastAPI + PostgreSQL 17/PostGIS + Redis 7 + Docker Compose on Azure VM (Standard_D4as_v5 — 4 dedicated AMD vCPU, 16GB RAM). Auth: NextAuth/Google OAuth + JWT. Payments: Stripe test mode. Deploy: push to `main` → GitHub Actions SSH.
 
 ## File Map
 ```
