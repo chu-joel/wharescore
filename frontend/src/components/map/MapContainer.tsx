@@ -269,6 +269,28 @@ export function MapContainer() {
 
   const activeLayerIds = useMemo(() => activeLayerEntries.map((e) => e.id), [activeLayerEntries]);
 
+  // Tour-driven map animations. OnboardingTour dispatches
+  // `tour:fly-to` with {longitude, latitude, zoom, duration} in the
+  // event detail; we call mapRef.flyTo() so the map pans/zooms
+  // visibly during the "Explore the map" demo step.
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      if (!mapRef.current) return;
+      const detail = (ev as CustomEvent).detail as { longitude?: number; latitude?: number; zoom?: number; duration?: number } | undefined;
+      if (!detail) return;
+      const { longitude, latitude, zoom, duration = 1500 } = detail;
+      if (longitude == null || latitude == null) return;
+      mapRef.current.getMap().flyTo({
+        center: [longitude, latitude],
+        zoom: zoom ?? undefined,
+        duration,
+        essential: true,
+      });
+    };
+    window.addEventListener('tour:fly-to', handler);
+    return () => window.removeEventListener('tour:fly-to', handler);
+  }, []);
+
   // flyTo when a new address is selected (from search bar)
   useEffect(() => {
     if (!selectedAddress || !mapRef.current) return;

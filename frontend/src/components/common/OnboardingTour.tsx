@@ -62,7 +62,8 @@ interface Step {
     | 'auto-select-property'
     | 'auto-toggle-persona'
     | 'expand-rent-fair'
-    | 'demo-flood-layers';
+    | 'demo-flood-layers'
+    | 'demo-map-navigation';
   /** Milliseconds before auto-advancing. Used when advance='auto-timer'. */
   autoMs?: number;
 }
@@ -72,9 +73,10 @@ const STEPS: Step[] = [
     id: 'map',
     target: '[data-tour="map"]',
     title: 'Explore the map',
-    body: 'Drag to pan, scroll or pinch to zoom. Every address in Aotearoa has a WhareScore waiting: you can browse a suburb or jump straight to a property you care about.',
+    body: 'Drag to pan, scroll or pinch to zoom. Every address in Aotearoa has a WhareScore waiting. Watch as we fly from Auckland down to Wellington and zoom into the CBD.',
     advance: 'next-button',
     placement: 'auto',
+    onEnter: 'demo-map-navigation',
   },
   {
     id: 'layers',
@@ -102,7 +104,7 @@ const STEPS: Step[] = [
     // (map / sidebar chrome) dims around it.
     target: 'report-panel',
     title: "What's in the report",
-    body: 'Hazard exposure, rent prediction, transport access, planning restrictions, neighbourhood insights — everything we\'ve pulled from 40+ government data sources, in one place. Watch as we scroll through.',
+    body: "Hazard exposure, rent prediction, transport access, planning restrictions, neighbourhood insights. Everything we've pulled from 40+ government data sources, in one place. Watch as we scroll through.",
     advance: 'next-button',
     placement: 'auto',
     onEnter: 'scroll-report-down',
@@ -111,7 +113,7 @@ const STEPS: Step[] = [
     id: 'rent-fair',
     target: '[data-tour-section="rent-fair"]',
     title: 'Is the rent fair?',
-    body: "The star of the renter report. We compare this rent against every MBIE bond lodged in the same suburb over the past 12 months — you'll see the median, the range, how the market's trending and whether you have room to negotiate.",
+    body: "The star of the renter report. We compare this rent against every MBIE bond lodged in the same suburb over the past 12 months. You'll see the median, the range, how the market's trending and whether you have room to negotiate.",
     advance: 'next-button',
     placement: 'above',
     onEnter: 'expand-rent-fair',
@@ -132,7 +134,7 @@ const STEPS: Step[] = [
     body: "The full report unlocks every data layer we have on this property:",
     bullets: [
       'Rent and price advisor with live sliders',
-      'Full hazard history — past floods, quakes, landslides',
+      'Full hazard history: past floods, quakes, landslides',
       'Climate forecast, demographics, walking reach',
       'Council rates breakdown + Healthy Homes checks',
       'Permanent shareable link, print-ready',
@@ -427,13 +429,19 @@ export function OnboardingTour() {
       };
     }
     if (step.onEnter === 'demo-flood-layers') {
-      // Four-phase demo:
-      //   1. Click the layer picker trigger to open the modal.
-      //   2-4. Click each of the three flood layer toggles with a
-      //        visible tap ripple, staggered so the user sees each
-      //        one turn on in turn.
-      // Cleanup (step leave) dispatches an Escape keydown to close
-      // the modal — base-ui Dialog listens and handles the close.
+      // Paced demo so the user can follow each click. Timeline:
+      //   1.0s   ripple on the Layers trigger (long pre-click beat)
+      //   1.8s   click trigger, modal opens
+      //   3.0s   ripple on flood_zones, click 200ms later
+      //   5.0s   ripple on flood_hazard, click 200ms later
+      //   7.0s   ripple on flood_extent, click 200ms later
+      //   9.0s   close the modal (Escape) so the user sees the
+      //          flood overlays painted on the map with the chip
+      //          bar now showing the active layer count.
+      // The spotlight stays on the MapLayerChipBar for the whole
+      // thing. After the modal auto-closes the user sees the bar
+      // glow with the new active count plus the overlays on the
+      // map underneath.
       const FLOOD_IDS = ['flood_zones', 'flood_hazard', 'flood_extent'];
       const timers: ReturnType<typeof setTimeout>[] = [];
       let opened = false;
@@ -441,38 +449,72 @@ export function OnboardingTour() {
       timers.push(setTimeout(() => {
         const trigger = document.querySelector('[data-layer-picker-trigger]') as HTMLButtonElement | null;
         if (!trigger) return;
-        // Ripple on the trigger first so the user sees the click
-        // before the modal pops open.
         const tr = trigger.getBoundingClientRect();
         setTap({ x: tr.left + tr.width / 2, y: tr.top + tr.height / 2, key: Date.now() });
-        timers.push(setTimeout(() => {
-          trigger.click();
-          opened = true;
-        }, 200));
-      }, 400));
+      }, 1000));
+      timers.push(setTimeout(() => {
+        const trigger = document.querySelector('[data-layer-picker-trigger]') as HTMLButtonElement | null;
+        if (!trigger) return;
+        trigger.click();
+        opened = true;
+      }, 1800));
 
-      // Stagger the three flood toggles. The modal animates open
-      // (~200ms) so we start 800ms after the trigger click.
       FLOOD_IDS.forEach((id, i) => {
+        const rippleAt = 3000 + i * 2000;
         timers.push(setTimeout(() => {
           const btn = document.querySelector(`[data-layer-id="${id}"]`) as HTMLButtonElement | null;
           if (!btn) return;
           const r = btn.getBoundingClientRect();
-          // Tap ripple at the row's left where the icon sits.
           setTap({ x: r.left + 28, y: r.top + r.height / 2, key: Date.now() + i });
-          timers.push(setTimeout(() => btn.click(), 200));
-        }, 1400 + i * 900));
+        }, rippleAt));
+        timers.push(setTimeout(() => {
+          const btn = document.querySelector(`[data-layer-id="${id}"]`) as HTMLButtonElement | null;
+          if (btn) btn.click();
+        }, rippleAt + 250));
       });
+
+      // Auto-close the modal after the last click so the user can
+      // see the flood overlays painted on the map while still on
+      // this step.
+      timers.push(setTimeout(() => {
+        if (opened) {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          opened = false;
+        }
+      }, 9000));
 
       return () => {
         timers.forEach(clearTimeout);
-        // Close the modal if we opened it. Dispatching Escape is
-        // the most portable way — base-ui Dialog handles the key
-        // itself. Keyboard event needs to be on document for the
-        // primitive's listener to pick it up.
         if (opened) {
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         }
+      };
+    }
+    if (step.onEnter === 'demo-map-navigation') {
+      // Paced flyTo sequence so the user sees the map actively
+      // moving. Coordinates are the four main centres so the
+      // zoom-out-then-zoom-in choreography feels like a sweep
+      // across Aotearoa rather than random jumps.
+      const fly = (longitude: number, latitude: number, zoom: number, duration = 1400) => {
+        window.dispatchEvent(new CustomEvent('tour:fly-to', { detail: { longitude, latitude, zoom, duration } }));
+      };
+      const tapAtMapCentre = () => {
+        const r = readRect('[data-tour="map"]');
+        if (r) setTap({ x: r.left + r.width / 2, y: r.top + r.height / 2, key: Date.now() });
+      };
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      // 0.5s  fly to Auckland CBD (zoom in)
+      timers.push(setTimeout(() => fly(174.7633, -36.8485, 12, 1600), 500));
+      // 2.5s  zoom out to see Aotearoa end to end
+      timers.push(setTimeout(() => fly(174.5, -40.5, 5.2, 1800), 2500));
+      // 5.0s  zoom into Wellington region
+      timers.push(setTimeout(() => fly(174.78, -41.28, 11, 1800), 5000));
+      // 7.5s  a tap ripple on the map to hint at "click a property"
+      timers.push(setTimeout(() => tapAtMapCentre(), 7500));
+      // 8.2s  final tight zoom on the Wellington CBD
+      timers.push(setTimeout(() => fly(174.776, -41.287, 15, 1400), 8200));
+      return () => {
+        timers.forEach(clearTimeout);
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -488,6 +530,10 @@ export function OnboardingTour() {
     setActive(false);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(STORAGE_KEY, '1');
+      // On mobile the MobileDrawer is at full snap from the demo
+      // property. Collapse it so the user lands on the map with
+      // the drawer at mini/peek, ready to explore themselves.
+      window.dispatchEvent(new Event('drawer:collapse'));
     }
     // Hand the user back to an empty map + landing panel so they can
     // explore from scratch, rather than leaving them parked in the
