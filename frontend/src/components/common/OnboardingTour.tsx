@@ -93,9 +93,16 @@ const STEPS: Step[] = [
     // anchor that exists on all breakpoints.
     target: 'body',
     title: 'Scroll to explore the report',
-    body: 'Score → key findings → recommended actions → deep-dive accordion. We\'ll scroll through for you so you can see what\'s in there.',
+    body: 'Score, key findings, recommended actions, then the deep-dive accordion. We\'ll scroll through for you so you can see what\'s in there — watch the panel on the right.',
     advance: 'auto-timer',
-    autoMs: 3200,
+    // Timing inside the scroll-report-down onEnter block:
+    //   0.8s  →  scroll down ~420px (reveals findings + action card)
+    //   4.0s  →  scroll back up
+    //   5.5s  →  auto-advance
+    // Gives the user ~3 seconds parked at the scrolled position to
+    // actually read what's visible, plus a full beat at the top on
+    // the way out before we move on.
+    autoMs: 5500,
     placement: 'auto',
     onEnter: 'scroll-report-down',
   },
@@ -280,13 +287,15 @@ export function OnboardingTour() {
   useEffect(() => {
     if (!active) return;
     if (step.onEnter === 'scroll-report-down') {
-      // Wait a beat so the report has painted, scroll ~420px to
-      // reveal KeyFindings / action card, pause, then scroll back to
-      // the top so the persona step isn't disoriented. The final
-      // scrollTop=0 runs slightly before this step's auto-timer so
-      // the next step enters with the report re-aligned.
-      const down = setTimeout(() => scrollReportSmooth(420), 400);
-      const up = setTimeout(() => scrollReportSmooth(0), 2800);
+      // Paced so the user has time to read. Timings match the autoMs
+      // on the "scroll" step (5500ms):
+      //   0.8s  →  scroll down ~420px (reveal findings + action card)
+      //   4.0s  →  scroll back up to the top
+      //   5.5s  →  auto-advance (handled by the auto-timer effect)
+      // The ~3 seconds parked at the scrolled position lets the user
+      // actually see findings/action content, not just a flicker.
+      const down = setTimeout(() => scrollReportSmooth(420), 800);
+      const up = setTimeout(() => scrollReportSmooth(0), 4000);
       return () => {
         clearTimeout(down);
         clearTimeout(up);
@@ -383,7 +392,12 @@ export function OnboardingTour() {
         return;
       }
       if (persona !== initialPersonaRef.current) {
-        const t = setTimeout(() => goNext(), 400);
+        // Hold on the persona step long enough for the user to see
+        // the tab switch, the report rerender (KeyFindings + sections
+        // recompute), and read the "Renter or buyer?" explanation
+        // underneath the spotlight. 400ms previously felt like a
+        // flicker.
+        const t = setTimeout(() => goNext(), 2500);
         return () => clearTimeout(t);
       }
     } else {
