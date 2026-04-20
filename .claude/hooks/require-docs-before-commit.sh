@@ -131,7 +131,41 @@ echo "$ALL_FILES" | grep -qE 'migrations/00' && \
   MISSING="${MISSING}\n- migration changed: update relevant docs (DATA-CATALOG.md tables, WIRING-TRACES.md traces)"
 
 if [ -n "$MISSING" ]; then
-  printf "BLOCKED: These code files are staged but their required docs are NOT staged. Update the docs and stage them too:%b\n\nAlso: update docs with anything a future agent working in this area should know to get their job done quicker and with 100%% accuracy." "$MISSING" >&2
+  # Detect whether this command is a chain (&&, ||, ;). A blocked PreToolUse
+  # hook cancels the ENTIRE Bash tool call. If the caller relied on chaining
+  # `git add` with `git commit`, the chain's `git add` hasn't run — nothing
+  # is staged. Not making this explicit wastes minutes of debugging when the
+  # caller assumes staging happened.
+  IS_CHAIN=false
+  if echo "$COMMAND" | grep -qE '\&\&|\|\||;'; then
+    IS_CHAIN=true
+  fi
+
+  # Pull the unique doc paths mentioned in MISSING so we can suggest a concrete
+  # `git add` command. MISSING text is e.g. "- routers/ changed: update
+  # docs/FRONTEND-WIRING.md ..." — grep the paths, dedupe, space-join.
+  SUGGESTED_DOCS=$(printf "%b" "$MISSING" | grep -oE 'docs/[A-Z-]+\.md' | sort -u | tr '\n' ' ' | sed 's/ $//')
+
+  {
+    printf "BLOCKED: Code changes need doc updates in the same commit.\n"
+
+    if [ "$IS_CHAIN" = true ]; then
+      printf "\nThis command is chained (&&/;/||). A blocked PreToolUse hook cancels the\n"
+      printf "ENTIRE chain — no \`git add\` or \`git commit\` has run, nothing is staged.\n"
+      printf "Stage separately first, OR include missing docs in the chain's \`git add\`.\n"
+    fi
+
+    printf "\nMissing docs:"
+    printf "%b\n" "$MISSING"
+
+    if [ -n "$SUGGESTED_DOCS" ]; then
+      printf "\nTo unblock, stage these docs alongside your code:\n"
+      printf "  git add %s\n" "$SUGGESTED_DOCS"
+    fi
+
+    printf "\nAlso: update docs with anything a future agent working in this area should know to get their job done quicker and with 100%% accuracy.\n"
+  } >&2
+
   exit 2
 fi
 
