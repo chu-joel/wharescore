@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn } from 'lucide-react';
+import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn, PlayCircle, BookOpen } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -12,7 +12,9 @@ import { useRouter, usePathname } from 'next/navigation';
 export function AppHeader() {
   const [isDark, setIsDark] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const helpMenuRef = useRef<HTMLDivElement>(null);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
@@ -41,6 +43,24 @@ export function AppHeader() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showAccountMenu]);
+
+  useEffect(() => {
+    if (!showHelpMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target as Node)) {
+        setShowHelpMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showHelpMenu]);
+
+  function restartTour() {
+    setShowHelpMenu(false);
+    // Tell the OnboardingTour component to start over — it listens for
+    // this custom event, clears its "seen" flag, and re-enters step 0.
+    window.dispatchEvent(new CustomEvent('tour:restart'));
+  }
 
   function toggleTheme() {
     const next = !isDark;
@@ -186,11 +206,45 @@ export function AppHeader() {
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <a href="/help" aria-label="Help" title="Help & FAQ">
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Help">
+          <div className="relative" ref={helpMenuRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              aria-label="Help menu"
+              aria-haspopup="menu"
+              aria-expanded={showHelpMenu}
+              onClick={() => setShowHelpMenu((v) => !v)}
+              title="Help"
+            >
               <HelpCircle className="h-4 w-4" />
             </Button>
-          </a>
+            {showHelpMenu && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-background shadow-md py-1 z-50"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={restartTour}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+                >
+                  <PlayCircle className="h-4 w-4 text-piq-primary" />
+                  Take the tour
+                </button>
+                <a
+                  href="/help"
+                  role="menuitem"
+                  onClick={() => setShowHelpMenu(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                >
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  Help &amp; FAQ
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

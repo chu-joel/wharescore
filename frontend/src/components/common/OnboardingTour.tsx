@@ -28,9 +28,19 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, X } from 'lucide-react';
 import { useSearchStore } from '@/stores/searchStore';
+import { useMapStore } from '@/stores/mapStore';
 import { usePersonaStore } from '@/stores/personaStore';
+import { apiFetch } from '@/lib/api';
 
 const STORAGE_KEY = 'whare:onboarding_seen';
+
+// Tour demo property. Wellington CBD address — good coverage across
+// hazards, transit, census, rates, market data — and known to have
+// flood extent, council hazard overlays and transmission-line
+// proximity, so the report the user sees during the tour is populated
+// rather than sparse. Fetched by address query so we don't hard-code
+// an internal `address_id` that could drift.
+const DEMO_ADDRESS_QUERY = '10 Customhouse Quay, Wellington';
 
 type StepAdvance = 'next-button' | 'address-selected' | 'persona-toggled' | 'auto-timer';
 
@@ -42,7 +52,11 @@ interface Step {
   advance: StepAdvance;
   placement?: 'below' | 'above' | 'left' | 'right' | 'auto';
   /** Additional behaviours to run on step entry. */
-  onEnter?: 'scroll-report-down' | 'scroll-report-top';
+  onEnter?:
+    | 'scroll-report-down'
+    | 'scroll-report-top'
+    | 'auto-select-property'
+    | 'auto-toggle-persona';
   /** Milliseconds before auto-advancing. Used when advance='auto-timer'. */
   autoMs?: number;
 }
@@ -67,10 +81,11 @@ const STEPS: Step[] = [
   {
     id: 'click-property',
     target: '[data-tour="map"]',
-    title: 'Click any property',
-    body: "Tap a property on the map — any address works. We'll load the on-screen report once you do.",
+    title: 'Loading a sample property',
+    body: "We'll drop you on a Wellington CBD address with real hazard, rent and planning data loaded, so you can see what a full report looks like.",
     advance: 'address-selected',
     placement: 'auto',
+    onEnter: 'auto-select-property',
   },
   {
     id: 'scroll',
@@ -88,13 +103,13 @@ const STEPS: Step[] = [
     id: 'persona',
     target: '[data-tour="persona-toggle"]',
     title: 'Renter or buyer?',
-    body: 'Flip between renter and buyer to retune the whole report — rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers.',
+    body: 'Flipping personas retunes the whole report — rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers.',
     advance: 'persona-toggled',
     placement: 'below',
-    // Scroll back to the top first — persona toggle is sticky so it's
-    // always visible, but aligning it with the viewport top makes the
-    // spotlight look intentional.
-    onEnter: 'scroll-report-top',
+    // Auto-click the OTHER persona tab with a visible tap ripple so
+    // the user sees the report recompute without having to do it
+    // themselves. Scroll is handled by the shared step-enter block.
+    onEnter: 'auto-toggle-persona',
   },
   {
     id: 'generate',
@@ -148,9 +163,17 @@ export function OnboardingTour() {
   const [active, setActive] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  // Click/tap ripple — rendered over the target centre when the tour
+  // auto-clicks something. Keyed by timestamp so remount re-triggers
+  // the CSS animation even if two consecutive steps both want a
+  // ripple at roughly the same coordinates.
+  const [tap, setTap] = useState<{ x: number; y: number; key: number } | null>(null);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const selectAddress = useSearchStore((s) => s.selectAddress);
   const clearSelection = useSearchStore((s) => s.clearSelection);
+  const selectProperty = useMapStore((s) => s.selectProperty);
   const persona = usePersonaStore((s) => s.persona);
+  const setPersona = usePersonaStore((s) => s.setPersona);
   const initialPersonaRef = useRef<string | null>(null);
 
   // Decide whether to run at all. Only on first visit (or explicit
@@ -170,6 +193,25 @@ export function OnboardingTour() {
       return () => clearTimeout(t);
     }
   }, []);
+
+  // Listen for manual re-run requests (Help menu → Take the tour).
+  // Resets the seen flag, sends the user back to the map + landing
+  // panel, and enters step 0.
+  useEffect(() => {
+    const handler = () => {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+      clearSelection();
+      setStepIdx(0);
+      initialPersonaRef.current = null;
+      // Give the page a beat to unmount any open report before we
+      // start measuring the step-0 target.
+      setTimeout(() => setActive(true), 300);
+    };
+    window.addEventListener('tour:restart', handler);
+    return () => window.removeEventListener('tour:restart', handler);
+  }, [clearSelection]);
 
   const step = STEPS[stepIdx];
 
@@ -203,16 +245,24 @@ export function OnboardingTour() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, selectedAddress]);
 
+  // Helper — show a tap ripple at the centre of the current target so
+  // the user sees WHERE the tour is clicking, not just the effect.
+  const pulseAtTarget = () => {
+    const r = readRect(step.target);
+    if (!r) return;
+    setTap({ x: r.left + r.width / 2, y: r.top + r.height / 2, key: Date.now() });
+  };
+
   // Run onEnter side-effects when a step activates. Kept in its own
-  // effect so we don't re-trigger scrolling on every measurement.
+  // effect so we don't re-trigger behaviours on every measurement.
   useEffect(() => {
     if (!active) return;
     if (step.onEnter === 'scroll-report-down') {
-      // Multi-stage: wait a beat so the report has painted, scroll
-      // ~420px to reveal KeyFindings / action card, pause, then scroll
-      // back to the top so the persona step isn't disoriented. The
-      // final scrollTop=0 runs slightly before this step's auto-timer
-      // fires so the next step enters with the report re-aligned.
+      // Wait a beat so the report has painted, scroll ~420px to
+      // reveal KeyFindings / action card, pause, then scroll back to
+      // the top so the persona step isn't disoriented. The final
+      // scrollTop=0 runs slightly before this step's auto-timer so
+      // the next step enters with the report re-aligned.
       const down = setTimeout(() => scrollReportSmooth(420), 400);
       const up = setTimeout(() => scrollReportSmooth(0), 2800);
       return () => {
@@ -223,6 +273,51 @@ export function OnboardingTour() {
     if (step.onEnter === 'scroll-report-top') {
       scrollReportSmooth(0);
     }
+    if (step.onEnter === 'auto-select-property') {
+      // Tap ripple on the map, then fetch + select the demo address.
+      // Wrapped in setTimeout so the ripple is visible before the
+      // report pane mounts and shifts everything.
+      const tapT = setTimeout(() => pulseAtTarget(), 500);
+      const pickT = setTimeout(() => {
+        apiFetch<{
+          results?: { address_id: number; full_address: string; lng: number; lat: number }[];
+        }>(`/api/v1/search/address?q=${encodeURIComponent(DEMO_ADDRESS_QUERY)}`)
+          .then((res) => {
+            const first = res.results?.[0];
+            if (!first) return;
+            selectAddress({
+              addressId: first.address_id,
+              fullAddress: first.full_address,
+              lng: first.lng,
+              lat: first.lat,
+            });
+            selectProperty(first.address_id, first.lng, first.lat);
+          })
+          .catch(() => {
+            // Non-critical — if the demo picker fails we let the user
+            // click manually. The advance='address-selected' wiring
+            // still catches any selection they make.
+          });
+      }, 900);
+      return () => {
+        clearTimeout(tapT);
+        clearTimeout(pickT);
+      };
+    }
+    if (step.onEnter === 'auto-toggle-persona') {
+      // Scroll the toggle into view then tap + toggle to the OTHER
+      // persona so the user sees the report recompute.
+      scrollReportSmooth(0);
+      const tapT = setTimeout(() => pulseAtTarget(), 500);
+      const toggleT = setTimeout(() => {
+        setPersona(persona === 'renter' ? 'buyer' : 'renter');
+      }, 900);
+      return () => {
+        clearTimeout(tapT);
+        clearTimeout(toggleT);
+      };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
 
   // Auto-advance for timer-based steps (e.g. the scroll demo). Kept
@@ -285,6 +380,7 @@ export function OnboardingTour() {
       stepIndex={stepIdx}
       totalSteps={STEPS.length}
       rect={rect}
+      tap={tap}
       onNext={goNext}
       onSkip={finish}
     />,
@@ -297,11 +393,12 @@ interface OverlayProps {
   stepIndex: number;
   totalSteps: number;
   rect: DOMRect | null;
+  tap: { x: number; y: number; key: number } | null;
   onNext: () => void;
   onSkip: () => void;
 }
 
-function TourOverlay({ step, stepIndex, totalSteps, rect, onNext, onSkip }: OverlayProps) {
+function TourOverlay({ step, stepIndex, totalSteps, rect, tap, onNext, onSkip }: OverlayProps) {
   // Spotlight: a solid rgba overlay with a transparent cutout around
   // the target. Implemented as 4 dim rectangles (top, bottom, left,
   // right of the target) rather than an SVG mask — simpler, pixel
@@ -339,33 +436,55 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, onNext, onSkip }: Over
             cutout slides smoothly from one target to the next rather
             than jumping. cubic-bezier(0.32, 0.72, 0, 1) is the same
             iOS-ish easing used by the MobileDrawer, for a consistent
-            "snappy but decelerating" feel.
+            "snappy but decelerating" feel. pointer-events-auto +
+            onClick={onSkip} makes clicks on the dim area dismiss the
+            tour (the tooltip still captures its own clicks via
+            stopPropagation, and the target spotlight region has no
+            dim over it).
           */}
           <div
-            className="absolute left-0 right-0 top-0 bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            className="absolute left-0 right-0 top-0 bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto cursor-pointer"
             style={{ height: tr.top }}
+            onClick={onSkip}
           />
           <div
-            className="absolute left-0 right-0 bottom-0 bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            className="absolute left-0 right-0 bottom-0 bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto cursor-pointer"
             style={{ top: tr.bottom }}
+            onClick={onSkip}
           />
           <div
-            className="absolute bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            className="absolute bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto cursor-pointer"
             style={{ top: tr.top, height: tr.height, left: 0, width: tr.left }}
+            onClick={onSkip}
           />
           <div
-            className="absolute bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            className="absolute bg-black/55 backdrop-blur-[1px] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto cursor-pointer"
             style={{ top: tr.top, height: tr.height, left: tr.right, right: 0 }}
+            onClick={onSkip}
           />
           {/* Ring around target — same transition so it tracks the
               cutout. Pulse on top of the transition for attention. */}
           <div
-            className="absolute rounded-xl ring-2 ring-piq-primary ring-offset-2 ring-offset-background/50 animate-pulse transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            className="absolute rounded-xl ring-2 ring-piq-primary ring-offset-2 ring-offset-background/50 animate-pulse transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-none"
             style={{ top: tr.top, left: tr.left, width: tr.width, height: tr.height }}
           />
         </>
       ) : (
-        <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" />
+        <div
+          className="absolute inset-0 bg-black/55 backdrop-blur-[1px] pointer-events-auto cursor-pointer"
+          onClick={onSkip}
+        />
+      )}
+
+      {/* Tap ripple — a small pulse at the target centre when the tour
+          auto-clicks something, so the user sees where the action
+          happened. Remount-on-key re-triggers the CSS animation. */}
+      {tap && (
+        <div
+          key={tap.key}
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-piq-primary/40 animate-ping"
+          style={{ left: tap.x, top: tap.y, animationDuration: '700ms', animationIterationCount: 2 }}
+        />
       )}
 
       {/* Tooltip — same cubic-bezier so position, fade and the spotlight
@@ -377,6 +496,7 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, onNext, onSkip }: Over
         className="absolute pointer-events-auto rounded-xl bg-background border border-border shadow-xl p-4 max-w-[320px] w-[calc(100vw-32px)] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] animate-fade-in-up"
         style={{ top: tooltip.top, left: tooltip.left }}
         key={step.id}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-2 mb-1">
           <p className="text-xs font-medium text-muted-foreground">
@@ -411,7 +531,12 @@ function TourOverlay({ step, stepIndex, totalSteps, rect, onNext, onSkip }: Over
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           ) : (
-            <span className="text-xs italic text-muted-foreground">Try it to continue…</span>
+            // For auto-advance steps the tour performs the action itself
+            // (seeding a property, toggling persona, scrolling). No
+            // "Try it" text — we don't want the user thinking they
+            // need to do something. Leaving the space empty keeps the
+            // focus on the content.
+            <span className="text-xs text-muted-foreground">Auto-advancing…</span>
           )}
         </div>
       </div>
