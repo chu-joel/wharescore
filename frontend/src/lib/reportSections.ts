@@ -50,7 +50,7 @@ const RENTER_QUESTIONS: QuestionSection[] = [
     iconColor: 'text-piq-primary',
     iconBg: 'bg-teal-100 dark:bg-teal-900/30',
     featured: true,
-    teaser: 'See how this rent compares to the SA2 median, recent trends, and market heat.',
+    teaser: "We've done the analysis. See whether this rent's fair.",
   },
   {
     id: 'safety',
