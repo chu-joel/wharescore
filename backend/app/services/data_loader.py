@@ -6020,14 +6020,25 @@ DATA_SOURCES: list[DataSource] = [
             ))),
     DataSource("ecan_tsunami", "Canterbury Tsunami Evacuation Zones",
         ["tsunami_hazard"],
+        # ECan regional evacuation-zone layer. Emits the traffic-light colour in
+        # Status (Red/Orange/Yellow) plus "No Zone" for areas CCC / ECan
+        # officially designate as outside any evacuation zone. The old default
+        # `_clean(Status) or "High"` stamped "No Zone" rows as High in the DB,
+        # producing false tsunami warnings for inland Christchurch (e.g. Ilam
+        # near the university). Mirror of the chch_tsunami fix from 9ab7526.
         lambda conn, log=None: _load_council_arcgis(conn, log,
             "https://gis.ecan.govt.nz/arcgis/rest/services/Public/Geological_Hazards/MapServer/4",
             "tsunami_hazard", "canterbury",
             ["name", "hazard_ranking", "scenario"],
             lambda a: (
-                _clean(a.get("Description")) or "Tsunami Evacuation Zone",
-                _clean(a.get("Status")) or "High",
-                _clean(a.get("District")) or "Canterbury",
+                None if (_clean(a.get("Status")) or "").lower() in ("no zone", "nil", "", "none")
+                else (
+                    _clean(a.get("Description")) or "Tsunami Evacuation Zone",
+                    {"Red": "High", "Orange": "Medium", "Yellow": "Low"}.get(
+                        _clean(a.get("Status")) or "", "Low"
+                    ),
+                    _clean(a.get("District")) or "Canterbury",
+                )
             ))),
     DataSource("ecan_coastal_hazard", "Canterbury Coastal Hazard Zones",
         ["coastal_erosion"],

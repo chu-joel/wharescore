@@ -210,6 +210,8 @@ Keys: `chch_*`, `ecan_*`, `waimakariri_*`. Tables: flood_hazard, coastal_erosion
 
 `chch_tsunami` uses the CCC Civil Defence **evacuation-zone** layer (`WaterCharacteristic/FeatureServer/43`), not the district-plan modelled-inundation layer. ZoneType maps Red→High, Orange→Medium, Yellow→Low; "No Zone" features are skipped. Previous wiring used `GCSP/FeatureServer/23` and hard-coded every feature as `hazard_ranking='High'`, producing false tsunami warnings for properties officially designated "No Zone".
 
+`ecan_tsunami` (regional ECan layer for wider Canterbury) had the same bug — Status field's raw Red/Orange/Yellow/No Zone values were landing verbatim in `hazard_ranking`. Now mapped the same way: Red→High, Orange→Medium, Yellow→Low; "No Zone"/"Nil"/empty skipped. When re-running after the fix, `_load_council_arcgis` deletes the orphan `source_council='canterbury'` rows before re-inserting.
+
 ### Waikato/Hamilton (~15 DataSources)
 Keys: `hamilton_*`, `waikato_*`, `waipa_*`. Tables: flood_hazard, district_plan_zones, heritage_sites, notable_trees, liquefaction.
 
