@@ -115,25 +115,41 @@ export function generateFindings(report: {
   const eventHist = report.event_history;
 
   // --- Tenure (title type) ---
+  // Cross-lease is legally a form of leasehold interest in the
+  // underlying land, so LINZ title descriptions often contain the
+  // literal string "leasehold" even on cross-lease properties. We
+  // have to test cross-lease FIRST and exclude it from the pure-
+  // leasehold branch, otherwise every cross-lease property fires
+  // the scary "ground rent reviews every 7 to 21 years" warning,
+  // which doesn't apply (cross-lease has a 999-year lease with
+  // nominal ground rent, the real risk is the flats plan not
+  // matching the as-built structure).
   const titleType = (prop?.title_type || '').toLowerCase();
   const estate = (prop?.estate_description || '').toLowerCase();
-  const isLeasehold = titleType.includes('leasehold') || estate.includes('leasehold');
-  const isCrossLease = titleType.includes('cross lease') || titleType.includes('cross-lease') || estate.includes('cross lease') || estate.includes('cross-lease');
-  if (isLeasehold) {
-    findings.push({
-      headline: 'Leasehold title: you own the building, not the land',
-      interpretation:
-        "Ground rent typically reviews every 7 to 21 years and can jump 20 to 50%. Mortgage options are narrower: some banks won't lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.",
-      severity: 'critical',
-      category: 'Planning',
-      source: 'LINZ Property Titles',
-    });
-  } else if (isCrossLease) {
+  const isCrossLease =
+    titleType.includes('cross lease') ||
+    titleType.includes('cross-lease') ||
+    estate.includes('cross lease') ||
+    estate.includes('cross-lease');
+  const isLeasehold =
+    !isCrossLease &&
+    (titleType.includes('leasehold') || estate.includes('leasehold'));
+
+  if (isCrossLease) {
     findings.push({
       headline: 'Cross-lease title: shared land ownership',
       interpretation:
         'You share the land with the other flats and must agree to any structural change outside the flat plan. Ensure the as-built structure matches the flats plan. Unapproved additions (decks, extensions) are a common pitfall and can block sale or refinance.',
       severity: 'warning',
+      category: 'Planning',
+      source: 'LINZ Property Titles',
+    });
+  } else if (isLeasehold) {
+    findings.push({
+      headline: 'Leasehold title: you own the building, not the land',
+      interpretation:
+        "Ground rent typically reviews every 7 to 21 years and can jump 20 to 50%. Mortgage options are narrower: some banks won't lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.",
+      severity: 'critical',
       category: 'Planning',
       source: 'LINZ Property Titles',
     });
