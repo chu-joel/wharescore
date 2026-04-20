@@ -131,6 +131,13 @@ Service accounts are seeded rows in `users` + `report_credits` used by automated
 
 **Column name — users.user_id, not clerk_id.** Migration 0008 renamed `clerk_id → user_id` across `users`, `report_credits`, and `saved_reports` when auth moved from Clerk to Auth.js. Any new migration that seeds rows into these tables MUST use `user_id`. Migration 0053 was originally written against the pre-0008 schema and crashed `migrate.py` on boot with `column "clerk_id" of relation "users" does not exist` until it was fixed.
 
+**report_credits schema reminders for new migrations:**
+- `credits_remaining INT NOT NULL DEFAULT 0` — never insert `NULL`. Pro plans use daily/monthly caps, not a balance; use `0`.
+- `report_tier TEXT NOT NULL DEFAULT 'full'` (added in 0026, check constraint `report_tier IN ('quick','full')`) — set explicitly when you want a specific tier; relying on the default locks you to `'full'`.
+- Any seeded row also carries `purchased_at` (DEFAULT `now()`), `cancelled_at` (nullable), and `stripe_subscription_id` (use `'verify-dev-none'` sentinel for service accounts — not a real Stripe ID).
+
+Both of these bit 0053 in sequence: the initial version used `clerk_id`, the first fix used `user_id` but forgot `credits_remaining NOT NULL` + the 0026-added `report_tier` column. Future seed migrations: enumerate EVERY non-null column of the target table and set it explicitly.
+
 ---
 
 ## DataSources by Region

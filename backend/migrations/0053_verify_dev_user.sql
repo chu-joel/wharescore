@@ -52,18 +52,24 @@ INSERT INTO report_credits (
     stripe_payment_id,
     stripe_subscription_id,
     stripe_customer_id,
-    expires_at
+    expires_at,
+    report_tier
 )
 SELECT
     'verify-dev-service-account',
     'pro',
-    NULL,            -- Pro uses daily/monthly limits, not a balance
+    0,               -- credits_remaining is NOT NULL (0007). Pro uses
+                     -- daily/monthly caps instead of a balance, so 0 is
+                     -- semantically correct AND satisfies the constraint.
     20,              -- daily cap (anti-runaway safeguard)
     200,             -- monthly cap
     NULL,
     'verify-dev-none',   -- sentinel — not a real Stripe sub
     NULL,
-    NULL             -- no expiry
+    NULL,            -- no expiry
+    'full'           -- 0026 added report_tier NOT NULL DEFAULT 'full'.
+                     -- Explicit here so a future schema change can't silently
+                     -- flip the tier for this service account.
 WHERE NOT EXISTS (
     SELECT 1 FROM report_credits WHERE user_id = 'verify-dev-service-account'
 );
