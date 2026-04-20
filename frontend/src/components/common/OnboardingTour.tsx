@@ -82,8 +82,8 @@ const STEPS: Step[] = [
     id: 'click-property',
     target: '[data-tour="map"]',
     title: 'Loading a sample property',
-    body: "We'll drop you on a Wellington CBD address with real hazard, rent and planning data loaded, so you can see what a full report looks like.",
-    advance: 'address-selected',
+    body: "We'll drop you on a Wellington CBD address with real hazard, rent and planning data loaded. Click Next once the report finishes loading.",
+    advance: 'next-button',
     placement: 'auto',
     onEnter: 'auto-select-property',
   },
@@ -95,16 +95,8 @@ const STEPS: Step[] = [
     // (map / sidebar chrome) dims around it.
     target: 'report-panel',
     title: 'Scroll to explore the report',
-    body: 'Score, key findings, recommended actions, then the deep-dive accordion. Watch as we scroll through so you can see what\'s in there.',
-    advance: 'auto-timer',
-    // Timing inside the scroll-report-down onEnter block:
-    //   0.8s  →  scroll down ~420px (reveals findings + action card)
-    //   4.0s  →  scroll back up
-    //   5.5s  →  auto-advance
-    // Gives the user ~3 seconds parked at the scrolled position to
-    // actually read what's visible, plus a full beat at the top on
-    // the way out before we move on.
-    autoMs: 5500,
+    body: 'Score, key findings, recommended actions, then the deep-dive accordion. Watch as we scroll through, then click Next when you\'re ready.',
+    advance: 'next-button',
     placement: 'auto',
     onEnter: 'scroll-report-down',
   },
@@ -112,12 +104,14 @@ const STEPS: Step[] = [
     id: 'persona',
     target: '[data-tour="persona-toggle"]',
     title: 'Renter or buyer?',
-    body: 'Flipping personas retunes the whole report — rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers.',
-    advance: 'persona-toggled',
+    body: 'Flipping personas retunes the whole report: rent fairness and tenancy rights for renters, price advisor and due-diligence checklist for buyers. We\'ll flip it for you, then click Next.',
+    advance: 'next-button',
     placement: 'below',
     // Auto-click the OTHER persona tab with a visible tap ripple so
     // the user sees the report recompute without having to do it
-    // themselves. Scroll is handled by the shared step-enter block.
+    // themselves. Advance is manual — the user clicks Next when they
+    // want to move on so they can read the resulting report as long
+    // as they like.
     onEnter: 'auto-toggle-persona',
   },
   {
@@ -265,39 +259,11 @@ export function OnboardingTour() {
     };
   }, [active, step]);
 
-  // Auto-advance on address selection (step 3). Don't rely on a fixed
-  // timeout — the PropertyReport fetch is async and can take several
-  // seconds (SQL + transit + terrain overlays). If we advance too
-  // early the next step tries to measure/tap a PersonaToggle that
-  // isn't in the DOM yet and the tap ripple lands on empty space.
-  //
-  // Strategy: poll for `[data-tour="persona-toggle"]` — it renders
-  // inside PropertyReport, which only mounts after the fetch resolves.
-  // Once the toggle exists AND its rect is non-zero (i.e. it's
-  // actually laid out, not just in the DOM), advance with a short
-  // grace delay so the user sees the loaded report for a beat.
-  useEffect(() => {
-    if (!active) return;
-    if (step.advance !== 'address-selected') return;
-    if (!selectedAddress) return;
-
-    let tries = 0;
-    const MAX_TRIES = 60; // 60 × 200ms = 12s — generous for slow connections
-    const interval = setInterval(() => {
-      const el = document.querySelector('[data-tour="persona-toggle"]') as HTMLElement | null;
-      const rect = el?.getBoundingClientRect();
-      const ready = !!(rect && rect.width > 0 && rect.height > 0);
-      if (ready || tries >= MAX_TRIES) {
-        clearInterval(interval);
-        // Grace period so the loaded report is visible for a moment
-        // before the tour moves on.
-        setTimeout(() => goNext(), 700);
-      }
-      tries++;
-    }, 200);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, step, selectedAddress]);
+  // Previously we auto-advanced step 3 when selectedAddress appeared
+  // (polled for the PersonaToggle to finish loading). Tour now requires
+  // an explicit Next click on every step, so this effect is no longer
+  // needed — the user watches the property load and clicks Next when
+  // they're ready.
 
   // Helper — show a tap ripple at the centre of the current target so
   // the user sees WHERE the tour is clicking, not just the effect.
@@ -394,42 +360,11 @@ export function OnboardingTour() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
 
-  // Auto-advance for timer-based steps (e.g. the scroll demo). Kept
-  // separate from the onEnter effect above so the two can be reasoned
-  // about independently.
-  useEffect(() => {
-    if (!active) return;
-    if (step.advance !== 'auto-timer') return;
-    const ms = step.autoMs ?? 3000;
-    const t = setTimeout(() => goNext(), ms);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, step]);
-
-  // Auto-advance on persona toggle (step 4). Snapshot the initial
-  // persona on step entry so we only advance when it changes, not if
-  // the user already had it set.
-  useEffect(() => {
-    if (!active) return;
-    if (step.advance === 'persona-toggled') {
-      if (initialPersonaRef.current === null) {
-        initialPersonaRef.current = persona;
-        return;
-      }
-      if (persona !== initialPersonaRef.current) {
-        // Hold on the persona step long enough for the user to see
-        // the tab switch, the report rerender (KeyFindings + sections
-        // recompute), and read the "Renter or buyer?" explanation
-        // underneath the spotlight. 400ms previously felt like a
-        // flicker.
-        const t = setTimeout(() => goNext(), 2500);
-        return () => clearTimeout(t);
-      }
-    } else {
-      initialPersonaRef.current = null;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, step, persona]);
+  // Timer-based and persona-toggle auto-advance paths have been
+  // removed. Every step requires an explicit Next click so the user
+  // can dwell as long as they want. The onEnter side-effects (scroll
+  // the report, toggle persona for the user) still run; only the
+  // "move on for them" behaviour is gone.
 
   const finish = () => {
     setActive(false);
