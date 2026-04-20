@@ -320,7 +320,7 @@ function renderFindingList(findings: Finding[], tier: Tier): string {
   if (tier === "anon") {
     lines.push(`<li class="ws-finding">
       <span class="ws-chip ws-chip--lock">🔒</span>
-      <span><a href="${SIGN_IN_URL}" target="_blank" rel="noopener noreferrer">Sign in for persona-tailored findings</a></span>
+      <span><a href="${SIGN_IN_URL}" target="_blank" rel="noopener noreferrer">Sign in to see what matters for you</a></span>
     </li>`);
   }
   return lines.join("");

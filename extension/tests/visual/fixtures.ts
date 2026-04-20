@@ -50,7 +50,7 @@ export const fx_free_renter: BadgeResponse = {
     },
     {
       severity: "warning",
-      title: "Built before 1978 — likely to fail Healthy Homes insulation checks",
+      title: "Built before 1978 — Healthy Homes compliance not verified",
       detail: "Ask the landlord for an HH compliance statement before signing.",
     },
   ],
@@ -129,7 +129,7 @@ export const fx_pro_buyer: BadgeResponse = {
   findings: [
     {
       severity: "warning",
-      title: "CV sits $45k above the median for similar homes nearby — worth a comps check",
+      title: "CV sits $45k above the median for similar homes nearby",
       detail: "Recent comps suggest $820k–$920k market range.",
     },
     {
