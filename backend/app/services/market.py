@@ -34,7 +34,7 @@ def cv_uncertainty(months_since_valuation: int) -> float:
 
 REVALUATION_DATES = {
     "Wellington City": "2024-09-01",
-    "Christchurch City": "2022-08-01",
+    "Christchurch City": "2025-08-01",  # CCC 2025 reval — confirmed by user report 2026-04-21. CCC ArcGIS rating layer has NO date field, so this fallback IS the source of truth for every CCC HPI adjustment.
     "Taranaki": "2025-08-01",
     "Auckland": "2024-06-01",
     "Tasman District": "2024-09-01",
