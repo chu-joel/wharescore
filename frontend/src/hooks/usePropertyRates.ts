@@ -7,6 +7,13 @@ export interface LiveRates {
     land_value?: number;
     improvements_value?: number;
   };
+  /** Per-unit valued floor area (AKCC / WDC / ICC only). Prefer over the
+   * shared LINZ polygon for cross-lease / semi-detached addresses. */
+  total_floor_area_sqm?: number | null;
+  /** Per-unit building site coverage in m² (Auckland only). */
+  building_site_coverage_pct?: number | null;
+  /** Source tag for attribution (e.g. 'akcc', 'wdc_arcgis', 'icc_arcgis'). */
+  source?: string | null;
   rates_breakdown?: Array<{ name: string; amount: number }>;
   total_rates?: number;
 }

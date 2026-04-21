@@ -455,8 +455,15 @@ function computeContext(liveability: LiveabilityData, market: MarketData): Compu
 
 /**
  * Transform the raw API response into the shape the frontend components expect.
+ *
+ * `ratesData` is the council-rates API response (`snapshot.rates_data` on
+ * hosted reports). When present, its per-unit floor area / site coverage
+ * overrides whatever the SQL report returned. Needed for hosted snapshots
+ * generated before the snapshot_generator fix, which don't have
+ * `floor_area_sqm` baked into `report.property` but DO have `rates_data`
+ * alongside.
  */
-export function transformReport(raw: any): PropertyReport {
+export function transformReport(raw: any, ratesData?: any): PropertyReport {
   const scores = raw.scores ?? {};
   const rawCategories = scores.categories;
   const rawIndicators = scores.indicators;
@@ -485,9 +492,9 @@ export function transformReport(raw: any): PropertyReport {
   const rawProp = raw.property ?? {};
   const property = {
     building_area_sqm: rawProp.footprint_sqm ?? null,
-    floor_area_sqm: rawProp.floor_area_sqm ?? null,
-    floor_area_source: rawProp.floor_area_source ?? null,
-    site_coverage_sqm: rawProp.site_coverage_sqm ?? null,
+    floor_area_sqm: rawProp.floor_area_sqm ?? ratesData?.total_floor_area_sqm ?? null,
+    floor_area_source: rawProp.floor_area_source ?? ratesData?.source ?? null,
+    site_coverage_sqm: rawProp.site_coverage_sqm ?? ratesData?.building_site_coverage_pct ?? null,
     land_area_sqm: rawProp.cv_land_area || null,
     capital_value: rawProp.capital_value ?? null,
     land_value: rawProp.land_value ?? null,

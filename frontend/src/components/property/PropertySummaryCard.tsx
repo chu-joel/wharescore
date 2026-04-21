@@ -218,7 +218,7 @@ export function PropertySummaryCard({
         </div>
 
         {/* Property info. key-value pills */}
-        <PropertyPills report={report} property={property} effectiveCV={effectiveCV} cvIsLive={cvIsLive} ratesLoading={ratesLoading} />
+        <PropertyPills report={report} property={property} liveRates={liveRates} effectiveCV={effectiveCV} cvIsLive={cvIsLive} ratesLoading={ratesLoading} />
 
         {/* Persona-specific headline */}
         {personaHeadline && (
@@ -232,13 +232,24 @@ export function PropertySummaryCard({
   );
 }
 
-function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }: {
+function PropertyPills({ report, property, liveRates, effectiveCV, cvIsLive, ratesLoading }: {
   report: PropertyReport;
   property: PropertyReport['property'];
+  liveRates?: LiveRates | null;
   effectiveCV: number | null | undefined;
   cvIsLive: boolean;
   ratesLoading?: boolean;
 }) {
+  // Overlay per-unit floor area / coverage from the live rates response
+  // (AKCC / WDC / ICC). `_fix_unit_cv` doesn't run on the cached /report
+  // path any more, so `property.floor_area_sqm` is null until the lazy
+  // /rates call resolves - merge here.
+  const effectiveProperty: typeof property = {
+    ...property,
+    floor_area_sqm: liveRates?.total_floor_area_sqm ?? property.floor_area_sqm,
+    floor_area_source: liveRates?.source ?? property.floor_area_source,
+    site_coverage_sqm: liveRates?.building_site_coverage_pct ?? property.site_coverage_sqm,
+  };
   const [showAllPills, setShowAllPills] = useState(false);
   const [ratesTimedOut, setRatesTimedOut] = useState(false);
 
@@ -300,7 +311,7 @@ function PropertyPills({ report, property, effectiveCV, cvIsLive, ratesLoading }
     );
   }
   if (!hideBuildingAreas) {
-    const floor = resolveFloorArea(property, {
+    const floor = resolveFloorArea(effectiveProperty, {
       isMultiUnit: !!report.property_detection?.is_multi_unit,
       titleType: property.title_type,
     });

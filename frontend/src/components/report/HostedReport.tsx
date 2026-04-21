@@ -60,8 +60,8 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
   }, [snapshot.meta.address_id]);
 
   const report: PropertyReport = useMemo(() => {
-    return transformReport(snapshot.report);
-  }, [snapshot.report]);
+    return transformReport(snapshot.report, (snapshot as unknown as { rates_data?: unknown }).rates_data);
+  }, [snapshot.report, (snapshot as unknown as { rates_data?: unknown }).rates_data]);
 
   const rentBand = useMemo(() => {
     return computeRentBand(snapshot, store);
