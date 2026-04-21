@@ -1830,3 +1830,20 @@ async def list_reinz_hpi(request: Request):
         {"month_end": str(r["month_end"]), "total": r["total"], "with_cgr": r["with_cgr"]}
         for r in rows
     ]}
+
+
+@router.post("/cache/flush", dependencies=[Depends(require_admin)])
+async def admin_flush_cache(request: Request):
+    """FLUSHDB on Redis. Used after a data refresh (REINZ HPI upload,
+    DataSource reload, etc.) to evict stale 24h-cached reports and
+    price-advisor responses so users see the new values immediately."""
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: cache_flush from {client_ip}")
+    if not redis_client:
+        raise HTTPException(503, "Redis not available")
+    try:
+        await redis_client.flushdb()
+        return {"status": "flushed"}
+    except Exception as e:
+        logger.warning(f"Cache flush failed: {e}")
+        raise HTTPException(500, f"Flush failed: {e}")
