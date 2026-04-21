@@ -282,7 +282,8 @@ Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expir
 Estimate formula: `CV × HPI_adjustment × ensemble-blend-with-yield-inversion`.
 The HPI step was rewritten 2026-04-21 to use **regional** REINZ HPI instead of national RBNZ.
 
-1. Look up property's `valuation_date` — prefer `council_valuations.valuation_date` (populated for Auckland, WCC, KCDC only); else fall back to static `REVALUATION_DATES` dict in `backend/app/services/market.py` (audited monthly).
+0. **CV lookup**: prefer `council_valuations.capital_value` (populated for Auckland, WCC, KCDC only — ~3 of 44 councils). For the remaining 41 councils fall back to `routers/rates._fetch_rates_for_address()` which hits the live council rates API. Without this fallback `/price-advisor` returned yield-only bands for Chch, Dunedin, Taranaki, etc.
+1. Look up property's `valuation_date` — prefer `council_valuations.valuation_date` (same 3 councils); else fall back to static `REVALUATION_DATES` dict in `backend/app/services/market.py` (audited monthly).
 2. If reval is within 6 months, **skip HPI entirely** — CV is already the current market value; HPI adjustment adds noise.
 3. Else read latest `reinz_hpi_ta` row for the property's TA name. Back-calculate via compound annual growth:
    ```

@@ -178,7 +178,8 @@ async def compute_price_advice(
              WHERE a2.gd2000_xcoord = a.gd2000_xcoord
                AND a2.gd2000_ycoord = a.gd2000_ycoord
                AND a2.address_lifecycle = 'Current') AS unit_count,
-            cv.capital_value, cv.land_value, cv.valuation_date, cv.council
+            cv.capital_value, cv.land_value, cv.valuation_date, cv.council,
+            a.full_address, a.town_city
         FROM addresses a
         LEFT JOIN LATERAL (
             SELECT capital_value, land_value, valuation_date, council
@@ -212,9 +213,29 @@ async def compute_price_advice(
         land_value = int(prop["land_value"]) if prop.get("land_value") else 0
         improvements_value = capital_value - land_value
 
-    if capital_value is None and prop.get("capital_value") is None:
-        # No CV at all. try rates cache by address
-        pass
+    if capital_value is None:
+        # Fall back to the live council rates API. council_valuations has
+        # capital_value populated only for a subset of councils (Auckland,
+        # WCC, KCDC etc). For the other ~41 councils (including CCC) the
+        # CV only comes via the live rates API that _q_rates in
+        # snapshot_generator also uses. Without this fallback, /price-advisor
+        # returns a yield-only band for Chch/Dunedin/Taranaki/etc.
+        try:
+            from ..routers.rates import _fetch_rates_for_address
+            rates = await _fetch_rates_for_address(
+                prop.get("full_address") or "", prop.get("town_city") or "",
+                address_id, conn,
+            )
+            cv_block = (rates or {}).get("current_valuation") or {}
+            if cv_block.get("capital_value"):
+                capital_value = int(cv_block["capital_value"])
+                land_value = int(cv_block.get("land_value") or 0)
+                improvements_value = (
+                    int(cv_block.get("improvements_value") or 0)
+                    or (capital_value - land_value)
+                )
+        except Exception:
+            pass
 
     # Valuation date
     valuation_date = prop.get("valuation_date")
