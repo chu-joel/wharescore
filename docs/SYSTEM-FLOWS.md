@@ -289,7 +289,7 @@ The HPI step was rewritten 2026-04-21 to use **regional** REINZ HPI instead of n
    ```
    hpi_adjusted = CV × (1 + change_5y_cgr_pct/100) ^ years_since_reval
    ```
-   Prefer 5-year CGR; if TA isn't in page-6 movement table, use `change_1y_pct` as a 1-year annualised rate; if neither, skip HPI.
+   Prefer 5-year CGR; if TA isn't in page-6 movement table, use `change_1y_pct` as a 1-year annualised rate; if neither, consult `HPI_CGR_PROXY` in `market.py` (maps each no-CGR TA to its nearest page-6 neighbour — Waimakariri/Selwyn/Ashburton/Timaru → Christchurch, Tasman/Marlborough/Buller → Nelson, Kapiti → Wellington City, etc); if no proxy, skip HPI.
 4. Blend with yield-inversion (SA2 median rent × 52 ÷ regional yield) using existing `market_confidence_stars`.
 
 Data refresh: REINZ publishes a monthly HPI PDF (e.g. `reinz.co.nz/libraryviewer?ResourceID=XXX`). Upload via admin (forthcoming). Page 14 provides all 73 TAs; page 6 adds movement columns for ~27 major TAs. TAs outside page 6 lack CGR and fall through to 1y rate or skip HPI.

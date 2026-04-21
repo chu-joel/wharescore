@@ -22,6 +22,7 @@ from __future__ import annotations
 from datetime import date
 
 from .market import (
+    HPI_CGR_PROXY,
     REVALUATION_DATES,
     YIELD_TABLE,
     blend_sa2_tla,
@@ -287,6 +288,22 @@ async def compute_price_advice(
             elif reg and reg.get("change_1y_pct") is not None:
                 # No 5y CGR for this TA; use 1y as a rough annual rate.
                 cgr = float(reg["change_1y_pct"]) / 100.0
+            else:
+                # TA isn't in the page-6 summary table. Fall back to a
+                # geographic-neighbour proxy's CGR (market.HPI_CGR_PROXY).
+                proxy_ta = HPI_CGR_PROXY.get(ta)
+                if proxy_ta:
+                    cur = await conn.execute(
+                        """
+                        SELECT change_5y_cgr_pct FROM reinz_hpi_ta
+                        WHERE ta_name = %s
+                        ORDER BY month_end DESC LIMIT 1
+                        """,
+                        [proxy_ta],
+                    )
+                    proxy_row = cur.fetchone()
+                    if proxy_row and proxy_row.get("change_5y_cgr_pct") is not None:
+                        cgr = float(proxy_row["change_5y_cgr_pct"]) / 100.0
             if cgr is not None and cv_age_months:
                 years = cv_age_months / 12.0
                 # Back-calc HPI at reval: hpi_today = hpi_reval * (1+cgr)^years

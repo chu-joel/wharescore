@@ -63,6 +63,29 @@ REVALUATION_DATES = {
     "Porirua City": "2022-10-01",          # STALE, 2025-09 reval pending — verify
     "Buller District": "2022-10-01",       # STALE, next reval not yet published
     "Whanganui District": "2022-10-01",    # STALE, next reval not yet published
+    "Waimakariri District": "2023-09-01",  # Canterbury satellite; reval same cycle
+    "Selwyn District": "2023-09-01",       # Canterbury satellite
+    "Ashburton District": "2023-10-01",    # Canterbury satellite
+}
+
+# When a TA has no 5yr CGR in reinz_hpi_ta (i.e. it's in page 14 but not
+# page 6 of the REINZ report), fall back to a geographic neighbour's CGR
+# as a proxy. Update when adding a TA to REVALUATION_DATES if that TA
+# also lacks page-6 movement data.
+HPI_CGR_PROXY = {
+    "Waimakariri District": "Christchurch City",
+    "Selwyn District": "Christchurch City",
+    "Ashburton District": "Christchurch City",
+    "Timaru District": "Christchurch City",
+    "Tasman District": "Nelson City",
+    "Marlborough District": "Nelson City",
+    "Buller District": "Nelson City",
+    "Kapiti Coast District": "Wellington City",
+    "Horowhenua District": "Palmerston North City",
+    "Whanganui District": "Palmerston North City",
+    "Gisborne District": "Napier City",
+    "Central Otago District": "Queenstown-Lakes District",
+    "Waitaki District": "Dunedin City",
 }
 
 
