@@ -190,10 +190,10 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
     try:
         # 1. Search by address to get rateAccountKey
         search_addr = _simplify_address(address)
-        # pageSize=25: AC search is substring/prefix, so "52 Clarence" is
-        # outscored by "5, 12, 25, 32, 50" with pageSize=5 — the real property
-        # falls off the list before _best_match sees it.
-        search_url = f"{AC_SEARCH_URL}?query={urllib.parse.quote(search_addr)}&pageSize=25"
+        # pageSize=20 (AC API hard max): AC search is substring/prefix, so
+        # "52 Clarence" is outscored by "5, 12, 25, 32, 50" with pageSize=5 —
+        # the real property falls off the list before _best_match sees it.
+        search_url = f"{AC_SEARCH_URL}?query={urllib.parse.quote(search_addr)}&pageSize=20"
         logger.debug(f"Auckland search: {search_url}")
         search_data = await _fetch_json(search_url)
 
