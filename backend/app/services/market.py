@@ -33,18 +33,36 @@ def cv_uncertainty(months_since_valuation: int) -> float:
 
 
 REVALUATION_DATES = {
-    "Wellington City": "2024-09-01",
-    "Christchurch City": "2025-08-01",  # CCC 2025 reval — confirmed by user report 2026-04-21. CCC ArcGIS rating layer has NO date field, so this fallback IS the source of truth for every CCC HPI adjustment.
-    "Taranaki": "2025-08-01",
-    "Auckland": "2024-06-01",
-    "Tasman District": "2024-09-01",
-    "Buller District": "2024-09-01",
-    "Dunedin City": "2022-08-01",
-    # Extended 2026-04-18 based on council public notices + live ArcGIS probes.
-    # These are TA-wide revaluation effective dates; used only as fallback when
-    # council_valuations.valuation_date is NULL (loader unwired for that council).
-    "Hamilton City": "2024-09-01",  # Sept 2024 reval, rates from Jul 2025
-    "Kapiti Coast District": "2023-08-01",  # Confirmed by KCDC ArcGIS sample
+    # Effective dates of each TA's most recent revaluation. Only used as
+    # fallback when council_valuations.valuation_date is NULL (which is true
+    # for 41 of 44 councils; only Auckland, WCC, KCDC have DB dates).
+    # Audited 2026-04-21 against council websites + QV press releases.
+    "Auckland": "2024-05-01",              # DB has 2024-05-01; map is cosmetic
+    "Wellington City": "2024-09-01",       # DB has 2024-09-01
+    "Kapiti Coast District": "2023-08-01", # DB has 2023-08-01
+    "Christchurch City": "2025-08-01",     # fixed from 2022 (stale)
+    "Dunedin City": "2025-06-01",          # fixed from 2022 (stale)
+    "Tasman District": "2023-09-01",       # fixed from 2024-09 (wrong year)
+    "Hamilton City": "2024-09-01",
+    "Palmerston North City": "2024-09-01",
+    "Nelson City": "2024-09-01",
+    "Queenstown-Lakes District": "2024-09-01",
+    "New Plymouth District": "2025-08-01",
+    "Taranaki": "2025-08-01",              # regional alias for NPDC
+    "Horowhenua District": "2025-08-01",
+    "Hutt City": "2025-08-01",             # aka Lower Hutt
+    "Upper Hutt City": "2025-06-01",
+    "Whangarei District": "2024-07-01",
+    "Invercargill City": "2023-07-01",
+    "Rotorua Lakes": "2023-07-01",
+    "Marlborough District": "2023-07-01",
+    "Tauranga City": "2023-05-01",
+    "Gisborne District": "2023-08-01",
+    "Timaru District": "2023-09-01",
+    "Hastings District": "2022-08-01",     # 2025 reval in progress, not yet effective
+    "Porirua City": "2022-10-01",          # STALE, 2025-09 reval pending — verify
+    "Buller District": "2022-10-01",       # STALE, next reval not yet published
+    "Whanganui District": "2022-10-01",    # STALE, next reval not yet published
 }
 
 

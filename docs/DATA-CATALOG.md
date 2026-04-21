@@ -108,8 +108,9 @@
 | cycleways | ~TBD | name, surface, geom (linestring) | OSM Overpass API (16 cities). WKT uses comma-separated coords. Uses SAVEPOINT per insert for error isolation. | `community_facilities` snapshot → cycleway_km_2km |
 | at_stops | 7,023 | stop_id, route_types[], geom | AT GTFS | `get_transit_data()` (Auckland fallback) |
 | report_snapshots | per-report | snapshot_json (JSONB), share_token_hash, inputs_at_purchase, report_tier ('quick'/'full') | `create_report_snapshot()` | `/report/{token}` endpoint, `POST /report/{token}/upgrade` |
-| hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section, price advisor |
-| rbnz_housing | 143 | quarter_end, house_price_index, house_sales, housing_stock_value_m | RBNZ M10 | Source for hpi_national |
+| hpi_national | 143 | quarter_end, house_price_index, house_sales | RBNZ M10 | Report market section (charts only — no longer used by price_advisor) |
+| rbnz_housing | 143 | quarter_end, house_price_index, house_sales, housing_stock_value_m | RBNZ M10 | Source for hpi_national. No longer queried by price_advisor — see reinz_hpi_ta. |
+| reinz_hpi_ta | 73 rows per month | ta_name, month_end, hpi, change_1m_pct, change_3m_pct, change_1y_pct, change_5y_cgr_pct, calculated | REINZ Monthly HPI Report PDF (manual upload per month) | `price_advisor.py` — 5yr-CGR back-calculation from reval date. Replaces `rbnz_housing` national series which misrepresented regional markets (national -0.6%/5yr vs Chch +4.7%/5yr). Seeded with Mar 2026; upload new months via admin. TAs without movement columns fall back to 1yr change or skip HPI step. |
 | data_versions | 366 | source, loaded_at | data_loader.py | Track which DataSources loaded |
 | srtm_elevation | 0 (until loaded via `load_srtm_postgis.py`) | rast (raster), rid | SRTM 30m tiles (68 .hgt files) | `walking_isochrone.py` → snapshot terrain |
 | app_events | growing | event_type, created_at, user_id, session_id, ip_hash, properties (JSONB) | `event_writer.py` | Admin analytics dashboard (90-day retention) |

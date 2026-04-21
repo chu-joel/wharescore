@@ -232,7 +232,12 @@ async def compute_price_advice(
     blended_median = baseline["median"] if baseline else None
     bond_count = baseline["bond_count"] if baseline else 0
 
-    # 4. HPI adjustment
+    # 4. HPI adjustment. Uses REGIONAL HPI (reinz_hpi_ta) with 5yr-CGR
+    # back-calculation to the reval date. National rbnz_housing previously
+    # used here misrepresents regional markets — Chch was +4.7%/5yr CGR while
+    # national was -0.6%, producing ~15% underestimates on CCC properties.
+    # If reval is within 6 months, skip HPI entirely (drift negligible,
+    # anchor to CV). If no regional movement data for this TA, fall through.
     hpi_adjusted = None
     cv_age_months = None
     unc = 0.25
@@ -242,25 +247,30 @@ async def compute_price_advice(
         if cv_age_months is not None:
             unc = cv_uncertainty(cv_age_months)
 
-        cur = await conn.execute(
-            "SELECT house_price_index FROM rbnz_housing ORDER BY quarter_end DESC LIMIT 1"
-        )
-        current_hpi_row = cur.fetchone()
-        if current_hpi_row:
-            current_hpi = float(current_hpi_row["house_price_index"])
+        # Skip HPI step entirely for fresh revals — the CV IS the current market.
+        if cv_age_months is None or cv_age_months >= 6:
+            ta = sa2["ta_name"]
             cur = await conn.execute(
                 """
-                SELECT house_price_index FROM rbnz_housing
-                WHERE quarter_end <= %s
-                ORDER BY quarter_end DESC LIMIT 1
+                SELECT hpi, change_5y_cgr_pct, change_1y_pct, month_end
+                FROM reinz_hpi_ta
+                WHERE ta_name = %s
+                ORDER BY month_end DESC LIMIT 1
                 """,
-                [valuation_date],
+                [ta],
             )
-            hpi_val_row = cur.fetchone()
-            if hpi_val_row:
-                hpi_at_val = float(hpi_val_row["house_price_index"])
-                if hpi_at_val > 0:
-                    hpi_adjusted = round(capital_value * (current_hpi / hpi_at_val))
+            reg = cur.fetchone()
+            cgr = None
+            if reg and reg.get("change_5y_cgr_pct") is not None:
+                cgr = float(reg["change_5y_cgr_pct"]) / 100.0
+            elif reg and reg.get("change_1y_pct") is not None:
+                # No 5y CGR for this TA; use 1y as a rough annual rate.
+                cgr = float(reg["change_1y_pct"]) / 100.0
+            if cgr is not None and cv_age_months:
+                years = cv_age_months / 12.0
+                # Back-calc HPI at reval: hpi_today = hpi_reval * (1+cgr)^years
+                # So ratio hpi_today/hpi_reval = (1+cgr)^years.
+                hpi_adjusted = round(capital_value * (1 + cgr) ** years)
 
     # 5. Yield inversion
     yield_value = None
