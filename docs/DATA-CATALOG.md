@@ -13,7 +13,7 @@
 | # | Council | Module file | City match (lowercase) | Endpoint type | CV | LV | IV | Rates | Floor |
 |---|---------|------------|----------------------|--------------|:--:|:--:|:--:|:-----:|:-----:|
 | 1 | Wellington | `rates.py` | wellington | WCC API + wcc_rates_cache | Y | Y | Y | Y | - |
-| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API. `_best_match()` order: (1) suburb match **macron-folded** via `_fold()` (NFKD strip) — "Tōtara Vale" == "Totara Vale"; (2) exact leading street-number via `_leading_number()` — AC search returns partial-number hits so `pageSize=20` (AC API hard max) + number-equality are both required to avoid "52 Clarence" matching "12 Clarence"; (3) coordinate distance if `addresses.geom` present (async lookup uses `await cur.fetchone()`); (4) word-overlap fallback. | Y | Y | Y | Y | Y |
+| 2 | Auckland | `auckland_rates.py` | auckland | AC rates API. `_best_match()` order: (1) suburb match **macron-folded** via `_fold()` (NFKD strip) — "Tōtara Vale" == "Totara Vale"; (2) exact leading street-number via `_leading_number()` — AC search returns partial-number hits so `pageSize=20` (AC API hard max) + number-equality are both required to avoid "52 Clarence" matching "12 Clarence"; (3) coordinate distance if `addresses.geom` present (note: `db.py` wraps psycopg3 in `_CursorLike` — `fetchone()` is **synchronous**, do NOT `await` it); (4) word-overlap fallback. | Y | Y | Y | Y | Y |
 | 3 | Lower Hutt | `hcc_rates.py` | lower hutt | ArcGIS MapServer | Y | Y | Y | Y | - |
 | 4 | Upper Hutt | `uhcc_rates.py` | upper hutt | ArcGIS Online | Y | - | - | Y | - |
 | 5 | Porirua | `pcc_rates.py` | porirua | ArcGIS MapServer | Y | Y | Y | - | - |

@@ -213,7 +213,7 @@ async def fetch_auckland_rates(address: str, conn) -> dict | None:
                     "WHERE full_address = %s LIMIT 1",
                     [address],
                 )
-                row = await cur.fetchone()
+                row = cur.fetchone()
                 if row and row.get("lat") is not None and row.get("lng") is not None:
                     ref_lat, ref_lng = float(row["lat"]), float(row["lng"])
             except Exception as e:
@@ -322,7 +322,7 @@ async def _get_cached(address: str, conn) -> dict | None:
             """,
             [f"%{search}%"],
         )
-        r = await cur.fetchone()
+        r = cur.fetchone()
         if not r:
             return None
 
