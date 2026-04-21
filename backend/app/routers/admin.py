@@ -1737,3 +1737,96 @@ async def resolve_error(request: Request, error_id: int):
             [error_id],
         )
     return {"status": "resolved"}
+
+
+@router.post("/reinz-hpi/upload", dependencies=[Depends(require_admin)])
+async def upload_reinz_hpi(request: Request, payload: dict = Body(...)):
+    """Upsert a month of REINZ HPI data.
+
+    Body shape:
+      {
+        "month_end": "2026-04-30",
+        "rows": [
+          {"ta_name": "Christchurch City", "hpi": 3795,
+           "calculated": "Actual Month",
+           "change_1m_pct": -0.1, "change_3m_pct": 2.9,
+           "change_1y_pct": 4.5, "change_5y_cgr_pct": 4.7},
+          ...
+        ]
+      }
+
+    change_* fields are optional — REINZ only publishes movement columns
+    for ~27 major TAs (page-6 summary). Others go in with just hpi +
+    calculated. price_advisor falls back to 1y rate or skips HPI entirely
+    when CGR is absent.
+
+    Source: REINZ Monthly HPI Report PDF (page 14 full TA index, page 6
+    summary-of-movements percentages). Download monthly from
+    reinz.co.nz/libraryviewer?ResourceID=XXX — parse offline, POST here.
+    """
+    month_end = payload.get("month_end")
+    rows = payload.get("rows") or []
+    if not month_end:
+        raise HTTPException(400, "month_end required (YYYY-MM-DD)")
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(400, "rows required (non-empty list)")
+
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: reinz_hpi_upload month={month_end} rows={len(rows)} from {client_ip}")
+
+    inserted = 0
+    updated = 0
+    async with _db.pool.connection() as conn:
+        for r in rows:
+            ta = r.get("ta_name")
+            hpi = r.get("hpi")
+            if not ta or hpi is None:
+                continue
+            result = await conn.execute(
+                """
+                INSERT INTO reinz_hpi_ta (
+                  ta_name, month_end, hpi, calculated,
+                  change_1m_pct, change_3m_pct, change_1y_pct, change_5y_cgr_pct
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (ta_name, month_end) DO UPDATE SET
+                  hpi = EXCLUDED.hpi,
+                  calculated = EXCLUDED.calculated,
+                  change_1m_pct = EXCLUDED.change_1m_pct,
+                  change_3m_pct = EXCLUDED.change_3m_pct,
+                  change_1y_pct = EXCLUDED.change_1y_pct,
+                  change_5y_cgr_pct = EXCLUDED.change_5y_cgr_pct
+                RETURNING (xmax = 0) AS was_insert
+                """,
+                [
+                    ta, month_end, hpi, r.get("calculated"),
+                    r.get("change_1m_pct"), r.get("change_3m_pct"),
+                    r.get("change_1y_pct"), r.get("change_5y_cgr_pct"),
+                ],
+            )
+            row = result.fetchone()
+            if row and row.get("was_insert"):
+                inserted += 1
+            else:
+                updated += 1
+
+    return {"month_end": month_end, "inserted": inserted, "updated": updated}
+
+
+@router.get("/reinz-hpi", dependencies=[Depends(require_admin)])
+async def list_reinz_hpi(request: Request):
+    """Return month_end coverage + row counts — sanity check before/after upload."""
+    async with _db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT month_end, COUNT(*) AS total,
+                   COUNT(change_5y_cgr_pct) AS with_cgr
+            FROM reinz_hpi_ta
+            GROUP BY month_end
+            ORDER BY month_end DESC
+            """
+        )
+        rows = cur.fetchall()
+    return {"months": [
+        {"month_end": str(r["month_end"]), "total": r["total"], "with_cgr": r["with_cgr"]}
+        for r in rows
+    ]}
