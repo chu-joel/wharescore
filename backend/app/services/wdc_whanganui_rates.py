@@ -23,9 +23,11 @@ def _parse_currency(v) -> int | None:
     except: return None
 
 def _build_cql(full_address: str) -> str:
+    # WDC GeoServer schema renamed "address" → "full_address" (discovered
+    # 2026-04-21 via DescribeFeatureType; old column was causing 100% 404s).
     parts = full_address.split(",")
     street = parts[0].strip().replace("'", "''")
-    return f"address LIKE '{street}%'"
+    return f"full_address LIKE '{street}%'"
 
 async def fetch_whanganui_rates(address: str, conn=None) -> dict | None:
     try:
@@ -44,7 +46,11 @@ async def fetch_whanganui_rates(address: str, conn=None) -> dict | None:
         # Get prop_no from best address match
         feat = addr_data["features"][0]
         prop_no = feat.get("properties", {}).get("prop_no")
-        found_addr = feat.get("properties", {}).get("address", address)
+        found_addr = (
+            feat.get("properties", {}).get("full_address")
+            or feat.get("properties", {}).get("address")
+            or address
+        )
         if not prop_no: return None
 
         # Step 2: Get valuation by prop_no

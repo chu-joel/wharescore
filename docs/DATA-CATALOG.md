@@ -36,7 +36,7 @@
 | 22 | Rotorua | `rlc_rates.py` | rotorua | ArcGIS Online | Y | Y | Y | Y | - |
 | 23 | Timaru | `timaru_rates.py` | timaru, temuka, geraldine | ArcGIS MapServer | Y | Y | Y | - | - |
 | 24 | Marlborough | `mdc_rates.py` | blenheim, marlborough, picton, renwick | ArcGIS MapServer | Y | Y | Y | - | - |
-| 25 | Whanganui | `wdc_whanganui_rates.py` | whanganui, wanganui | GeoServer WFS 2-step | Y | Y | Y | - | - |
+| 25 | Whanganui | `wdc_whanganui_rates.py` | whanganui, wanganui | GeoServer WFS 2-step — WDC renamed `address` → `full_address` on `geonode:property_addresses` (fixed 2026-04-21). DescribeFeatureType is the canonical source if the schema shifts again. | Y | Y | Y | - | - |
 
 **Floor area column** — `Y` means the rates API returns per-unit valued floor area and the module surfaces it as `total_floor_area_sqm` in the response dict. `_fix_unit_cv()` and `snapshot_generator.py` write that back to `report.property.floor_area_sqm`, which the frontend `resolveFloorArea()` helper prefers over the shared LINZ `footprint_sqm` polygon. Essential for cross-lease / semi-detached addresses - without it, every unit shows the same whole-building footprint. Schemas introspected on all 25 councils 2026-04-21; only AKCC / WDC / ICC expose the field.
 
