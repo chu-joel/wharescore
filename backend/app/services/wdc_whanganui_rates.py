@@ -45,33 +45,37 @@ async def fetch_whanganui_rates(address: str, conn=None) -> dict | None:
 
         # Get prop_no from best address match
         feat = addr_data["features"][0]
-        prop_no = feat.get("properties", {}).get("prop_no")
-        found_addr = (
-            feat.get("properties", {}).get("full_address")
-            or feat.get("properties", {}).get("address")
-            or address
-        )
-        if not prop_no: return None
-
-        # Step 2: Get valuation by prop_no
+        props = feat.get("properties", {})
+        found_addr = props.get("full_address") or props.get("address") or address
+        # WDC dropped the explicit prop_no join key from property_addresses.
+        # Fall back to spatial BBOX intersect on property_values using a
+        # ~20m tolerance around the address point. property_values also has
+        # a geom column (confirmed via DescribeFeatureType 2026-04-21).
+        geom = feat.get("geometry") or {}
+        coords = geom.get("coordinates") if geom.get("type") == "Point" else None
+        if not coords:
+            return None
+        lon, lat = float(coords[0]), float(coords[1])
+        delta = 0.0002   # ~20m
+        bbox = f"{lon-delta},{lat-delta},{lon+delta},{lat+delta},EPSG:4326"
         val_params = {
             "service": "WFS", "version": "1.0.0", "request": "GetFeature",
             "typeName": "geonode:property_values",
             "outputFormat": "application/json",
-            "CQL_FILTER": f"prop_no='{prop_no}'",
-            "maxFeatures": "1",
+            "bbox": bbox,
+            "maxFeatures": "3",
         }
         val_url = f"{WDC_VALUES_URL}?{urllib.parse.urlencode(val_params)}"
         val_data = await _fetch_json(val_url)
         if not val_data or not val_data.get("features"): return None
 
-        props = val_data["features"][0].get("properties", {})
-        cv = _parse_currency(props.get("capital_value"))
-        lv = _parse_currency(props.get("land_value"))
-        iv = _parse_currency(props.get("improvements"))
+        val_props = val_data["features"][0].get("properties", {})
+        cv = _parse_currency(val_props.get("capital_value"))
+        lv = _parse_currency(val_props.get("land_value"))
+        iv = _parse_currency(val_props.get("improvements"))
 
         return {
-            "valuation_number": props.get("assessment_no"),
+            "valuation_number": val_props.get("assessment_no"),
             "address": found_addr,
             "legal_description": None,
             "current_valuation": {"capital_value": cv, "land_value": lv, "improvements_value": iv, "total_rates": None},
