@@ -111,27 +111,35 @@ export function AnalyticsPanel() {
         ))}
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Searches" value={today.searches} icon={Search} />
-        <StatCard label="Report Views" value={today.report_views} icon={Eye} />
-        <StatCard label="Reports Generated" value={today.reports_generated} icon={FileText} />
-        <StatCard label="Payments" value={today.payments} icon={CreditCard} />
-        <StatCard label="Active Sessions" value={today.active_sessions} icon={Users} />
-        <StatCard label="Requests" value={today.total_requests} icon={Activity} />
-        <StatCard
-          label="Avg Response"
-          value={`${Math.round(today.avg_response_ms)}ms`}
-          icon={Clock}
-        />
-        <StatCard
-          label="Errors (24h)"
-          value={today.errors}
-          icon={AlertTriangle}
-          alert={today.errors > 0}
-          sub={unresolved_errors_24h > 0 ? `${unresolved_errors_24h} unresolved` : undefined}
-        />
-      </div>
+      {/* Stat cards — all scale with the selected range EXCEPT Active Sessions,
+          which stays today-only because it answers "who's here right now". */}
+      {(() => {
+        const rangeLabel = TIME_RANGES.find((r) => r.days === days)?.label ?? `${days}d`;
+        const rangeSub = rangeLabel === 'Today' ? 'today' : `last ${rangeLabel}`;
+        return (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Searches" value={today.searches} icon={Search} sub={rangeSub} />
+            <StatCard label="Report Views" value={today.report_views} icon={Eye} sub={rangeSub} />
+            <StatCard label="Reports Generated" value={today.reports_generated} icon={FileText} sub={rangeSub} />
+            <StatCard label="Payments" value={today.payments} icon={CreditCard} sub={rangeSub} />
+            <StatCard label="Active Sessions" value={today.active_sessions} icon={Users} sub="today" />
+            <StatCard label="Requests" value={today.total_requests} icon={Activity} sub={rangeSub} />
+            <StatCard
+              label="Avg Response"
+              value={`${Math.round(today.avg_response_ms)}ms`}
+              icon={Clock}
+              sub={rangeSub}
+            />
+            <StatCard
+              label="Errors"
+              value={today.errors}
+              icon={AlertTriangle}
+              alert={today.errors > 0}
+              sub={unresolved_errors_24h > 0 ? `${unresolved_errors_24h} unresolved (24h)` : rangeSub}
+            />
+          </div>
+        );
+      })()}
 
       {/* Unique visitors. DAU / WAU / MAU + new vs returning today.
           Sits just below the live stat cards because "who's here now"

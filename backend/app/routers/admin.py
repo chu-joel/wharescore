@@ -1399,18 +1399,25 @@ async def analytics_overview(request: Request, days: int = Query(7, le=90)):
     async with _db.pool.connection() as conn:
         result: dict = {}
 
-        # --- Today's live stats ---
+        # Stat cards scale with the selected range (days), except active_sessions
+        # which stays today-only because it's a "who's here right now" metric.
         cur = await conn.execute("""
             SELECT
                 COALESCE(SUM(CASE WHEN event_type = 'search' THEN 1 END), 0) AS searches,
                 COALESCE(SUM(CASE WHEN event_type = 'report_view' THEN 1 END), 0) AS report_views,
                 COALESCE(SUM(CASE WHEN event_type = 'report_generated' THEN 1 END), 0) AS reports_generated,
-                COALESCE(SUM(CASE WHEN event_type = 'payment_completed' THEN 1 END), 0) AS payments,
-                COUNT(DISTINCT session_id) AS active_sessions
+                COALESCE(SUM(CASE WHEN event_type = 'payment_completed' THEN 1 END), 0) AS payments
+            FROM app_events
+            WHERE created_at >= NOW() - make_interval(days => %s)
+        """, [days])
+        range_events = cur.fetchone() or {}
+
+        cur = await conn.execute("""
+            SELECT COUNT(DISTINCT session_id) AS active_sessions
             FROM app_events
             WHERE created_at >= CURRENT_DATE
         """)
-        today_events = cur.fetchone() or {}
+        today_sessions = cur.fetchone() or {}
 
         cur = await conn.execute("""
             SELECT
@@ -1418,27 +1425,28 @@ async def analytics_overview(request: Request, days: int = Query(7, le=90)):
                 ROUND(AVG(duration_ms)::numeric, 1) AS avg_response_ms,
                 COALESCE(SUM(CASE WHEN status_code >= 500 THEN 1 END), 0) AS server_errors
             FROM perf_metrics
-            WHERE created_at >= CURRENT_DATE
-        """)
-        today_perf = cur.fetchone() or {}
+            WHERE created_at >= NOW() - make_interval(days => %s)
+        """, [days])
+        range_perf = cur.fetchone() or {}
 
         cur = await conn.execute("""
             SELECT COUNT(*) AS count FROM error_log
-            WHERE created_at >= CURRENT_DATE
-        """)
-        today_errors = cur.fetchone() or {}
+            WHERE created_at >= NOW() - make_interval(days => %s)
+        """, [days])
+        range_errors = cur.fetchone() or {}
 
         result["today"] = {
-            "searches": today_events.get("searches", 0),
-            "report_views": today_events.get("report_views", 0),
-            "reports_generated": today_events.get("reports_generated", 0),
-            "payments": today_events.get("payments", 0),
-            "active_sessions": today_events.get("active_sessions", 0),
-            "total_requests": today_perf.get("total_requests", 0),
-            "avg_response_ms": float(today_perf.get("avg_response_ms") or 0),
-            "server_errors": today_perf.get("server_errors", 0),
-            "errors": today_errors.get("count", 0),
+            "searches": range_events.get("searches", 0),
+            "report_views": range_events.get("report_views", 0),
+            "reports_generated": range_events.get("reports_generated", 0),
+            "payments": range_events.get("payments", 0),
+            "active_sessions": today_sessions.get("active_sessions", 0),
+            "total_requests": range_perf.get("total_requests", 0),
+            "avg_response_ms": float(range_perf.get("avg_response_ms") or 0),
+            "server_errors": range_perf.get("server_errors", 0),
+            "errors": range_errors.get("count", 0),
         }
+        result["range_days"] = days
 
         # --- Trends (from daily_metrics, falling back to live for recent days) ---
         cur = await conn.execute("""
