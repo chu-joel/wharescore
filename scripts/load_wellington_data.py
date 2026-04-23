@@ -169,9 +169,23 @@ def load_mbie_epb(cur):
 
     print(f"  Total buildings: {len(all_buildings)}")
 
-    cur.execute("DELETE FROM mbie_epb")
+    # Safety guard: if the fetch came back implausibly small we'd otherwise
+    # flag ~every building as removed. 4000 floor is well under the observed
+    # ~5900 register size but comfortably catches a truncated fetch.
+    if len(all_buildings) < 4000:
+        raise RuntimeError(
+            f"MBIE EPB fetch returned only {len(all_buildings)} buildings, "
+            "refusing to proceed (would mark the register as mass-delisted). "
+            "Investigate the API before retrying."
+        )
+
+    # Soft-delete strategy: UPSERT everything we saw with last_seen_at = now,
+    # then stamp removed_at on any row the sweep missed. See migration 0057.
+    cur.execute("SELECT NOW()")
+    load_started_at = cur.fetchone()[0]
 
     count = 0
+    removed_by_mbie = 0
     for b in all_buildings:
         lat = b.get("latitude")
         lng = b.get("longitude")
@@ -213,16 +227,50 @@ def load_mbie_epb(cur):
 
         priority_val = b.get("priority")
         priority_str = "Priority" if priority_val else None
+        has_been_removed = bool(b.get("hasBeenRemoved", False))
 
         cur.execute("""
-            INSERT INTO mbie_epb
+            INSERT INTO mbie_epb_history
                 (id, name, address_line1, address_line2, suburb, city, region,
                  earthquake_rating, heritage_status, construction_type,
                  design_date, priority, notice_date, completion_deadline,
-                 issued_by, seismic_risk_area, geom)
+                 issued_by, seismic_risk_area, geom,
+                 first_seen_at, last_seen_at, removed_at,
+                 has_been_removed, raw_json)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                ST_SetSRID(ST_MakePoint(%s, %s), 4326))
-            ON CONFLICT (id) DO NOTHING
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                %s, %s,
+                CASE WHEN %s THEN %s ELSE NULL END,
+                %s, %s::jsonb)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                address_line1 = EXCLUDED.address_line1,
+                address_line2 = EXCLUDED.address_line2,
+                suburb = EXCLUDED.suburb,
+                city = EXCLUDED.city,
+                region = EXCLUDED.region,
+                earthquake_rating = EXCLUDED.earthquake_rating,
+                heritage_status = EXCLUDED.heritage_status,
+                construction_type = EXCLUDED.construction_type,
+                design_date = EXCLUDED.design_date,
+                priority = EXCLUDED.priority,
+                notice_date = EXCLUDED.notice_date,
+                completion_deadline = EXCLUDED.completion_deadline,
+                issued_by = EXCLUDED.issued_by,
+                seismic_risk_area = EXCLUDED.seismic_risk_area,
+                geom = EXCLUDED.geom,
+                last_seen_at = EXCLUDED.last_seen_at,
+                has_been_removed = EXCLUDED.has_been_removed,
+                raw_json = EXCLUDED.raw_json,
+                -- Removal state is driven by MBIE's hasBeenRemoved flag.
+                -- First time we see it true: stamp removed_at = now.
+                -- If MBIE un-removes it: clear removed_at.
+                -- Otherwise leave removed_at unchanged.
+                removed_at = CASE
+                    WHEN EXCLUDED.has_been_removed = FALSE THEN NULL
+                    WHEN mbie_epb_history.removed_at IS NULL THEN EXCLUDED.last_seen_at
+                    ELSE mbie_epb_history.removed_at
+                END
         """, (
             bid,
             clean(b.get("name")),
@@ -241,10 +289,29 @@ def load_mbie_epb(cur):
             clean(b.get("issuedBy")),
             None,  # seismicRiskArea only in detail endpoint
             lng, lat,
+            load_started_at, load_started_at,
+            has_been_removed, load_started_at,  # removed_at stamp if flagged
+            has_been_removed,
+            json.dumps(b),
         ))
         count += 1
+        if has_been_removed:
+            removed_by_mbie += 1
 
-    print(f"  Inserted {count} buildings")
+    # Backstop: if a row we have in the DB wasn't in MBIE's feed at all this
+    # refresh, treat it as removed. hasBeenRemoved handles the normal case;
+    # this catches rows MBIE purges entirely.
+    cur.execute("""
+        UPDATE mbie_epb_history
+        SET removed_at = NOW()
+        WHERE removed_at IS NULL
+          AND has_been_removed = FALSE
+          AND (last_seen_at IS NULL OR last_seen_at < %s)
+    """, (load_started_at,))
+    vanished = cur.rowcount
+
+    print(f"  Upserted {count} rows ({removed_by_mbie} flagged hasBeenRemoved), "
+          f"marked {vanished} as vanished from feed")
     return count
 
 
