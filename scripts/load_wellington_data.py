@@ -128,15 +128,16 @@ def table_has_rows(cur, table_name):
 # ============================================================
 def load_mbie_epb(cur):
     print("\n=== 1. MBIE Earthquake-Prone Buildings ===")
-    # `?export=all` is what the MBIE UI uses for its CSV export. It returns
-    # every currently-listed building in one ~9MB JSON response with the full
-    # detail set (constructionType, designDate, seismicRiskArea, region,
-    # territorialAuthority, legalDescription, taReference, noticeNumber).
-    # The paginated `?page=N` endpoint is broken — it ignores the page param
-    # and always returns the first 20 rows. Only active buildings come back
-    # (hasBeenRemoved rows are not included), so the vanished-from-feed
-    # backstop is the primary removal signal here.
-    url = "https://epbr.building.govt.nz/api/public/buildings?export=all"
+    # `?export=all&filter.hideRemoved=false` returns EVERY building on
+    # the MBIE register (~8,400 = ~5,900 active + ~2,500 historical
+    # delistings) in one ~13MB JSON with full detail. noticeStatus ==
+    # "Removed" flags a delisted row. The default `?page=N` endpoint is
+    # broken (ignores the page param, returns same 20 rows forever) and
+    # the correct pagination uses dot-notation `paging.index` /
+    # `paging.size` with `filter.hideRemoved=false`, but `export=all`
+    # is cleaner for a full sync. Params were reverse-engineered from
+    # the MBIE UI's bundle.js — they're not documented.
+    url = "https://epbr.building.govt.nz/api/public/buildings?export=all&filter.hideRemoved=false"
     print("  Fetching full export...")
     for attempt in range(3):
         try:
@@ -157,10 +158,11 @@ def load_mbie_epb(cur):
     all_buildings = data.get("results", []) if isinstance(data, dict) else []
     print(f"  Total buildings: {len(all_buildings)} (resultsTotal: {data.get('resultsTotal')})")
 
-    # Safety guard: if the fetch came back implausibly small we'd otherwise
-    # flag ~every building as removed. 4000 floor is well under the observed
-    # ~5900 register size but comfortably catches a truncated fetch.
-    if len(all_buildings) < 4000:
+    # Safety guard: full register (active + removed) is ~8,400 rows.
+    # 7,000 floor is well below that but comfortably catches a truncated
+    # fetch (which would otherwise mark thousands of buildings as
+    # mass-delisted via the vanished-from-feed backstop).
+    if len(all_buildings) < 7000:
         raise RuntimeError(
             f"MBIE EPB fetch returned only {len(all_buildings)} buildings, "
             "refusing to proceed (would mark the register as mass-delisted). "
@@ -222,9 +224,12 @@ def load_mbie_epb(cur):
         # export=all uses `isPriority`; legacy paginated used `priority`.
         priority_val = b.get("isPriority", b.get("priority"))
         priority_str = "Priority" if priority_val else None
-        # export=all does NOT include hasBeenRemoved (only active rows come
-        # back). Keep the read for compatibility with the paginated shape.
-        has_been_removed = bool(b.get("hasBeenRemoved", False))
+        # Removal signal: export=all shape uses noticeStatus == "Removed"
+        # (paginated shape uses hasBeenRemoved boolean). Accept either.
+        has_been_removed = (
+            bool(b.get("hasBeenRemoved"))
+            or b.get("noticeStatus") == "Removed"
+        )
 
         # name: export=all has "names" (array); legacy had "name". Join if list.
         names_val = b.get("names") if isinstance(b.get("names"), list) else None

@@ -46,18 +46,20 @@ Example spatial query:
 
 ## 3. MBIE Earthquake-Prone Building Register
 
-Public API (no auth, undocumented):
+Public API (no auth, undocumented — parameters reverse-engineered from the MBIE UI's `bundle.js`):
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET https://epbr.building.govt.nz/api/public/buildings?export=all` | **Use this.** Returns all currently-listed buildings (~5,940) in one ~9MB JSON. Full detail set. This is what MBIE's UI uses for its CSV export. |
-| `GET https://epbr.building.govt.nz/api/query/all-locations` | Geo-only skeleton (buildingId, versionId, name, lat, lng) — useful for map tiles but lacks ratings/deadline. |
-| `GET https://epbr.building.govt.nz/api/query/location-detail?versionId={vid}` | Single building by versionId. Minimal fields only (address, name, image). |
-| ~~`GET https://epbr.building.govt.nz/api/public/buildings?pageSize=20&page={n}`~~ | **Broken.** The paginated endpoint ignores `page`/`pageIndex`/`offset`/`skip`/`start` and returns the same first 20 rows every time. All filter params (`name`, `search`, `q`, `town`, `region`, `earthquakeRating`, `includeRemoved`, etc.) are silently ignored. Do not use. |
+| `GET /api/public/buildings?export=all&filter.hideRemoved=false` | **Use this.** Returns every building on the register (~8,400 = ~5,940 active + ~2,460 historical delistings) in one ~13MB JSON. Full detail set. Removed rows signalled by `noticeStatus == "Removed"`. |
+| `GET /api/public/buildings?paging.index=N&paging.size=S&filter.hideRemoved=false` | Paginated variant. Same 8,400-row superset, lighter payload per row (`hasBeenRemoved` boolean + `removalReason` string). Useful if you need `removalReason` copy. |
+| `GET /api/query/all-locations` | Geo-only skeleton (`buildingId`, `versionId`, `name`, `lat`, `lng`) for active buildings only. Useful for map tiles. |
+| `GET /api/query/location-detail?versionId={vid}` | Single building by versionId. Minimal fields (address, name, image). |
 
-**`export=all` returns per building:** `id` (UUID), `buildingNationalIdentifier`, `territorialAuthority`, `addresses` (array), `latitude`, `longitude`, `names` (array), `legalDescription`, `comment`, `constructionType`, `designDate`, `seismicRiskArea`, `region`, `parts`, `taReference`, `noticeType`, `noticeNumber`, `noticeDate`, `completionDeadline`, `earthquakeRating`, `isProceeding`, `isPriority`, `isExtended`, `isExtensionRevoked`, `hasExemptionNotice`, `publishingStatus`, `version`, `noticeStatus`, `hasPartPriority`.
+**Critical pagination gotcha:** the endpoint uses dot-notation — `paging.index` and `paging.size`, not `page`/`pageIndex`. Also, the default `filter.hideRemoved=true` strips all delistings. If you pass `?page=N&pageSize=20` (the shape our old docs recommended), the server silently ignores every param and returns the same first 20 active rows forever. That bug caused our DB to hold 20 EPBs instead of 5,813 until 2026-04-23.
 
-**Removed/delisted buildings are not exposed by any public JSON endpoint found to date.** MBIE's UI shows them (e.g. Melksham Towers at 131 Brougham St), but none of the above endpoints returns a row with `hasBeenRemoved=true`. Search params to surface them (`includeRemoved`, `showRemoved`, `isRemoved`, `status=removed`, etc.) are all silently ignored. To capture historical delistings we'd need to reverse-engineer the UI with Playwright or file an OIA request. Going-forward tracking works via the "vanished from export=all" backstop in the loader — any building that drops out of the export feed gets `removed_at` stamped.
+**`export=all` returns per building:** `id` (UUID), `buildingNationalIdentifier`, `territorialAuthority`, `addresses` (array), `latitude`, `longitude`, `names` (array), `legalDescription`, `comment`, `constructionType`, `designDate`, `seismicRiskArea`, `region`, `parts`, `taReference`, `noticeType`, `noticeNumber`, `noticeDate`, `completionDeadline`, `earthquakeRating`, `isProceeding`, `isPriority`, `isExtended`, `extensionGrantedDate`, `isExtensionRevoked`, `hasExemptionNotice`, `publishingStatus`, `version`, `noticeStatus` ("Issued" / "Removed"), `hasPartPriority`.
+
+**Paginated shape additionally returns:** `hasBeenRemoved` (bool), `removalReason` (string — e.g. "Further information"), `address` (singular, not array), `priority` (instead of `isPriority`), `name` (instead of `names`). It does NOT return the detail fields (`constructionType`, `designDate`, `seismicRiskArea`, `region`, `legalDescription`, `taReference`, `noticeNumber`).
 
 ## 4. Metlink Public Transport
 
