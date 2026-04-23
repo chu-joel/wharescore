@@ -330,6 +330,75 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
         logger.warning(f"Terrain overlay failed for {address_id}: {e}")
 
 
+async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
+    """Surface "this building was previously on the EPB register" signal.
+
+    A delisted EPB at the exact property is a strong positive signal — it
+    almost always means the owner completed seismic strengthening. Also
+    surfaces counts of former EPBs in the 300m neighbourhood for context
+    (a street full of remediated buildings tells a different story from
+    a street full of active EPBs).
+
+    Writes to hazards.former_epb_at_property (single dict or None) and
+    hazards.former_epb_count_300m (int).
+    """
+    try:
+        async with db.pool.connection() as conn:
+            # Same-building match: 20m radius (matches the existing epb_nearest
+            # logic in get_property_report). Join to mbie_epb_history directly
+            # since the mbie_epb view filters removed rows out.
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT
+                    earthquake_rating, construction_type, completion_deadline,
+                    removed_at, raw_json,
+                    round(ST_Distance(h.geom::geography, addr.geom::geography)::numeric) AS distance_m
+                FROM mbie_epb_history h, addr
+                WHERE h.has_been_removed = TRUE
+                  AND h.geom && ST_Expand(addr.geom, 0.0003)
+                  AND ST_DWithin(h.geom::geography, addr.geom::geography, 20)
+                ORDER BY ST_Distance(h.geom::geography, addr.geom::geography) ASC
+                LIMIT 1
+            """, [address_id])
+            at_property_row = cur.fetchone()
+
+            # Neighbourhood count: 300m, matches epb_count_300m convention.
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT COUNT(*)::int AS cnt
+                FROM mbie_epb_history h, addr
+                WHERE h.has_been_removed = TRUE
+                  AND h.geom && ST_Expand(addr.geom, 0.005)
+                  AND ST_DWithin(h.geom::geography, addr.geom::geography, 300)
+            """, [address_id])
+            count_row = cur.fetchone() or {}
+
+        hazards = report.setdefault("hazards", {})
+        hazards["former_epb_count_300m"] = count_row.get("cnt", 0)
+
+        if at_property_row:
+            # raw_json carries removalReason (paginated shape) when we've
+            # merged it in, else we fall back to just the typed columns.
+            raw = at_property_row.get("raw_json") or {}
+            removal_reason = raw.get("removalReason") if isinstance(raw, dict) else None
+            removed_at = at_property_row.get("removed_at")
+            hazards["former_epb_at_property"] = {
+                "earthquake_rating": at_property_row.get("earthquake_rating"),
+                "construction_type": at_property_row.get("construction_type"),
+                "completion_deadline": (
+                    at_property_row["completion_deadline"].isoformat()
+                    if at_property_row.get("completion_deadline") else None
+                ),
+                "delisted_at": removed_at.isoformat() if removed_at else None,
+                "removal_reason": removal_reason,
+                "distance_m": int(at_property_row.get("distance_m") or 0),
+            }
+        else:
+            hazards["former_epb_at_property"] = None
+    except Exception as e:
+        logger.warning(f"former_epb overlay failed for {address_id}: {e}")
+
+
 async def _overlay_event_history(report: dict, address_id: int) -> None:
     """Surface historical weather events and earthquake activity near the property.
 
@@ -502,6 +571,7 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
     overlays = [
         _overlay_transit_data(report, address_id),
         _overlay_event_history(report, address_id),
+        _overlay_former_epb_data(report, address_id),
     ]
     if not fast:
         overlays.append(_overlay_terrain_data(report, address_id))

@@ -841,6 +841,30 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             source=_src("mbie_epb"),
         ).to_dict())
 
+    # Positive signal: this exact building was on the MBIE EPB register and
+    # has since been delisted. Almost always means seismic strengthening was
+    # completed and signed off. Huge value for buyers (request the PS4), and
+    # genuine peace of mind for renters who'd otherwise worry about the age
+    # of the building.
+    former_epb = hazards.get("former_epb_at_property")
+    if isinstance(former_epb, dict):
+        delisted_year = None
+        if former_epb.get("delisted_at"):
+            delisted_year = former_epb["delisted_at"][:4]
+        headline = "This building was on the MBIE earthquake-prone register"
+        if delisted_year:
+            headline += f" and was removed in {delisted_year}"
+        headline += "."
+        action = "Usually means seismic strengthening was completed. Request the producer statement (PS4) or council sign-off from the vendor or landlord for confirmation."
+        if former_epb.get("removal_reason"):
+            action = f"Reason given: \"{former_epb['removal_reason']}\". " + action
+        result["hazards"].append(Insight(
+            "good",
+            headline,
+            action,
+            source=_src("mbie_epb"),
+        ).to_dict())
+
     wildfire_days = hazards.get("wildfire_vhe_days")
     if wildfire_days is not None:
         try:

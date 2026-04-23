@@ -40,7 +40,9 @@ Each trace shows: **DataSource → Table → Query step → Report JSON path →
 | `hazards.active_fault_nearest` | active_faults | SQL nearest within 10km | National (GNS 10K faults) — depends on proximity |
 | `hazards.landslide_count_500m` | landslide_events | SQL count within 500m | National (GNS) — depends on proximity |
 | `hazards.coastal_inundation_ranking` | coastal_inundation | SQL spatial intersect | 252K rows — coastal cities only |
-| `hazards.epb_count_300m` | earthquake_prone_buildings / mbie_epb | SQL count within 300m | Mainly Wellington (544 WCC EPBs + 20 MBIE) |
+| `hazards.epb_count_300m` | earthquake_prone_buildings / mbie_epb (view) | SQL count within 300m | National coverage via MBIE (5,813 active EPBs post-2026-04-23 loader fix). WCC layer is a Wellington-only duplicate. |
+| `hazards.former_epb_at_property` | mbie_epb_history WHERE has_been_removed=TRUE | `_overlay_former_epb_data()` in `routers/property.py`, same-building 20m match | National (2,431 historical delistings — only buildings that were on the register and have since been removed, e.g. after seismic strengthening). |
+| `hazards.former_epb_count_300m` | mbie_epb_history WHERE has_been_removed=TRUE | `_overlay_former_epb_data()` neighbourhood count 300m | National. |
 
 ### Hazards — Council-specific (regional tables, all cities)
 
