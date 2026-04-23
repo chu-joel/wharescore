@@ -658,6 +658,7 @@ export interface SnapshotMeta {
 
 export interface ReportSnapshot {
   report: Record<string, unknown>;
+  coastal?: import('@/components/report/HostedCoastalTimeline').CoastalExposure | null;
   rent_baselines: Record<string, RentBaseline>;
   price_advisor: PriceAdvisorResult | null;
   deltas: DeltaTables;

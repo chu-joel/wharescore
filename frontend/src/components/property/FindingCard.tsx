@@ -3,6 +3,9 @@
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { RatingBin } from '@/lib/types';
 import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM, liquefactionRating, isHighOrVeryHighLiquefaction, isModerateOrWorseLiquefaction } from '@/lib/hazards';
+import { resolveCopy } from '@/lib/findingsCopy';
+
+export type ScoreBucket = 'Hazards' | 'Liveability' | 'Environment' | 'Market' | 'Planning';
 
 export interface Finding {
   headline: string;
@@ -13,6 +16,12 @@ export interface Finding {
   // Optional authority URL. when present the source caption becomes a link so
   // users can verify the flagged datapoint at its origin.
   sourceUrl?: string;
+  // Optional time-horizon tier ("Happens now", "Within 30 years", "Longer-term").
+  // Rendered as a chip next to the severity label.
+  tier?: string;
+  // Optional score contribution. Rendered as "+N Hazards" chip so users can
+  // see which findings drove their composite score. Delta is always signed.
+  scoreImpact?: { bucket: ScoreBucket; delta: number };
 }
 
 const SEVERITY_CONFIG = {
@@ -73,14 +82,24 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
       <div className="flex items-start gap-2 sm:gap-3">
         <Icon className={`h-5 w-5 ${config.iconColor} shrink-0 mt-0.5`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className={`text-sm font-bold ${config.headlineColor}`}>
-              {finding.headline}
-            </h4>
+          <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.labelBg}`}>
               {config.label}
             </span>
+            {finding.tier && (
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.labelBg}`}>
+                {finding.tier}
+              </span>
+            )}
+            {finding.scoreImpact && (
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.labelBg}`}>
+                {finding.scoreImpact.delta > 0 ? '+' : ''}{finding.scoreImpact.delta} {finding.scoreImpact.bucket}
+              </span>
+            )}
           </div>
+          <h4 className={`text-sm font-bold ${config.headlineColor} mb-1`}>
+            {finding.headline}
+          </h4>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {finding.interpretation}
           </p>
@@ -151,46 +170,17 @@ export function generateFindings(report: {
     (titleType.includes('leasehold') || estate.includes('leasehold'));
 
   if (isCrossLease) {
-    findings.push({
-      headline: 'Cross-lease title: shared land ownership',
-      interpretation:
-        'You share the land with the other flats and must agree to any structural change outside the flat plan. Ensure the as-built structure matches the flats plan. Unapproved additions (decks, extensions) are a common pitfall and can block sale or refinance.',
-      severity: 'warning',
-      category: 'Planning',
-      source: 'LINZ Property Titles',
-    });
+    findings.push(resolveCopy('cross_lease'));
   } else if (isLeasehold) {
-    findings.push({
-      headline: 'Leasehold title: you own the building, not the land',
-      interpretation:
-        "Ground rent typically reviews every 7 to 21 years and can jump 20 to 50%. Mortgage options are narrower: some banks won't lend on leasehold, others require shorter terms. Ask for the current ground rent, next review date, and lessor identity before signing.",
-      severity: 'critical',
-      category: 'Planning',
-      source: 'LINZ Property Titles',
-    });
+    findings.push(resolveCopy('leasehold'));
   }
 
   // --- Critical findings (hazards) ---
 
   if (isInFloodZone(h)) {
-    findings.push({
-      headline: `This property is in a flood zone (${floodLabel(h)})`,
-      interpretation:
-        'Rain heavy enough to overwhelm drains has been mapped to reach this property. Plan for it: know your evacuation route and where you\'d go, keep important documents somewhere you can grab in 5 minutes, and check your insurance specifically covers flood (many policies exclude it or charge a higher excess). Ask the agent or landlord directly whether this property has flooded before.',
-      severity: 'critical',
-      category: 'Hazards',
-      source: 'Regional Council Flood Maps',
-    });
+    findings.push(resolveCopy('flood_in_zone', { label: floodLabel(h) }));
   } else if (isNearFloodZone(h)) {
-    const dist = floodProximityM(h);
-    findings.push({
-      headline: `Only ${dist}m from a flood zone`,
-      interpretation:
-        `The mapped flood boundary stops ${dist}m away, but flood maps aren't precise: a larger-than-mapped event can spill beyond the edge. Be prepared. Know the evacuation route for your street, check that your insurance covers flood (many policies exclude it), and ask whether the street or neighbours have flooded before.`,
-      severity: 'warning',
-      category: 'Hazards',
-      source: 'Regional Council Flood Maps',
-    });
+    findings.push(resolveCopy('flood_near_zone', { distance_m: floodProximityM(h) }));
   }
 
   if (h.tsunami_zone) {
@@ -211,17 +201,11 @@ export function generateFindings(report: {
   const liqRating = liquefactionRating(h);
   if (liqRating === 'very_high' || liqRating === 'high' || liqRating === 'moderate') {
     const rawLabel = h.gwrc_liquefaction || h.council_liquefaction || h.liquefaction_zone || '';
-    const displayLabel = liqRating === 'very_high' ? 'Very High'
-      : liqRating === 'high' ? 'High'
-      : 'Moderate';
-    findings.push({
-      headline: `Liquefaction susceptibility: ${displayLabel}${rawLabel && !rawLabel.toLowerCase().includes(displayLabel.toLowerCase()) ? ` (${rawLabel})` : ''}`,
-      interpretation:
-        'The ground here could become unstable during a major earthquake, similar to what happened in Christchurch. This affects foundation requirements and insurance.',
-      severity: liqRating === 'very_high' ? 'critical' : liqRating === 'high' ? 'warning' : 'info',
-      category: 'Hazards',
-      source: 'Regional Council Liquefaction Maps',
-    });
+    const copyKey =
+      liqRating === 'very_high' ? 'liquefaction_very_high'
+      : liqRating === 'high' ? 'liquefaction_high'
+      : 'liquefaction_moderate';
+    findings.push(resolveCopy(copyKey, { raw: rawLabel }));
   }
 
   if (h.slope_failure) {

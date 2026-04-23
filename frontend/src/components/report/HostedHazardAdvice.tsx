@@ -14,6 +14,9 @@ interface Props {
   persona: 'buyer' | 'renter';
 }
 
+// When the dedicated Coastal Timeline is showing, the two coastal blocks
+// here repeat the same story — skip them to avoid saying it twice.
+
 /* ────────────────────────────────────────────
    Hazard Advice Data. NZ-specific, researched
    ──────────────────────────────────────────── */
@@ -47,7 +50,7 @@ function isCoastal(hazards: PropertyReport['hazards']): boolean {
   return !!(hazards.tsunami_zone || hazards.coastal_erosion || hazards.coastal_elevation_cm != null);
 }
 
-function buildAdviceSections(report: PropertyReport, ta: string, persona: string): AdviceSection[] {
+function buildAdviceSections(report: PropertyReport, ta: string, persona: string, skipCoastal: boolean): AdviceSection[] {
   const h = report.hazards;
   const env = report.environment;
   const sections: AdviceSection[] = [];
@@ -449,7 +452,7 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
   }
 
   // ── COASTAL EROSION ──
-  if (h.coastal_erosion || h.council_coastal_erosion) {
+  if (!skipCoastal && (h.coastal_erosion || h.council_coastal_erosion)) {
     sections.push({
       id: 'coastal-erosion',
       icon: Waves,
@@ -484,7 +487,7 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
   }
 
   // ── COASTAL INUNDATION / STORM SURGE ──
-  if (h.coastal_inundation_ranking || h.coastal_elevation_cm != null) {
+  if (!skipCoastal && (h.coastal_inundation_ranking || h.coastal_elevation_cm != null)) {
     const lowElevation = h.coastal_elevation_cm != null && h.coastal_elevation_cm < 300;
     sections.push({
       id: 'coastal-inundation',
@@ -870,7 +873,8 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
 
 export function HostedHazardAdvice({ report, snapshot, persona }: Props) {
   const ta = snapshot.meta.ta_name;
-  const sections = buildAdviceSections(report, ta, persona);
+  const hasTimeline = !!snapshot.coastal && snapshot.coastal.tier !== 'not_applicable';
+  const sections = buildAdviceSections(report, ta, persona, hasTimeline);
 
   // Filter: only show sections with actual hazards present (always show the general one)
   // Keep all. the buildAdviceSections function already only adds sections for detected hazards

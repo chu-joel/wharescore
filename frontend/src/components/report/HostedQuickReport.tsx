@@ -228,7 +228,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
 
         {/* ═══ 4. HAZARD SUMMARY ═══ */}
         <div className="pb-6">
-          <QuickHazardSummary report={report} />
+          <QuickHazardSummary report={report} snapshot={snapshot} />
         </div>
 
         {/* ═══ 5. SCHOOLS ═══ */}

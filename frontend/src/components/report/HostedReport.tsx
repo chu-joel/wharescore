@@ -30,6 +30,7 @@ import { HostedHazardAdvice } from './HostedHazardAdvice';
 import { HostedTerrain } from './HostedTerrain';
 import { HostedDemographics } from './HostedDemographics';
 import { HostedClimate } from './HostedClimate';
+import { HostedCoastalTimeline, MOCK_COASTAL_SEVERE } from './HostedCoastalTimeline';
 
 import { LandlordChecklist } from '@/components/property/LandlordChecklist';
 import { KnowYourRights } from '@/components/property/KnowYourRights';
@@ -345,6 +346,21 @@ export function HostedReport({ snapshot, token }: HostedReportProps) {
                   </div>
                 </>
               )}
+
+              {(() => {
+                // Dev-only mock override. Gated to non-production so a real
+                // address with ?mockCoastal=1 in prod never shows fake data.
+                const useMock = process.env.NODE_ENV !== 'production'
+                  && typeof window !== 'undefined'
+                  && new URLSearchParams(window.location.search).get('mockCoastal') === '1';
+                const coastal = useMock ? MOCK_COASTAL_SEVERE : snapshot.coastal;
+                if (!coastal || coastal.tier === 'not_applicable') return null;
+                return (
+                  <div className="pb-6">
+                    <HostedCoastalTimeline coastal={coastal} persona={persona} />
+                  </div>
+                );
+              })()}
 
               <div className="pb-6">
                 <HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} />

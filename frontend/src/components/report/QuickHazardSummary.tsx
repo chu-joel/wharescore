@@ -1,11 +1,12 @@
 'use client';
 
 import { Shield, AlertTriangle, CircleCheck, CircleMinus } from 'lucide-react';
-import type { PropertyReport } from '@/lib/types';
+import type { PropertyReport, ReportSnapshot } from '@/lib/types';
 import { isInFloodZone } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
+  snapshot?: ReportSnapshot;
 }
 
 interface HazardItem {
@@ -19,16 +20,29 @@ const STATUS_STYLES = {
   concern: { Icon: AlertTriangle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/20', label: 'Concern' },
 };
 
-export function QuickHazardSummary({ report }: Props) {
+export function QuickHazardSummary({ report, snapshot }: Props) {
   const h = report.hazards;
   if (!h) return null;
+
+  // Coastal: prefer the SeaRise-backed timeline tier if we have it.
+  // Dev override: ?mockCoastal=1 injects a fake happens_now tier so the UI
+  // can be previewed. Gated to non-production so prod users never see fake data.
+  const useMock = process.env.NODE_ENV !== 'production'
+    && typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('mockCoastal') === '1';
+  const coastal = useMock
+    ? { tier: 'happens_now' as const }
+    : snapshot?.coastal;
+  const coastalStatus: HazardItem['status'] = coastal && coastal.tier !== 'not_applicable'
+    ? (coastal.tier === 'happens_now' ? 'concern' : coastal.tier === 'within_30_years' ? 'watch' : 'clear')
+    : (h.coastal_erosion ? 'concern' : 'clear');
 
   const items: HazardItem[] = [
     { label: 'Flooding', status: isInFloodZone(h) ? 'concern' : 'clear' },
     { label: 'Earthquake', status: (h.epb_count && h.epb_count > 0) ? 'concern' : h.liquefaction_zone ? 'watch' : 'clear' },
     { label: 'Tsunami', status: h.tsunami_zone ? 'concern' : 'clear' },
     { label: 'Slope / Landslide', status: h.slope_failure ? 'concern' : 'clear' },
-    { label: 'Coastal Erosion', status: h.coastal_erosion ? 'concern' : 'clear' },
+    { label: 'Coastal & sea level', status: coastalStatus },
     { label: 'Wildfire', status: h.wildfire_risk ? 'watch' : 'clear' },
     { label: 'Contamination', status: (h.contamination_count && h.contamination_count > 0) ? 'concern' : 'clear' },
   ];

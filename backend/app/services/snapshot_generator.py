@@ -34,9 +34,20 @@ from .rent_advisor import (
     _prevalence_scale,
     get_sa2_rental_baseline,
 )
+from .coastal_timeline import build_coastal_exposure
 from .risk_score import enrich_with_scores
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_coastal(report: dict) -> dict | None:
+    """Defensive wrapper. Coastal timeline is advisory. Never let a bug
+    here fail snapshot generation for the whole property."""
+    try:
+        return build_coastal_exposure(report)
+    except Exception as e:
+        logger.warning(f"coastal timeline generation failed (non-critical): {e}")
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -1779,6 +1790,7 @@ async def generate_snapshot(
         "weather_history": cache.get("weather_history", []),
         "hazard_advice": hazard_advice,
         "terrain": cache.get("terrain", {}),
+        "coastal": _safe_coastal(cache["report"]),
         "isochrone": cache.get("isochrone", {}),
         "terrain_insights": terrain_insights,
         "census_demographics": cache.get("census_demographics"),
