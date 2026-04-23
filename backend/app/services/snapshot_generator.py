@@ -40,13 +40,50 @@ from .risk_score import enrich_with_scores
 logger = logging.getLogger(__name__)
 
 
-def _safe_coastal(report: dict) -> dict | None:
+def _safe_coastal(report: dict, searise_point: dict | None = None) -> dict | None:
     """Defensive wrapper. Coastal timeline is advisory. Never let a bug
     here fail snapshot generation for the whole property."""
     try:
-        return build_coastal_exposure(report)
+        return build_coastal_exposure(report, searise_point)
     except Exception as e:
         logger.warning(f"coastal timeline generation failed (non-critical): {e}")
+        return None
+
+
+async def _fetch_nearest_searise_point(conn, address_id: int) -> dict | None:
+    """Nearest NZ SeaRise projection point within 20km of the address.
+    Returns {vlm_mm_yr, projections} or None.
+
+    The 20km cap prevents inland properties from matching a distant coastal
+    point and getting misleading "per-site" numbers. Most coastal addresses
+    will be within 2-3km of a SeaRise point (2km spacing along the coast).
+    """
+    try:
+        cur = await conn.execute(
+            """
+            WITH addr AS (
+                SELECT geom FROM addresses WHERE address_id = %s
+            )
+            SELECT sp.vlm_mm_yr,
+                   sp.projections,
+                   ST_Distance(sp.geom::geography, addr.geom::geography) AS distance_m
+            FROM searise_points sp, addr
+            WHERE ST_DWithin(sp.geom::geography, addr.geom::geography, 20000)
+            ORDER BY sp.geom <-> addr.geom
+            LIMIT 1
+            """,
+            [address_id],
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {
+            "vlm_mm_yr": row.get("vlm_mm_yr"),
+            "projections": row["projections"],
+            "distance_m": row.get("distance_m"),
+        }
+    except Exception as e:
+        logger.debug(f"searise point lookup failed (likely table empty): {e}")
         return None
 
 
@@ -894,6 +931,7 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "weather_history": weather_history,
         "terrain": terrain_data,
         "isochrone": isochrone_data,
+        "searise_point": await _fetch_nearest_searise_point(conn, address_id),
         "census_demographics": census_demo,
         "census_households": census_hh,
         "census_commute": census_commute,
@@ -1790,7 +1828,7 @@ async def generate_snapshot(
         "weather_history": cache.get("weather_history", []),
         "hazard_advice": hazard_advice,
         "terrain": cache.get("terrain", {}),
-        "coastal": _safe_coastal(cache["report"]),
+        "coastal": _safe_coastal(cache["report"], cache.get("searise_point")),
         "isochrone": cache.get("isochrone", {}),
         "terrain_insights": terrain_insights,
         "census_demographics": cache.get("census_demographics"),

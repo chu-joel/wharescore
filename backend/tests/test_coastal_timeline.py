@@ -177,6 +177,79 @@ def test_national_slr_monotonic_by_scenario_and_year():
         assert vals == sorted(vals), f"{scenario} SLR not increasing over time: {vals}"
 
 
+def _point(vlm: float = -2.5, variant: str = "wellington") -> dict:
+    """Fabricate a per-site projection matching the Zenodo schema."""
+    # Wellington-ish values from the dry-run sample.
+    wellington = {
+        "SSP126": {"2050": {"median_cm": 32, "upper_cm": 42}, "2100": {"median_cm": 72, "upper_cm": 95}, "2150": {"median_cm": 100, "upper_cm": 140}},
+        "SSP245": {"2050": {"median_cm": 36, "upper_cm": 46}, "2100": {"median_cm": 85, "upper_cm": 110}, "2150": {"median_cm": 130, "upper_cm": 170}},
+        "SSP585": {"2050": {"median_cm": 39, "upper_cm": 51}, "2100": {"median_cm": 112, "upper_cm": 145}, "2150": {"median_cm": 203, "upper_cm": 260}},
+    }
+    return {"vlm_mm_yr": vlm, "projections": wellington, "distance_m": 150}
+
+
+def test_per_point_data_drives_scenarios():
+    """When a per-site searise_point is passed, scenarios come from it
+    rather than NATIONAL_SLR."""
+    r = _report(
+        hazards={"coastal_inundation_ranking": "high"},
+        terrain={"elevation_m": 2.5},
+    )
+    out = build_coastal_exposure(r, searise_point=_point())
+    assert out is not None
+    # Wellington 2100 current-trajectory = 85cm per fixture; NATIONAL_SLR is 51.
+    current_2100 = next(
+        p["slr_cm"] for s in out["scenarios"] if s["label"] == "Current trajectory"
+        for p in s["points"] if p["year"] == 2100
+    )
+    assert current_2100 == 85, f"Expected per-point 85cm, got {current_2100}"
+
+
+def test_per_point_populates_vlm():
+    r = _report(
+        hazards={"coastal_inundation_ranking": "high"},
+        terrain={"elevation_m": 2.5},
+    )
+    out = build_coastal_exposure(r, searise_point=_point(vlm=-3.1))
+    assert out["vlm_mm_yr"] == -3.1
+
+
+def test_falls_back_to_national_when_point_missing():
+    r = _report(
+        hazards={"coastal_inundation_ranking": "high"},
+        terrain={"elevation_m": 2.5},
+    )
+    out_with = build_coastal_exposure(r, searise_point=_point())
+    out_without = build_coastal_exposure(r, searise_point=None)
+
+    # Both should emit a full CoastalExposure; scenarios will differ.
+    assert out_with["scenarios"][1]["points"][1]["slr_cm"] != out_without["scenarios"][1]["points"][1]["slr_cm"]
+    # Without a point, vlm stays null.
+    assert out_without["vlm_mm_yr"] is None
+
+
+def test_malformed_point_falls_back_gracefully():
+    """If projections are missing a scenario or year, we fall back
+    to NATIONAL_SLR rather than emitting a partial scenarios list."""
+    r = _report(
+        hazards={"coastal_inundation_ranking": "high"},
+        terrain={"elevation_m": 2.5},
+    )
+    broken = {
+        "vlm_mm_yr": -1.0,
+        "projections": {"SSP245": {"2050": {"median_cm": 30}}},  # missing 2100, 2150, SSP126, SSP585
+    }
+    out = build_coastal_exposure(r, searise_point=broken)
+    # Must still emit 3 scenarios via fallback.
+    assert len(out["scenarios"]) == 3
+    # Current-trajectory 2100 should be the NATIONAL_SLR value (51), not 30.
+    current_2100 = next(
+        p["slr_cm"] for s in out["scenarios"] if s["label"] == "Current trajectory"
+        for p in s["points"] if p["year"] == 2100
+    )
+    assert current_2100 == 51
+
+
 def test_coast_distance_is_null_placeholder():
     # Until LINZ coastline + NIWA polygons are loaded, these stay null.
     r = _report(

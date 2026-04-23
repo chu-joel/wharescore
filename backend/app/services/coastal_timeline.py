@@ -100,9 +100,42 @@ def _looks_coastal(hazards: dict, terrain: dict) -> bool:
     return False
 
 
-def build_coastal_exposure(report: dict) -> Optional[dict]:
+def _scenarios_from_point(searise_point: dict) -> Optional[list]:
+    """Build scenarios[] from a per-site searise_points row. Returns None
+    if required projections are missing."""
+    proj = searise_point.get("projections") or {}
+    meta = {
+        "SSP126": ("Strong global action", "Paris 1.5-2°C targets met"),
+        "SSP245": ("Current trajectory", "Present-day policy path"),
+        "SSP585": ("High emissions", "If emissions don't decline"),
+    }
+    out = []
+    for ssp, (label, desc) in meta.items():
+        ssp_data = proj.get(ssp)
+        if not ssp_data:
+            return None
+        pts = []
+        for year in (2050, 2100, 2150):
+            # JSONB returns keys as strings; Python dicts may have ints.
+            entry = ssp_data.get(str(year)) or ssp_data.get(year)
+            if not entry or "median_cm" not in entry:
+                return None
+            pts.append({"year": year, "slr_cm": round(entry["median_cm"])})
+        out.append({"label": label, "description": desc, "points": pts})
+    return out
+
+
+def build_coastal_exposure(
+    report: dict,
+    searise_point: Optional[dict] = None,
+) -> Optional[dict]:
     """Build the CoastalExposure payload or return None for non-coastal
     properties. Shape matches frontend/src/components/report/HostedCoastalTimeline.tsx.
+
+    searise_point: optional per-site row from the searise_points table
+    ({vlm_mm_yr, projections: {SSPxxx: {year: {median_cm, upper_cm}}}}).
+    When provided, scenarios + VLM come from the per-site data. When absent
+    or malformed, falls back to NATIONAL_SLR averages.
     """
     hazards = report.get("hazards") or {}
     terrain = report.get("terrain") or {}
@@ -146,16 +179,24 @@ def build_coastal_exposure(report: dict) -> Optional[dict]:
     else:
         return None
 
-    scenarios = [
-        NATIONAL_SLR["strong_action"],
-        NATIONAL_SLR["current_trajectory"],
-        NATIONAL_SLR["high_emissions"],
-    ]
+    # Prefer per-site projections when we have them.
+    point_scenarios = _scenarios_from_point(searise_point) if searise_point else None
+    if point_scenarios is not None:
+        scenarios = point_scenarios
+        vlm_mm_yr = searise_point.get("vlm_mm_yr") if searise_point else None
+    else:
+        scenarios = [
+            NATIONAL_SLR["strong_action"],
+            NATIONAL_SLR["current_trajectory"],
+            NATIONAL_SLR["high_emissions"],
+        ]
+        vlm_mm_yr = None
 
-    # Headline + narrative per tier. Plain English, no em-dashes.
-    slr_2050 = NATIONAL_SLR["current_trajectory"]["points"][0]["slr_cm"]
-    slr_2100_mid = NATIONAL_SLR["current_trajectory"]["points"][1]["slr_cm"]
-    slr_2100_high = NATIONAL_SLR["high_emissions"]["points"][1]["slr_cm"]
+    # Use the SLR values in narrative copy (per-site if we have them, else
+    # national fallback).
+    slr_2050 = scenarios[1]["points"][0]["slr_cm"]        # current trajectory 2050
+    slr_2100_mid = scenarios[1]["points"][1]["slr_cm"]    # current trajectory 2100
+    slr_2100_high = scenarios[2]["points"][1]["slr_cm"]   # high emissions 2100
 
     if tier == "happens_now":
         headline = "Big storms already reach this property"
@@ -219,7 +260,7 @@ def build_coastal_exposure(report: dict) -> Optional[dict]:
         "ground_elevation_m": elevation_m,
         "coast_distance_m": coast_distance_m,
         "storm_tide_100yr_distance_m": storm_tide_100yr_distance_m,
-        "vlm_mm_yr": None,  # Needs per-point SeaRise data
+        "vlm_mm_yr": round(vlm_mm_yr, 1) if vlm_mm_yr is not None else None,
         "scenarios": scenarios,
         "headline": headline,
         "narrative": narrative,
