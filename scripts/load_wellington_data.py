@@ -128,46 +128,34 @@ def table_has_rows(cur, table_name):
 # ============================================================
 def load_mbie_epb(cur):
     print("\n=== 1. MBIE Earthquake-Prone Buildings ===")
-    base_url = "https://epbr.building.govt.nz/api/public/buildings"
-    page_size = 20  # API always returns 20 regardless of param
-    all_buildings = []
-    page_index = 0
-
-    while True:
-        url = f"{base_url}?pageSize={page_size}&page={page_index}"
-        if page_index % 50 == 0:
-            print(f"  Fetching page {page_index}...")
-
-        for attempt in range(3):
-            try:
-                req = urllib.request.Request(url, headers={
-                    "User-Agent": "WhareScore-POC/1.0",
-                    "Accept": "application/json",
-                })
-                with urllib.request.urlopen(req, timeout=30) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                break
-            except Exception as e:
-                if attempt < 2:
-                    print(f"    Retry {attempt+1}: {e}")
-                    time.sleep(3)
-                else:
-                    raise
-
-        # API returns {results: [...], resultsTotal, pageIndex, pageSize}
-        buildings = data.get("results", []) if isinstance(data, dict) else data
-        if not buildings:
+    # `?export=all` is what the MBIE UI uses for its CSV export. It returns
+    # every currently-listed building in one ~9MB JSON response with the full
+    # detail set (constructionType, designDate, seismicRiskArea, region,
+    # territorialAuthority, legalDescription, taReference, noticeNumber).
+    # The paginated `?page=N` endpoint is broken — it ignores the page param
+    # and always returns the first 20 rows. Only active buildings come back
+    # (hasBeenRemoved rows are not included), so the vanished-from-feed
+    # backstop is the primary removal signal here.
+    url = "https://epbr.building.govt.nz/api/public/buildings?export=all"
+    print("  Fetching full export...")
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "WhareScore-POC/1.0",
+                "Accept": "application/json",
+            })
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
             break
+        except Exception as e:
+            if attempt < 2:
+                print(f"    Retry {attempt+1}: {e}")
+                time.sleep(3)
+            else:
+                raise
 
-        all_buildings.extend(buildings)
-        page_index += 1
-
-        if len(all_buildings) >= data.get("resultsTotal", 999999):
-            break
-
-        time.sleep(0.2)
-
-    print(f"  Total buildings: {len(all_buildings)}")
+    all_buildings = data.get("results", []) if isinstance(data, dict) else []
+    print(f"  Total buildings: {len(all_buildings)} (resultsTotal: {data.get('resultsTotal')})")
 
     # Safety guard: if the fetch came back implausibly small we'd otherwise
     # flag ~every building as removed. 4000 floor is well under the observed
@@ -202,8 +190,14 @@ def load_mbie_epb(cur):
         if not bid:
             continue
 
-        # Address is nested: {address: {streetNumber, streetName, streetType, suburb, town}}
-        addr = b.get("address", {}) if isinstance(b.get("address"), dict) else {}
+        # export=all returns `addresses` as an array. Prefer the primary if
+        # flagged, else take the first entry. The legacy paginated endpoint
+        # used singular `address`; fall back to it for defensive parsing.
+        addrs = b.get("addresses")
+        if isinstance(addrs, list) and addrs:
+            addr = next((a for a in addrs if a.get("isPrimaryAddress")), addrs[0])
+        else:
+            addr = b.get("address", {}) if isinstance(b.get("address"), dict) else {}
         street_parts = [
             addr.get("unitType", ""), addr.get("unit", ""),
             addr.get("floor", ""), addr.get("streetNumber", ""),
@@ -225,9 +219,19 @@ def load_mbie_epb(cur):
         if deadline:
             deadline = deadline[:10]
 
-        priority_val = b.get("priority")
+        # export=all uses `isPriority`; legacy paginated used `priority`.
+        priority_val = b.get("isPriority", b.get("priority"))
         priority_str = "Priority" if priority_val else None
+        # export=all does NOT include hasBeenRemoved (only active rows come
+        # back). Keep the read for compatibility with the paginated shape.
         has_been_removed = bool(b.get("hasBeenRemoved", False))
+
+        # name: export=all has "names" (array); legacy had "name". Join if list.
+        names_val = b.get("names") if isinstance(b.get("names"), list) else None
+        name_str = ", ".join(n for n in names_val if n) if names_val else clean(b.get("name"))
+
+        # issuedBy alias: export=all uses territorialAuthority.
+        issued_by = clean(b.get("issuedBy")) or clean(b.get("territorialAuthority"))
 
         cur.execute("""
             INSERT INTO mbie_epb_history
@@ -273,21 +277,21 @@ def load_mbie_epb(cur):
                 END
         """, (
             bid,
-            clean(b.get("name")),
+            name_str,
             address_line1,
-            None,  # address_line2 not in list endpoint
+            None,  # address_line2 not modelled separately
             clean(addr.get("suburb")),
             clean(addr.get("town")),
-            None,  # region not in list endpoint
+            clean(b.get("region")),
             clean(b.get("earthquakeRating")),
             clean(b.get("heritageStatus")),
-            None,  # constructionType only in detail endpoint
-            None,  # designDate only in detail endpoint
+            clean(b.get("constructionType")),
+            clean(b.get("designDate")),
             priority_str,
             notice_date,
             deadline,
-            clean(b.get("issuedBy")),
-            None,  # seismicRiskArea only in detail endpoint
+            issued_by,
+            clean(b.get("seismicRiskArea")),
             lng, lat,
             load_started_at, load_started_at,
             has_been_removed, load_started_at,  # removed_at stamp if flagged

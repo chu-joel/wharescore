@@ -50,12 +50,14 @@ Public API (no auth, undocumented):
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET https://epbr.building.govt.nz/api/public/buildings?pageSize=20&page={n}` | Paginated (5,935 buildings, 297 pages) |
-| `GET https://epbr.building.govt.nz/api/buildings/{id}` | Full detail |
+| `GET https://epbr.building.govt.nz/api/public/buildings?export=all` | **Use this.** Returns all currently-listed buildings (~5,940) in one ~9MB JSON. Full detail set. This is what MBIE's UI uses for its CSV export. |
+| `GET https://epbr.building.govt.nz/api/query/all-locations` | Geo-only skeleton (buildingId, versionId, name, lat, lng) — useful for map tiles but lacks ratings/deadline. |
+| `GET https://epbr.building.govt.nz/api/query/location-detail?versionId={vid}` | Single building by versionId. Minimal fields only (address, name, image). |
+| ~~`GET https://epbr.building.govt.nz/api/public/buildings?pageSize=20&page={n}`~~ | **Broken.** The paginated endpoint ignores `page`/`pageIndex`/`offset`/`skip`/`start` and returns the same first 20 rows every time. All filter params (`name`, `search`, `q`, `town`, `region`, `earthquakeRating`, `includeRemoved`, etc.) are silently ignored. Do not use. |
 
-**List fields:** `id` (UUID), `name`, address fields, `latitude`, `longitude`, `earthquakeRating` (`"0% to less than 20%"` / `"20% to less than 34%"` / `"Not determined"`), `heritageStatus`, `constructionType`, `priority`, `noticeDate`, `completionDeadline`, `issuedBy`.
+**`export=all` returns per building:** `id` (UUID), `buildingNationalIdentifier`, `territorialAuthority`, `addresses` (array), `latitude`, `longitude`, `names` (array), `legalDescription`, `comment`, `constructionType`, `designDate`, `seismicRiskArea`, `region`, `parts`, `taReference`, `noticeType`, `noticeNumber`, `noticeDate`, `completionDeadline`, `earthquakeRating`, `isProceeding`, `isPriority`, `isExtended`, `isExtensionRevoked`, `hasExemptionNotice`, `publishingStatus`, `version`, `noticeStatus`, `hasPartPriority`.
 
-**Detail adds:** `designDate` ("Pre-1935"), `constructionType` ("Unreinforced masonry"), `seismicRiskArea` ("High"), `legalDescription`, notice documents.
+**Removed/delisted buildings are not exposed by any public JSON endpoint found to date.** MBIE's UI shows them (e.g. Melksham Towers at 131 Brougham St), but none of the above endpoints returns a row with `hasBeenRemoved=true`. Search params to surface them (`includeRemoved`, `showRemoved`, `isRemoved`, `status=removed`, etc.) are all silently ignored. To capture historical delistings we'd need to reverse-engineer the UI with Playwright or file an OIA request. Going-forward tracking works via the "vanished from export=all" backstop in the loader — any building that drops out of the export feed gets `removed_at` stamped.
 
 ## 4. Metlink Public Transport
 
