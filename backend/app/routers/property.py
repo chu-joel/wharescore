@@ -362,7 +362,7 @@ async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
             """, [address_id])
             at_property_row = cur.fetchone()
 
-            # Neighbourhood count: 300m, matches epb_count_300m convention.
+            # Neighbourhood count of FORMER EPBs in 300m.
             cur = await conn.execute("""
                 WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
                 SELECT COUNT(*)::int AS cnt
@@ -373,8 +373,42 @@ async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
             """, [address_id])
             count_row = cur.fetchone() or {}
 
+            # Authoritative count of ACTIVE EPBs in 300m, from the mbie_epb
+            # view (national, current). Used to override the stale WCC-based
+            # count that the report SQL populates.
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT COUNT(*)::int AS cnt
+                FROM mbie_epb h, addr
+                WHERE h.geom && ST_Expand(addr.geom, 0.005)
+                  AND ST_DWithin(h.geom::geography, addr.geom::geography, 300)
+            """, [address_id])
+            mbie_active_count = (cur.fetchone() or {}).get("cnt", 0)
+
+            # Same-building match against the ACTIVE view — drives the
+            # planning.is_epb_listed correction.
+            cur = await conn.execute("""
+                WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                SELECT 1 FROM mbie_epb h, addr
+                WHERE h.geom && ST_Expand(addr.geom, 0.0003)
+                  AND ST_DWithin(h.geom::geography, addr.geom::geography, 20)
+                LIMIT 1
+            """, [address_id])
+            mbie_active_at_property = cur.fetchone() is not None
+
         hazards = report.setdefault("hazards", {})
         hazards["former_epb_count_300m"] = count_row.get("cnt", 0)
+
+        # Override the stale WCC-derived EPB flags with the authoritative
+        # MBIE data. The report SQL's `planning.is_epb_listed` and
+        # `hazards.epb_count_300m` read from the Wellington-only,
+        # never-pruned `earthquake_prone_buildings` table. MBIE's national
+        # register (via the mbie_epb view) is current and correctly
+        # excludes delisted buildings, so it wins.
+        planning = report.setdefault("planning", {})
+        planning["is_epb_listed"] = bool(mbie_active_at_property)
+        hazards["is_epb_listed"] = bool(mbie_active_at_property)
+        hazards["epb_count_300m"] = mbie_active_count
 
         if at_property_row:
             # raw_json carries removalReason (paginated shape) when we've
@@ -382,6 +416,16 @@ async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
             raw = at_property_row.get("raw_json") or {}
             removal_reason = raw.get("removalReason") if isinstance(raw, dict) else None
             removed_at = at_property_row.get("removed_at")
+            # IMPORTANT: `removed_at` is WHEN OUR LOADER FIRST SAW THE ROW
+            # AS REMOVED — it is NOT MBIE's official delisting date. MBIE
+            # doesn't publish delisting timestamps in any endpoint we've
+            # found. For buildings that were already delisted before we
+            # started tracking, this date is the start of our tracking
+            # window, not the actual remediation date. Surfaced as
+            # `first_observed_as_removed_at` so consumers don't confuse
+            # it with the real thing. Legacy `delisted_at` kept as an
+            # alias for backwards compat.
+            observed_at = removed_at.isoformat() if removed_at else None
             hazards["former_epb_at_property"] = {
                 "earthquake_rating": at_property_row.get("earthquake_rating"),
                 "construction_type": at_property_row.get("construction_type"),
@@ -389,7 +433,8 @@ async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
                     at_property_row["completion_deadline"].isoformat()
                     if at_property_row.get("completion_deadline") else None
                 ),
-                "delisted_at": removed_at.isoformat() if removed_at else None,
+                "first_observed_as_removed_at": observed_at,
+                "delisted_at": observed_at,  # alias for back-compat
                 "removal_reason": removal_reason,
                 "distance_m": int(at_property_row.get("distance_m") or 0),
             }

@@ -848,20 +848,34 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
     # of the building.
     former_epb = hazards.get("former_epb_at_property")
     if isinstance(former_epb, dict):
-        delisted_year = None
-        if former_epb.get("delisted_at"):
-            delisted_year = former_epb["delisted_at"][:4]
-        headline = "This building was on the MBIE earthquake-prone register"
-        if delisted_year:
-            headline += f" and was removed in {delisted_year}"
-        headline += "."
-        action = "Usually means seismic strengthening was completed. Request the producer statement (PS4) or council sign-off from the vendor or landlord for confirmation."
+        # NOTE: first_observed_as_removed_at is WHEN WE FIRST SAW the
+        # building as removed — not MBIE's actual delisting date. MBIE
+        # doesn't publish a delisting timestamp in any public endpoint,
+        # so for buildings delisted before our tracking began the
+        # "observed" date is just the start of our window. Copy has to
+        # be honest about that or users will think it's a real date.
+        observed_at = (
+            former_epb.get("first_observed_as_removed_at")
+            or former_epb.get("delisted_at")
+        )
+        observed_date = observed_at[:10] if observed_at else None
+        headline = "This building was previously on the MBIE earthquake-prone register and has since been removed."
+        action_parts = []
         if former_epb.get("removal_reason"):
-            action = f"Reason given: \"{former_epb['removal_reason']}\". " + action
+            action_parts.append(f"Reason given: \"{former_epb['removal_reason']}\".")
+        action_parts.append(
+            "Typically means seismic strengthening was completed. Request the "
+            "producer statement (PS4) or council sign-off from the vendor or landlord for confirmation."
+        )
+        if observed_date:
+            action_parts.append(
+                f"(We first observed the delisting on {observed_date}. MBIE doesn't "
+                "publish a real delisting timestamp, so the actual removal may be earlier.)"
+            )
         result["hazards"].append(Insight(
             "good",
             headline,
-            action,
+            " ".join(action_parts),
             source=_src("mbie_epb"),
         ).to_dict())
 
