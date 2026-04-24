@@ -16,9 +16,37 @@ from psycopg import sql
 
 from ..config import settings
 from .. import db as _db
+from .. import redis as _redis_module
 from ..deps import limiter
-from ..redis import redis_client
 from ..services.admin_auth import require_admin
+
+
+def _redis():
+    """Return the live Redis client. Must be called at request time — a
+    bound `from ..redis import redis_client` reference captures the value
+    at admin.py import time (which runs BEFORE lifespan init_redis), so it
+    stays None forever. Accessing via the module re-reads the attribute."""
+    return _redis_module.redis_client
+
+
+# Temporary shim so existing `redis_client` usage in this module keeps
+# working without rewriting every call site. Every attribute access goes
+# through _redis() and hits the live client.
+class _RedisProxy:
+    def __bool__(self) -> bool:
+        return _redis() is not None
+
+    def __getattr__(self, name: str):
+        client = _redis()
+        if client is None:
+            raise RuntimeError(
+                "Redis not initialised yet — this should only happen during "
+                "startup before the lifespan init completes."
+            )
+        return getattr(client, name)
+
+
+redis_client = _RedisProxy()
 
 logger = logging.getLogger(__name__)
 
