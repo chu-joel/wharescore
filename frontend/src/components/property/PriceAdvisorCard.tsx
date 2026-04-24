@@ -133,6 +133,35 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
         { method: 'POST', body: JSON.stringify(body) }
       );
       setResult(data);
+
+      // Persist the buyer property descriptors to /budget-inputs so the
+      // crowd-sourced asking-price-vs-CV dataset grows alongside the
+      // existing buyer financial inputs from BuyerBudgetCalculator. Same
+      // upsert pattern as user_rent_reports — backend merges into one
+      // row per (ip, address, persona) per 24h via COALESCE. Data
+      // collection is covered by the analytics consent banner.
+      const reportBody: Record<string, unknown> = {
+        address_id: addressId,
+        persona: 'buyer',
+        source_context: 'buyer_price_advisor',
+        notice_version:
+          typeof window !== 'undefined' &&
+          window.localStorage?.getItem('analytics_consent') === 'true'
+            ? 'combined_v1'
+            : null,
+      };
+      if (askingPrice) reportBody.asking_price = askingPrice;
+      if (bedrooms) reportBody.bedrooms = bedrooms;
+      if (bathroomCount) reportBody.bathrooms = bathroomCount;
+      if (finishTier) reportBody.finish_tier = finishTier;
+      if (hasParking !== null) reportBody.has_parking = hasParking;
+      apiFetch('/api/v1/budget-inputs', {
+        method: 'POST',
+        body: JSON.stringify(reportBody),
+      }).catch(() => {
+        // Non-fatal — user already has their estimate; the persistence
+        // can miss without affecting their experience.
+      });
     } catch {
       setError('Could not estimate value. Try again.');
     } finally {

@@ -2007,6 +2007,158 @@ async def analytics_rent_reports(request: Request):
         }
 
 
+@router.get("/analytics/buyer-inputs", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def analytics_buyer_inputs(request: Request):
+    """Aggregated view of buyer-side crowd-sourced data.
+
+    Mirrors the /analytics/rent-reports endpoint but for buyer rows in
+    user_budget_inputs (persona='buyer'). Captures both the financial
+    inputs from BuyerBudgetCalculator and the property descriptors from
+    PriceAdvisorCard (asking_price, bedrooms, bathrooms, finish_tier,
+    has_parking) added in migration 0060.
+    """
+    async with _db.pool.connection() as conn:
+        cur = await conn.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE reported_at >= NOW() - INTERVAL '7 days') AS last_7d,
+                COUNT(*) FILTER (WHERE reported_at >= NOW() - INTERVAL '30 days') AS last_30d,
+                COUNT(DISTINCT address_id) AS distinct_addresses,
+                COUNT(DISTINCT sa2_code) AS distinct_sa2s,
+                COUNT(DISTINCT ip_hash) AS distinct_contributors
+            FROM user_budget_inputs
+            WHERE persona = 'buyer'
+        """)
+        totals = cur.fetchone() or {}
+
+        cur = await conn.execute("""
+            SELECT date_trunc('day', reported_at)::date::text AS day,
+                   COUNT(*) AS count
+            FROM user_budget_inputs
+            WHERE persona = 'buyer' AND reported_at >= NOW() - INTERVAL '30 days'
+            GROUP BY 1 ORDER BY 1
+        """)
+        trend = cur.fetchall()
+
+        # Top cities by submission count, with median asking price.
+        cur = await conn.execute("""
+            SELECT
+                COALESCE(NULLIF(TRIM(a.town_city), ''), 'Unknown') AS city,
+                COUNT(*) AS submissions,
+                COUNT(DISTINCT b.address_id) AS distinct_addresses,
+                percentile_cont(0.5) WITHIN GROUP (ORDER BY b.asking_price)::int
+                    FILTER (WHERE b.asking_price IS NOT NULL) AS median_asking
+            FROM user_budget_inputs b
+            LEFT JOIN addresses a ON a.address_id = b.address_id
+            WHERE b.persona = 'buyer'
+            GROUP BY COALESCE(NULLIF(TRIM(a.town_city), ''), 'Unknown')
+            ORDER BY submissions DESC
+            LIMIT 20
+        """)
+        by_city = cur.fetchall()
+
+        cur = await conn.execute("""
+            SELECT bedrooms,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
+                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+            FROM user_budget_inputs
+            WHERE persona = 'buyer' AND bedrooms IS NOT NULL
+            GROUP BY bedrooms ORDER BY bedrooms
+        """)
+        by_bedrooms = cur.fetchall()
+
+        cur = await conn.execute("""
+            SELECT bathrooms,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
+                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+            FROM user_budget_inputs
+            WHERE persona = 'buyer' AND bathrooms IS NOT NULL
+            GROUP BY bathrooms ORDER BY bathrooms
+        """)
+        by_bathrooms = cur.fetchall()
+
+        cur = await conn.execute("""
+            SELECT finish_tier,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
+                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+            FROM user_budget_inputs
+            WHERE persona = 'buyer' AND finish_tier IS NOT NULL
+            GROUP BY finish_tier ORDER BY count DESC
+        """)
+        by_finish_tier = cur.fetchall()
+
+        # Asking price distribution as bands so the dashboard reads at
+        # a glance. Bands chosen to span typical NZ sale prices.
+        cur = await conn.execute("""
+            SELECT
+                CASE
+                    WHEN asking_price <  500000  THEN 'Under $500k'
+                    WHEN asking_price <  750000  THEN '$500k–$750k'
+                    WHEN asking_price < 1000000  THEN '$750k–$1M'
+                    WHEN asking_price < 1500000  THEN '$1M–$1.5M'
+                    WHEN asking_price < 2000000  THEN '$1.5M–$2M'
+                    WHEN asking_price < 3000000  THEN '$2M–$3M'
+                    ELSE 'Over $3M'
+                END AS band,
+                COUNT(*) AS count
+            FROM user_budget_inputs
+            WHERE persona = 'buyer' AND asking_price IS NOT NULL
+            GROUP BY band
+            ORDER BY MIN(asking_price)
+        """)
+        by_price_band = cur.fetchall()
+
+        cur = await conn.execute("""
+            SELECT COALESCE(source_context, 'unknown') AS source,
+                   COUNT(*) AS count
+            FROM user_budget_inputs
+            WHERE persona = 'buyer'
+            GROUP BY COALESCE(source_context, 'unknown')
+            ORDER BY count DESC
+        """)
+        by_source = cur.fetchall()
+
+        # Completeness — of the buyer rows we have, how many have each
+        # field filled in? Tells us which inputs users actually engage
+        # with vs which they skip.
+        cur = await conn.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(asking_price)         AS has_asking_price,
+                COUNT(purchase_price)       AS has_purchase_price,
+                COUNT(bedrooms)             AS has_bedrooms,
+                COUNT(bathrooms)            AS has_bathrooms,
+                COUNT(finish_tier)          AS has_finish_tier,
+                COUNT(has_parking)          AS has_parking_noted,
+                COUNT(deposit_pct)          AS has_deposit,
+                COUNT(annual_income)        AS has_income
+            FROM user_budget_inputs
+            WHERE persona = 'buyer'
+        """)
+        completeness = cur.fetchone() or {}
+
+        return {
+            "total": totals.get("total", 0),
+            "last_7d": totals.get("last_7d", 0),
+            "last_30d": totals.get("last_30d", 0),
+            "distinct_addresses": totals.get("distinct_addresses", 0),
+            "distinct_sa2s": totals.get("distinct_sa2s", 0),
+            "distinct_contributors": totals.get("distinct_contributors", 0),
+            "trend_30d": trend,
+            "by_city": by_city,
+            "by_bedrooms": by_bedrooms,
+            "by_bathrooms": by_bathrooms,
+            "by_finish_tier": by_finish_tier,
+            "by_price_band": by_price_band,
+            "by_source": by_source,
+            "completeness": completeness,
+        }
+
+
 @router.get("/analytics/errors", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 async def analytics_errors(

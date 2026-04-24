@@ -88,6 +88,28 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
       const d = dataRef.current;
       if (!sentRef.current && useBudgetStore.getState().entries[d.addressId]?.hasInteracted) {
         sentRef.current = true;
+        // Pull buyer property descriptors from the buyer input store so
+        // the unmount POST enriches the row that PriceAdvisorCard
+        // already opened (or creates one if the user only used the
+        // budget calc). Backend upsert merges them with COALESCE.
+        let buyerDescriptors: Record<string, unknown> = {};
+        try {
+          const { useBuyerInputStore } =
+            require('@/stores/buyerInputStore') as typeof import('@/stores/buyerInputStore');
+          const bs = useBuyerInputStore.getState();
+          if (bs.askingPrice) buyerDescriptors.asking_price = bs.askingPrice;
+          if (bs.bedrooms) buyerDescriptors.bedrooms = bs.bedrooms;
+          if (bs.bathrooms) buyerDescriptors.bathrooms = bs.bathrooms;
+          if (bs.finishTier) buyerDescriptors.finish_tier = bs.finishTier;
+          if (bs.hasParking !== null) buyerDescriptors.has_parking = bs.hasParking;
+        } catch {
+          buyerDescriptors = {};
+        }
+        const noticeVersion =
+          typeof window !== 'undefined' &&
+          window.localStorage?.getItem('analytics_consent') === 'true'
+            ? 'combined_v1'
+            : null;
         const body = JSON.stringify({
           address_id: d.addressId,
           persona: 'buyer',
@@ -100,6 +122,9 @@ export function BuyerBudgetCalculator({ report }: BuyerBudgetCalculatorProps) {
           utilities_override: d.b.utilities,
           maintenance_override: d.b.maintenance,
           annual_income: d.b.annualIncome,
+          source_context: 'buyer_budget_calc',
+          notice_version: noticeVersion,
+          ...buyerDescriptors,
         });
         if (navigator.sendBeacon) {
           navigator.sendBeacon('/api/v1/budget-inputs', new Blob([body], { type: 'application/json' }));
