@@ -2047,8 +2047,8 @@ async def analytics_buyer_inputs(request: Request):
                 COALESCE(NULLIF(TRIM(a.town_city), ''), 'Unknown') AS city,
                 COUNT(*) AS submissions,
                 COUNT(DISTINCT b.address_id) AS distinct_addresses,
-                percentile_cont(0.5) WITHIN GROUP (ORDER BY b.asking_price)::int
-                    FILTER (WHERE b.asking_price IS NOT NULL) AS median_asking
+                (percentile_cont(0.5) WITHIN GROUP (ORDER BY b.asking_price)
+                    FILTER (WHERE b.asking_price IS NOT NULL))::int AS median_asking
             FROM user_budget_inputs b
             LEFT JOIN addresses a ON a.address_id = b.address_id
             WHERE b.persona = 'buyer'
@@ -2061,8 +2061,8 @@ async def analytics_buyer_inputs(request: Request):
         cur = await conn.execute("""
             SELECT bedrooms,
                    COUNT(*) AS count,
-                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
-                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+                   (percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)
+                       FILTER (WHERE asking_price IS NOT NULL))::int AS median_asking
             FROM user_budget_inputs
             WHERE persona = 'buyer' AND bedrooms IS NOT NULL
             GROUP BY bedrooms ORDER BY bedrooms
@@ -2072,8 +2072,8 @@ async def analytics_buyer_inputs(request: Request):
         cur = await conn.execute("""
             SELECT bathrooms,
                    COUNT(*) AS count,
-                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
-                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+                   (percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)
+                       FILTER (WHERE asking_price IS NOT NULL))::int AS median_asking
             FROM user_budget_inputs
             WHERE persona = 'buyer' AND bathrooms IS NOT NULL
             GROUP BY bathrooms ORDER BY bathrooms
@@ -2083,8 +2083,8 @@ async def analytics_buyer_inputs(request: Request):
         cur = await conn.execute("""
             SELECT finish_tier,
                    COUNT(*) AS count,
-                   percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)::int
-                       FILTER (WHERE asking_price IS NOT NULL) AS median_asking
+                   (percentile_cont(0.5) WITHIN GROUP (ORDER BY asking_price)
+                       FILTER (WHERE asking_price IS NOT NULL))::int AS median_asking
             FROM user_budget_inputs
             WHERE persona = 'buyer' AND finish_tier IS NOT NULL
             GROUP BY finish_tier ORDER BY count DESC
