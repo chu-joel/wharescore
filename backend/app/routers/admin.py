@@ -1866,6 +1866,147 @@ async def analytics_events(
     return {"total": total, "page": page, "per_page": per_page, "events": events}
 
 
+@router.get("/analytics/rent-reports", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def analytics_rent_reports(request: Request):
+    """Aggregated view of crowd-sourced rent submissions.
+
+    Shows how much data is flowing in, what cities / bedroom-counts / etc
+    are well-represented vs thin, and which flow (RentComparisonFlow vs
+    RentAdvisorCard) is producing the richer rows. Used by the admin
+    dashboard to monitor data coverage and quality.
+
+    All breakdowns are over the full table (no day filter) because the
+    main question is "do we have enough data in {city, bedroom config,
+    dwelling type}?", which is a cumulative question. Trend is returned
+    separately for time-series view.
+    """
+    async with _db.pool.connection() as conn:
+        # Totals + outlier ratio.
+        cur = await conn.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE is_outlier) AS outliers,
+                COUNT(*) FILTER (WHERE reported_at >= NOW() - INTERVAL '7 days') AS last_7d,
+                COUNT(*) FILTER (WHERE reported_at >= NOW() - INTERVAL '30 days') AS last_30d,
+                COUNT(DISTINCT address_id) AS distinct_addresses,
+                COUNT(DISTINCT sa2_code) AS distinct_sa2s,
+                COUNT(DISTINCT ip_hash) AS distinct_contributors
+            FROM user_rent_reports
+        """)
+        totals = cur.fetchone() or {}
+
+        # Daily trend for the last 30 days.
+        cur = await conn.execute("""
+            SELECT date_trunc('day', reported_at)::date::text AS day,
+                   COUNT(*) AS count
+            FROM user_rent_reports
+            WHERE reported_at >= NOW() - INTERVAL '30 days'
+            GROUP BY 1 ORDER BY 1
+        """)
+        trend = cur.fetchall()
+
+        # Top cities by submission count. Join addresses for the town_city
+        # label — sa2_code is useful for the DB but hostile to humans.
+        cur = await conn.execute("""
+            SELECT
+                COALESCE(NULLIF(TRIM(a.town_city), ''), 'Unknown') AS city,
+                COUNT(*) AS reports,
+                COUNT(DISTINCT r.address_id) AS distinct_addresses,
+                percentile_cont(0.5) WITHIN GROUP (ORDER BY r.reported_rent)::int AS median_rent
+            FROM user_rent_reports r
+            LEFT JOIN addresses a ON a.address_id = r.address_id
+            WHERE r.is_outlier = FALSE
+            GROUP BY city
+            ORDER BY reports DESC
+            LIMIT 20
+        """)
+        by_city = cur.fetchall()
+
+        # Bedrooms distribution.
+        cur = await conn.execute("""
+            SELECT bedrooms,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY reported_rent)::int AS median_rent
+            FROM user_rent_reports
+            WHERE is_outlier = FALSE
+            GROUP BY bedrooms
+            ORDER BY bedrooms
+        """)
+        by_bedrooms = cur.fetchall()
+
+        # Bathrooms distribution (only where user told us).
+        cur = await conn.execute("""
+            SELECT bathrooms,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY reported_rent)::int AS median_rent
+            FROM user_rent_reports
+            WHERE bathrooms IS NOT NULL AND is_outlier = FALSE
+            GROUP BY bathrooms
+            ORDER BY bathrooms
+        """)
+        by_bathrooms = cur.fetchall()
+
+        # Dwelling type distribution.
+        cur = await conn.execute("""
+            SELECT dwelling_type,
+                   COUNT(*) AS count,
+                   percentile_cont(0.5) WITHIN GROUP (ORDER BY reported_rent)::int AS median_rent
+            FROM user_rent_reports
+            WHERE is_outlier = FALSE
+            GROUP BY dwelling_type
+            ORDER BY count DESC
+        """)
+        by_dwelling = cur.fetchall()
+
+        # Source context — tells us how many rows are coming via the
+        # lightweight RentComparisonFlow vs the detailed RentAdvisorCard.
+        # Higher richer-flow share = better data quality.
+        cur = await conn.execute("""
+            SELECT COALESCE(source_context, 'unknown') AS source,
+                   COUNT(*) AS count
+            FROM user_rent_reports
+            GROUP BY source
+            ORDER BY count DESC
+        """)
+        by_source = cur.fetchall()
+
+        # Completeness. How many rows have each of the optional detail
+        # fields filled in? Helps judge whether the richer form is worth
+        # keeping or needs UX improvement.
+        cur = await conn.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(bathrooms)            AS has_bathrooms,
+                COUNT(finish_tier)          AS has_finish_tier,
+                COUNT(has_parking)          AS has_parking,
+                COUNT(is_furnished)         AS has_furnished,
+                COUNT(has_outdoor_space)    AS has_outdoor_space,
+                COUNT(is_character_property) AS has_character,
+                COUNT(utilities_included)   AS has_utilities,
+                COUNT(not_insulated)        AS has_insulation_note
+            FROM user_rent_reports
+        """)
+        completeness = cur.fetchone() or {}
+
+        return {
+            "total": totals.get("total", 0),
+            "outliers": totals.get("outliers", 0),
+            "last_7d": totals.get("last_7d", 0),
+            "last_30d": totals.get("last_30d", 0),
+            "distinct_addresses": totals.get("distinct_addresses", 0),
+            "distinct_sa2s": totals.get("distinct_sa2s", 0),
+            "distinct_contributors": totals.get("distinct_contributors", 0),
+            "trend_30d": trend,
+            "by_city": by_city,
+            "by_bedrooms": by_bedrooms,
+            "by_bathrooms": by_bathrooms,
+            "by_dwelling_type": by_dwelling,
+            "by_source": by_source,
+            "completeness": completeness,
+        }
+
+
 @router.get("/analytics/errors", dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
 async def analytics_errors(
