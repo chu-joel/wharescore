@@ -117,16 +117,33 @@ export default function RootLayout({
                 logo: `${siteUrl}/ws-favicon-192.png`,
                 sameAs: [],
               },
+              // SiteNavigationElement. Signals the top 8 user-navigable
+              // sections of the site so Google can generate rich sitelinks
+              // under the main search result. Google ultimately decides
+              // which ones to show (and in what order), but listing them
+              // here gives the best possible input.
               {
                 "@context": "https://schema.org",
                 "@type": "SiteNavigationElement",
-                name: ["About", "Suburb Guides", "Help & FAQ", "Contact", "Changelog"],
+                name: [
+                  "About",
+                  "Suburb Guides",
+                  "Help & FAQ",
+                  "Contact",
+                  "Changelog",
+                  "Browser Extension",
+                  "Privacy",
+                  "Terms",
+                ],
                 url: [
                   `${siteUrl}/about`,
                   `${siteUrl}/suburbs`,
                   `${siteUrl}/help`,
                   `${siteUrl}/contact`,
                   `${siteUrl}/changelog`,
+                  `${siteUrl}/extension/welcome`,
+                  `${siteUrl}/privacy`,
+                  `${siteUrl}/terms`,
                 ],
               },
             ]),
