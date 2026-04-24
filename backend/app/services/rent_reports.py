@@ -75,7 +75,12 @@ async def submit(conn, body, ip_hash: str) -> dict:
     if body.reported_rent > BED_MAX.get(body.bedrooms, 5000) * 1.5:
         is_outlier = True
 
-    # 4. Rate limiting. max 3 per IP per 24h
+    # 4. Rate limiting. Max 20 submissions per IP per 24h — generous enough to
+    # allow progressive enrichment (rent first, then bathrooms/finish/etc
+    # arriving as separate POSTs from the same user) while still bounding
+    # abuse. The per-address dedup that used to live here is gone: a user
+    # filling in more details about a property they already reported should
+    # UPSERT into the same row, not get a 409.
     cur = await conn.execute(
         """
         SELECT COUNT(*) AS cnt FROM user_rent_reports
@@ -83,35 +88,85 @@ async def submit(conn, body, ip_hash: str) -> dict:
         """,
         [ip_hash],
     )
-    if (cur.fetchone())["cnt"] >= 3:
-        raise HTTPException(429, "Maximum 3 reports per day")
+    if (cur.fetchone())["cnt"] >= 20:
+        raise HTTPException(429, "Too many rent submissions from this network in 24h")
 
-    # 5. Duplicate dedup. same address+type+beds within 7 days
+    # 5. Progressive enrichment: if the same ip+address reported in the last
+    # 24h, UPDATE that row with any new non-null fields instead of inserting
+    # a duplicate. Keeps one row per (ip, address) per day while letting the
+    # frontend send partial updates as the user fills out the advisor form.
     cur = await conn.execute(
         """
         SELECT id FROM user_rent_reports
-        WHERE address_id = %s AND dwelling_type = %s AND bedrooms = %s
-          AND ip_hash = %s AND reported_at > NOW() - interval '7 days'
+        WHERE ip_hash = %s AND address_id = %s
+          AND reported_at > NOW() - interval '24 hours'
+        ORDER BY reported_at DESC
+        LIMIT 1
         """,
-        [body.address_id, body.dwelling_type, body.bedrooms, ip_hash],
+        [ip_hash, body.address_id],
     )
-    if cur.fetchone():
-        raise HTTPException(409, "You already reported rent for this property recently")
+    existing = cur.fetchone()
 
-    # Insert
     building_addr = await _get_building_address(conn, body.address_id)
-    await conn.execute(
-        """
-        INSERT INTO user_rent_reports
-            (address_id, building_address, sa2_code, dwelling_type, bedrooms,
-             reported_rent, is_outlier, ip_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        [
-            body.address_id, building_addr, sa2, body.dwelling_type,
-            body.bedrooms, body.reported_rent, is_outlier, ip_hash,
-        ],
-    )
+
+    if existing:
+        # UPDATE with COALESCE so existing non-null values aren't wiped by
+        # nullable fields absent from this partial submission.
+        await conn.execute(
+            """
+            UPDATE user_rent_reports SET
+                dwelling_type = %s,
+                bedrooms = %s,
+                reported_rent = %s,
+                is_outlier = %s,
+                bathrooms = COALESCE(%s, bathrooms),
+                finish_tier = COALESCE(%s, finish_tier),
+                has_parking = COALESCE(%s, has_parking),
+                is_furnished = COALESCE(%s, is_furnished),
+                is_partially_furnished = COALESCE(%s, is_partially_furnished),
+                has_outdoor_space = COALESCE(%s, has_outdoor_space),
+                is_character_property = COALESCE(%s, is_character_property),
+                shared_kitchen = COALESCE(%s, shared_kitchen),
+                utilities_included = COALESCE(%s, utilities_included),
+                not_insulated = COALESCE(%s, not_insulated),
+                source_context = COALESCE(%s, source_context),
+                notice_version = COALESCE(%s, notice_version),
+                reported_at = NOW()
+            WHERE id = %s
+            """,
+            [
+                body.dwelling_type, body.bedrooms, body.reported_rent, is_outlier,
+                body.bathrooms, body.finish_tier, body.has_parking,
+                body.is_furnished, body.is_partially_furnished,
+                body.has_outdoor_space, body.is_character_property,
+                body.shared_kitchen, body.utilities_included, body.not_insulated,
+                body.source_context, body.notice_version,
+                existing["id"],
+            ],
+        )
+    else:
+        await conn.execute(
+            """
+            INSERT INTO user_rent_reports
+                (address_id, building_address, sa2_code, dwelling_type, bedrooms,
+                 reported_rent, is_outlier, ip_hash,
+                 bathrooms, finish_tier, has_parking, is_furnished,
+                 is_partially_furnished, has_outdoor_space, is_character_property,
+                 shared_kitchen, utilities_included, not_insulated,
+                 source_context, notice_version)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            [
+                body.address_id, building_addr, sa2, body.dwelling_type,
+                body.bedrooms, body.reported_rent, is_outlier, ip_hash,
+                body.bathrooms, body.finish_tier, body.has_parking,
+                body.is_furnished, body.is_partially_furnished,
+                body.has_outdoor_space, body.is_character_property,
+                body.shared_kitchen, body.utilities_included, body.not_insulated,
+                body.source_context, body.notice_version,
+            ],
+        )
     # conn is our custom wrapper which auto-commits via psycopg defaults
     try:
         await conn.commit()

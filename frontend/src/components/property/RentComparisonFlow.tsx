@@ -38,19 +38,19 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
   const [assessment, setAssessment] = useState<RentAssessment | null>(market.rent_assessment);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [contributeChecked, setContributeChecked] = useState(true);
-  const sentRef = useRef(false);
+  // Dedup: skip re-sending the same (dwelling, bedrooms, rent) tuple. The
+  // backend upserts within the 24h window so multiple POSTs are safe,
+  // but there's no point spamming.
+  const lastSentKeyRef = useRef<string>('');
 
   const rentValue = parseInt(rentInput, 10);
   const rentValid = !isNaN(rentValue) && rentValue >= 50 && rentValue <= 5000;
 
   // Refs for unmount cleanup. captures latest values without stale closures
-  const contributeRef = useRef(contributeChecked);
   const dwellingTypeRef = useRef(dwellingType);
   const bedroomsRef = useRef(bedrooms);
   const rentValueRef = useRef(rentValue);
   const rentValidRef = useRef(rentValid);
-  contributeRef.current = contributeChecked;
   dwellingTypeRef.current = dwellingType;
   bedroomsRef.current = bedrooms;
   rentValueRef.current = rentValue;
@@ -122,22 +122,61 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
     return () => { cancelled = true; };
   }, [addressId, dwellingType, bedrooms, rentValid, rentValue]);
 
-  // Fire-and-forget rent report on unmount
+  // Submit the user's rent to /rent-reports whenever the three core fields
+  // are valid, debounced 1s after the last change. Backend upserts within
+  // a 24h window so multiple submissions progressively enrich one row
+  // rather than creating duplicates. Data collection is covered by the
+  // RentDataNotice banner — we do not gate on a per-form checkbox.
+  useEffect(() => {
+    if (!rentValid || !dwellingType || !bedrooms) return;
+    // Studio maps to 1-bed for bond comparison (MBIE has no studio cat).
+    const bondBedrooms = bedrooms === 'Studio' ? '1' : bedrooms;
+    const key = `${dwellingType}|${bondBedrooms}|${rentValue}`;
+    if (lastSentKeyRef.current === key) return;
+
+    const timer = setTimeout(() => {
+      lastSentKeyRef.current = key;
+      apiFetch('/api/v1/rent-reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          address_id: addressId,
+          dwelling_type: dwellingType,
+          bedrooms: bondBedrooms,
+          reported_rent: rentValue,
+          source_context: 'rent_comparison_flow',
+          notice_version:
+            (typeof window !== 'undefined' &&
+              window.localStorage?.getItem('ws_rent_notice_seen')?.replace(/"/g, '')) ||
+            null,
+        }),
+      }).catch(() => {
+        // Non-fatal — let user retry on next edit.
+        lastSentKeyRef.current = '';
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [addressId, dwellingType, bedrooms, rentValue, rentValid]);
+
+  // Backup: if the user navigates away before the 1s debounce fires (e.g.
+  // types their rent and immediately closes the tab) send a beacon so the
+  // submission isn't lost.
   useEffect(() => {
     return () => {
       if (
-        contributeRef.current &&
         rentValidRef.current &&
         dwellingTypeRef.current &&
-        bedroomsRef.current &&
-        !sentRef.current
+        bedroomsRef.current
       ) {
-        sentRef.current = true;
+        const bondBedrooms = bedroomsRef.current === 'Studio' ? '1' : bedroomsRef.current;
+        const key = `${dwellingTypeRef.current}|${bondBedrooms}|${rentValueRef.current}`;
+        if (lastSentKeyRef.current === key) return;
         const body = JSON.stringify({
           address_id: addressId,
           dwelling_type: dwellingTypeRef.current,
-          bedrooms: bedroomsRef.current,
+          bedrooms: bondBedrooms,
           reported_rent: rentValueRef.current,
+          source_context: 'rent_comparison_flow_unmount',
         });
         if (navigator.sendBeacon) {
           navigator.sendBeacon(
@@ -265,21 +304,9 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
             )}
           </div>
 
-          {/* Contribution checkbox */}
-          {rentValid && (
-            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={contributeChecked}
-                onChange={(e) => setContributeChecked(e.target.checked)}
-                className="mt-0.5 rounded"
-              />
-              <span>
-                Help others. anonymously contribute your rent to community data.
-                Your rent won&apos;t be linked to your identity.
-              </span>
-            </label>
-          )}
+          {/* No opt-in checkbox — data collection is covered by the
+              first-visit RentDataNotice banner. See
+              components/common/RentDataNotice.tsx. */}
         </div>
       )}
     </div>

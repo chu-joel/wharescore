@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.post("/rent-reports", status_code=201)
-@limiter.limit("3/hour")
+@limiter.limit("30/minute")
 async def submit_rent_report(request: Request, body: RentReportSubmit):
     """Submit a user rent report. 5-layer validation pipeline."""
     if body.website:  # honeypot triggered. bot

@@ -350,7 +350,7 @@ Default limit across all endpoints without explicit override: **240/minute per I
 | POST | `/checkout/guest-session` | No | 5/min | Stripe checkout (guest). Plan: full_single ($9.99) | guest_purchases, Stripe API |
 | GET | `/checkout/guest-token` | No | 5/min | Exchange session for download token | guest_purchases, Redis |
 | POST | `/webhooks/stripe` | Sig | 60/min | Stripe events | report_credits, users, guest_purchases |
-| POST | `/rent-reports` | No | 3/hr | Submit crowdsourced rent | rent_reports |
+| POST | `/rent-reports` | No | 30/min | Submit or enrich a crowd-sourced rent report. Auto-upserts within a 24h (ip_hash, address_id) window so progressive submissions (core rent first from RentComparisonFlow, richer details later from RentAdvisorCard) land on one row. Accepts the core trio (dwelling_type, bedrooms, reported_rent) plus optional richer fields (bathrooms, finish_tier, has_parking, is_furnished, is_partially_furnished, has_outdoor_space, is_character_property, shared_kitchen, utilities_included, not_insulated). source_context and notice_version are audit-only. No auth. Data collection is covered by the first-visit `RentDataNotice` banner (not gated — notice is informational). | user_rent_reports, sa2_boundaries, bonds_detailed, addresses |
 | GET | `/rent-reports/{id}` | No | 40/min | Building rent data (3+ reports) | rent_reports |
 | POST | `/budget-inputs` | No | 3/hr | Save budget calculator data | user_budget_inputs |
 | POST | `/email-signups` | No | 3/hr | Region availability signup | email_signups |

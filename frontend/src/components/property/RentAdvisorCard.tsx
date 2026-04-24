@@ -136,6 +136,41 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
         { method: 'POST', body: JSON.stringify(body) }
       );
       setResult(data);
+
+      // Also persist the richer details to /rent-reports so community
+      // averages benefit from the bathroom/finish/parking/furnishing
+      // context, not just raw rent. Backend upserts within 24h so this
+      // enriches the row already written by RentComparisonFlow rather
+      // than creating a duplicate. Data collection is covered by the
+      // first-visit RentDataNotice banner — no per-form opt-in.
+      const bondBedrooms = bedrooms === 'Studio' ? '1' : bedrooms;
+      const reportBody: Record<string, unknown> = {
+        address_id: addressId,
+        dwelling_type: dwellingType,
+        bedrooms: bondBedrooms,
+        reported_rent: weeklyRent,
+        source_context: 'rent_advisor_card',
+        notice_version:
+          (typeof window !== 'undefined' &&
+            window.localStorage?.getItem('ws_rent_notice_seen')?.replace(/"/g, '')) ||
+          null,
+      };
+      if (bathroomCount) reportBody.bathrooms = bathroomCount;
+      if (finishTier) reportBody.finish_tier = finishTier;
+      if (hasParking !== null) reportBody.has_parking = hasParking;
+      if (isFurnished !== null) reportBody.is_furnished = isFurnished;
+      if (isPartiallyFurnished !== null) reportBody.is_partially_furnished = isPartiallyFurnished;
+      if (hasOutdoorSpace !== null) reportBody.has_outdoor_space = hasOutdoorSpace;
+      if (isCharacterProperty !== null) reportBody.is_character_property = isCharacterProperty;
+      if (sharedKitchen !== null) reportBody.shared_kitchen = sharedKitchen;
+      if (utilitiesIncluded !== null) reportBody.utilities_included = utilitiesIncluded;
+      if (notInsulated !== null) reportBody.not_insulated = notInsulated;
+      apiFetch('/api/v1/rent-reports', {
+        method: 'POST',
+        body: JSON.stringify(reportBody),
+      }).catch(() => {
+        // Non-fatal. User got their rent advice; the enrichment can miss.
+      });
     } catch {
       setError('Could not analyse rent. Try again.');
     } finally {
