@@ -31,11 +31,14 @@ export function AnalyticsConsent() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border px-4 py-3 flex items-center justify-between gap-4 shadow-lg">
-      <p className="text-xs text-muted-foreground">
-        We use anonymous analytics to improve WhareScore. No personal data is collected.{' '}
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border px-4 py-3 flex items-start sm:items-center justify-between gap-4 shadow-lg">
+      <p className="text-xs text-muted-foreground max-w-3xl">
+        WhareScore is free. We use anonymous analytics to make it better.
+        When you enter your rent, bedrooms, or property details, we save
+        them so other renters in your area can see what a fair rent looks
+        like. We never store your name or email.{' '}
         <a href="/privacy" className="text-piq-primary hover:underline">
-          Privacy policy
+          Read our privacy policy
         </a>
       </p>
       <Button size="sm" variant="outline" onClick={handleDismiss} className="shrink-0">

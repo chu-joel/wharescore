@@ -145,9 +145,10 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
           reported_rent: rentValue,
           source_context: 'rent_comparison_flow',
           notice_version:
-            (typeof window !== 'undefined' &&
-              window.localStorage?.getItem('ws_rent_notice_seen')?.replace(/"/g, '')) ||
-            null,
+            typeof window !== 'undefined' &&
+            window.localStorage?.getItem('analytics_consent') === 'true'
+              ? 'combined_v1'
+              : null,
         }),
       }).catch(() => {
         // Non-fatal — let user retry on next edit.

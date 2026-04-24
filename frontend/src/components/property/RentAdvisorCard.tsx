@@ -151,9 +151,10 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
         reported_rent: weeklyRent,
         source_context: 'rent_advisor_card',
         notice_version:
-          (typeof window !== 'undefined' &&
-            window.localStorage?.getItem('ws_rent_notice_seen')?.replace(/"/g, '')) ||
-          null,
+          typeof window !== 'undefined' &&
+          window.localStorage?.getItem('analytics_consent') === 'true'
+            ? 'combined_v1'
+            : null,
       };
       if (bathroomCount) reportBody.bathrooms = bathroomCount;
       if (finishTier) reportBody.finish_tier = finishTier;

@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { FeedbackFAB } from "@/components/feedback/FeedbackFAB";
 import { AnalyticsConsent } from "@/components/common/AnalyticsConsent";
-import { RentDataNotice } from "@/components/common/RentDataNotice";
 import { AuthSync } from "@/components/common/AuthSync";
 import { SessionProvider } from "next-auth/react";
 
@@ -139,7 +138,6 @@ export default function RootLayout({
             {children}
             <FeedbackFAB />
             <AnalyticsConsent />
-            <RentDataNotice />
           </Providers>
         </SessionProvider>
       </body>
