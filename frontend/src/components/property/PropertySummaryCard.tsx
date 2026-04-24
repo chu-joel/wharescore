@@ -13,6 +13,7 @@ import type { PropertyReport } from '@/lib/types';
 import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
 import { EnterRentButton } from './EnterRentButton';
+import { EnterPriceButton } from './EnterPriceButton';
 
 function StreetViewLink({ lat, lng }: { lat: number; lng: number }) {
   const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
@@ -218,11 +219,13 @@ export function PropertySummaryCard({
                 )}
               </div>
               <EnterRentButton />
+              <EnterPriceButton />
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground flex-1">Score pending</p>
               <EnterRentButton />
+              <EnterPriceButton />
             </>
           )}
         </div>

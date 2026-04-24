@@ -114,6 +114,19 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMethodology, setShowMethodology] = useState(false);
+  // Pulse the required fields when the user arrives via the
+  // top-of-report "What's it worth?" button (EnterPriceButton). Same
+  // pattern as RentComparisonFlow's wharescore:highlight-rent-inputs.
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    const onPing = () => {
+      setHighlight(true);
+      const t = window.setTimeout(() => setHighlight(false), 4000);
+      return () => window.clearTimeout(t);
+    };
+    window.addEventListener('wharescore:highlight-price-inputs', onPing);
+    return () => window.removeEventListener('wharescore:highlight-price-inputs', onPing);
+  }, []);
 
   const selectedTierInfo = FINISH_TIERS.find((t) => t.value === finishTier);
 
@@ -187,9 +200,18 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
       {/* Header */}
       <span className="text-sm font-semibold">What&apos;s this property worth?</span>
 
-      {/* Asking price input */}
-      <div>
-        <label className="text-xs text-muted-foreground mb-1.5 block">Asking / purchase price (optional)</label>
+      {/* Asking price input. Pulses when the user arrives via the
+          top-of-report "What's it worth?" button and hasn't filled it. */}
+      <div
+        className={`rounded-lg p-2 -m-2 transition-all duration-300 ${
+          highlight && !askingPrice
+            ? 'ring-2 ring-piq-primary ring-offset-2 animate-pulse bg-piq-primary/5'
+            : ''
+        }`}
+      >
+        <label className="text-xs text-muted-foreground mb-1.5 block">
+          Asking / purchase price <span className="text-piq-primary font-semibold">*required</span>
+        </label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
           <input
@@ -202,9 +224,17 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
         </div>
       </div>
 
-      {/* Bedrooms */}
-      <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Bedrooms</p>
+      {/* Bedrooms. Same pulse behaviour as Asking price. */}
+      <div
+        className={`rounded-lg p-2 -m-2 transition-all duration-300 ${
+          highlight && !bedrooms
+            ? 'ring-2 ring-piq-primary ring-offset-2 animate-pulse bg-piq-primary/5'
+            : ''
+        }`}
+      >
+        <p className="text-xs text-muted-foreground mb-1.5">
+          Bedrooms <span className="text-piq-primary font-semibold">*required</span>
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {BEDROOM_OPTIONS.map((b) => (
             <button key={b} onClick={() => setBedrooms(b)} className={pillClass(bedrooms === b)}>
