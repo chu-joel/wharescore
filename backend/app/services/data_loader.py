@@ -663,6 +663,174 @@ def load_contaminated_land(conn: psycopg.Connection, log: Callable = None) -> in
     return count
 
 
+def load_mbie_epb_national(conn: psycopg.Connection, log: Callable = None) -> int:
+    """MBIE National Earthquake-Prone Building Register.
+
+    One-shot sync from MBIE's UI-backing API:
+      ?export=all&filter.hideRemoved=false
+    returns every building ever on the register (~8,400 = ~5,940 active +
+    ~2,460 historical delistings) in one ~13MB JSON response. hideRemoved=false
+    is critical — the default strips all delistings silently.
+
+    Soft-delete pattern: rows are UPSERTed by id. `has_been_removed` mirrors
+    MBIE's `noticeStatus == "Removed"` signal. `removed_at` is stamped on
+    first observation of removal and cleared if MBIE un-removes. A backstop
+    sweep catches rows that vanish from the feed entirely (migration 0057).
+
+    `raw_json` captures the full payload so new fields can be extracted
+    without a schema change.
+
+    The previously-used paginated `?page=N` endpoint is broken — it ignores
+    page params and returns the first 20 rows regardless. Do NOT use it.
+    """
+    url = "https://epbr.building.govt.nz/api/public/buildings?export=all&filter.hideRemoved=false"
+    _progress(log, "Fetching MBIE EPB register (full export, active + removed)...")
+    raw = _fetch_url(url, timeout=180)
+    data = json.loads(raw)
+    all_buildings = data.get("results", [])
+    total_reported = data.get("resultsTotal")
+    _progress(log, f"MBIE EPB: {len(all_buildings)} buildings returned (resultsTotal={total_reported})")
+
+    # Safety guard: full register is ~8,400 rows. 7,000 floor catches a
+    # truncated fetch that would otherwise mark thousands of buildings as
+    # mass-delisted via the vanished-from-feed backstop.
+    if len(all_buildings) < 7000:
+        raise RuntimeError(
+            f"MBIE EPB fetch returned only {len(all_buildings)} buildings, "
+            "refusing to proceed (would mark the register as mass-delisted)."
+        )
+
+    cur = conn.cursor()
+    cur.execute("SELECT NOW()")
+    load_started_at = cur.fetchone()[0]
+
+    count = 0
+    removed_flagged = 0
+    for b in all_buildings:
+        lat = b.get("latitude")
+        lng = b.get("longitude")
+        if lat is None or lng is None:
+            continue
+        try:
+            lat, lng = float(lat), float(lng)
+        except (ValueError, TypeError):
+            continue
+
+        bid = b.get("id")
+        if not bid:
+            continue
+
+        # Address: export=all uses `addresses` (array), paginated uses `address`
+        addrs = b.get("addresses")
+        if isinstance(addrs, list) and addrs:
+            addr = next((a for a in addrs if a.get("isPrimaryAddress")), addrs[0])
+        else:
+            addr = b.get("address", {}) if isinstance(b.get("address"), dict) else {}
+
+        street_parts = [
+            addr.get("unitType", ""), addr.get("unit", ""),
+            addr.get("floor", ""), addr.get("streetNumber", ""),
+            addr.get("streetAlpha", ""),
+        ]
+        street_num = " ".join(p for p in street_parts if p).strip()
+        street_name_parts = [
+            addr.get("streetName", ""), addr.get("streetType", ""),
+            addr.get("streetDirection", ""),
+        ]
+        street_name = " ".join(p for p in street_name_parts if p).strip()
+        address_line1 = f"{street_num} {street_name}".strip() or None
+
+        notice_date = _clean(b.get("noticeDate"))
+        if notice_date:
+            notice_date = notice_date[:10]
+        deadline = _clean(b.get("completionDeadline"))
+        if deadline:
+            deadline = deadline[:10]
+
+        priority_val = b.get("isPriority", b.get("priority"))
+        priority_str = "Priority" if priority_val else None
+
+        has_been_removed = (
+            bool(b.get("hasBeenRemoved"))
+            or b.get("noticeStatus") == "Removed"
+        )
+        if has_been_removed:
+            removed_flagged += 1
+
+        names_val = b.get("names") if isinstance(b.get("names"), list) else None
+        name_str = ", ".join(n for n in names_val if n) if names_val else _clean(b.get("name"))
+        issued_by = _clean(b.get("issuedBy")) or _clean(b.get("territorialAuthority"))
+
+        cur.execute("""
+            INSERT INTO mbie_epb_history
+                (id, name, address_line1, address_line2, suburb, city, region,
+                 earthquake_rating, heritage_status, construction_type,
+                 design_date, priority, notice_date, completion_deadline,
+                 issued_by, seismic_risk_area, geom,
+                 first_seen_at, last_seen_at, removed_at,
+                 has_been_removed, raw_json)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                %s, %s,
+                CASE WHEN %s THEN %s ELSE NULL END,
+                %s, %s::jsonb)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                address_line1 = EXCLUDED.address_line1,
+                address_line2 = EXCLUDED.address_line2,
+                suburb = EXCLUDED.suburb,
+                city = EXCLUDED.city,
+                region = EXCLUDED.region,
+                earthquake_rating = EXCLUDED.earthquake_rating,
+                heritage_status = EXCLUDED.heritage_status,
+                construction_type = EXCLUDED.construction_type,
+                design_date = EXCLUDED.design_date,
+                priority = EXCLUDED.priority,
+                notice_date = EXCLUDED.notice_date,
+                completion_deadline = EXCLUDED.completion_deadline,
+                issued_by = EXCLUDED.issued_by,
+                seismic_risk_area = EXCLUDED.seismic_risk_area,
+                geom = EXCLUDED.geom,
+                last_seen_at = EXCLUDED.last_seen_at,
+                has_been_removed = EXCLUDED.has_been_removed,
+                raw_json = EXCLUDED.raw_json,
+                removed_at = CASE
+                    WHEN EXCLUDED.has_been_removed = FALSE THEN NULL
+                    WHEN mbie_epb_history.removed_at IS NULL THEN EXCLUDED.last_seen_at
+                    ELSE mbie_epb_history.removed_at
+                END
+        """, (
+            bid, name_str, address_line1, None,
+            _clean(addr.get("suburb")), _clean(addr.get("town")), _clean(b.get("region")),
+            _clean(b.get("earthquakeRating")), _clean(b.get("heritageStatus")),
+            _clean(b.get("constructionType")), _clean(b.get("designDate")),
+            priority_str, notice_date, deadline, issued_by,
+            _clean(b.get("seismicRiskArea")),
+            lng, lat,
+            load_started_at, load_started_at,
+            has_been_removed, load_started_at,
+            has_been_removed,
+            json.dumps(b),
+        ))
+        count += 1
+
+    # Backstop: rows that used to be in the feed but aren't anymore get
+    # stamped removed_at. Handles the case where MBIE purges a row outright
+    # (rare; usually they leave it with noticeStatus=Removed).
+    cur.execute("""
+        UPDATE mbie_epb_history
+        SET removed_at = NOW()
+        WHERE removed_at IS NULL
+          AND has_been_removed = FALSE
+          AND (last_seen_at IS NULL OR last_seen_at < %s)
+    """, (load_started_at,))
+    vanished = cur.rowcount
+    conn.commit()
+
+    _progress(log, f"MBIE EPB: upserted {count} ({removed_flagged} flagged removed), {vanished} vanished-from-feed")
+    return count
+
+
 def load_earthquake_prone_buildings(conn: psycopg.Connection, log: Callable = None) -> int:
     """WCC Earthquake-Prone Buildings."""
     url = "https://gis.wcc.govt.nz/arcgis/rest/services/ForwardWorks/ForwardWorks/MapServer/20"
@@ -4438,6 +4606,11 @@ DATA_SOURCES: list[DataSource] = [
         "contaminated_land", "GWRC Contaminated Land (SLUR)",
         ["contaminated_land"],
         load_contaminated_land,
+    ),
+    DataSource(
+        "epb_mbie", "MBIE National EPB Register (with historical delistings)",
+        ["mbie_epb_history"],
+        load_mbie_epb_national,
     ),
     DataSource(
         "epb_wcc", "WCC Earthquake-Prone Buildings",

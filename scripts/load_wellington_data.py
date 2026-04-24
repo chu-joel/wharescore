@@ -127,6 +127,13 @@ def table_has_rows(cur, table_name):
 # 1. MBIE Earthquake-Prone Building Register
 # ============================================================
 def load_mbie_epb(cur):
+    """DEPRECATED. Use `backend/app/services/data_loader.py::load_mbie_epb_national`
+    (DataSource key `epb_mbie`). Triggered via admin UI button,
+    `POST /admin/data-sources/epb_mbie/load`, or bulk
+    `POST /admin/data-sources/reload-all`. Kept here because the other 9
+    loaders in this script are also used by dev `main()`; will be removed
+    once those are migrated.
+    """
     print("\n=== 1. MBIE Earthquake-Prone Buildings ===")
     # `?export=all&filter.hideRemoved=false` returns EVERY building on
     # the MBIE register (~8,400 = ~5,900 active + ~2,500 historical

@@ -1201,6 +1201,147 @@ async def admin_load_all_new(request: Request):
     }
 
 
+@router.post("/data-sources/reload-all", dependencies=[Depends(require_admin)])
+@limiter.limit("1/minute")
+async def admin_reload_all_data_sources(request: Request, keys: str | None = None):
+    """Force-reload every DataSource sequentially in the background.
+
+    Unlike /data-sources/load-new (which skips already-loaded datasets),
+    this runs every loader regardless of last-loaded state. Use for
+    scheduled refreshes of data that changes over time (MBIE EPB register,
+    GTFS transit feeds, council hazard layers, etc.).
+
+    Optional `keys` query param: comma-separated list of DataSource keys
+    to restrict the run (e.g. `?keys=epb_mbie,metlink_gtfs`). Omitted =
+    reload everything.
+
+    Single-flight guarded via the same `data_loader:active` Redis key
+    used by load_data_source and load-new — if a load is already running,
+    returns 409.
+    """
+    import uuid
+    import asyncio
+    from ..services.data_loader import DATA_SOURCES, DATA_SOURCES_BY_KEY, run_loader
+
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: reload_all_data_sources keys={keys!r} from {client_ip}")
+
+    if redis_client:
+        try:
+            active = await redis_client.get("data_loader:active")
+            if active:
+                return JSONResponse(
+                    {"error": "A data load is already in progress", "active": json.loads(active)},
+                    status_code=409,
+                )
+        except Exception:
+            pass
+
+    # Resolve the target key list. If caller passed ?keys=a,b,c reload just
+    # those (in order). Otherwise reload every registered DataSource in
+    # declaration order (DATA_SOURCES list order is meaningful — National
+    # Census first, then regional hazards, etc.).
+    if keys:
+        requested = [k.strip() for k in keys.split(",") if k.strip()]
+        unknown = [k for k in requested if k not in DATA_SOURCES_BY_KEY]
+        if unknown:
+            raise HTTPException(400, f"Unknown data source keys: {unknown}")
+        target_keys = requested
+    else:
+        target_keys = [s.key for s in DATA_SOURCES]
+
+    if not target_keys:
+        return {"status": "nothing_to_reload", "total": 0}
+
+    job_id = str(uuid.uuid4())[:8]
+    job = {
+        "id": job_id,
+        "source": f"reload-all ({len(target_keys)})",
+        "status": "running", "progress": [], "error": None,
+        "pending": target_keys, "total_pending": len(target_keys),
+    }
+
+    if redis_client:
+        try:
+            await redis_client.set("data_loader:active", json.dumps(job), ex=14400)
+        except Exception:
+            pass
+
+    loop = asyncio.get_event_loop()
+
+    async def _background():
+        total_rows = 0
+        errors = 0
+        completed_keys: list[str] = []
+
+        for i, key in enumerate(target_keys):
+            progress_msg = f"[{i+1}/{len(target_keys)}] Reloading {key}..."
+
+            def _run_one(k=key):
+                return run_loader(k)
+
+            try:
+                result = await loop.run_in_executor(None, _run_one)
+                if result.get("error"):
+                    errors += 1
+                    progress_msg += f" FAIL: {result['error'][:80]}"
+                else:
+                    total_rows += result["rows"]
+                    progress_msg += f" OK: {result['rows']:,} rows"
+                completed_keys.append(key)
+            except Exception as e:
+                errors += 1
+                progress_msg += f" ERROR: {str(e)[:80]}"
+
+            if redis_client:
+                try:
+                    remaining = [k for k in target_keys if k not in completed_keys]
+                    update = {
+                        "id": job_id,
+                        "source": f"reload-all ({len(target_keys)})",
+                        "status": "running",
+                        "progress": [progress_msg],
+                        "completed": len(completed_keys),
+                        "total_pending": len(target_keys),
+                        "total_rows": total_rows,
+                        "errors": errors,
+                        "current": key,
+                        "remaining": remaining[:5],
+                    }
+                    await redis_client.set("data_loader:active", json.dumps(update), ex=14400)
+                except Exception:
+                    pass
+
+        final = {
+            "id": job_id,
+            "source": f"reload-all ({len(target_keys)})",
+            "status": "completed" if errors == 0 else "completed_with_errors",
+            "rows": total_rows,
+            "errors": errors,
+            "loaded_count": len(target_keys) - errors,
+            "total_pending": len(target_keys),
+        }
+        if redis_client:
+            try:
+                await redis_client.set("data_loader:active", json.dumps(final), ex=600)
+                # Flush the report cache so refreshed data shows up
+                # immediately instead of waiting for the 24h TTL.
+                await redis_client.delete(*[
+                    k async for k in redis_client.scan_iter("report:*")
+                ] or ["_noop"])
+            except Exception:
+                pass
+
+    asyncio.create_task(_background())
+
+    return {
+        "job_id": job_id,
+        "status": "started",
+        "datasets_to_reload": len(target_keys),
+        "keys": target_keys,
+    }
+
+
 # --- Feedback Management ---
 
 @router.get("/feedback", dependencies=[Depends(require_admin)])
