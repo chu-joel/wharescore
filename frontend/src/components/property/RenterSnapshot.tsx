@@ -133,11 +133,23 @@ export function RenterSnapshot({ report }: Props) {
   if (highWind) hhFlags.push('draught');
 
   if (hhFlags.length > 0) {
+    // Detail names the specific area exposures so the user understands
+    // WHY we're flagging it. Builds dynamically from whichever signals
+    // tripped — saying "flood and wind" when only one applied looked
+    // sloppy and vague.
+    const reasons: string[] = [];
+    if (hasFlood) reasons.push('flood zone');
+    if (highLiquefaction) reasons.push('high liquefaction');
+    if (coastalErosion) reasons.push('coastal erosion');
+    if (highWind) reasons.push('high wind exposure');
+    const reasonText = reasons.length > 1
+      ? reasons.slice(0, -1).join(', ') + ' and ' + reasons.slice(-1)
+      : reasons[0] ?? 'area exposure';
     sections.push({
       id: 'healthy-homes',
       icon: Home,
-      title: `Healthy Homes: ${hhFlags.join(' and ')} flagged`,
-      detail: `Environmental factors here may affect ${hhFlags.join(' and ')}. Ask for the Healthy Homes compliance statement before signing.`,
+      title: `Healthy Homes: extra checks needed for ${hhFlags.join(' and ')}`,
+      detail: `This area's ${reasonText} means ${hhFlags.join(' and ')} ${hhFlags.length > 1 ? 'are' : 'is'} extra worth verifying. Ask for the signed Healthy Homes compliance statement and check seals, ventilation, and dampness at the viewing.`,
       verdict: hhFlags.length >= 2 ? 'caution' : 'ok',
     });
   }
