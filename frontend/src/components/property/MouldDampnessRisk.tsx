@@ -2,7 +2,7 @@
 
 import { Droplets, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
-import { isInFloodZone } from '@/lib/hazards';
+import { getFloodTier } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -39,12 +39,34 @@ export function MouldDampnessRisk({ report }: Props) {
     });
   }
 
-  // Flood zone = ground moisture
-  if (isInFloodZone(hazards)) {
+  // Flood proximity. Severity matched to tier so a Low-ranked overland
+  // flowpath 60m away no longer reads identically to a High-rank
+  // inundation polygon overlapping the property. See lib/hazards.ts
+  // getFloodTier for thresholds.
+  const floodTier = getFloodTier(hazards);
+  if (floodTier === 'severe') {
     factors.push({
-      label: 'In a flood zone',
+      label: 'In a high-risk flood zone',
       detail: 'Higher ground moisture. Check subfloor ventilation and look for rising damp on walls.',
       severity: 'high',
+    });
+  } else if (floodTier === 'moderate') {
+    factors.push({
+      label: 'In a moderate flood zone',
+      detail: 'Some flood exposure for this area. Check subfloor ventilation and ground moisture at the viewing.',
+      severity: 'moderate',
+    });
+  } else if (floodTier === 'low') {
+    factors.push({
+      label: 'In a low-risk flood area',
+      detail: 'Mapped as low-risk flood. Worth a quick subfloor check at the viewing.',
+      severity: 'moderate',
+    });
+  } else if (floodTier === 'nearby') {
+    factors.push({
+      label: 'Near a mapped flood zone',
+      detail: 'Address sits just outside the mapped flood zone. Worth knowing about for insurance and resale.',
+      severity: 'moderate',
     });
   }
 
@@ -106,20 +128,21 @@ export function MouldDampnessRisk({ report }: Props) {
 
   const highCount = factors.filter(f => f.severity === 'high').length;
   const modCount = factors.filter(f => f.severity === 'moderate').length;
-  // Flood zone is a qualitatively different factor. past flooding leaves
-  // long-term mould in walls, floors, and insulation. so it's never just a
-  // "minor" factor even in isolation. Detect by label since factors[] below
-  // uses free-form labels.
-  const floodFlagged = factors.some(f => f.label.toLowerCase().includes('flood'));
+  // Only the SEVERE flood tier triggers the strongest "past flooding,
+  // long-term mould" copy. Moderate / low / nearby tiers still surface as
+  // factors but get the gentler "some dampness risk" framing — a property
+  // 60m from a Low-rated overland flowpath isn't the same as one inside
+  // a High inundation polygon.
+  const floodSevere = floodTier === 'severe';
 
   // Determine overall risk
   let riskLevel: 'high' | 'moderate' | 'low';
   let riskLabel: string;
   let riskDescription: string;
-  if (highCount >= 2 || (highCount >= 1 && modCount >= 2) || floodFlagged) {
+  if (highCount >= 2 || (highCount >= 1 && modCount >= 2) || floodSevere) {
     riskLevel = 'high';
-    riskLabel = floodFlagged ? 'Higher dampness and flood damage risk' : 'Higher dampness risk';
-    riskDescription = floodFlagged
+    riskLabel = floodSevere ? 'Higher dampness and flood damage risk' : 'Higher dampness risk';
+    riskDescription = floodSevere
       ? 'Past or potential flooding here leaves long-term damp in walls, floors and insulation. Inspect carefully: behind wardrobes, under sinks, along skirting, in the ceiling space. Ask directly whether the property has been flooded.'
       : 'Multiple factors increase mould and dampness risk here. Inspect carefully before signing.';
   } else if (highCount >= 1 || modCount >= 2) {

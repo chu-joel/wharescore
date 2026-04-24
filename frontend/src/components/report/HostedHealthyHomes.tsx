@@ -2,6 +2,7 @@
 
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { getFloodTier, type FloodTier } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -26,11 +27,24 @@ export function HostedHealthyHomes({ report }: Props) {
   if (!hazards) return null;
 
   const windZone = String(hazards.wind_zone || '').toUpperCase();
-  const hasFlood = !!(hazards.flood_zone || hazards.flood || hazards.flood_extent_label || hazards.flood_extent_aep || hazards.wcc_flood_type);
+  // Use the tiered flood signal instead of "any flood data present". Low /
+  // nearby tiers no longer cause a Healthy Homes Moisture flag in the
+  // hosted table — they're surfaced elsewhere with appropriate context.
+  // See lib/hazards.ts getFloodTier.
+  const floodTier = getFloodTier(hazards as Parameters<typeof getFloodTier>[0]);
+  const floodFlagged = floodTier === 'severe' || floodTier === 'moderate';
   const highLiquefaction = String(hazards.liquefaction_zone || hazards.liquefaction || '').toLowerCase().includes('high');
   const coastalErosion = !!(hazards.coastal_erosion || hazards.coastal_erosion_exposure || hazards.coastal_exposure);
-  const moistureFlagged = hasFlood || highLiquefaction || coastalErosion;
+  const moistureFlagged = floodFlagged || highLiquefaction || coastalErosion;
   const windFlagged = windZone === 'H' || windZone === 'VH' || windZone === 'HIGH' || windZone === 'VERY HIGH';
+
+  const floodFlagText = (() => {
+    switch (floodTier as FloodTier) {
+      case 'severe':   return 'high-risk flood zone';
+      case 'moderate': return 'moderate flood zone';
+      default:         return null;
+    }
+  })();
 
   const rows: HHRow[] = [
     {
@@ -55,7 +69,7 @@ export function HostedHealthyHomes({ report }: Props) {
       area: 'Moisture',
       status: moistureFlagged ? 'flagged' : 'unverified',
       label: moistureFlagged
-        ? `⚠ Area hazard. ${[hasFlood && 'flood zone', highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
+        ? `⚠ Area hazard. ${[floodFlagText, highLiquefaction && 'high liquefaction', coastalErosion && 'coastal erosion'].filter(Boolean).join(', ')}`
         : UNVERIFIED_LABEL,
       whatToCheck: 'No visible mould, condensation, or rising damp',
     },

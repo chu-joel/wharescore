@@ -125,6 +125,60 @@ export function isInFloodZone(h: Partial<FloodHazards> | null | undefined): bool
   return !!(h.flood_zone || h.flood_extent_label || h.flood_extent_aep || h.wcc_flood_type);
 }
 
+// Severity tier for flood signal. Replaces the binary "in zone / not in zone"
+// classification that previously caused a Low-ranked overland flowpath 60m
+// away to read identically to a High-rank inundation polygon overlapping the
+// property. Order: severe > moderate > low > nearby > none.
+//
+//   severe   . WCC ranking 'High', or 1%/0.23% AEP extent (1-in-100yr or
+//              worse), or the GWRC flood_zone national layer (already
+//              conservative-only when set).
+//   moderate . WCC ranking 'Medium', or 2% AEP extent (1-in-50yr), or
+//              labeled flood extent the address sits inside.
+//   low      . WCC ranking 'Low', or any wcc_flood_type with no ranking.
+//   nearby   . Not in any zone but flood_nearest_m within FLOOD_PROXIMITY_M
+//              (default 100m).
+//   none     . Nothing within 500m.
+export type FloodTier = 'severe' | 'moderate' | 'low' | 'nearby' | 'none';
+
+export function getFloodTier(
+  h: Partial<FloodHazards> | null | undefined,
+): FloodTier {
+  if (!h) return 'none';
+  const wccRanking = String(h.wcc_flood_ranking ?? '').toLowerCase();
+  const aep = String(h.flood_extent_aep ?? '').toLowerCase().replace(/\s+/g, '');
+  const wccType = String(h.wcc_flood_type ?? '').toLowerCase();
+  const hasFloodZone = !!h.flood_zone;
+  const hasExtentLabel = !!h.flood_extent_label;
+
+  if (wccRanking === 'high' || aep === '1%' || aep === '0.23%' || hasFloodZone) {
+    return 'severe';
+  }
+  if (wccRanking === 'medium' || aep === '2%' || hasExtentLabel) {
+    return 'moderate';
+  }
+  if (wccRanking === 'low' || wccType) {
+    return 'low';
+  }
+  // No intersecting polygon. Check proximity.
+  const dist = h.flood_nearest_m;
+  if (typeof dist === 'number' && dist > 0 && dist <= FLOOD_PROXIMITY_THRESHOLD_M) {
+    return 'nearby';
+  }
+  return 'none';
+}
+
+// Concise human label per tier. Used in finding titles and snapshot copy.
+export function floodTierLabel(tier: FloodTier): string {
+  switch (tier) {
+    case 'severe':   return 'In a high-risk flood zone';
+    case 'moderate': return 'In a moderate flood zone';
+    case 'low':      return 'In a low-risk flood area';
+    case 'nearby':   return 'Near a flood zone';
+    case 'none':     return '';
+  }
+}
+
 // Coastal erosion. insurer-relevant when high OR within a mapped council
 // erosion overlay. Three sources emit this information and only one is aliased
 // into `coastal_erosion`; check all of them.

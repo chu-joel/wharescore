@@ -6,7 +6,7 @@ import {
   Shield, Wind, Volume2, Zap, MapPin, Home, Heart, Phone, CheckCircle2,
 } from 'lucide-react';
 import type { PropertyReport, ReportSnapshot } from '@/lib/types';
-import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM } from '@/lib/hazards';
+import { isInFloodZone, floodLabel, isNearFloodZone, floodProximityM, getFloodTier } from '@/lib/hazards';
 
 interface Props {
   report: PropertyReport;
@@ -274,17 +274,34 @@ function buildAdviceSections(report: PropertyReport, ta: string, persona: string
   if (isInFloodZone(h) || isNearFloodZone(h) || h.on_overland_flow_path || h.overland_flow_within_50m) {
     const isHB = isHawkesBay(ta);
     const isWC = isWestCoast(ta);
+    // Tier the section severity + intro language so a Low-rank overland
+    // flowpath nearby doesn't read identically to a High-rank inundation
+    // polygon overlapping the property. Subsection content (what to do)
+    // stays the same — those steps apply to any flood proximity.
+    const floodTier = getFloodTier(h);
+    const sectionSeverity: 'critical' | 'warning' | 'info' =
+      floodTier === 'severe'   ? 'critical' :
+      floodTier === 'moderate' ? 'warning'  :
+      floodTier === 'low'      ? 'info'     :
+      floodTier === 'nearby'   ? 'info'     :
+      'info';
+    const tierIntro =
+      floodTier === 'severe'
+        ? `This property is in a high-risk flood zone (${floodLabel(h)}). ${isHB ? 'Hawke\'s Bay was devastated by Cyclone Gabrielle in 2023. take this seriously.' : isWC ? 'Westport has flooded repeatedly in recent years.' : 'Flood events are becoming more frequent due to climate change.'}`
+      : floodTier === 'moderate'
+        ? `This property is in a moderate flood zone (${floodLabel(h)}). It's not a worst-case area but the council has it mapped for a reason — worth understanding what could happen here in a serious event.`
+      : floodTier === 'low'
+        ? `This property is in a low-risk flood area (${floodLabel(h)}). The council has mapped it as low severity, so the steps below are precautionary rather than urgent.`
+      : floodTier === 'nearby'
+        ? `This property is within ${floodProximityM(h)}m of a mapped flood zone. Zone boundaries are imprecise; a large event could still reach this property. ${isHB ? 'Cyclone Gabrielle overtopped many mapped boundaries in 2023.' : 'Treat the mapped edge as a guide, not a guarantee.'}`
+        : 'This property is near an overland flow path, which means stormwater can flow across the property during heavy rain events.';
 
     sections.push({
       id: 'flooding',
       icon: Droplets,
       title: 'Flood Risk. What To Do',
-      severity: 'critical',
-      intro: isInFloodZone(h)
-        ? `This property is in a mapped flood zone (${floodLabel(h)}). ${isHB ? 'Hawke\'s Bay was devastated by Cyclone Gabrielle in 2023. take this seriously.' : isWC ? 'Westport has flooded repeatedly in recent years.' : 'Flood events are becoming more frequent due to climate change.'}`
-        : isNearFloodZone(h)
-          ? `This property is within ${floodProximityM(h)}m of a mapped flood zone. Zone boundaries are imprecise. a large event could still reach this property. ${isHB ? 'Cyclone Gabrielle overtopped many mapped boundaries in 2023.' : 'Treat the mapped edge as a guide, not a guarantee.'}`
-          : 'This property is near an overland flow path, which means stormwater can flow across the property during heavy rain events.',
+      severity: sectionSeverity,
+      intro: tierIntro,
       subsections: [
         {
           heading: 'Protect Your Property Now',

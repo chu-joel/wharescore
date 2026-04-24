@@ -14,7 +14,7 @@ import {
   Minus,
   Eye,
 } from 'lucide-react';
-import { isInFloodZone, isNearFloodZone, isHighOrVeryHighLiquefaction } from '@/lib/hazards';
+import { isInFloodZone, isNearFloodZone, isHighOrVeryHighLiquefaction, getFloodTier } from '@/lib/hazards';
 import type { PropertyReport } from '@/lib/types';
 
 interface Props {
@@ -123,7 +123,12 @@ export function RenterSnapshot({ report }: Props) {
   const hazards = report.hazards;
   const environment = report.environment;
   const windZone = String(environment?.wind_zone || '').toUpperCase();
-  const hasFlood = isInFloodZone(hazards) || isNearFloodZone(hazards);
+  // Only treat moderate-or-worse flood tiers as a moisture signal. Low /
+  // nearby tiers don't justify a Healthy Homes "extra checks" surface in
+  // the snapshot card — they get covered by the dedicated MouldDampnessRisk
+  // section instead. See lib/hazards.ts getFloodTier.
+  const floodTier = getFloodTier(hazards);
+  const hasFlood = floodTier === 'severe' || floodTier === 'moderate';
   const highLiquefaction = isHighOrVeryHighLiquefaction(hazards);
   const coastalErosion = !!(hazards?.coastal_erosion_exposure);
   const highWind = ['H', 'VH', 'EH', 'SED', 'HIGH', 'VERY HIGH'].includes(windZone);
