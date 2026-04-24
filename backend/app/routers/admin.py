@@ -1917,7 +1917,7 @@ async def analytics_rent_reports(request: Request):
             FROM user_rent_reports r
             LEFT JOIN addresses a ON a.address_id = r.address_id
             WHERE r.is_outlier = FALSE
-            GROUP BY city
+            GROUP BY COALESCE(NULLIF(TRIM(a.town_city), ''), 'Unknown')
             ORDER BY reports DESC
             LIMIT 20
         """)
@@ -1966,7 +1966,7 @@ async def analytics_rent_reports(request: Request):
             SELECT COALESCE(source_context, 'unknown') AS source,
                    COUNT(*) AS count
             FROM user_rent_reports
-            GROUP BY source
+            GROUP BY COALESCE(source_context, 'unknown')
             ORDER BY count DESC
         """)
         by_source = cur.fetchall()
