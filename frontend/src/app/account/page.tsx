@@ -34,7 +34,7 @@ interface SavedReport {
 
 export default function AccountPage() {
   const { getToken } = useAuthToken();
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const user = session?.user;
   const credits = useDownloadGateStore((s) => s.credits);
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
@@ -139,6 +139,16 @@ export default function AccountPage() {
       );
       setDisplayName(res.display_name);
       setEditingName(false);
+      // Push the new name into the next-auth JWT so every useSession()
+      // consumer (AppHeader, account menus, etc.) reflects it without
+      // requiring a sign-out / sign-in round-trip. See auth.ts `jwt`
+      // callback's `trigger === 'update'` branch.
+      try {
+        await updateSession({ name: res.display_name });
+      } catch {
+        // Non-fatal — the /account page already shows the new name via
+        // local state; other pages will catch up on next page load.
+      }
       toast.success('Name updated');
     } catch {
       toast.error('Couldn\'t save. Try again.');

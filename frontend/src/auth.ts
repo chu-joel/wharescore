@@ -39,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    jwt({ token, user, account }) {
+    jwt({ token, user, account, trigger, session }) {
       // On first sign-in, persist stable user ID
       if (account && user) {
         if (account.provider === "google") {
@@ -52,11 +52,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = user.name;
         token.picture = user.image;
       }
+      // Handle client-side `session.update({ name: '...' })` calls so a
+      // user who edits their display_name in /account sees the new name
+      // in the header and other `useSession()` consumers without having
+      // to sign out and back in. Backend is still authoritative — the
+      // update only rewrites the cached JWT claim.
+      if (trigger === "update" && session && typeof session === "object") {
+        const s = session as { name?: string };
+        if (typeof s.name === "string" && s.name.trim()) {
+          token.name = s.name.trim();
+        }
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
+      }
+      // Mirror the jwt-stored name into the session so client consumers
+      // (AppHeader, account menus) see the updated value after a
+      // session.update() call.
+      if (session.user && typeof token.name === "string") {
+        session.user.name = token.name;
       }
       return session;
     },
