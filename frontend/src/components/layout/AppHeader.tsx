@@ -1,6 +1,7 @@
 'use client';
 
-import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn, PlayCircle, BookOpen } from 'lucide-react';
+import { HelpCircle, Moon, Sun, ChevronLeft, MapPin, FileText, LogOut, UserCircle, LogIn, PlayCircle, BookOpen, MessageSquarePlus } from 'lucide-react';
+import { FeedbackDrawer } from '@/components/feedback/FeedbackDrawer';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -13,6 +14,10 @@ export function AppHeader() {
   const [isDark, setIsDark] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  // Feedback drawer mirrors the one behind FeedbackFAB so mobile users
+  // can reach it via the Help (?) menu. The FAB itself stays on desktop
+  // but is hidden on mobile where the property MobileDrawer covers it.
+  const [showFeedback, setShowFeedback] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const selectedAddress = useSearchStore((s) => s.selectedAddress);
@@ -242,11 +247,24 @@ export function AppHeader() {
                   <BookOpen className="h-4 w-4 text-muted-foreground" />
                   Help &amp; FAQ
                 </a>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowHelpMenu(false);
+                    setShowFeedback(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+                >
+                  <MessageSquarePlus className="h-4 w-4 text-piq-primary" />
+                  Send feedback
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      <FeedbackDrawer open={showFeedback} onOpenChange={setShowFeedback} />
     </header>
   );
 }
