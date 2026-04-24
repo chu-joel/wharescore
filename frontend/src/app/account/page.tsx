@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthToken } from '@/hooks/useAuthToken';
-import { FileText, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles, Heart, X } from 'lucide-react';
+import { FileText, ExternalLink, CreditCard, Crown, Loader2, AlertCircle, ArrowLeft, Sparkles, Heart, X, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { UpgradeModal } from '@/components/property/UpgradeModal';
@@ -48,6 +48,13 @@ export default function AccountPage() {
     saved_at: string;
   }[]>([]);
   const [loadingSavedProperties, setLoadingSavedProperties] = useState(true);
+  // display_name editing. Seeded from session on first render then
+  // mutated locally on save. We don't round-trip through next-auth's
+  // session because the backend is the source of truth.
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -96,6 +103,49 @@ export default function AccountPage() {
       }
     })();
   }, [getToken, status]);
+
+  // Seed the editable displayName from the session once we know who
+  // the user is. Backend is authoritative; the session just gives us
+  // a starting value so we don't flash 'email' before the DB row
+  // loads. If the user saves a new name the backend response updates
+  // this state directly.
+  useEffect(() => {
+    if (user?.name && displayName === null) {
+      setDisplayName(user.name);
+    }
+  }, [user?.name, displayName]);
+
+  const handleSaveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      toast.error('Name can\'t be empty');
+      return;
+    }
+    if (trimmed.length > 60) {
+      toast.error('Name must be 60 characters or fewer');
+      return;
+    }
+    setSavingName(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('no-token');
+      const res = await apiFetch<{ display_name: string }>(
+        '/api/v1/account/profile',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ display_name: trimmed }),
+          token,
+        }
+      );
+      setDisplayName(res.display_name);
+      setEditingName(false);
+      toast.success('Name updated');
+    } catch {
+      toast.error('Couldn\'t save. Try again.');
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const handleRemoveSavedProperty = async (addressId: number) => {
     const previous = savedProperties;
@@ -328,9 +378,48 @@ export default function AccountPage() {
             Back
           </a>
           <h1 className="text-2xl font-bold">My Account</h1>
-          <p className="text-muted-foreground">
-            {user.name || user.email}
-          </p>
+          {editingName ? (
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                maxLength={60}
+                autoFocus
+                placeholder="Your name"
+                className="flex-1 rounded-md border border-border bg-background px-2.5 py-1 text-sm focus:border-piq-primary focus:outline-none focus:ring-1 focus:ring-piq-primary"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName();
+                  if (e.key === 'Escape') setEditingName(false);
+                }}
+              />
+              <Button size="sm" onClick={handleSaveName} disabled={savingName}>
+                {savingName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingName(false)} disabled={savingName}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground">
+                {displayName || user.email}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setNameDraft(displayName || '');
+                  setEditingName(true);
+                }}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Edit your name"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit name
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Credit Balance */}

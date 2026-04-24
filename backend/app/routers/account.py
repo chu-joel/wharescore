@@ -6,11 +6,16 @@ import logging
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, Field
 
 from .. import db
 from ..config import settings
 from ..deps import limiter
 from ..services.auth import require_user
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=60)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/account", tags=["account"])
@@ -108,6 +113,36 @@ async def get_credits(user_id: str = Depends(require_user)):
         "downloads_today": downloads_today,
         "downloads_this_month": downloads_this_month,
     }
+
+
+@router.patch("/profile")
+@limiter.limit("10/hour")
+async def update_profile(
+    request: Request,
+    body: ProfileUpdate,
+    user_id: str = Depends(require_user),
+):
+    """Update the current user's display_name. Strips surrounding whitespace.
+
+    Collapses internal whitespace runs so "John    Doe" becomes "John Doe"
+    but preserves single spaces. Rejects empty-after-strip.
+    """
+    cleaned = " ".join(body.display_name.split())
+    if not cleaned:
+        raise HTTPException(400, "display_name cannot be blank")
+    if len(cleaned) > 60:
+        raise HTTPException(400, "display_name must be 60 characters or fewer")
+
+    async with db.pool.connection() as conn:
+        cur = await conn.execute(
+            "UPDATE users SET display_name = %s WHERE user_id = %s RETURNING display_name",
+            [cleaned, user_id],
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, "User not found")
+
+    return {"display_name": row["display_name"]}
 
 
 @router.get("/saved-reports")
