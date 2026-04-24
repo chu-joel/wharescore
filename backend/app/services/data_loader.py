@@ -1615,6 +1615,39 @@ def _load_council_arcgis(
     return count
 
 
+def _detect_srid_from_geom(geom_json: dict | None) -> int | None:
+    """Heuristic SRID detection from one feature's coordinates.
+
+    Some councils' WFS endpoints return GeoJSON with native projection
+    coordinates (typically EPSG:2193 / NZTM) rather than the GeoJSON-spec
+    EPSG:4326. If the loader naively `ST_SetSRID(geom, 4326)` on NZTM
+    coordinates, the polygons get tagged 4326 with NZTM numbers, and
+    subsequent `ST_DWithin(::geography, ...)` distance checks wrap into
+    completely wrong locations (e.g. Whanganui flood polygons matching
+    Wellington addresses — observed 2026-04-24 at 56 Hatton St, Karori).
+
+    Returns 2193 / 4326 / None based on coordinate magnitudes:
+      NZTM (2193): X ≈ 1,000,000 to 2,500,000  Y ≈ 4,700,000 to 6,300,000
+      WGS84 (4326): lng 160-185  lat -50 to -30
+    """
+    if not geom_json:
+        return None
+    coords = geom_json.get("coordinates")
+    # Drill down to a (x, y) pair regardless of polygon nesting.
+    while isinstance(coords, list) and coords and isinstance(coords[0], list):
+        coords = coords[0]
+    if not (isinstance(coords, list) and len(coords) >= 2):
+        return None
+    x, y = coords[0], coords[1]
+    if not (isinstance(x, (int, float)) and isinstance(y, (int, float))):
+        return None
+    if 1_000_000 <= abs(x) <= 2_500_000 and 4_700_000 <= abs(y) <= 6_300_000:
+        return 2193
+    if 160 <= x <= 185 and -50 <= y <= -30:
+        return 4326
+    return None
+
+
 def _load_council_wfs(
     conn: psycopg.Connection, log: Callable,
     base_url: str, type_name: str, table: str, council: str,
@@ -1634,6 +1667,13 @@ def _load_council_wfs(
         _progress(log, f"  WFS error for {type_name}: {e}")
         return 0
     features = data.get("features", [])
+    # Auto-correct caller-passed SRID if the actual coordinates look like
+    # a different projection. Logs the override so a real misconfiguration
+    # is visible in admin progress messages.
+    detected = _detect_srid_from_geom(features[0].get("geometry") if features else None)
+    if detected and detected != srid:
+        _progress(log, f"  SRID auto-correct: caller passed {srid} but coords look like EPSG:{detected}; using {detected}")
+        srid = detected
     cur = conn.cursor()
     cur.execute(
         sql.SQL("DELETE FROM {} WHERE source_council = %s").format(sql.Identifier(table)),
