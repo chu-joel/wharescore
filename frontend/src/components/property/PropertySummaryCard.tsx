@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import type { PropertyReport } from '@/lib/types';
 import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
+import { EnterRentButton } from './EnterRentButton';
 
 function StreetViewLink({ lat, lng }: { lat: number; lng: number }) {
   const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
@@ -193,17 +194,22 @@ export function PropertySummaryCard({
           <TradeMeLink address={address.full_address} />
         </div>
 
-        {/* Score + metadata */}
+        {/* Score + metadata. The EnterRentButton on the right is
+            renter-only and jumps to the rent section. We keep it here
+            (rather than a floating top-bar button) so it lives right
+            next to the score — users scanning the summary see "your
+            risk is X, and here's the one action you probably want to
+            take" in a single glance. */}
         <div className="flex items-center gap-4 pt-1">
           {hasScore && bin ? (
             <>
               <div
-                className="flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-xl ring-4 ring-opacity-20"
+                className="flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-xl ring-4 ring-opacity-20 shrink-0"
                 style={{ backgroundColor: bin.color, '--tw-ring-color': bin.color } as React.CSSProperties}
               >
                 {Math.round(scores.overall)}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-base font-semibold">{bin.label} Risk</p>
                 {coverage && (
                   <p className="text-xs text-muted-foreground mt-1.5">
@@ -211,9 +217,13 @@ export function PropertySummaryCard({
                   </p>
                 )}
               </div>
+              <EnterRentButton />
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">Score pending</p>
+            <>
+              <p className="text-sm text-muted-foreground flex-1">Score pending</p>
+              <EnterRentButton />
+            </>
           )}
         </div>
 

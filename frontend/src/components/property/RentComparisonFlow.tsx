@@ -38,6 +38,20 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
   const [assessment, setAssessment] = useState<RentAssessment | null>(market.rent_assessment);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Flag toggled by the "Is my rent fair?" top-of-report button
+  // (components/property/EnterRentButton.tsx) via a window CustomEvent.
+  // When true, the Bedrooms + Weekly rent blocks pulse a piq-primary ring
+  // for ~4s so the user can see exactly what they need to fill in.
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    const onPing = () => {
+      setHighlight(true);
+      const t = window.setTimeout(() => setHighlight(false), 4000);
+      return () => window.clearTimeout(t);
+    };
+    window.addEventListener('wharescore:highlight-rent-inputs', onPing);
+    return () => window.removeEventListener('wharescore:highlight-rent-inputs', onPing);
+  }, []);
   // Dedup: skip re-sending the same (dwelling, bedrooms, rent) tuple. The
   // backend upserts within the 24h window so multiple POSTs are safe,
   // but there's no point spamming.
@@ -221,9 +235,19 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
         )}
       </div>
 
-      {/* Bedroom Selector */}
-      <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Bedrooms</p>
+      {/* Bedroom Selector. Required field — pulses a piq-primary ring
+          when the user arrives here via the top-of-report "Is my rent
+          fair?" button and hasn't filled it in. */}
+      <div
+        className={`rounded-lg p-2 -m-2 transition-all duration-300 ${
+          highlight && !bedrooms
+            ? 'ring-2 ring-piq-primary ring-offset-2 animate-pulse bg-piq-primary/5'
+            : ''
+        }`}
+      >
+        <p className="text-xs text-muted-foreground mb-1.5">
+          Bedrooms <span className="text-piq-primary font-semibold">*required</span>
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {BEDROOM_OPTIONS.map((bed) => (
             <button
@@ -241,9 +265,17 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
         </div>
       </div>
 
-      {/* Rent Input */}
-      <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Your weekly rent</p>
+      {/* Rent Input. Required field — same pulse behaviour as Bedrooms. */}
+      <div
+        className={`rounded-lg p-2 -m-2 transition-all duration-300 ${
+          highlight && !rentValid
+            ? 'ring-2 ring-piq-primary ring-offset-2 animate-pulse bg-piq-primary/5'
+            : ''
+        }`}
+      >
+        <p className="text-xs text-muted-foreground mb-1.5">
+          Your weekly rent <span className="text-piq-primary font-semibold">*required</span>
+        </p>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
@@ -260,7 +292,7 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
         </div>
         {rentOutOfBounds && (
           <p className="text-xs text-destructive mt-1">
-            NZ rents are typically $100–$2,000/week.
+            NZ rents are typically $100 to $2,000 per week.
           </p>
         )}
       </div>
