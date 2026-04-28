@@ -135,7 +135,9 @@ export function isInFloodZone(h: Partial<FloodHazards> | null | undefined): bool
 //              conservative-only when set).
 //   moderate . WCC ranking 'Medium', or 2% AEP extent (1-in-50yr), or
 //              labeled flood extent the address sits inside.
-//   low      . WCC ranking 'Low', or any wcc_flood_type with no ranking.
+//   low      . WCC ranking 'Low', any wcc_flood_type with no ranking, or
+//              AC Flood-Sensitive Areas (modelled future-scenario screening,
+//              not a validated flood zone).
 //   nearby   . Not in any zone but flood_nearest_m within FLOOD_PROXIMITY_M
 //              (default 100m).
 //   none     . Nothing within 500m.
@@ -147,17 +149,24 @@ export function getFloodTier(
   if (!h) return 'none';
   const wccRanking = String(h.wcc_flood_ranking ?? '').toLowerCase();
   const aep = String(h.flood_extent_aep ?? '').toLowerCase().replace(/\s+/g, '');
+  const aepRaw = String(h.flood_extent_aep ?? '').toLowerCase();
   const wccType = String(h.wcc_flood_type ?? '').toLowerCase();
   const hasFloodZone = !!h.flood_zone;
   const hasExtentLabel = !!h.flood_extent_label;
 
-  if (wccRanking === 'high' || aep === '1%' || aep === '0.23%' || hasFloodZone) {
+  // AC Flood-Sensitive Areas are a modelled screening layer — never escalate
+  // them to severe/moderate even when the address sits inside the polygon.
+  // The authoritative AC layer is `Flood_Prone_Areas` (1% AEP), which the
+  // loader tags as aep='1%'.
+  const isFloodSensitive = aepRaw.includes('sensitive');
+
+  if (!isFloodSensitive && (wccRanking === 'high' || aep === '1%' || aep === '0.23%' || hasFloodZone)) {
     return 'severe';
   }
-  if (wccRanking === 'medium' || aep === '2%' || hasExtentLabel) {
+  if (!isFloodSensitive && (wccRanking === 'medium' || aep === '2%' || hasExtentLabel)) {
     return 'moderate';
   }
-  if (wccRanking === 'low' || wccType) {
+  if (isFloodSensitive || wccRanking === 'low' || wccType) {
     return 'low';
   }
   // No intersecting polygon. Check proximity.
@@ -268,7 +277,14 @@ export function floodLabel(h: Partial<FloodHazards> | null | undefined): string 
   if (!h) return null;
   if (h.flood_zone) return String(h.flood_zone);
   if (h.flood_extent_label) return String(h.flood_extent_label);
-  if (h.flood_extent_aep) return `${h.flood_extent_aep} AEP flood extent`;
+  if (h.flood_extent_aep) {
+    const aep = String(h.flood_extent_aep).toLowerCase();
+    // "Flood Sensitive" is a screening tag, not an AEP percentage — don't
+    // pretend it has a return-period probability. Same for any non-numeric tag.
+    if (aep.includes('sensitive')) return 'Flood-sensitive area (modelled)';
+    if (/^\d/.test(aep) || aep.includes('%')) return `${h.flood_extent_aep} AEP flood extent`;
+    return String(h.flood_extent_aep);
+  }
   if (h.wcc_flood_type) {
     const rank = h.wcc_flood_ranking ? `. ${h.wcc_flood_ranking} ranking` : '';
     return `${h.wcc_flood_type}${rank}`;

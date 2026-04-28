@@ -226,7 +226,8 @@ Used by: price advisor (HPI-adjusted CV), report market section, snapshot genera
 |--------|--------|-------|
 | Wellington (GWRC) | "1% AEP flood hazard" | Single return period |
 | Christchurch (CCC) | "CCC 10yr", "CCC 50yr", "CCC 200yr" | Three return periods |
-| Auckland | "Flood Prone Area" | Binary (in/out of zone) |
+| Auckland (Flood Prone Areas) | "1%" AEP, depth-tiered ranking from `Depth100y` | Authoritative 1-in-100yr layer; ranking High>0.5m / Medium>0m / Low otherwise |
+| Auckland (Flood Sensitive Areas) | "Flood Sensitive" AEP, ranking always Low | Modelled future-scenario screening — NOT a validated flood zone; never tiered above `low` in `getFloodTier` |
 | Northland | "River Flood Zone (10yr)", "(50yr)" | Two return periods |
 | Waikato | Location + depth group + climate change scenario | Most detailed |
 

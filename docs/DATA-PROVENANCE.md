@@ -26,6 +26,8 @@
 | `hazards.council_flood_ranking` | Council flood hazard ranking | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region (63 flood_hazard loaders) | varies | `flood_hazard` | 63 councils |
 | `hazards.council_flood_type` | Council flood event type | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region | varies | `flood_hazard` | 63 councils |
 | `hazards.flood_extent_aep` | Flood extent AEP (0.5% / 1% / 2% / 10%) | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region | varies | `flood_hazard` | 63 councils |
+| `hazards.flood_extent_aep` (Auckland: "1%") | 1% AEP (1-in-100yr) flood prone area | Auckland Council | `https://services1.arcgis.com/n4yPwebTjJCmXB6W/.../Flood_Prone_Areas/FeatureServer/0` | `auckland_flood` | `flood_hazard` (source_council='auckland') | Auckland only — depth-tiered ranking from `Depth100y` |
+| `hazards.flood_extent_aep` (Auckland: "Flood Sensitive") | Modelled flood-sensitive area (future scenario, advisory only — NOT a validated flood zone) | Auckland Council | `https://services1.arcgis.com/n4yPwebTjJCmXB6W/.../Flood_Sensitive_Areas/FeatureServer/0` | `auckland_flood_sensitive` | `flood_hazard` (source_council='auckland_flood_sensitive') | Auckland only — Rapid Flood Hazard Assessment screening; capped at `low` tier in `getFloodTier` |
 | `hazards.flood_nearest_m` | Distance to nearest mapped flood zone (m) | Individual councils | See `DATA-CATALOG.md` § DataSources-by-region | varies | `flood_hazard` | 63 councils |
 | `hazards.flood` | 1% or 0.2% AEP national flood zone | Greater Wellington Regional Council | `https://mapping.gw.govt.nz/arcgis/rest/services/.../flood_zones` | legacy national layer | `flood_zones` | Wellington region only |
 

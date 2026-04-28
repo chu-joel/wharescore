@@ -517,7 +517,12 @@ def enrich_with_scores(report: dict) -> dict:
     if council_flood_aep and not wcc_flood:
         # AEP-based: lower AEP % = more frequent = worse
         aep_str = str(council_flood_aep).lower()
-        if "0.5%" in aep_str or "1 in 200" in aep_str:
+        if "sensitive" in aep_str:
+            # AC Flood-Sensitive Areas: modelled future-scenario screening, not a
+            # validated flood zone. Score as low advisory signal — do NOT promote
+            # to the unknown-60 fallback that fires "warn" findings downstream.
+            council_flood_score = 30
+        elif "0.5%" in aep_str or "1 in 200" in aep_str:
             council_flood_score = 45
         elif "1%" in aep_str or "1 in 100" in aep_str:
             council_flood_score = 75

@@ -441,7 +441,7 @@ The `flood_hazard.hazard_type` column is interpreted as an AEP code by `risk_sco
 
 | `flood_extent_aep` value | Score | Notes |
 |---|---|---|
-| contains "sensitive" | 30 | AC Flood-Sensitive Areas — modelled future-scenario screening, NOT a validated flood zone. Advisory only; never escalated to warn-tier findings. |
+| contains "sensitive" | 30 | AC Flood-Sensitive Areas — modelled future-scenario screening, NOT a validated flood zone. Advisory only; never escalated to warn-tier findings. Mirrors the cap in `frontend/src/lib/hazards.ts::getFloodTier`. |
 | "10%" / "1 in 10" | 90 | 1-in-10yr (most frequent → worst) |
 | "2%" / "1 in 50" | 85 | 1-in-50yr |
 | "1%" / "1 in 100" | 75 | 1-in-100yr (Auckland's `Flood_Prone_Areas` layer is tagged "1%") |

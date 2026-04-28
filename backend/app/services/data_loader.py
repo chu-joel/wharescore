@@ -1706,30 +1706,36 @@ def _load_council_wfs(
 
 
 def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland flood prone areas. The AC 'Flood_Prone_Areas' FeatureServer has
-    no human-readable name field. only FPA_ID (numeric), depth, and volume. so
-    we synthesize a descriptive label from the 100-year ARI depth instead of
-    leaking OBJECTIDs into hazards.flood_extent_label."""
+    """Auckland flood prone areas. AC's `Flood_Prone_Areas` is the authoritative
+    1% AEP (1-in-100yr) layer — every feature carries `Depth100y`. Encode the
+    AEP as "1%" so downstream scoring and `getFloodTier` treat it as a real
+    flood zone (not the heuristic "unknown" fallback). Depth drives ranking:
+    >0.5m = High, >0 = Medium, 0/null = Low."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0"
 
-    def _label(a: dict) -> str:
-        depth = a.get("Depth100y")
+    def _depth(a: dict) -> float | None:
         try:
-            d = float(depth) if depth is not None else None
+            d = float(a.get("Depth100y")) if a.get("Depth100y") is not None else None
         except (TypeError, ValueError):
             d = None
+        return d
+
+    def _label(a: dict) -> str:
+        d = _depth(a)
         if d is None or d <= 0:
-            return "Flood Prone Area (100-yr ARI)"
-        return f"Flood Prone Area ({d:.1f}m depth, 100-yr ARI)"
+            return "1% AEP flood prone area (1-in-100yr)"
+        return f"1% AEP flood prone area ({d:.1f}m depth, 1-in-100yr)"
+
+    def _ranking(a: dict) -> str:
+        d = _depth(a)
+        if d is None or d <= 0:
+            return "Low"
+        return "High" if d > 0.5 else "Medium"
 
     return _load_council_arcgis(
         conn, log, url, "flood_hazard", "auckland",
         ["name", "hazard_ranking", "hazard_type"],
-        lambda a: (
-            _label(a),
-            "High" if (a.get("Depth100y") or 0) > 0.5 else "Medium" if (a.get("Depth100y") or 0) > 0 else "Low",
-            "Flood Prone",
-        ),
+        lambda a: (_label(a), _ranking(a), "1%"),
     )
 
 
@@ -2004,14 +2010,23 @@ def load_auckland_overland_flow(conn: psycopg.Connection, log: Callable = None) 
 
 
 def load_auckland_flood_sensitive(conn: psycopg.Connection, log: Callable = None) -> int:
-    """Auckland flood sensitive areas."""
+    """Auckland flood-sensitive areas. AC's `Flood_Sensitive_Areas` is a
+    *modelled future-scenario* screening layer (DEVELOPMENT_SCENARIO='Future',
+    Rapid Flood Hazard Assessment) — broader catchments that drain into low
+    points where flooding *might* occur, not validated 1% AEP zones. AC's own
+    flood viewer treats these as advisory.
+
+    Don't hardcode Medium — the upstream Hazard field is the same string for
+    every feature, so there's no per-feature severity to read. Tag rank as Low
+    and AEP as "Flood Sensitive" so downstream code can recognise + de-rank
+    these (vs. the authoritative `Flood_Prone_Areas` 1% layer)."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Sensitive_Areas/FeatureServer/0"
     return _load_council_arcgis(
         conn, log, url, "flood_hazard", "auckland_flood_sensitive",
         ["name", "hazard_ranking", "hazard_type"],
         lambda a: (
-            _clean(a.get("Hazard")) or "Flood Sensitive Area",
-            "Medium",
+            "Flood-sensitive area (modelled future scenario)",
+            "Low",
             "Flood Sensitive",
         ),
     )
