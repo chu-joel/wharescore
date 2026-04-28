@@ -64,10 +64,10 @@ export function CompareTray() {
 
   return (
     <>
-      {/* ─── Desktop pill (fixed top-right) ─── */}
+      {/* ─── Desktop pill (fixed top-right, below the 56px AppHeader) ─── */}
       <div
         ref={popoverRef}
-        className="hidden md:block fixed top-3 right-4 z-50"
+        className="hidden md:block fixed top-[68px] right-4 z-[55]"
       >
         <button
           type="button"
