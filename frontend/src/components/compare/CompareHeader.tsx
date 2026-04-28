@@ -121,7 +121,7 @@ export function CompareHeader({ reports, addressIds, fallbackAddresses }: Compar
                     )}
                     {id && (
                       <Link
-                        href={`/property/${id}`}
+                        href={`/?address=${id}`}
                         className="text-[10px] sm:text-xs text-piq-primary hover:underline inline-flex items-center gap-0.5"
                       >
                         Open <ExternalLink className="size-3" />
