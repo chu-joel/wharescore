@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { X, ExternalLink } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
 import { useComparisonStore } from '@/stores/comparisonStore';
@@ -17,13 +18,30 @@ const COLUMN_CHIP = [
 
 interface CompareHeaderProps {
   reports: Array<PropertyReport | null>;
+  addressIds: number[];
   fallbackAddresses: Array<{ addressId: number; fullAddress: string; suburb: string }>;
 }
 
-export function CompareHeader({ reports, fallbackAddresses }: CompareHeaderProps) {
+export function CompareHeader({ reports, addressIds, fallbackAddresses }: CompareHeaderProps) {
   const remove = useComparisonStore((s) => s.remove);
   const persona = usePersonaStore((s) => s.persona);
   const setPersona = usePersonaStore((s) => s.setPersona);
+  const router = useRouter();
+
+  // Removing a column on the /compare page must update both the tray store
+  // and the URL — otherwise the page keeps trying to render the removed id.
+  // After removal: 0 left -> bounce to home; 1 left -> stay on /compare so
+  // the page renders its empty-state ("Add one more property") with the
+  // staged property's address front-and-centre.
+  const removeColumn = (id: number) => {
+    remove(id);
+    const remaining = addressIds.filter((x) => x !== id);
+    if (remaining.length === 0) {
+      router.push('/');
+    } else {
+      router.replace(`/compare?ids=${remaining.join(',')}`);
+    }
+  };
 
   return (
     <div className="sticky top-0 z-30 bg-background/95 supports-[backdrop-filter]:backdrop-blur border-b border-border">
@@ -114,8 +132,8 @@ export function CompareHeader({ reports, fallbackAddresses }: CompareHeaderProps
                 {id && (
                   <button
                     type="button"
-                    onClick={() => remove(id)}
-                    aria-label={`Remove ${address}`}
+                    onClick={() => removeColumn(id)}
+                    aria-label={`Remove ${address} from comparison`}
                     className="shrink-0 p-1 rounded text-muted-foreground hover:text-piq-accent-hot hover:bg-muted"
                   >
                     <X className="size-3.5 sm:size-4" />

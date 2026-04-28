@@ -55,7 +55,7 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
 
   return (
     <div>
-      <CompareHeader reports={reports} fallbackAddresses={fallbacks} />
+      <CompareHeader reports={reports} addressIds={addressIds} fallbackAddresses={fallbacks} />
 
       <main className="max-w-6xl mx-auto px-3 sm:px-6 pt-3 pb-24 sm:pt-5 sm:pb-12 space-y-3 sm:space-y-4">
         {!allReady ? (
