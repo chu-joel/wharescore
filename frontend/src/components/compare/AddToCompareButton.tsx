@@ -3,7 +3,6 @@
 import { GitCompare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useComparisonStore, COMPARE_MAX_ANONYMOUS } from '@/stores/comparisonStore';
-import { useSearchStore } from '@/stores/searchStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -33,13 +32,14 @@ export function AddToCompareButton({
   const items = useComparisonStore((s) => s.items);
   const add = useComparisonStore((s) => s.add);
   const remove = useComparisonStore((s) => s.remove);
-  const clearSelection = useSearchStore((s) => s.clearSelection);
   const staged = items.some((i) => i.addressId === addressId);
 
+  // Staging deliberately does NOT close the property panel or change the
+  // URL. The user expects to stay where they are; they can navigate to
+  // another property when they're ready (map click or new search).
   const handleClick = () => {
     if (staged) {
       remove(addressId);
-      clearSelection();
       toast('Removed from comparison');
       return;
     }
@@ -53,17 +53,13 @@ export function AddToCompareButton({
       return;
     }
     const newCount = items.length + 1;
-    // Close the property panel so the user can pick another property from
-    // the map. Without this, the report panel keeps the just-staged property
-    // open and the user has no way to navigate to a second property.
-    clearSelection();
     if (newCount === COMPARE_MAX_ANONYMOUS) {
       toast.success('Added — ready to compare', {
         description: 'Open the tray to view side-by-side.',
       });
     } else {
       toast.success('Added to comparison', {
-        description: 'Pick another property on the map to compare.',
+        description: 'Pick another property to compare it with.',
       });
     }
   };
