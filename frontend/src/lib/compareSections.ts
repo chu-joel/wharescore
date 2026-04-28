@@ -8,7 +8,15 @@ import {
   negativeKnown,
   unknown,
 } from './compareDiff';
-import { getFloodTier, floodTierLabel, liquefactionRating, isInTsunamiZone } from './hazards';
+import {
+  getFloodTier,
+  floodTierLabel,
+  liquefactionRating,
+  isInTsunamiZone,
+  isInLandslideRisk,
+  hasHighCoastalErosionRisk,
+  hasHighWildfireRisk,
+} from './hazards';
 
 /** Single source of truth for what's compared, in what order, with which strategy. */
 
@@ -38,6 +46,13 @@ const fmtCurrencyShort = (n: number) => {
   if (n >= 1_000) return `$${Math.round(n / 1000)}k`;
   return `$${Math.round(n)}`;
 };
+const fmtDistanceM = (m: number) =>
+  m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m)}m`;
+const titleCase = (s: string) =>
+  s
+    .split(/[_\s-]+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .join(' ');
 
 // ── Risk & Hazards ───────────────────────────────────────────────────────
 
@@ -67,20 +82,11 @@ const riskRows: RowDef[] = [
     extract: (r) => {
       const rating = liquefactionRating(r.hazards);
       const rankMap: Record<string, number> = {
-        very_high: 5,
-        high: 4,
-        moderate: 3,
-        low: 2,
-        very_low: 1,
-        none: 0,
+        very_high: 5, high: 4, moderate: 3, low: 2, very_low: 1, none: 0,
       };
       if (rating === 'unknown') return unknown();
       if (rating === 'none') return negativeKnown('Not in zone');
-      const display = rating
-        .split('_')
-        .map((w) => w[0].toUpperCase() + w.slice(1))
-        .join(' ');
-      return presentNumber(rankMap[rating] ?? 0, display);
+      return presentNumber(rankMap[rating] ?? 0, titleCase(rating));
     },
   },
   {
@@ -90,46 +96,57 @@ const riskRows: RowDef[] = [
     extract: (r) => {
       if (!isInTsunamiZone(r.hazards)) return negativeKnown('Not in zone');
       const z = r.hazards.tsunami_zone;
-      // tsunami_zone strings vary; treat any presence as severity 1+ until we
-      // have a tier helper analogous to getFloodTier.
       return presentNumber(2, z ? `Zone ${z}` : 'In zone');
     },
   },
   {
-    id: 'slope-failure',
-    label: 'Slope / landslide rating',
+    id: 'landslide',
+    label: 'Landslide risk',
     strategy: 'lower-better',
     extract: (r) => {
-      const s = r.hazards.slope_failure;
-      if (!s) return negativeKnown('No mapped risk');
-      const lower = s.toLowerCase();
-      if (lower.includes('very high')) return presentNumber(4, 'Very High');
-      if (lower.includes('high')) return presentNumber(3, 'High');
-      if (lower.includes('moderate')) return presentNumber(2, 'Moderate');
-      if (lower.includes('low')) return presentNumber(1, 'Low');
-      return presentString(s);
+      if (isInLandslideRisk(r.hazards)) {
+        const rating = r.hazards.landslide_susceptibility_rating;
+        return presentNumber(2, rating || 'Risk present');
+      }
+      const count = r.hazards.landslide_count_500m ?? 0;
+      if (count > 0) return presentNumber(1, `${count} nearby`);
+      return negativeKnown('No mapped risk');
+    },
+  },
+  {
+    id: 'coastal-erosion',
+    label: 'Coastal erosion risk',
+    strategy: 'lower-better',
+    extract: (r) => {
+      if (hasHighCoastalErosionRisk(r.hazards)) return presentNumber(2, 'High risk');
+      if (r.hazards.coastal_erosion) return presentNumber(1, titleCase(r.hazards.coastal_erosion));
+      return negativeKnown('No mapped risk');
+    },
+  },
+  {
+    id: 'wildfire',
+    label: 'Wildfire risk',
+    strategy: 'lower-better',
+    extract: (r) => {
+      if (hasHighWildfireRisk(r.hazards)) return presentNumber(2, 'High');
+      const days = r.hazards.wildfire_vhe_days ?? 0;
+      if (days > 0) return presentNumber(1, `${days} VHE days/yr`);
+      return negativeKnown('Low');
     },
   },
   {
     id: 'fault',
     label: 'Nearest active fault',
-    strategy: 'higher-better', // farther = better
+    strategy: 'higher-better',
     extract: (r) => {
       const f = r.hazards.active_fault_nearest;
       if (!f || f.distance_m == null) return unknown();
-      return presentNumber(
-        f.distance_m,
-        f.distance_m < 1000
-          ? `${f.distance_m}m (${f.name})`
-          : `${(f.distance_m / 1000).toFixed(1)}km (${f.name})`,
-      );
+      return presentNumber(f.distance_m, `${fmtDistanceM(f.distance_m)} (${f.name})`);
     },
-    formatDelta: (winner, loser) => {
-      if (winner.kind !== 'present' || loser.kind !== 'present') return '';
-      const dw = winner.value as number;
-      const dl = loser.value as number;
-      const diff = dw - dl;
-      return `${diff >= 1000 ? `${(diff / 1000).toFixed(1)}km` : `${Math.round(diff)}m`} farther from a fault`;
+    formatDelta: (w, l) => {
+      if (w.kind !== 'present' || l.kind !== 'present') return '';
+      const diff = (w.value as number) - (l.value as number);
+      return `${fmtDistanceM(Math.abs(diff))} farther from a fault`;
     },
   },
   {
@@ -141,10 +158,32 @@ const riskRows: RowDef[] = [
       if (cm == null) return unknown();
       return presentNumber(cm, `${(cm / 100).toFixed(1)}m`);
     },
-    formatDelta: (winner, loser) => {
-      if (winner.kind !== 'present' || loser.kind !== 'present') return '';
-      const diff = ((winner.value as number) - (loser.value as number)) / 100;
+    formatDelta: (w, l) => {
+      if (w.kind !== 'present' || l.kind !== 'present') return '';
+      const diff = ((w.value as number) - (l.value as number)) / 100;
       return `${diff.toFixed(1)}m higher above sea level`;
+    },
+  },
+  {
+    id: 'epb',
+    label: 'Earthquake-prone buildings nearby',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const c = r.hazards.epb_count;
+      if (c == null) return unknown();
+      if (c === 0) return negativeKnown('None within 300m');
+      return presentNumber(c, `${c} within 300m`);
+    },
+  },
+  {
+    id: 'contamination',
+    label: 'Contamination sites',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const c = r.hazards.contamination_count;
+      if (c == null) return unknown();
+      if (c === 0) return negativeKnown('None mapped');
+      return presentNumber(c, `${c} mapped`);
     },
   },
 ];
@@ -165,6 +204,16 @@ const marketRows: RowDef[] = [
       if (w.kind !== 'present' || l.kind !== 'present') return '';
       const diff = (l.value as number) - (w.value as number);
       return `${fmtCurrencyShort(diff)} cheaper CV`;
+    },
+  },
+  {
+    id: 'land-value',
+    label: 'Land value',
+    strategy: 'identity',
+    extract: (r) => {
+      const v = r.property.land_value;
+      if (v == null) return unknown();
+      return presentNumber(v, fmtCurrencyShort(v));
     },
   },
   {
@@ -202,40 +251,360 @@ const marketRows: RowDef[] = [
     extract: (r) => {
       const h = r.market.market_heat;
       if (!h) return unknown();
-      const label = h.charAt(0).toUpperCase() + h.slice(1);
-      return presentString(h, label);
+      return presentString(h, titleCase(h));
+    },
+  },
+  {
+    id: 'cagr-1yr',
+    label: '1-year price growth',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const v = r.market.trend?.cagr_1yr;
+      if (v == null) return unknown();
+      return presentNumber(v, `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
+    },
+    formatDelta: (w, l) => {
+      if (w.kind !== 'present' || l.kind !== 'present') return '';
+      const diff = (w.value as number) - (l.value as number);
+      return `${diff.toFixed(1) }pp stronger growth`;
     },
   },
 ];
 
-// ── Section list (Phase A: Risk + Market only) ──────────────────────────
+// ── Liveability / Neighbourhood ──────────────────────────────────────────
 
-export const SECTIONS: SectionDef[] = [
+const liveabilityRows: RowDef[] = [
   {
-    id: 'risk',
-    title: 'Risk & Hazards',
-    rows: riskRows,
-    defaultOpenOn: ['buyer', 'desktop'],
+    id: 'walking-reach',
+    label: '10-min walk reach (stops)',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const v = r.liveability.walking_reach_10min;
+      if (v == null) return unknown();
+      return presentNumber(v, `${v} stops`);
+    },
   },
   {
-    id: 'market',
-    title: 'Market',
-    rows: marketRows,
-    defaultOpenOn: ['renter', 'buyer', 'desktop'],
+    id: 'schools',
+    label: 'Schools within 1.5km',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.school_count;
+      if (c == null) return unknown();
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'amenities',
+    label: 'Amenities within walk',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.amenity_count;
+      if (c == null) return unknown();
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'gp-distance',
+    label: 'Nearest GP',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const gp = r.liveability.nearest_gp;
+      if (!gp || gp.distance_m == null) return unknown();
+      return presentNumber(gp.distance_m, fmtDistanceM(gp.distance_m));
+    },
+    formatDelta: (w, l) => {
+      if (w.kind !== 'present' || l.kind !== 'present') return '';
+      const diff = (l.value as number) - (w.value as number);
+      return `${fmtDistanceM(Math.abs(diff))} closer to a GP`;
+    },
+  },
+  {
+    id: 'pharmacy-distance',
+    label: 'Nearest pharmacy',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const ph = r.liveability.nearest_pharmacy;
+      if (!ph || ph.distance_m == null) return unknown();
+      return presentNumber(ph.distance_m, fmtDistanceM(ph.distance_m));
+    },
+  },
+  {
+    id: 'noise',
+    label: 'Max road/rail noise (dB)',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const db = r.environment.noise_db;
+      if (db == null) return unknown();
+      return presentNumber(db, `${Math.round(db)} dB`);
+    },
+  },
+  {
+    id: 'deprivation',
+    label: 'NZDep deprivation index',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const d = r.liveability.nzdep_score;
+      if (d == null) return unknown();
+      return presentNumber(d, `Decile ${d}`);
+    },
+  },
+  {
+    id: 'parks',
+    label: 'Parks within 500m',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.planning.park_count_500m;
+      if (c == null) return unknown();
+      return presentNumber(c, String(c));
+    },
   },
 ];
 
-/** Persona-driven section ordering (Phase A: only 2 sections, but the helper
- *  is in place for Phase B's 8 sections). */
+// ── Transport ────────────────────────────────────────────────────────────
+
+const transportRows: RowDef[] = [
+  {
+    id: 'transit-stops',
+    label: 'Transit stops within 400m',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.transit_count;
+      if (c == null) return unknown();
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'bus-stops',
+    label: 'Bus stops within 800m',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.bus_stops_800m;
+      if (c == null) return unknown();
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'rail-stops',
+    label: 'Rail stops within 800m',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.rail_stops_800m;
+      if (c == null) return unknown();
+      if (c === 0) return negativeKnown('None');
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'ferry-stops',
+    label: 'Ferry stops within 800m',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const c = r.liveability.ferry_stops_800m;
+      if (c == null) return unknown();
+      if (c === 0) return negativeKnown('None');
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'peak-trips',
+    label: 'Peak trips per hour',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const v = r.liveability.peak_trips_per_hour;
+      if (v == null) return unknown();
+      return presentNumber(v, `${v}/hr`);
+    },
+  },
+  {
+    id: 'cbd-distance',
+    label: 'Distance to CBD',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const m = r.liveability.cbd_distance_m;
+      if (m == null) return unknown();
+      return presentNumber(m, fmtDistanceM(m));
+    },
+    formatDelta: (w, l) => {
+      if (w.kind !== 'present' || l.kind !== 'present') return '';
+      return `${fmtDistanceM(Math.abs((l.value as number) - (w.value as number)))} closer to the CBD`;
+    },
+  },
+  {
+    id: 'nearest-train',
+    label: 'Nearest train station',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const m = r.liveability.nearest_train_m;
+      if (m == null) return unknown();
+      const name = r.liveability.nearest_train_name;
+      return presentNumber(m, name ? `${fmtDistanceM(m)} (${name})` : fmtDistanceM(m));
+    },
+  },
+];
+
+// ── Planning ─────────────────────────────────────────────────────────────
+
+const planningRows: RowDef[] = [
+  {
+    id: 'zone',
+    label: 'Zone',
+    strategy: 'categorical',
+    extract: (r) => {
+      const z = r.planning.zone_name;
+      if (!z) return unknown();
+      return presentString(z);
+    },
+  },
+  {
+    id: 'height-limit',
+    label: 'Height limit',
+    strategy: 'identity',
+    extract: (r) => {
+      const h = r.planning.height_limit;
+      if (h == null) return unknown();
+      return presentNumber(h, `${h}m`);
+    },
+  },
+  {
+    id: 'heritage',
+    label: 'Heritage listings nearby',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const c = r.planning.heritage_count;
+      if (c == null) return unknown();
+      if (c === 0) return negativeKnown('None');
+      return presentNumber(c, String(c));
+    },
+  },
+  {
+    id: 'character-precinct',
+    label: 'Character precinct',
+    strategy: 'lower-better',
+    extract: (r) => {
+      if (r.planning.in_character_precinct === null) return unknown();
+      if (!r.planning.in_character_precinct) return negativeKnown('Not in precinct');
+      return presentNumber(1, r.planning.character_precinct_name || 'In precinct');
+    },
+  },
+  {
+    id: 'special-character',
+    label: 'Special character area',
+    strategy: 'lower-better',
+    extract: (r) => {
+      if (r.planning.in_special_character_area === null) return unknown();
+      if (!r.planning.in_special_character_area) return negativeKnown('Not in area');
+      return presentNumber(1, r.planning.special_character_name || 'In area');
+    },
+  },
+  {
+    id: 'ecological-area',
+    label: 'Significant ecological area',
+    strategy: 'lower-better',
+    extract: (r) => {
+      if (r.planning.in_ecological_area === null) return unknown();
+      if (!r.planning.in_ecological_area) return negativeKnown('Not in area');
+      return presentNumber(1, r.planning.ecological_area_name || 'In area');
+    },
+  },
+];
+
+// ── Property basics ──────────────────────────────────────────────────────
+
+const propertyRows: RowDef[] = [
+  {
+    id: 'land-area',
+    label: 'Land area',
+    strategy: 'higher-better',
+    extract: (r) => {
+      const v = r.property.land_area_sqm;
+      if (v == null) return unknown();
+      return presentNumber(v, `${Math.round(v)} m²`);
+    },
+  },
+  {
+    id: 'floor-area',
+    label: 'Floor area',
+    strategy: 'higher-better',
+    extract: (r) => {
+      // Prefer floor_area_sqm (per-unit from rates API); fall back to building_area_sqm.
+      const v = r.property.floor_area_sqm ?? r.property.building_area_sqm;
+      if (v == null) return unknown();
+      return presentNumber(v, `${Math.round(v)} m²`);
+    },
+  },
+  {
+    id: 'title-type',
+    label: 'Title type',
+    strategy: 'categorical',
+    extract: (r) => {
+      const t = r.property.title_type;
+      if (!t) return unknown();
+      return presentString(t);
+    },
+  },
+  {
+    id: 'estate',
+    label: 'Estate description',
+    strategy: 'identity',
+    extract: (r) => {
+      const e = r.property.estate_description;
+      if (!e) return unknown();
+      return presentString(e);
+    },
+  },
+];
+
+// ── Crime & Safety ───────────────────────────────────────────────────────
+
+const crimeRows: RowDef[] = [
+  {
+    id: 'crime-rate',
+    label: 'Crime rate (per 10k people)',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const v = r.liveability.crime_rate;
+      if (v == null) return unknown();
+      return presentNumber(v, v.toFixed(1));
+    },
+  },
+  {
+    id: 'crime-vs-city',
+    label: 'Vs city median',
+    strategy: 'lower-better',
+    extract: (r) => {
+      const r1 = r.liveability.crime_rate;
+      const med = r.liveability.crime_city_median;
+      if (r1 == null || med == null || med === 0) return unknown();
+      const pct = ((r1 - med) / med) * 100;
+      return presentNumber(pct, `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`);
+    },
+  },
+];
+
+// ── Section list (full free-report parity) ──────────────────────────────
+
+export const SECTIONS: SectionDef[] = [
+  { id: 'risk',          title: 'Risk & Hazards',     rows: riskRows,         defaultOpenOn: ['buyer', 'desktop'] },
+  { id: 'market',        title: 'Market',             rows: marketRows,       defaultOpenOn: ['renter', 'buyer', 'desktop'] },
+  { id: 'liveability',   title: 'Liveability',        rows: liveabilityRows,  defaultOpenOn: ['renter'] },
+  { id: 'transport',     title: 'Transport',          rows: transportRows,    defaultOpenOn: ['renter'] },
+  { id: 'planning',      title: 'Planning & Zoning',  rows: planningRows,     defaultOpenOn: ['buyer'] },
+  { id: 'property',      title: 'Property basics',    rows: propertyRows },
+  { id: 'crime',         title: 'Crime & Safety',     rows: crimeRows },
+];
+
+/** Persona-driven section ordering. */
 export function orderedSections(persona: Persona): SectionDef[] {
   if (persona === 'renter') {
-    // Renter: Market first, Risk second.
-    return [...SECTIONS].sort((a, b) => {
-      if (a.id === 'market') return -1;
-      if (b.id === 'market') return 1;
-      return 0;
-    });
+    const order = ['market', 'liveability', 'transport', 'risk', 'crime', 'property', 'planning'];
+    return order
+      .map((id) => SECTIONS.find((s) => s.id === id))
+      .filter((s): s is SectionDef => !!s);
   }
-  // Buyer: keep declared order (Risk first).
-  return SECTIONS;
+  // Buyer: Risk first, Market, then Planning, Liveability, Transport, Property, Crime.
+  const order = ['risk', 'market', 'planning', 'liveability', 'transport', 'property', 'crime'];
+  return order
+    .map((id) => SECTIONS.find((s) => s.id === id))
+    .filter((s): s is SectionDef => !!s);
 }

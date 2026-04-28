@@ -10,6 +10,7 @@ import type { ColumnLabel } from '@/lib/compareDiff';
 import { CompareHeader } from './CompareHeader';
 import { CompareScoreboard } from './CompareScoreboard';
 import { CompareSection } from './CompareSection';
+import { CompareLockedSection } from './CompareLockedSection';
 
 const COLUMN_LETTERS = ['A', 'B', 'C'] as const;
 
@@ -94,6 +95,10 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
             );
           })}
         </div>
+
+        {/* Locked features — always visible, encourages upgrade after the user
+            has experienced the free comparison. */}
+        {allReady && <CompareLockedSection addressIds={addressIds} />}
 
         {/* Loading indicator */}
         {loading && !allReady && (
