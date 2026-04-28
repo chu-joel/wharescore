@@ -100,6 +100,60 @@ reports generated after the code change will include the new field.
 ### Guest Download Page (`/guest/download`)
 **Purpose:** One-time download after guest (no-account) purchase. Token-based, expires in 5 minutes.
 
+### Property Comparison (`/compare?ids=A,B[,C]`)
+**Purpose:** Side-by-side evaluation of 2-3 properties so the user can stop flipping between tabs/reports. Mirrors the report's section structure (scoreboard + accordions) so a user already familiar with a single report navigates compare without re-learning. The page must answer "which one wins?" in 5 seconds (scoreboard) and "why?" in 30 seconds (section-level diff sentences) before requiring deeper drill-down.
+
+**Content rules (Phase A):**
+- SHOW: Scoreboard (risk score, critical findings count, persona's primary $ metric), Risk & Hazards section, Market section. Persona toggle reorders sections (renter→Market first, buyer→Risk first), never hides them.
+- TRI-STATE: Every row resolves to `present` / `negativeKnown` / `unknown`. **`unknown` never wins a comparison** — the diff sentence reports "Data not available for {col}". Never silently treat unknown as a winning value.
+- IDENTICAL ROWS: collapse into a single italic "Same on both: …" trailer at section bottom. Keeps the eye on differences.
+- COLUMN ACCENTS: A=teal (`piq-primary`), B=amber (`piq-accent-warm`), C=deep teal (`piq-primary-dark`). Red is reserved for finding severity, never column identity.
+- AUTH: anonymous users can stage 2 properties (localStorage) and view compare with free-tier fields. Phase B adds 3rd-property gate + multi-device persistence.
+- DEFER (Phase B): Liveability, Transport, Planning, Property basics, Crime & Safety, Schools, Demographics sections. Server-backed `comparison_lists`. Premium-field blur + Pro upsell. Mobile 3-property chip swap. CTA copy refresh across SignupNudge / ReportCTABanner / UpgradeModal / ScrollPrompt / ReportUpsell / QuickUpgradeBanner / home page.
+- NEVER SHOW: side-by-side of premium snapshot data on a public URL — `/compare?ids=...` is shareable, so it must respect the same tier gating as `/property/{id}/report`.
+
+---
+
+## Comparison Flow
+
+**Goal:** lowest-friction path from "I want to compare" to "side-by-side answer," without leaving the user's current page until they choose to.
+
+```
+User on /property/{id}
+  → Click "Compare" (AddToCompareButton, primary variant)
+  → comparisonStore.add({addressId, fullAddress, suburb, city, lat, lng})
+  → Toast "Added — add another to compare" (sonner)
+  → CompareTray appears (top-right desktop, bottom-bar mobile)
+
+User on /property/{otherId}
+  → Click "Compare" → 2nd item added → toast "Ready to compare"
+  → Tray shows both, "Compare now →" enabled
+
+User clicks "Compare now"
+  → router.push(`/compare?ids=A,B`)
+  → CompareTray hides itself when pathname starts with `/compare` (no double UI)
+  → useComparedReports([A, B]) fans out to /api/v1/property/{id}/report?fast=true
+     in parallel (existing 24h Redis cache)
+  → CompareView renders: CompareHeader (sticky) + CompareScoreboard + sections
+  → Skeleton placeholders until ALL reports ready (avoids partial diffs)
+```
+
+**Add-to-compare button states:** idle (`outline`, teal border) → staged (`bg-piq-primary`, white text, ✓ icon). Click while staged removes the property from the tray (non-destructive).
+
+**Tray hide-on-scroll (mobile):** 10px down threshold hides the bar; any 4px upward scroll reveals it. Hidden bar uses `translateY(calc(100% + 0.5rem))` — single-property GPU transform stays at 60fps.
+
+**Edge cases:**
+- 0 staged → tray not in DOM at all.
+- 1 staged → tray visible; "Compare now" button disabled with "Add another property to compare" hint inside the popover.
+- 3 staged anonymously → not possible in Phase A (cap is 2). Phase B's 3rd-add is the sign-in trigger.
+- `/compare?ids=A` (1 id) → `CompareEmptyState` with reason="one"; suggests adding another.
+- `/compare?ids=A,B` where A fails to load → page renders with B's column populated and an inline error banner; no full-page error.
+- Persona toggle in compare → sections reorder via `orderedSections(persona)`, no re-fetch.
+
+**State store:** `useComparisonStore` (`frontend/src/stores/comparisonStore.ts`) — Zustand + `persist` to `wharescore-comparison` localStorage key. Cap enforced via `COMPARE_MAX_ANONYMOUS = 2`. `replaceAll` action exists for the Phase B sign-in merge but is unused in Phase A.
+
+**Mount point:** `<CompareTray />` is rendered once globally in `frontend/src/app/layout.tsx` (after `{children}`, before `<FeedbackFAB />`). It self-hides when `items.length === 0` or when the user is already on `/compare`.
+
 ---
 
 ## Auth Chain

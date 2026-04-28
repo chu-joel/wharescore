@@ -62,13 +62,18 @@ backend/app/
   migrations/0023_*.sql        — get_transit_data() + cbd_points + hpi_national
 
 frontend/src/
+  components/compare/                       — Property comparison feature (Phase A: scoreboard + Risk + Market). CompareView + CompareHeader + CompareScoreboard + CompareSection + CompareRow + CompareTray (site-wide dock) + AddToCompareButton + CompareEmptyState. Tri-state diff (present/negativeKnown/unknown) — `unknown` NEVER wins a comparison. Column accents A=teal / B=amber / C=deep-teal; red reserved for finding severity.
   components/property/PropertyReport.tsx    — On-screen report (renders sections)
   components/property/sections/*.tsx        — Question sections (Risk, Neighbourhood, Market, Transport, Planning)
   components/property/KeyFindings.tsx       — Severity-ranked findings
   components/property/UpgradeModal.tsx      — Paywall + pricing
   components/report/HostedReport.tsx        — Hosted report (renders 25+ sections from snapshot)
   components/report/Hosted*.tsx             — Hosted-only sections
-  stores/*.ts                              — Zustand state (persona, inputs, budget, auth, export)
+  stores/*.ts                              — Zustand state (persona, inputs, budget, auth, export, comparison)
+  stores/comparisonStore.ts                — Property comparison staging (max 2 anonymous, localStorage-persisted; `replaceAll` reserved for Phase B sign-in merge)
+  hooks/useComparedReports.ts              — Hydrates N reports in parallel via existing /property/{id}/report?fast=true (no new aggregate endpoint)
+  lib/compareDiff.ts                       — Tri-state diff helpers. `winnerOf` returns null when ANY value is `unknown` (mandatory invariant)
+  lib/compareSections.ts                   — Section + row definitions for compare. Phase A: Risk + Market only.
   components/map/MapContainer.tsx          — Main map (MapLibre GL + Martin tile layers)
   components/map/MapLayerPicker.tsx        — Layer toggle UI (hazards, property, schools, planning, transport)
   app/extension/welcome/page.tsx           — First-install walkthrough for the browser extension
@@ -125,6 +130,8 @@ POST /property/{id}/export/pdf/start[?report_tier=quick|full]
 | Change rent/price advisor | `services/rent_advisor.py` or `price_advisor.py` | — |
 | Fix payment flow | `routers/payments.py` + `UpgradeModal.tsx` + `pdfExportStore.ts` | `docs/SYSTEM-FLOWS.md` § Payment-credit-system |
 | Build / update browser extension | `extension/src/`, `backend/app/routers/extension.py`, `backend/app/services/report_html.py` (select_findings_for_badge) | `docs/FRONTEND-WIRING.md` § API-endpoints + `docs/SYSTEM-FLOWS.md` § Extension-badge-flow |
+| Add/change a compare row or section | `frontend/src/lib/compareSections.ts` (RowDef + SectionDef). Hazard rows MUST use helpers from `lib/hazards.ts` (e.g. `getFloodTier`, `liquefactionRating`, `isInTsunamiZone`) — never read raw fields. Currency rows use formatters from `lib/format.ts`. | `docs/FRONTEND-WIRING.md` § Property-comparison + `docs/SYSTEM-FLOWS.md` § Comparison-flow |
+| Add a compare entry-point button | Import `<AddToCompareButton variant="..."/>` from `frontend/src/components/compare/AddToCompareButton.tsx`. Variants: primary, icon, menu-item, mobile-action. | — |
 | Deploy | `git push origin main` | — |
 | SSH to server | `ssh wharescore@20.5.86.126` | — |
 | Run SQL on prod | `docker exec app-postgres-1 psql -U postgres -d wharescore -c "..."` | — |

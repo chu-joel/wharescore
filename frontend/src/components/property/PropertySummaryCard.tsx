@@ -14,6 +14,7 @@ import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
 import { EnterRentButton } from './EnterRentButton';
 import { EnterPriceButton } from './EnterPriceButton';
+import { AddToCompareButton } from '@/components/compare/AddToCompareButton';
 
 function StreetViewLink({ lat, lng }: { lat: number; lng: number }) {
   const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
@@ -143,7 +144,16 @@ export function PropertySummaryCard({
               ) : null;
             })()}
           </div>
-          <div className="flex gap-1.5 shrink-0 items-center w-full sm:w-auto">
+          <div className="flex gap-1.5 shrink-0 items-center w-full sm:w-auto flex-wrap sm:flex-nowrap">
+            <AddToCompareButton
+              addressId={address.address_id}
+              fullAddress={address.full_address}
+              suburb={address.suburb}
+              city={address.city}
+              lat={address.lat}
+              lng={address.lng}
+              variant="primary"
+            />
             {pdf.shareUrl ? (
               <Button
                 variant="default"

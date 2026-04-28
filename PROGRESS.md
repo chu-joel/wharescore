@@ -1,6 +1,48 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-04-19 (extension Phase 1 badge — backend router + extension/ MV3 package + /extension/* pages)
+**Last Updated:** 2026-04-29 (Property comparison — Phase A: stage 2 anonymously, view side-by-side scoreboard + Risk + Market sections at /compare)
+
+## Latest session (2026-04-29) — Property Comparison Phase A
+
+**Scope:** Anonymous-only side-by-side comparison of 2 properties. Site-wide tray, scoreboard + Risk + Market sections, tri-state diff (present/negativeKnown/unknown). No backend persistence yet (Phase B). See plan file: `C:\Users\joelt\.claude\plans\harmonic-cuddling-bachman.md`.
+
+**Shipped:**
+- `frontend/src/stores/comparisonStore.ts` — Zustand + persist (`wharescore-comparison` localStorage key). Cap `COMPARE_MAX_ANONYMOUS = 2`. Actions: `add` (returns `{ok, reason: 'duplicate' | 'cap'}`), `remove`, `clear`, `isStaged`, `replaceAll` (reserved for Phase B sign-in merge).
+- `frontend/src/hooks/useComparedReports.ts` — `useQueries` over existing `/api/v1/property/{id}/report?fast=true`. Reuses 24h Redis cache and tier gating; **no new aggregate `/compare` endpoint** (deliberate — adding one would duplicate gating logic and risk drift).
+- `frontend/src/lib/compareDiff.ts` — pure helpers. **Tri-state invariant: `winnerOf` returns `null` when ANY value is `unknown`** so coverage gaps never silently produce a winner. `diffSentence` reports "Data not available for {col}" instead.
+- `frontend/src/lib/compareSections.ts` — `RowDef` + `SectionDef` source of truth. Phase A: Risk (flood/liquefaction/tsunami/slope/fault/coastal-elevation, all via `lib/hazards.ts` helpers — never raw fields) + Market (CV/median rent/rent band/market heat). `orderedSections(persona)` reorders renter→Market-first / buyer→Risk-first.
+- `frontend/src/components/compare/AddToCompareButton.tsx` — 4 variants (`primary` / `icon` / `menu-item` / `mobile-action`). Toggles via store. Toast feedback (`sonner`). Cap-hit toast: "Comparing the maximum of 2 properties — remove one to add this property".
+- `frontend/src/components/compare/CompareTray.tsx` — site-wide dock. Desktop: pill top-right (fixed) with click-outside-to-close popover. Mobile: bottom bar (`pb-env(safe-area-inset-bottom)`) hides on 10px scroll-down, reveals on 4px scroll-up; expanded view via `Sheet` side="bottom". Hidden when `items.length===0` or `pathname.startsWith('/compare')`.
+- `frontend/src/components/compare/{CompareView,CompareHeader,CompareScoreboard,CompareSection,CompareRow,CompareEmptyState}.tsx` — view layer. Per-column accents A=`piq-primary` (teal), B=`piq-accent-warm` (amber), C=`piq-primary-dark` (deep teal). Winner: 2px left border + ↑ glyph + accent-tinted bg. Identical rows collapse to single italic "Same on both: …" line at section bottom. Persona toggle in CompareHeader.
+- `frontend/src/app/compare/page.tsx` — route at `/compare?ids=A,B`. URL-id parsing capped at 3. Falls back to staged store when URL is empty (so the tray's "Compare now" works without re-encoding ids). Hydration-safe via `mounted` gate (Zustand persist hydrates client-side).
+- `frontend/src/components/property/PropertySummaryCard.tsx` — `<AddToCompareButton variant="primary" />` placed alongside the existing report-action button. `flex-wrap` on mobile so it doesn't crowd the address.
+- `frontend/src/app/layout.tsx` — `<CompareTray />` mounted globally inside `<Providers>`.
+- Docs: `FRONTEND-WIRING.md` § Property-comparison + per-row field map. `SYSTEM-FLOWS.md` § Screen-purposes (`/compare`) + § Comparison-flow. `CLAUDE.md` File Map (compare/ + new lib/store/hook entries) + Routing Table (2 new rows).
+
+**Visual / interaction details locked in code (so Phase B doesn't drift):**
+- Above-the-fold mobile: scoreboard always fits; sections collapsed-by-default on mobile; persona-priority sections auto-open on desktop. CompareView's skeleton shows the section titles even before reports load — page never looks empty.
+- Tri-state rendering: `unknown` = "—" with dotted underline + tooltip; `negativeKnown` (e.g. "Not in zone") rendered with `text-piq-success` (forest green) so positive non-presence is visually distinct from a numeric value.
+- Cross-row coverage gaps: when a single Wellington property is staged with an Auckland property, hazard rows that are Wellington-only (e.g. liquefaction with `unknown` rating elsewhere) automatically render the diff sentence "Data not available for {col}" instead of declaring a winner. Tested by reading the type — no concrete pair tested in browser yet.
+- Tray and add-button micro-interactions are CSS-only (no framer-motion in the project). `active:scale-[0.97]` on buttons; tray pulse via `animate-in fade-in slide-in-from-top-2`. Reduced-motion respected because all transitions are Tailwind `transition-*` utilities (browsers honor `prefers-reduced-motion`).
+
+**Explicitly deferred to Phase B (not shipped):**
+- `comparison_lists` table + `routers/compare.py` (`GET/PUT/DELETE /account/comparison`).
+- localStorage→server merge on sign-in (the `replaceAll` action exists; no caller yet).
+- Sign-in gate at 3rd-property add (cap is hard-stopped at 2 in Phase A).
+- Sections: Liveability, Transport, Planning, Property basics, Crime & Safety, Schools, Demographics.
+- 3-property mobile chip-row swap component (`MobileCompareSwap`).
+- CTA copy refresh across SignupNudge / ReportCTABanner / UpgradeModal / ScrollPrompt / ReportUpsell / QuickUpgradeBanner / home page chip / extension welcome.
+- AddToCompareButton entry points beyond PropertySummaryCard (SearchBar/SearchOverlay rows, account page bulk-select, hosted report, map popup, suburb summary).
+- Premium-field gating (PM transit, HPI, full findings) blurred + Pro upsell on `/compare`.
+- Unit tests for `compareDiff` — no test framework configured in `frontend/package.json`. The helpers are pure and the tri-state invariant is documented inline; suite can be added when `vitest` lands.
+
+**Non-obvious gotchas for the next agent:**
+- The buyer scoreboard's "primary $" row uses `property.capital_value`, NOT a price advisor estimate. The price advisor isn't on the live `/property/{id}/report` path (it's a snapshot-time computation). Phase B should switch this to `market.price_estimate.p50` only after that field is added to the live report — until then CV is the honest fallback.
+- `useComparedReports` deliberately reuses the same React Query key shape `['property-report', id, 'fast']` as `usePropertyReport`'s fast query. This means the compare page hits the same cache the user warmed by viewing the property — typically <100ms hydration after a recent visit.
+- `CompareTray` renders nothing when `pathname?.startsWith('/compare')`. If the future Phase C adds `/compare/saved/[name]`, that prefix-match still hides the tray correctly.
+- Column accents are reused in 5 different components (`CompareTray` letter chips, `CompareHeader` letter chips, `CompareRow` chip border, `CompareRow` diff-sentence number color, `CompareScoreboard`). All driven by the same indexed array `['piq-primary', 'piq-accent-warm', 'piq-primary-dark']`. **Do not reorder this array** — anchored to letter A/B/C identity.
+- The `flood` row's `lower-better` strategy uses an integer rank from `getFloodTier` (severe=4 / moderate=3 / low=2 / nearby=1 / none=0) — `winnerOf` compares the rank, while the chip displays `floodTierLabel(tier)` for human readability. New hazard rows should follow the same numeric-rank-with-string-display pattern when ordinal severity matters.
+- `compareSections.ts` defines per-row `formatDelta`. Without it, the diff sentence falls back to `"{col} {strategy === 'lower-better' ? 'lower' : 'higher'}"` which is too generic. Always provide `formatDelta` for currency/distance/count rows.
 
 ## Latest session (2026-04-19) — WhareScore Badge Phase 1
 
