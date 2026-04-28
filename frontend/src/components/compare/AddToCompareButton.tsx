@@ -125,19 +125,21 @@ export function AddToCompareButton({
     );
   }
 
-  // primary
+  // primary — deliberately quieter than the report-action buttons.
+  // Transparent fill + teal outline + teal text so it reads as a secondary
+  // action and doesn't compete with the primary "Generate Report" CTA.
   return (
     <Button
       type="button"
-      size="lg"
-      variant={staged ? 'default' : 'outline'}
+      size="sm"
+      variant="outline"
       aria-pressed={staged}
       onClick={handleClick}
       className={cn(
-        'h-9 gap-1.5 text-xs font-medium transition-all',
+        'h-8 gap-1.5 text-xs font-medium transition-all bg-transparent',
         staged
-          ? 'bg-piq-primary text-white hover:bg-piq-primary-dark'
-          : 'border-piq-primary text-piq-primary hover:bg-piq-primary/5',
+          ? 'border-piq-primary text-piq-primary bg-piq-primary/10 hover:bg-piq-primary/15'
+          : 'border-piq-primary/60 text-piq-primary hover:bg-piq-primary/5 hover:border-piq-primary',
         'active:scale-[0.97]',
         className,
       )}

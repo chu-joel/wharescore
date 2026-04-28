@@ -18,11 +18,11 @@ export function FeedbackFAB() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden md:inline-flex fixed bottom-4 right-4 z-40 items-center gap-2 rounded-full bg-piq-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+        className="hidden md:inline-flex fixed bottom-4 right-4 z-40 items-center gap-1.5 rounded-full bg-background/90 supports-[backdrop-filter]:backdrop-blur border border-piq-primary/40 px-3 py-1.5 text-xs font-medium text-piq-primary shadow-sm transition-all hover:bg-piq-primary/5 hover:border-piq-primary hover:shadow-md active:scale-[0.98]"
         aria-label="Send feedback"
         title="Send feedback or report a bug"
       >
-        <MessageSquarePlus className="h-4 w-4" />
+        <MessageSquarePlus className="h-3.5 w-3.5" />
         Feedback
       </button>
       <FeedbackDrawer open={open} onOpenChange={setOpen} />
