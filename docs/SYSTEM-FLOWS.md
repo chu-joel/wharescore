@@ -435,6 +435,21 @@ Waterway data from LINZ Topo50 (774K features: rivers, streams, drains) — tabl
 
 National hazard tables (flood_zones, tsunami_zones, liquefaction_zones, slope_failure_zones) are Wellington-only. For all other cities, council-specific regional tables provide hazard data. `risk_score.py` uses a "take the worst" strategy: council data refines/overrides national scores via `max()`.
 
+### Council flood AEP scoring (`risk_score.py` `flood_extent_aep` branch)
+
+The `flood_hazard.hazard_type` column is interpreted as an AEP code by `risk_score.py`:
+
+| `flood_extent_aep` value | Score | Notes |
+|---|---|---|
+| contains "sensitive" | 30 | AC Flood-Sensitive Areas — modelled future-scenario screening, NOT a validated flood zone. Advisory only; never escalated to warn-tier findings. |
+| "10%" / "1 in 10" | 90 | 1-in-10yr (most frequent → worst) |
+| "2%" / "1 in 50" | 85 | 1-in-50yr |
+| "1%" / "1 in 100" | 75 | 1-in-100yr (Auckland's `Flood_Prone_Areas` layer is tagged "1%") |
+| "0.5%" / "1 in 200" | 45 | 1-in-200yr |
+| anything else | 60 | unknown — treated as moderate-to-high |
+
+Frontend `getFloodTier` in `frontend/src/lib/hazards.ts` mirrors this: `aep === '1%'` → severe, `aep === '2%'` → moderate, `aep` containing "sensitive" → capped at `low` regardless of `flood_extent_label` presence.
+
 ### Coverage & data layers display
 
 `coverage_summary()` in `risk_score.py` returns per-category breakdown with available indicator keys. Shape:

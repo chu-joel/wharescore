@@ -190,7 +190,8 @@ Both of these bit 0053 in sequence: the initial version used `clerk_id`, the fir
 ### Auckland (~30 DataSources)
 | Key | Target table |
 |-----|-------------|
-| auckland_flood, auckland_flood_sensitive | flood_hazard |
+| auckland_flood | flood_hazard (hazard_type='1%', depth-tiered ranking — authoritative 1% AEP / 1-in-100yr) |
+| auckland_flood_sensitive | flood_hazard (hazard_type='Flood Sensitive', ranking='Low' — modelled future-scenario screening, NOT a validated flood zone; capped at `low` tier in `getFloodTier`) |
 | auckland_coastal | coastal_inundation |
 | auckland_liquefaction | liquefaction_detail |
 | auckland_landslide | landslide_susceptibility |
