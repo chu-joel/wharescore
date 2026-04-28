@@ -330,6 +330,47 @@ async def _overlay_terrain_data(report: dict, address_id: int) -> None:
         logger.warning(f"Terrain overlay failed for {address_id}: {e}")
 
 
+async def _overlay_coastal_data(report: dict, address_id: int) -> None:
+    """Attach the coastal timeline payload to the on-screen report.
+
+    Terrain overlay must have run first (we need report.terrain.elevation_m
+    for tier classification). Runs last in the overlay gather so terrain
+    has populated. Cheap query, no network calls, never raises — if the
+    searise_points table is empty the service falls back to NATIONAL_SLR."""
+    try:
+        from ..services.coastal_timeline import build_coastal_exposure
+
+        searise_point = None
+        async with db.pool.connection() as conn:
+            try:
+                cur = await conn.execute(
+                    """
+                    WITH addr AS (SELECT geom FROM addresses WHERE address_id = %s)
+                    SELECT sp.vlm_mm_yr, sp.projections,
+                           ST_Distance(sp.geom::geography, addr.geom::geography) AS distance_m
+                    FROM searise_points sp, addr
+                    WHERE ST_DWithin(sp.geom::geography, addr.geom::geography, 20000)
+                    ORDER BY sp.geom <-> addr.geom
+                    LIMIT 1
+                    """,
+                    [address_id],
+                )
+                row = cur.fetchone()
+                if row:
+                    searise_point = {
+                        "vlm_mm_yr": row.get("vlm_mm_yr"),
+                        "projections": row["projections"],
+                        "distance_m": row.get("distance_m"),
+                    }
+            except Exception:
+                pass  # table may not exist yet; fall through to NATIONAL_SLR
+
+        report["coastal"] = build_coastal_exposure(report, searise_point)
+    except Exception as e:
+        logger.warning(f"Coastal overlay failed for {address_id}: {e}")
+        report["coastal"] = None
+
+
 async def _overlay_former_epb_data(report: dict, address_id: int) -> None:
     """Surface "this building was previously on the EPB register" signal.
 
@@ -623,6 +664,10 @@ async def get_report(request: Request, address_id: int, fast: bool = Query(False
 
     _t3 = _time.monotonic()
     await asyncio.gather(*overlays)
+
+    # Coastal runs AFTER terrain because it reads report.terrain.elevation_m
+    # for tier classification.
+    await _overlay_coastal_data(report, address_id)
     print(f"[PERF] overlays (fast={fast}): {_time.monotonic() - _t3:.2f}s")
     print(f"[PERF] TOTAL: {_time.monotonic() - _t0:.2f}s for {address_id} (fast={fast})")
 

@@ -120,7 +120,7 @@ function SectionContent({
 }) {
   switch (name) {
     case 'risk':
-      return <RiskHazardsSection category={category} hazards={report.hazards} />;
+      return <RiskHazardsSection category={category} hazards={report.hazards} coastal={report.coastal} />;
     case 'liveability':
       return <NeighbourhoodSection category={category} liveability={report.liveability} addressId={report.address.address_id} />;
     case 'market':

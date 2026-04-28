@@ -19,6 +19,7 @@ export interface PropertyReport {
   address: AddressInfo;
   property: PropertyInfo;
   hazards: HazardData;
+  coastal?: import('@/components/report/HostedCoastalTimeline').CoastalExposure | null;
   environment: EnvironmentData;
   liveability: LiveabilityData;
   planning: PlanningData;

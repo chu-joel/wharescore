@@ -73,7 +73,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
         // Hosted: show hazard breakdown (persona-filtered)
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} coastal={report.coastal} />
             <CrimeCard
               percentile={report.liveability.crime_rate}
               victimisations={report.liveability.crime_victimisations}
@@ -130,7 +130,7 @@ export function QuestionContent({ questionId, report, locked = false, persona: p
       if (hosted && riskCat) {
         return (
           <div className="space-y-4">
-            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} />
+            <RiskHazardsSection category={riskCat} hazards={report.hazards} environment={report.environment} persona={persona} coastal={report.coastal} />
             <InsuranceRiskCard report={report} />
           </div>
         );

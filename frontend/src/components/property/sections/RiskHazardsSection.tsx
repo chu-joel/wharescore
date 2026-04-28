@@ -5,7 +5,9 @@ import { IndicatorCard } from '@/components/common/IndicatorCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
 import { EarthquakeDetailCard } from '@/components/property/EarthquakeDetailCard';
+import { CoastalExposureCard } from '@/components/property/CoastalExposureCard';
 import type { CategoryScore, HazardData, EnvironmentData } from '@/lib/types';
+import type { CoastalExposure } from '@/components/report/HostedCoastalTimeline';
 import { SolarPotentialCard } from '@/components/property/SolarPotentialCard';
 import { ClimateForecastCard } from '@/components/property/ClimateForecastCard';
 
@@ -14,9 +16,10 @@ interface RiskHazardsSectionProps {
   hazards?: HazardData;
   environment?: EnvironmentData;
   persona?: 'renter' | 'buyer';
+  coastal?: CoastalExposure | null;
 }
 
-export function RiskHazardsSection({ category, hazards, environment, persona }: RiskHazardsSectionProps) {
+export function RiskHazardsSection({ category, hazards, environment, persona, coastal }: RiskHazardsSectionProps) {
   // Crime has its own dedicated CrimeCard inside the NeighbourhoodSection. suppress
   // the short "Crime. Higher than average" indicator here so the same information
   // doesn't show up twice on the same report.
@@ -42,6 +45,10 @@ export function RiskHazardsSection({ category, hazards, environment, persona }: 
 
   return (
     <div className="space-y-3">
+      {/* Coastal exposure (SeaRise-backed). Both personas; renter is further
+          limited inside the card to happens_now only. */}
+      {coastal && <CoastalExposureCard coastal={coastal} persona={persona} />}
+
       {/* Technical earthquake/fault details. buyers only */}
       {!isRenter && hazards && <EarthquakeDetailCard hazards={hazards} />}
       {!isRenter && hazards?.active_fault_nearest && (
