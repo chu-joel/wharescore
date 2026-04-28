@@ -30,17 +30,11 @@ export function CompareHeader({ reports, addressIds, fallbackAddresses }: Compar
 
   // Removing a column on the /compare page must update both the tray store
   // and the URL — otherwise the page keeps trying to render the removed id.
-  // After removal: 0 left -> bounce to home; 1 left -> stay on /compare so
-  // the page renders its empty-state ("Add one more property") with the
-  // staged property's address front-and-centre.
+  // Either way the user goes back to the map: 0 left = empty tray, 1 left =
+  // the surviving property is still in the tray so they can pick a partner.
   const removeColumn = (id: number) => {
     remove(id);
-    const remaining = addressIds.filter((x) => x !== id);
-    if (remaining.length === 0) {
-      router.push('/');
-    } else {
-      router.replace(`/compare?ids=${remaining.join(',')}`);
-    }
+    router.push('/');
   };
 
   return (

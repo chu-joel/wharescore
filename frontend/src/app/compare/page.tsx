@@ -1,9 +1,8 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CompareView } from '@/components/compare/CompareView';
-import { CompareEmptyState } from '@/components/compare/CompareEmptyState';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 
@@ -18,6 +17,7 @@ function parseIds(raw: string | null): number[] {
 
 function ComparePageInner() {
   const params = useSearchParams();
+  const router = useRouter();
   const stagedItems = useComparisonStore((s) => s.items);
   const mounted = useStoreHydrated();
 
@@ -35,20 +35,21 @@ function ComparePageInner() {
         ? stagedItems.map((i) => i.addressId)
         : [];
 
-  if (!mounted) {
+  // With fewer than 2 properties there's nothing to compare. Bounce to the
+  // map view — the tray persists, so a single staged property is still
+  // visible there and the user can pick a partner from the map.
+  useEffect(() => {
+    if (mounted && effectiveIds.length < 2) {
+      router.replace('/');
+    }
+  }, [mounted, effectiveIds.length, router]);
+
+  if (!mounted || effectiveIds.length < 2) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
-  }
-
-  if (effectiveIds.length === 0) {
-    return <CompareEmptyState staged={stagedItems} reason="none" />;
-  }
-
-  if (effectiveIds.length < 2) {
-    return <CompareEmptyState staged={stagedItems} reason="one" />;
   }
 
   return <CompareView addressIds={effectiveIds} />;
