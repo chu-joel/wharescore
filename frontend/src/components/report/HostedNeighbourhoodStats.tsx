@@ -80,11 +80,15 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
   const airSite = env.air_site_name as string;
   const airPm10 = env.air_pm10_trend as string;
   const airPm25 = env.air_pm25_trend as string;
+  const airDistM = (env.air_pm10_distance_m ?? env.air_pm25_distance_m ?? env.air_distance_m) as number | undefined;
+  const airDistKm = airDistM ? (airDistM / 1000).toFixed(1) : null;
 
   // Water quality
   const waterSite = env.water_site_name as string;
   const waterDrp = env.water_drp_band as string;
   const waterAmmonia = env.water_ammonia_band as string;
+  const waterDistM = env.water_distance_m as number | undefined;
+  const waterDistKm = waterDistM ? (waterDistM / 1000).toFixed(1) : null;
 
   // Climate + Solar
   const climateTemp = env.climate_temp_change as number;
@@ -492,9 +496,12 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <div>
                   <h4 className="text-sm font-semibold">Air Quality</h4>
                   <p className="text-xs text-muted-foreground">
-                    Monitoring: {airSite}.
+                    Monitoring: {airSite}{airDistKm ? ` (${airDistKm} km away)` : ''}.
                     {airPm10 && ` PM10 trend: ${airPm10.toLowerCase()}.`}
                     {airPm25 && ` PM2.5 trend: ${airPm25.toLowerCase()}.`}
+                  </p>
+                  <p className="text-xs text-muted-foreground italic mt-1">
+                    Regional indicator from the nearest LAWA station, not a reading at this property.
                   </p>
                 </div>
               </div>
@@ -507,9 +514,12 @@ export function HostedNeighbourhoodStats({ rawReport, snapshot }: Props) {
                 <div>
                   <h4 className="text-sm font-semibold">Water Quality</h4>
                   <p className="text-xs text-muted-foreground">
-                    Nearest: {waterSite}.
+                    Nearest: {waterSite}{waterDistKm ? ` (${waterDistKm} km away)` : ''}.
                     {waterDrp && ` Nutrient level: Grade ${waterDrp}.`}
                     {waterAmmonia && ` Ammonia: Grade ${waterAmmonia}.`}
+                  </p>
+                  <p className="text-xs text-muted-foreground italic mt-1">
+                    Surface water at the nearest LAWA river/stream site, not drinking water at this property.
                   </p>
                 </div>
               </div>

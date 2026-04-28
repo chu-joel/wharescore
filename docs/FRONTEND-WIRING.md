@@ -147,7 +147,7 @@ All steps use manual `advance: 'next-button'` — nothing auto-advances on a tim
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
-| `report.scores.categories` | HostedAtAGlance | Yes |
+| `report.scores.categories` | HostedAtAGlance | Yes. Pills are split into two groups with different vocabularies: Risk group (Hazard Risk, Insurance, Crime, Noise) uses `OK / Watch / Risk`; Lifestyle group (Schools, Neighbourhood, Transport, Rent) uses `Great / Limited / Sparse`. Lifestyle pills must NOT use hazard wording — schools/transport are amenity signals, not risks. |
 | `report.property, report.scores, meta` | HostedExecutiveSummary | Yes |
 | `ai_insights` | HostedAISummary | Yes (on-screen fetches live) |
 | `report.scores.categories` | CategoryRadar | Yes (hosted only — removed from on-screen report) |
@@ -164,7 +164,7 @@ All steps use manual `advance: 'next-button'` — nothing auto-advances on a tim
 | `road_noise` | HostedRoadNoise | Yes |
 | `terrain`, `isochrone`, `terrain_insights` | HostedTerrain | Yes |
 | `report.liveability` (crime, deprivation, transit modes, AM+PM travel times, peak_trips_per_hour, nearest_stop_name, crashes, amenities_500m) | HostedNeighbourhoodStats | Yes. Peak frequency shown with Excellent/Good/Limited badge. |
-| `report.environment` (air, water, climate, contamination, corrosion) | HostedNeighbourhoodStats | Yes |
+| `report.environment` (air, water, climate, contamination, corrosion) | HostedNeighbourhoodStats | Yes. Air + water blocks must show distance to the nearest LAWA monitoring station (`air_pm10_distance_m` / `water_distance_m`) plus an italic caveat that the reading is regional, not at the property. Same caveat is mirrored in the `report_html.py` water/air findings. |
 | `report.planning` (notable trees, parks, heritage, overlays, geotech, transmission_line_distance_m) | HostedNeighbourhoodStats | Yes. Transmission line warning if ≤500m. Heritage: context labels for 50+/10+ items. Cycle paths: quality labels (excellent ≥10km, good ≥3km). Amenities: shows fallback message when 0. |
 | `report.comparisons` (suburb + city benchmarks) | HostedNeighbourhoodStats | Yes |
 | `rates_data` (total_rates, rates_breakdown) | HostedNeighbourhoodStats | Yes (Full only). Annual rates card with breakdown. |

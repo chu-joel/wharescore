@@ -1735,10 +1735,18 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
 
     water_band = env.get("water_ecoli_band")
     if water_band and str(water_band).upper() in ("D", "E"):
+        water_site = env.get("water_site_name") or env.get("water_site")
+        water_dist = env.get("water_distance_m")
+        try:
+            water_dist = float(water_dist) if water_dist is not None else None
+        except (TypeError, ValueError):
+            water_dist = None
+        site_str = f" at {water_site}" if water_site else ""
+        dist_note = f" ({water_dist / 1000:.1f} km away)" if water_dist else ""
         result["environment"].append(Insight(
             "warn",
-            f"Nearest water monitoring site rated {water_band} for E.coli. below NPS-FM standards.",
-            "Surface water only, not drinking water. If property has bore water, test before use.",
+            f"Nearest water monitoring site{site_str} rated {water_band} for E.coli. below NPS-FM standards{dist_note}.",
+            "This is regional LAWA data from the nearest river/stream monitoring site, not a reading at this property. Surface water only, not drinking water. If property has bore water, test before use.",
             source=_src("lawa_water"),
         ).to_dict())
 

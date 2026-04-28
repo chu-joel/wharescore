@@ -77,13 +77,16 @@ export function HostedAtAGlance({ report }: Props) {
   ];
   const visibleItems = items.filter((i): i is GlanceItem => i !== null);
 
-  const statusConfig: Record<GlanceStatus, { icon: React.ReactNode; color: string; bg: string; suffix: string }> = {
-    good: { icon: <CircleCheck className="h-4 w-4" />, color: 'text-piq-success', bg: 'bg-green-100 dark:bg-green-900/20', suffix: 'OK' },
-    moderate: { icon: <CircleMinus className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-yellow-100 dark:bg-yellow-900/20', suffix: 'Watch' },
-    concern: { icon: <AlertTriangle className="h-4 w-4" />, color: 'text-risk-high', bg: 'bg-red-100 dark:bg-red-900/20', suffix: 'Risk' },
+  const statusConfig: Record<GlanceStatus, { icon: React.ReactNode; color: string; bg: string }> = {
+    good: { icon: <CircleCheck className="h-4 w-4" />, color: 'text-piq-success', bg: 'bg-green-100 dark:bg-green-900/20' },
+    moderate: { icon: <CircleMinus className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-yellow-100 dark:bg-yellow-900/20' },
+    concern: { icon: <AlertTriangle className="h-4 w-4" />, color: 'text-risk-high', bg: 'bg-red-100 dark:bg-red-900/20' },
   };
 
-  const renderGroup = (groupLabel: string, labels: string[]) => {
+  const riskSuffix: Record<GlanceStatus, string> = { good: 'OK', moderate: 'Watch', concern: 'Risk' };
+  const lifestyleSuffix: Record<GlanceStatus, string> = { good: 'Great', moderate: 'Limited', concern: 'Sparse' };
+
+  const renderGroup = (groupLabel: string, labels: string[], suffixes: Record<GlanceStatus, string>) => {
     const pills = visibleItems.filter(i => labels.includes(i.label));
     if (pills.length === 0) return null;
     return (
@@ -92,6 +95,7 @@ export function HostedAtAGlance({ report }: Props) {
         <div className="flex flex-wrap gap-2">
           {pills.map((item) => {
             const cfg = statusConfig[item.status];
+            const suffix = suffixes[item.status];
             return (
               <div
                 key={item.label}
@@ -99,7 +103,7 @@ export function HostedAtAGlance({ report }: Props) {
               >
                 {cfg.icon}
                 {item.label}
-                <span className="opacity-70 text-xs">({cfg.suffix})</span>
+                <span className="opacity-70 text-xs">({suffix})</span>
               </div>
             );
           })}
@@ -114,8 +118,8 @@ export function HostedAtAGlance({ report }: Props) {
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">At a Glance</h3>
       </div>
       <div className="px-5 pb-4 space-y-2">
-        {renderGroup('Risk', ['Hazard Risk', 'Insurance', 'Crime', 'Noise'])}
-        {renderGroup('Lifestyle', ['Schools', 'Neighbourhood', 'Transport', 'Rent'])}
+        {renderGroup('Risk', ['Hazard Risk', 'Insurance', 'Crime', 'Noise'], riskSuffix)}
+        {renderGroup('Lifestyle', ['Schools', 'Neighbourhood', 'Transport', 'Rent'], lifestyleSuffix)}
         {scores.percentile != null && (
           <p className="text-xs text-muted-foreground mt-2">
             Covers {report.coverage?.available ?? '?'}/{report.coverage?.total ?? '?'} indicators.
