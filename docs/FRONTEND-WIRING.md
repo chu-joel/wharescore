@@ -205,6 +205,51 @@ Rendered when `report_tier === 'quick'`. **Free with sign-in.** Single-column, n
 | `recommendations` | QuickActions | Shows all critical + important items first, then fills with advisory up to 5 total (was hard-capped at 3, which left renters with a lone "Contaminated Land" bullet on sparse properties). |
 | — | QuickUpgradeBanner | POST /report/{token}/upgrade → uses credit if available (instant reload), else Stripe checkout |
 
+### Property comparison (`/compare?ids=A,B`, component: `CompareView.tsx`)
+<!-- UPDATE: When adding a section/row to compareSections.ts or a new compare component, add a row here. -->
+
+**Phase A scope:** anonymous-only, max 2 staged, localStorage-persisted. Scoreboard + Risk + Market sections. No backend persistence yet (Phase B). Mounted site-wide via `<CompareTray />` in `app/layout.tsx`.
+
+**Tri-state data model (mandatory invariant):** every row resolves to one of `present` (numeric/string value), `negativeKnown` ("Not in zone" / "None"), or `unknown` (city has no coverage). `compareDiff.winnerOf` returns `null` whenever ANY value is `unknown` — the diff sentence renders "Data not available for {col}". Never silently treat unknown as a winning value.
+
+| Component | File | Section | Data fields |
+|---|---|---|---|
+| `CompareView` | `frontend/src/components/compare/CompareView.tsx` | Top-level layout for `/compare` — header + scoreboard + N section accordions | All fields below, hydrated via `useComparedReports(ids)` |
+| `CompareHeader` | `frontend/src/components/compare/CompareHeader.tsx` | Sticky address row + persona toggle | `report.address.full_address, .suburb`, `report.scores.overall` (column score badge) |
+| `CompareScoreboard` | `frontend/src/components/compare/CompareScoreboard.tsx` | Always-visible top strip — risk score, critical findings count, persona's primary $ | `report.scores.overall`, `report.ranked_findings.{persona}` (count where severity=critical), `market.rent_assessment.median` (renter) or `property.capital_value` (buyer) |
+| `CompareSection` | `frontend/src/components/compare/CompareSection.tsx` | One accordion per `SectionDef`. Closed: section-level diff sentence ("A leads on most metrics"). Open: `CompareRow` per `RowDef`, identical rows collapsed to "Same on both: …" trailer | Per `compareSections.ts` |
+| `CompareRow` | `frontend/src/components/compare/CompareRow.tsx` | One metric across 2-3 columns. Per-column accent (A=teal, B=amber, C=deep-teal). Winner: 2px left border + ↑ glyph + accent-tinted bg | Determined by `RowDef.extract(report)` returning `CompareValue` |
+| `CompareTray` | `frontend/src/components/compare/CompareTray.tsx` | Site-wide dock. Desktop: pill top-right with popover. Mobile: bottom bar (hides on scroll-down) + `Sheet` expanded view. Hidden when 0 staged or on `/compare`. | `useComparisonStore.items` |
+| `AddToCompareButton` | `frontend/src/components/compare/AddToCompareButton.tsx` | Toggle button. Variants: `primary` (report header), `icon` (search results), `menu-item` (toast/menus), `mobile-action` (sticky bottom). Toast on add via `sonner`. Cap at 2 enforced by store. | — |
+| `CompareEmptyState` | `frontend/src/components/compare/CompareEmptyState.tsx` | `/compare` with 0 or 1 ids — search prompt + already-staged list | `useComparisonStore.items` |
+
+**Section field map (Phase A — verify in `frontend/src/lib/compareSections.ts`):**
+
+| Section | Row | Field path | Strategy | Notes |
+|---|---|---|---|---|
+| Scoreboard | risk-score | `scores.overall` | lower-better | Fallback to unknown if non-finite |
+| Scoreboard | critical-findings | `ranked_findings[persona].filter(severity==='critical').length` | lower-better | Falls back to hazard-flag count when ranked_findings absent |
+| Scoreboard | primary-$ (renter) | `market.rent_assessment.median` | lower-better | $/wk |
+| Scoreboard | primary-$ (buyer) | `property.capital_value` | lower-better | Phase B will swap to `price_estimate.p50` once on the live report path |
+| Risk | flood | `getFloodTier(hazards)` (5-tier rank) | lower-better | Uses `lib/hazards.ts` — never reads raw `flood_zone` directly |
+| Risk | liquefaction | `liquefactionRating(hazards)` | lower-better | `unknown` rating short-circuits the row |
+| Risk | tsunami | `isInTsunamiZone(hazards)` | lower-better | Binary today; tier helper is Phase B |
+| Risk | slope-failure | `hazards.slope_failure` (parsed) | lower-better | — |
+| Risk | fault | `hazards.active_fault_nearest.distance_m` | higher-better (farther = better) | — |
+| Risk | coastal-elevation | `hazards.coastal_elevation_cm` | higher-better | National coverage |
+| Market | capital-value | `property.capital_value` | lower-better | Format: short currency ($1.2M / $850k) |
+| Market | median-rent | `market.rent_assessment.median` | lower-better | $/wk |
+| Market | rent-band | `market.rent_assessment.{lower,upper}_quartile` | identity | Renders verbatim, never picks a winner |
+| Market | market-heat | `market.market_heat` | categorical | Same / Different |
+
+**Compare data hydration:** `useComparedReports(ids)` calls existing `/api/v1/property/{id}/report?fast=true` per id in parallel via `useQueries`. Reuses the existing 24h Redis cache, the same tier-gating, the same `transformReport()` normalization. **No new aggregate `/compare` endpoint** — adding one would duplicate the gating logic and risk drift from `/property/{id}/report`.
+
+**Column accent system:** A=`piq-primary` (teal), B=`piq-accent-warm` (amber), C=`piq-primary-dark` (deep teal). Reused across `CompareTray` letter chips, `CompareHeader` letter chips, `CompareRow` value-chip borders, `CompareRow` diff-sentence accent number, and `CompareScoreboard`. **Never use `piq-accent-hot` (red) for column identity** — red is reserved for finding severity.
+
+**Identical-row collapse rule:** `compareDiff.isIdentical(values)` returns true when every value's `kind` and `display` match. Two `unknown` values count as identical (both render as "—") — coverage gaps don't inflate the visible row count. Collapsed rows render as a single italic "Same on both: row1 (val), row2 (val), …" line at section bottom.
+
+**Sign-in gate (Phase A):** none — anonymous users can stage 2 properties and view compare. Phase B adds the 3rd-property gate (per plan; `comparisonStore` already exposes `replaceAll` for the localStorage→server merge).
+
 ---
 
 ## Snapshot Structure

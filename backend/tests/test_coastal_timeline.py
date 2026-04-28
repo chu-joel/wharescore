@@ -250,6 +250,45 @@ def test_malformed_point_falls_back_gracefully():
     assert current_2100 == 51
 
 
+def test_score_override_applied_when_coastal_present():
+    """enrich_with_scores should map coastal.score_impact.delta into the
+    coastal_erosion indicator and drop coastal_erosion_council to prevent
+    double-counting."""
+    from app.services.risk_score import enrich_with_scores
+
+    report = {
+        "hazards": {
+            # Legacy coastal data that would have set both indicators.
+            "coastal_exposure": "E",  # would normally score 65
+            "coastal_erosion_exposure": "High",
+        },
+        "scores": None,  # let enrich populate
+        "coastal": {
+            "tier": "happens_now",
+            "score_impact": {"delta": 12, "max_possible": 15, "suppressed_by_council_layer": False},
+        },
+    }
+    out = enrich_with_scores(report)
+    indicators = out["scores"]["indicators"]
+    # delta 12 / max 15 = 80
+    assert indicators["coastal_erosion"] == 80, indicators
+    # Council variant suppressed.
+    assert "coastal_erosion_council" not in indicators
+
+
+def test_score_override_skipped_without_coastal_block():
+    """When report.coastal is absent, legacy coastal_erosion logic stands."""
+    from app.services.risk_score import enrich_with_scores
+
+    report = {
+        "hazards": {"coastal_exposure": "E"},  # legacy: 65
+        "scores": None,
+    }
+    out = enrich_with_scores(report)
+    indicators = out["scores"]["indicators"]
+    assert indicators["coastal_erosion"] == 65, indicators
+
+
 def test_coast_distance_is_null_placeholder():
     # Until LINZ coastline + NIWA polygons are loaded, these stay null.
     r = _report(

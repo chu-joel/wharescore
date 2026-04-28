@@ -115,7 +115,14 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         row = cur.fetchone()
         if not row or not row["report"]:
             return None
-        report = enrich_with_scores(row["report"])
+        report = row["report"]
+
+    # 1a. Coastal timeline. Compute BEFORE enrich_with_scores so the
+    # SeaRise-driven delta drives the Hazards score (replaces the legacy
+    # coastal_erosion / coastal_erosion_council weights).
+    searise_point = await _fetch_nearest_searise_point(conn, address_id)
+    report["coastal"] = _safe_coastal(report, searise_point)
+    report = enrich_with_scores(report)
 
     # 1b. Transit overlay. the SQL function only queries metlink_stops (Wellington).
     #     For Auckland (at_stops) and regional cities (transit_stops), we need to
@@ -931,7 +938,6 @@ async def prefetch_property_data(conn, address_id: int, skip_terrain: bool = Fal
         "weather_history": weather_history,
         "terrain": terrain_data,
         "isochrone": isochrone_data,
-        "searise_point": await _fetch_nearest_searise_point(conn, address_id),
         "census_demographics": census_demo,
         "census_households": census_hh,
         "census_commute": census_commute,
@@ -1828,7 +1834,7 @@ async def generate_snapshot(
         "weather_history": cache.get("weather_history", []),
         "hazard_advice": hazard_advice,
         "terrain": cache.get("terrain", {}),
-        "coastal": _safe_coastal(cache["report"], cache.get("searise_point")),
+        "coastal": cache["report"].get("coastal"),
         "isochrone": cache.get("isochrone", {}),
         "terrain_insights": terrain_insights,
         "census_demographics": cache.get("census_demographics"),

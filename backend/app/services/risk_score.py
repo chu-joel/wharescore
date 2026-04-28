@@ -614,6 +614,23 @@ def enrich_with_scores(report: dict) -> dict:
             if ce_score > 0:
                 indicators["coastal_erosion_council"] = ce_score
 
+    # ── SeaRise coastal timeline override ──
+    # When build_coastal_exposure has run (property.py overlay or
+    # snapshot_generator), report.coastal carries a tier-driven score delta.
+    # The delta already accounts for council layers (halved when one fires),
+    # so we let it drive the coastal_erosion indicator and drop the council
+    # variant to prevent double-counting against the same risk.
+    coastal = report.get("coastal")
+    if isinstance(coastal, dict):
+        si = coastal.get("score_impact") or {}
+        delta = si.get("delta")
+        max_p = si.get("max_possible") or 15
+        if delta is not None and max_p > 0:
+            # Map 0..max_possible delta -> 0..100 indicator score.
+            indicators["coastal_erosion"] = round(min(delta, max_p) / max_p * 100, 1)
+            # Drop the council variant so its 0.08 weight doesn't double-count.
+            indicators.pop("coastal_erosion_council", None)
+
     # ── Terrain-inferred risk boosts ──
     # These are soft signals from elevation/slope data. only boost when no
     # council-provided hazard data exists for this indicator.
