@@ -243,11 +243,21 @@ SEVERITY_WILDFIRE_TREND = {
 
 WEIGHTS_HAZARDS = {          # Sum = 1.0 (base), softmax aggregation
     "flood": 0.14, "tsunami": 0.11, "liquefaction": 0.11,
-    "slope_failure": 0.11, "earthquake": 0.09, "coastal_erosion": 0.08,
+    "slope_failure": 0.11, "earthquake": 0.09,
+    # General coastal exposure (sea-level rise, storm tide, VLM, inundation).
+    # SeaRise-timeline-driven when report.coastal is present; falls back to
+    # SEVERITY_COASTAL_EXPOSURE enum otherwise. NOT erosion-specific — that
+    # signal lives in coastal_erosion_council below.
+    "coastal": 0.08,
     "wind": 0.07, "wildfire": 0.07, "epb": 0.05,
     # Council-specific (only present when data available)
     "landslide_susceptibility": 0.10, "overland_flow": 0.04,
-    "aircraft_noise": 0.05, "coastal_erosion_council": 0.08,
+    "aircraft_noise": 0.05,
+    # Specifically council-mapped erosion zones (distance_m, timeframe).
+    # Suppressed by the coastal-timeline override when SeaRise fires, since
+    # the timeline already halves itself when this signal is present to
+    # prevent double-counting.
+    "coastal_erosion_council": 0.08,
     # Wellington-specific (only present when GWRC/WCC data available)
     "ground_shaking": 0.12, "fault_zone": 0.10,
 }
@@ -435,7 +445,7 @@ def enrich_with_scores(report: dict) -> dict:
         )
     indicators["earthquake"] = normalize_min_max(haz.get("earthquake_count_30km"), 0, 50)
     if haz.get("coastal_exposure") is not None:
-        indicators["coastal_erosion"] = SEVERITY_COASTAL_EXPOSURE.get(haz["coastal_exposure"], 0)
+        indicators["coastal"] = SEVERITY_COASTAL_EXPOSURE.get(haz["coastal_exposure"], 0)
     if haz.get("wind_zone") is not None:
         indicators["wind"] = severity_wind(haz["wind_zone"])
     indicators["wildfire"] = normalize_min_max(haz.get("wildfire_vhe_days"), 0, 30)
@@ -618,8 +628,9 @@ def enrich_with_scores(report: dict) -> dict:
     # When build_coastal_exposure has run (property.py overlay or
     # snapshot_generator), report.coastal carries a tier-driven score delta.
     # The delta already accounts for council layers (halved when one fires),
-    # so we let it drive the coastal_erosion indicator and drop the council
-    # variant to prevent double-counting against the same risk.
+    # so we let it drive the `coastal` indicator (general coastal exposure:
+    # SLR + storm tide + VLM + inundation) and drop the erosion-specific
+    # council indicator to prevent double-counting against the same risk.
     coastal = report.get("coastal")
     if isinstance(coastal, dict):
         si = coastal.get("score_impact") or {}
@@ -627,8 +638,8 @@ def enrich_with_scores(report: dict) -> dict:
         max_p = si.get("max_possible") or 15
         if delta is not None and max_p > 0:
             # Map 0..max_possible delta -> 0..100 indicator score.
-            indicators["coastal_erosion"] = round(min(delta, max_p) / max_p * 100, 1)
-            # Drop the council variant so its 0.08 weight doesn't double-count.
+            indicators["coastal"] = round(min(delta, max_p) / max_p * 100, 1)
+            # Drop the erosion variant so its 0.08 weight doesn't double-count.
             indicators.pop("coastal_erosion_council", None)
 
     # ── Terrain-inferred risk boosts ──

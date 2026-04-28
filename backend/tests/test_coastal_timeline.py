@@ -271,7 +271,7 @@ def test_score_override_applied_when_coastal_present():
     out = enrich_with_scores(report)
     indicators = out["scores"]["indicators"]
     # delta 12 / max 15 = 80
-    assert indicators["coastal_erosion"] == 80, indicators
+    assert indicators["coastal"] == 80, indicators
     # Council variant suppressed.
     assert "coastal_erosion_council" not in indicators
 
@@ -286,7 +286,7 @@ def test_score_override_skipped_without_coastal_block():
     }
     out = enrich_with_scores(report)
     indicators = out["scores"]["indicators"]
-    assert indicators["coastal_erosion"] == 65, indicators
+    assert indicators["coastal"] == 65, indicators
 
 
 def test_coast_distance_is_null_placeholder():
