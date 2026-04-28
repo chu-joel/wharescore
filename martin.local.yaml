@@ -34,6 +34,8 @@ postgres:
       minzoom: 12
     coastal_erosion:
       minzoom: 8
+    searise_points:
+      minzoom: 9
     wind_zones:
       minzoom: 8
     earthquakes:

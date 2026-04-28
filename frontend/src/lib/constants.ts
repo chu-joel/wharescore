@@ -37,6 +37,7 @@ export const TILE_LAYERS = [
   { id: 'slope_failure_zones', group: 'Hazards', label: 'Slope Failure', minzoom: 10 },
   { id: 'tsunami_zones', group: 'Hazards', label: 'Tsunami Zones', minzoom: 8 },
   { id: 'coastal_erosion', group: 'Hazards', label: 'Coastal Erosion', minzoom: 8 },
+  { id: 'searise_points', group: 'Hazards', label: 'Sea Level Rise (NZ SeaRise)', minzoom: 9 },
   { id: 'wind_zones', group: 'Hazards', label: 'Wind Zones', minzoom: 8 },
   { id: 'landslide_events', group: 'Hazards', label: 'Landslides', minzoom: 10 },
   { id: 'landslide_areas', group: 'Hazards', label: 'Landslide Areas', minzoom: 10 },

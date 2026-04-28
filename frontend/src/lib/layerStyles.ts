@@ -52,6 +52,10 @@ const LAYER_STYLES: Record<string, LayerStyleConfig> = {
   // --- Landslide events (points) ---
   landslide_events:   { type: 'circle', color: '#F97316', radius: 5, strokeWidth: 1.5 },
 
+  // --- NZ SeaRise points (8,173 sites, 2km-spaced along NZ coast) ---
+  // Tap shows VLM + 3-scenario SLR projections for that site.
+  searise_points:     { type: 'circle', color: '#0EA5E9', radius: 4, strokeWidth: 1.5 },
+
   // --- Transport (points). icons at zoom 13+ ---
   transit_stops:      { type: 'circle', color: '#0D7377', radius: 5, strokeWidth: 2, iconImage: 'icon-transit' },
   crashes:            { type: 'circle', color: '#C42D2D', radius: 4, strokeWidth: 1.5, iconImage: 'icon-crash' },
