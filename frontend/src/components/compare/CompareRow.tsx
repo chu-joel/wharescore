@@ -58,10 +58,12 @@ function ValueChip({
       )}
       title={isUnknown ? 'Data not yet covered for this property' : undefined}
     >
-      <div className="flex items-center gap-1 min-w-0">
+      <div className="flex items-center justify-center gap-1 min-w-0 w-full">
         <span
           className={cn(
-            'text-sm sm:text-base font-semibold tabular-nums leading-tight truncate',
+            'text-sm sm:text-base font-semibold tabular-nums leading-tight text-center break-words',
+            // Allow long compound values like "0.7km (Akatore Fault Zone)" to
+            // wrap onto a second line instead of being chopped to "0.7km (Akato…".
             isUnknown && 'text-muted-foreground border-b border-dotted border-muted-foreground/40 pb-0.5 font-normal',
             isNegative && 'text-piq-success',
             !isUnknown && !isNegative && ACCENT_TEXT[columnIdx],
