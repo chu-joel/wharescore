@@ -65,7 +65,7 @@ export function CompareScoreboard({
   return (
     <section
       aria-label="Headline comparison"
-      className="rounded-xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-4 sm:space-y-5"
+      className="rounded-xl border border-border bg-card shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-2"
     >
       <CompareRow
         label="Risk score"

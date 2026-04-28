@@ -57,7 +57,7 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
     <div>
       <CompareHeader reports={reports} fallbackAddresses={fallbacks} />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-24 sm:pt-6 sm:pb-12 space-y-6 sm:space-y-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 pt-3 pb-24 sm:pt-5 sm:pb-12 space-y-3 sm:space-y-4">
         {!allReady ? (
           <ScoreboardSkeleton count={addressIds.length} />
         ) : (
@@ -74,7 +74,7 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
           </div>
         )}
 
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-2">
           {sections.map((section) => {
             const defaultOpen =
               section.defaultOpenOn?.includes(persona) ||
