@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { GitCompare, X, ArrowRight, Plus } from 'lucide-react';
 import { useComparisonStore } from '@/stores/comparisonStore';
+import { useSearchStore } from '@/stores/searchStore';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -18,8 +19,20 @@ const COLUMN_ACCENTS = [
 export function CompareTray() {
   const items = useComparisonStore((s) => s.items);
   const remove = useComparisonStore((s) => s.remove);
+  const selectedAddress = useSearchStore((s) => s.selectedAddress);
+  const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Removing from the tray should also dismiss the property panel if the
+  // user is currently viewing that property — otherwise the right-side
+  // panel stays open with a property they just removed.
+  const removeAndDismiss = (addressId: number) => {
+    if (selectedAddress?.addressId === addressId) {
+      clearSelection();
+    }
+    remove(addressId);
+  };
 
   const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -112,7 +125,7 @@ export function CompareTray() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => remove(item.addressId)}
+                    onClick={() => removeAndDismiss(item.addressId)}
                     aria-label={`Remove ${item.fullAddress}`}
                     className="shrink-0 p-1 rounded text-muted-foreground hover:text-piq-accent-hot hover:bg-muted transition-colors"
                   >
