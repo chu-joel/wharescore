@@ -1,21 +1,22 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useComparedReports } from '@/hooks/useComparedReports';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { usePersonaStore } from '@/stores/personaStore';
 import { orderedSections } from '@/lib/compareSections';
+import { buildVerdict } from '@/lib/compareVerdict';
 import type { ColumnLabel } from '@/lib/compareDiff';
 import { CompareHeader } from './CompareHeader';
 import { CompareScoreboard } from './CompareScoreboard';
 import { CompareSection } from './CompareSection';
 import { CompareLockedSection } from './CompareLockedSection';
+import { HeadToHeadVerdict } from './HeadToHeadVerdict';
 
 const COLUMN_LETTERS = ['A', 'B', 'C'] as const;
 
 function shortAddress(full: string): string {
-  // Take everything before the first comma; truncate to 24 chars.
   const head = (full || '').split(',')[0]?.trim() || full;
   return head.length > 24 ? `${head.slice(0, 24)}…` : head;
 }
@@ -24,17 +25,18 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
   const { reports, loading, errors } = useComparedReports(addressIds);
   const persona = usePersonaStore((s) => s.persona);
   const stagedItems = useComparisonStore((s) => s.items);
+  const [hideSame, setHideSame] = useState(false);
 
   const sections = useMemo(() => orderedSections(persona), [persona]);
 
-  // Build column labels from whichever data we have. Prefer the loaded report's
-  // address; fall back to the staged item; last resort is the raw id.
   const fallbacks = addressIds.map((id) => {
     const staged = stagedItems.find((s) => s.addressId === id);
     return {
       addressId: id,
       fullAddress: staged?.fullAddress ?? '',
       suburb: staged?.suburb ?? '',
+      lat: staged?.lat,
+      lng: staged?.lng,
     };
   });
 
@@ -48,16 +50,37 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
     };
   });
 
-  // Only render scoreboard + sections when ALL reports are loaded — partial
-  // diffs would be misleading. Show skeletons until all are ready.
   const safeReports = reports.filter((r): r is NonNullable<typeof r> => r != null);
   const allReady = safeReports.length === reports.length;
 
+  // Verdict only computed once everything is loaded — partial verdicts are
+  // misleading.
+  const verdict = useMemo(() => {
+    if (!allReady) return null;
+    return buildVerdict(safeReports, columns);
+  }, [allReady, safeReports, columns]);
+
+  // The first non-priority section index for the inline locked banner.
+  // We tuck the upsell mid-page so users see it after experiencing some
+  // free value but before they've exhausted attention.
+  const lockedAfterIdx = Math.min(2, sections.length - 1);
+
   return (
     <div>
-      <CompareHeader reports={reports} addressIds={addressIds} fallbackAddresses={fallbacks} />
+      <CompareHeader
+        reports={reports}
+        addressIds={addressIds}
+        fallbackAddresses={fallbacks}
+        hideSame={hideSame}
+        onToggleHideSame={() => setHideSame((h) => !h)}
+      />
 
       <main className="max-w-6xl mx-auto px-3 sm:px-6 pt-3 pb-24 sm:pt-5 sm:pb-12 space-y-3 sm:space-y-4">
+        {/* HEAD-TO-HEAD VERDICT — the answer the user actually came for. */}
+        {allReady && verdict && (
+          <HeadToHeadVerdict verdict={verdict} columns={columns} />
+        )}
+
         {!allReady ? (
           <ScoreboardSkeleton count={addressIds.length} />
         ) : (
@@ -75,10 +98,10 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
         )}
 
         <div className="space-y-2">
-          {sections.map((section) => {
+          {sections.map((section, idx) => {
+            const isPriority = !!section.defaultOpenOn?.includes(persona);
             const defaultOpen =
-              section.defaultOpenOn?.includes(persona) ||
-              section.defaultOpenOn?.includes('desktop');
+              isPriority || section.defaultOpenOn?.includes('desktop');
             return (
               <div key={section.id}>
                 {!allReady ? (
@@ -89,18 +112,23 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
                     reports={safeReports}
                     columns={columns}
                     defaultOpen={defaultOpen}
+                    isPriority={isPriority}
+                    hideSame={hideSame}
                   />
+                )}
+
+                {/* Inline locked-features banner after the persona-priority
+                    sections — user has tasted enough free value to want more. */}
+                {allReady && idx === lockedAfterIdx && (
+                  <div className="mt-2">
+                    <CompareLockedSection addressIds={addressIds} />
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Locked features — always visible, encourages upgrade after the user
-            has experienced the free comparison. */}
-        {allReady && <CompareLockedSection addressIds={addressIds} />}
-
-        {/* Loading indicator */}
         {loading && !allReady && (
           <p className="text-xs text-muted-foreground text-center">
             Loading comparison data&hellip;

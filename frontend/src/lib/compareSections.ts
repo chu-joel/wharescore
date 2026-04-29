@@ -29,6 +29,8 @@ export interface RowDef {
   extract: (report: PropertyReport) => CompareValue;
   /** Optional override for the diff-sentence number formatting. */
   formatDelta?: (winner: CompareValue, loser: CompareValue) => string;
+  /** Optional tooltip text — explains jargon to users who don't know the term. */
+  help?: string;
 }
 
 export interface SectionDef {
@@ -61,6 +63,7 @@ const riskRows: RowDef[] = [
     id: 'flood',
     label: 'Flood exposure',
     strategy: 'lower-better',
+    help: 'Whether the property is inside or near a mapped flood zone. Severe = inside a 1%-AEP (1-in-100-year) zone. Nearby = within 100m of one. Insurers consider both relevant.',
     extract: (r) => {
       const tier = getFloodTier(r.hazards);
       const rank: Record<typeof tier, number> = {
@@ -79,6 +82,7 @@ const riskRows: RowDef[] = [
     id: 'liquefaction',
     label: 'Liquefaction susceptibility',
     strategy: 'lower-better',
+    help: 'How likely the ground is to behave like liquid in a major earthquake. High susceptibility means insurers may load premiums and foundations may need reinforcement.',
     extract: (r) => {
       const rating = liquefactionRating(r.hazards);
       const rankMap: Record<string, number> = {
@@ -168,6 +172,7 @@ const riskRows: RowDef[] = [
     id: 'epb',
     label: 'Earthquake-prone buildings nearby',
     strategy: 'lower-better',
+    help: 'Buildings within 300m formally listed as earthquake-prone. Higher counts can affect access, evacuation, and aftershock damage in a major event.',
     extract: (r) => {
       const c = r.hazards.epb_count;
       if (c == null) return unknown();
@@ -235,6 +240,7 @@ const marketRows: RowDef[] = [
     id: 'rent-band',
     label: 'Rent range (LQ–UQ)',
     strategy: 'identity',
+    help: 'Lower Quartile to Upper Quartile of bond data for similar dwellings in the suburb. Roughly the middle 50% of recent rents.',
     extract: (r) => {
       const ra = r.market.rent_assessment;
       if (!ra || ra.lower_quartile == null || ra.upper_quartile == null) return unknown();
@@ -258,6 +264,7 @@ const marketRows: RowDef[] = [
     id: 'cagr-1yr',
     label: '1-year price growth',
     strategy: 'higher-better',
+    help: 'CAGR — compound annual growth rate of the suburb’s house price index over the last 12 months. Suburb-level signal, not property-specific.',
     extract: (r) => {
       const v = r.market.trend?.cagr_1yr;
       if (v == null) return unknown();
@@ -343,6 +350,7 @@ const liveabilityRows: RowDef[] = [
     id: 'deprivation',
     label: 'NZDep deprivation index',
     strategy: 'lower-better',
+    help: 'NZDep is a 1-10 socioeconomic deprivation score. Decile 1 = least deprived, 10 = most. Lower is better — but on its own NZDep is a coarse signal; treat it as context, not a verdict.',
     extract: (r) => {
       const d = r.liveability.nzdep_score;
       if (d == null) return unknown();

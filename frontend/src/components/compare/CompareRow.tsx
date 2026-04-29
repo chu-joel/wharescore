@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type CompareValue,
@@ -28,6 +28,9 @@ export interface CompareRowProps {
   columns: ColumnLabel[];
   strategy: DiffStrategy;
   formatDelta?: (winner: CompareValue, loser: CompareValue) => string;
+  /** Optional plain-language explainer for jargon — shows as a tap/hover tooltip
+   *  next to the row label. */
+  helpText?: string;
 }
 
 function ValueChip({
@@ -88,6 +91,7 @@ export function CompareRow({
   columns,
   strategy,
   formatDelta,
+  helpText,
 }: CompareRowProps) {
   const winner = winnerOf(values, strategy);
   const sentence = diffSentence(values, strategy, columns, formatDelta);
@@ -118,8 +122,18 @@ export function CompareRow({
       )}
     >
       {/* Label */}
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:normal-case sm:tracking-normal sm:font-normal sm:text-foreground/80 mb-1.5 sm:mb-0">
-        {label}
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:normal-case sm:tracking-normal sm:font-normal sm:text-foreground/80 mb-1.5 sm:mb-0 inline-flex items-center gap-1">
+        <span>{label}</span>
+        {helpText && (
+          <button
+            type="button"
+            className="inline-flex items-center justify-center size-3.5 rounded-full text-muted-foreground/60 hover:text-piq-primary transition-colors"
+            title={helpText}
+            aria-label={`What does "${label}" mean?`}
+          >
+            <Info className="size-3" aria-hidden />
+          </button>
+        )}
       </p>
 
       {/* Value chips — mobile: 2-up grid; desktop: each in its own grid column */}
