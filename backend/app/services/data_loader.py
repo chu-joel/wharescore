@@ -22,7 +22,7 @@ import urllib.request
 import zipfile
 from collections import defaultdict
 from datetime import date, datetime, timezone
-from typing import Callable
+from typing import Callable, Literal
 
 import psycopg
 from psycopg import sql
@@ -248,12 +248,66 @@ def _derive_zone_category(zone_name: str | None) -> str | None:
 DataSourceLoader = Callable[[psycopg.Connection, Callable[[str], None]], int]
 
 
+# Cadence classifications drive the scheduler. See docs/DATA-LOADERS.md.
+#   static     — never changes after initial load (historical catalogues, frozen
+#                census tabulations). Do NOT auto-refresh.
+#   revisable  — changes only when the authority republishes (district plans,
+#                hazard maps). Cheap freshness check, full reload only on diff.
+#   periodic   — publishes on a known cadence (GTFS weekly, REINZ HPI monthly).
+#   continuous — changes any time; lazy-fetch or short-TTL cache instead of
+#                bulk reload (live council rates APIs, MBIE EPB register).
+CadenceClass = Literal["static", "revisable", "periodic", "continuous", "unknown"]
+CheckInterval = Literal["never", "weekly", "monthly", "quarterly", "unknown"]
+ChangeDetection = Literal[
+    "arcgis_lastEditDate",  # ArcGIS metadata `editingInfo.lastEditDate`
+    "http_etag",            # plain HTTP ETag / Last-Modified header
+    "row_count_diff",       # download + count, compare to last row count
+    "manual",               # operator-triggered only
+    "none",                 # no upstream poll possible
+    "unknown",              # not yet classified
+]
+UpstreamFormat = Literal[
+    "arcgis", "wfs", "gtfs", "json", "csv", "html_scrape", "tsv", "shp", "unknown"
+]
+
+
 class DataSource:
-    def __init__(self, key: str, label: str, tables: list[str], loader: DataSourceLoader):
+    """A single bulk-loadable dataset.
+
+    The `loader` callable does the actual fetch + insert. The remaining fields
+    are operational metadata: where the data comes from, how often it changes,
+    and how to detect change. They drive `docs/DATA-LOADERS.md` (auto-generated
+    by `scripts/dump_data_loaders.py`) and the scheduled-refresh cron.
+
+    All metadata fields default to "unknown" so existing registrations don't
+    have to be touched at once — backfill is incremental, see DATA-LOADERS.md."""
+
+    def __init__(
+        self,
+        key: str,
+        label: str,
+        tables: list[str],
+        loader: DataSourceLoader,
+        *,
+        upstream_url: str | None = None,
+        upstream_format: UpstreamFormat = "unknown",
+        authority: str = "",
+        cadence_class: CadenceClass = "unknown",
+        check_interval: CheckInterval = "unknown",
+        change_detection: ChangeDetection = "unknown",
+        notes: str = "",
+    ):
         self.key = key
         self.label = label
         self.tables = tables  # tables this source populates
         self.loader = loader
+        self.upstream_url = upstream_url
+        self.upstream_format = upstream_format
+        self.authority = authority
+        self.cadence_class = cadence_class
+        self.check_interval = check_interval
+        self.change_detection = change_detection
+        self.notes = notes
 
 
 def _progress(log_fn, msg: str):
@@ -4737,6 +4791,13 @@ DATA_SOURCES: list[DataSource] = [
         "auckland_flood", "Auckland Flood Prone Areas",
         ["flood_hazard"],
         load_auckland_flood,
+        upstream_url="https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0",
+        upstream_format="arcgis",
+        authority="Auckland Council",
+        cadence_class="revisable",
+        check_interval="monthly",
+        change_detection="arcgis_lastEditDate",
+        notes="Authoritative 1% AEP / 1-in-100yr layer. Loader tags hazard_type='1%' with depth-tiered ranking from Depth100y. AC republishes after major rainfall events.",
     ),
     DataSource(
         "auckland_coastal", "Auckland Coastal Inundation",
@@ -4777,6 +4838,13 @@ DATA_SOURCES: list[DataSource] = [
         "auckland_flood_sensitive", "Auckland Flood Sensitive Areas",
         ["flood_hazard"],
         load_auckland_flood_sensitive,
+        upstream_url="https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Sensitive_Areas/FeatureServer/0",
+        upstream_format="arcgis",
+        authority="Auckland Council",
+        cadence_class="revisable",
+        check_interval="monthly",
+        change_detection="arcgis_lastEditDate",
+        notes="Modelled future-scenario screening (Rapid Flood Hazard Assessment), NOT a validated flood zone. Loader tags hazard_type='Flood Sensitive', ranking='Low'. Capped at 'low' tier in frontend getFloodTier.",
     ),
     DataSource(
         "auckland_heritage", "Auckland Historic Heritage Overlay",

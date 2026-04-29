@@ -2,6 +2,8 @@
 
 > Source of truth for all datasets, tables, and data integrations.
 > Agents: search by table name, council name, or category. Update this file when adding/changing data.
+>
+> **Operational view** (where each loader fetches from, cadence class, change-detection method) lives in `DATA-LOADERS.md` — auto-generated from the `DATA_SOURCES` registry by `scripts/dump_data_loaders.py`. Don't duplicate that information here; this doc owns *what tables exist and what they store*, not *how loaders run*.
 
 ---
 
