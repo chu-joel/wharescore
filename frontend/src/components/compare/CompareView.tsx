@@ -117,17 +117,28 @@ export function CompareView({ addressIds }: { addressIds: number[] }) {
                   />
                 )}
 
-                {/* Inline locked-features banner after the persona-priority
-                    sections — user has tasted enough free value to want more. */}
+                {/* Inline THIN banner after the persona-priority sections.
+                    Big card-style upsell would break the section flow; the
+                    compact variant is a single-line CTA that signals more
+                    is available without interrupting the scan. The full
+                    card lives at the bottom for the close. */}
                 {allReady && idx === lockedAfterIdx && (
                   <div className="mt-2">
-                    <CompareLockedSection addressIds={addressIds} />
+                    <CompareLockedSection
+                      addressIds={addressIds}
+                      variant="compact"
+                    />
                   </div>
                 )}
               </div>
             );
           })}
         </div>
+
+        {/* Full locked-features card at the bottom — the close. */}
+        {allReady && (
+          <CompareLockedSection addressIds={addressIds} />
+        )}
 
         {loading && !allReady && (
           <p className="text-xs text-muted-foreground text-center">

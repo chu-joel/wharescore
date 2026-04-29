@@ -7,6 +7,7 @@ import {
   type ColumnLabel,
   type CompareValue,
   presentNumber,
+  negativeKnown,
   unknown,
 } from '@/lib/compareDiff';
 
@@ -25,20 +26,33 @@ function riskScoreValue(r: PropertyReport): CompareValue {
   return presentNumber(score, String(Math.round(score)));
 }
 
-function criticalFindingsValue(r: PropertyReport): CompareValue {
-  // Use ranked_findings when present (canonical source). Fall back to the
-  // raw hazard signals via a simple proxy — full generateFindings() requires
-  // the ranking helper; for the scoreboard a quick heuristic is enough.
+function criticalFindingsValue(r: PropertyReport, persona: Persona): CompareValue {
+  // Use ranked_findings when present (canonical source). Per-persona list is
+  // preferred — the buyer and renter weightings rank different hazards as
+  // critical. Fall back through the persona-specific list, then the other
+  // persona, then generic; pick the first non-empty one.
   const ranked = r.ranked_findings;
+  let list: Array<{ severity: string }> | null = null;
   if (ranked) {
-    const list = ranked.generic ?? ranked.buyer ?? ranked.renter ?? [];
+    const candidates = [
+      ranked[persona],
+      persona === 'renter' ? ranked.buyer : ranked.renter,
+      ranked.generic,
+    ];
+    list = candidates.find((c) => c && c.length > 0) ?? null;
+  }
+  if (list) {
     const count = list.filter((f) => f.severity === 'critical').length;
+    if (count === 0) return negativeKnown('None');
     return presentNumber(count, String(count));
   }
-  // Fallback — count clearly-critical hazard signals.
+  // Final fallback — count clearly-critical hazard signals on the report.
   let n = 0;
   if (r.hazards.flood_zone) n += 1;
   if (r.hazards.tsunami_zone) n += 1;
+  if (r.hazards.liquefaction_zone) n += 1;
+  if (r.hazards.slope_failure?.toLowerCase().includes('high')) n += 1;
+  if (n === 0) return negativeKnown('None');
   return presentNumber(n, String(n));
 }
 
@@ -80,7 +94,7 @@ export function CompareScoreboard({
       />
       <CompareRow
         label="Critical findings"
-        values={reports.map(criticalFindingsValue)}
+        values={reports.map((r) => criticalFindingsValue(r, persona))}
         columns={columns}
         strategy="lower-better"
         formatDelta={(w, l) => {

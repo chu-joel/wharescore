@@ -202,10 +202,10 @@ export function CompareHeader({
                   <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     {suburb}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {bin && typeof score === 'number' && (
                       <span
-                        className="inline-flex items-center justify-center size-5 sm:size-6 rounded-full text-[10px] sm:text-xs font-bold text-white tabular-nums"
+                        className="inline-flex items-center justify-center size-5 sm:size-6 rounded-full text-[10px] sm:text-xs font-bold text-white tabular-nums shrink-0"
                         style={{ backgroundColor: bin.color }}
                         title={`${bin.label} risk score: ${Math.round(score)}/100`}
                       >
@@ -214,13 +214,13 @@ export function CompareHeader({
                     )}
                     {cov && (
                       <span
-                        className="inline-flex items-center text-[10px] text-muted-foreground/90 tabular-nums"
+                        className="inline-flex items-center text-[10px] text-muted-foreground tabular-nums whitespace-nowrap"
                         title={`${cov.available} of ${cov.total} data checks available for this property`}
                       >
                         {cov.available}/{cov.total} checks
                       </span>
                     )}
-                    <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-piq-primary group-hover/col:underline ml-auto">
+                    <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-piq-primary group-hover/col:underline ml-auto whitespace-nowrap">
                       Open <ExternalLink className="size-3" />
                     </span>
                   </div>

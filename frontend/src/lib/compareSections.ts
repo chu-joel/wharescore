@@ -145,7 +145,9 @@ const riskRows: RowDef[] = [
     extract: (r) => {
       const f = r.hazards.active_fault_nearest;
       if (!f || f.distance_m == null) return unknown();
-      return presentNumber(f.distance_m, `${fmtDistanceM(f.distance_m)} (${f.name})`);
+      const name = f.name && f.name !== 'null' ? f.name : null;
+      const display = name ? `${fmtDistanceM(f.distance_m)} (${name})` : fmtDistanceM(f.distance_m);
+      return presentNumber(f.distance_m, display);
     },
     formatDelta: (w, l) => {
       if (w.kind !== 'present' || l.kind !== 'present') return '';
@@ -221,21 +223,9 @@ const marketRows: RowDef[] = [
       return presentNumber(v, fmtCurrencyShort(v));
     },
   },
-  {
-    id: 'median-rent',
-    label: 'Median rent (suburb)',
-    strategy: 'lower-better',
-    extract: (r) => {
-      const m = r.market.rent_assessment?.median;
-      if (m == null) return unknown();
-      return presentNumber(m, `${fmtCurrency0(m)}/wk`);
-    },
-    formatDelta: (w, l) => {
-      if (w.kind !== 'present' || l.kind !== 'present') return '';
-      const diff = (l.value as number) - (w.value as number);
-      return `$${Math.round(diff)}/wk cheaper`;
-    },
-  },
+  // Median rent intentionally omitted here — already surfaced on the
+  // scoreboard as the renter persona's primary $ metric. Showing it again
+  // in this section would just duplicate the same diff.
   {
     id: 'rent-band',
     label: 'Rent range (LQ–UQ)',

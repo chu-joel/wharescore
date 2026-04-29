@@ -108,8 +108,10 @@ export function diffSentence(
   formatDelta?: (winner: CompareValue, loser: CompareValue) => string,
 ): string | null {
   if (values.length !== columns.length) return null;
-  if (strategy === 'identity') return null;
 
+  // Check unknown before short-circuiting on strategy — even an "identity"
+  // row deserves a "data not available" caption when one column is missing
+  // data, otherwise the user just sees "—" with no explanation.
   const unknownIdxs = values
     .map((v, i) => (v.kind === 'unknown' ? i : -1))
     .filter((i) => i >= 0);
@@ -118,6 +120,8 @@ export function diffSentence(
     const names = unknownIdxs.map((i) => columns[i].shortAddress).join(' and ');
     return `Data not available for ${names}`;
   }
+
+  if (strategy === 'identity') return null;
 
   if (strategy === 'categorical') {
     return isIdentical(values) ? null : 'Different categories';

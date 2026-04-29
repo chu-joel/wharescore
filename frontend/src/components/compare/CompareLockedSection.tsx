@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Lock, Sparkles, ArrowRight } from 'lucide-react';
+import { Lock, Sparkles, ArrowRight, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CompareLockedSectionProps {
   /** Address ids of staged properties — used to deep-link the user to each
    *  property page so they can generate a full report. */
   addressIds: number[];
+  /** Compact = thin one-line banner (used inline mid-page). Full = the
+   *  expanded card with feature list (used at the end of the page). */
+  variant?: 'full' | 'compact';
 }
 
 const LOCKED_FEATURES: Array<{ label: string; teaser: string }> = [
@@ -45,7 +48,33 @@ const LOCKED_FEATURES: Array<{ label: string; teaser: string }> = [
   },
 ];
 
-export function CompareLockedSection({ addressIds }: CompareLockedSectionProps) {
+export function CompareLockedSection({
+  addressIds,
+  variant = 'full',
+}: CompareLockedSectionProps) {
+  if (variant === 'compact') {
+    return (
+      <Link
+        href={addressIds[0] ? `/property/${addressIds[0]}` : '/'}
+        aria-label="Unlock more comparison data with a full report"
+        className={cn(
+          'flex items-center gap-2 rounded-md border border-piq-primary/30',
+          'bg-gradient-to-r from-piq-primary/5 to-piq-accent-warm/5',
+          'px-3 py-2 transition-colors hover:border-piq-primary/50 hover:bg-piq-primary/10',
+        )}
+      >
+        <Sparkles className="size-3.5 shrink-0 text-piq-primary" aria-hidden />
+        <p className="min-w-0 flex-1 text-xs sm:text-sm leading-snug">
+          <span className="font-semibold">More side-by-side data with the full report</span>
+          <span className="hidden sm:inline text-muted-foreground">
+            {' '}— price estimates, AI verdict, PM transit, HPI, school zones, recommendations.
+          </span>
+        </p>
+        <ChevronRight className="size-4 shrink-0 text-piq-primary" aria-hidden />
+      </Link>
+    );
+  }
+
   return (
     <section
       aria-label="Locked comparison features"
