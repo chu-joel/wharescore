@@ -257,7 +257,7 @@ DataSourceLoader = Callable[[psycopg.Connection, Callable[[str], None]], int]
 #   continuous — changes any time; lazy-fetch or short-TTL cache instead of
 #                bulk reload (live council rates APIs, MBIE EPB register).
 CadenceClass = Literal["static", "revisable", "periodic", "continuous", "unknown"]
-CheckInterval = Literal["never", "weekly", "monthly", "quarterly", "unknown"]
+CheckInterval = Literal["never", "weekly", "monthly", "quarterly", "yearly", "unknown"]
 ChangeDetection = Literal[
     "arcgis_lastEditDate",  # ArcGIS metadata `editingInfo.lastEditDate`
     "http_etag",            # plain HTTP ETag / Last-Modified header
@@ -10609,6 +10609,392 @@ DATA_SOURCES: list[DataSource] = [
                 "Coastal Erosion",
             ))),
 ]
+
+# ═══════════════════════════════════════════════════════════════
+# CADENCE / CHANGE-DETECTION PATTERN DEFAULTS
+# ═══════════════════════════════════════════════════════════════
+# Most of the 566 DataSources fall into a small number of patterns. Rather
+# than hand-classify each one (and rot the classifications when new loaders
+# get added), we apply defaults by key suffix. Explicit values on a
+# DataSource always win — this only fills in fields still set to "unknown".
+#
+# Cadence reasoning (from the 2026-04-29 audit, see git log):
+#
+#   Most council hazard data is STATIC: liquefaction susceptibility, tsunami
+#   evacuation zones, landslide susceptibility, noise contours are one-off
+#   peer-reviewed studies, not living layers. Auto-refreshing them is wasted
+#   effort — they only change when the authority publishes a new study,
+#   which typically requires a code change anyway (new field schema, new
+#   methodology). Mark static, do not auto-refresh.
+#
+#   The actually-live council layers are: flood polygons (republished after
+#   major rain events), district plan zones (amended a few times per
+#   plan-cycle year), heritage schedules (occasional add/remove), and
+#   contaminated-land registers (continuous additions).
+#
+#   Most ArcGIS endpoints expose `editingInfo.lastEditDate` for cheap
+#   change detection — but only ~20% of older council MapServers do, so
+#   `row_count_diff` is the safe fallback for non-FeatureServer endpoints.
+
+# Suffix patterns: most-specific first. Each rule contributes defaults for
+# any DataSource key matching its suffix (or substring for `*_*` patterns).
+_PATTERN_RULES: list[tuple[str, dict]] = [
+    # GTFS feeds — periodic publication, HTTP ETag works
+    ("_gtfs", dict(cadence_class="periodic", check_interval="weekly",
+                   change_detection="http_etag", upstream_format="gtfs")),
+
+    # Council flood polygons — actually re-published after rain events
+    ("_flood", dict(cadence_class="revisable", check_interval="monthly",
+                    change_detection="arcgis_lastEditDate", upstream_format="arcgis")),
+
+    # Liquefaction / tsunami / landslide / slope / overland flow / noise
+    # contours — peer-reviewed studies or topographic models. Static.
+    ("_liquefaction",   dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_tsunami",        dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_landslide",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_slope",          dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_overland_flow",  dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_aircraft_noise", dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_road_noise",     dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+
+    # Plan zones / heritage / coastal / contaminated / geotech — live
+    # registers, amended on irregular cadence. Quarterly check is honest.
+    ("_plan_zones", dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_zones",      dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_heritage",   dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_coastal",    dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_contaminated", dict(cadence_class="revisable", check_interval="quarterly",
+                           change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_geotech",    dict(cadence_class="revisable", check_interval="yearly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_height",     dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_viewshafts", dict(cadence_class="revisable", check_interval="quarterly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_stormwater", dict(cadence_class="static", check_interval="never",
+                         change_detection="none", upstream_format="arcgis")),
+    ("_ecological", dict(cadence_class="revisable", check_interval="yearly",
+                         change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_mana_whenua",     dict(cadence_class="revisable", check_interval="yearly",
+                              change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_notable_trees",   dict(cadence_class="revisable", check_interval="yearly",
+                              change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_parks",           dict(cadence_class="revisable", check_interval="yearly",
+                              change_detection="row_count_diff", upstream_format="arcgis")),
+
+    # Council rates APIs — these are per-property lazy fetches, NOT bulk
+    # loaders. They appear in the registry as placeholders but aren't really
+    # bulk-loaded. Mark continuous to acknowledge "this changes any time;
+    # short-TTL cache, not bulk reload."
+    ("_rates", dict(cadence_class="continuous", check_interval="never",
+                    change_detection="manual", upstream_format="json",
+                    notes="Lazy-fetch per-property API client, not a bulk loader. See routers/rates.py.")),
+
+    # Additional hazard / overlay patterns from the audit
+    ("_noise",          dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Acoustic model output (airport/road/port). Republished only when modelling re-run.")),
+    ("_trees",          dict(cadence_class="revisable", check_interval="yearly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_faults",         dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Geological fault traces — quasi-static (multi-year science updates).")),
+    ("_fault",          dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_inundation",     dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis",
+                             notes="Coastal inundation scenario model. Updated on SLR re-run cycles.")),
+    ("_sna",            dict(cadence_class="revisable", check_interval="yearly",
+                             change_detection="row_count_diff", upstream_format="arcgis",
+                             notes="Significant Natural Areas — district-plan ecological overlay.")),
+    ("_erosion",        dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_shaking",        dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Ground-shaking amplification model — peer-reviewed study output.")),
+    ("_hail",           dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis",
+                             notes="Hazardous Activities & Industries List (HAIL) — continuously updated.")),
+    ("_stability",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Land stability mapping — peer-reviewed study output.")),
+    ("_avoidance",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Tsunami avoidance area — modelled scenario.")),
+    ("_awareness",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Tsunami awareness area — modelled scenario.")),
+    ("_archaeological", dict(cadence_class="revisable", check_interval="yearly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_geothermal",     dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_consents",       dict(cadence_class="revisable", check_interval="monthly",
+                             change_detection="row_count_diff", upstream_format="arcgis",
+                             notes="Resource consents — continuous additions from council registers.")),
+    ("_rockfall",       dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_surge",          dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_hazard",         dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Generic hazard layer — defaulted to static; reclassify if upstream is known to be a living register.")),
+    ("_volcanic",       dict(cadence_class="revisable", check_interval="yearly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("_solar",          dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="Solar radiation model — derived from terrain.")),
+    ("_special_character", dict(cadence_class="revisable", check_interval="quarterly",
+                                change_detection="row_count_diff", upstream_format="arcgis")),
+    ("character_precincts", dict(cadence_class="revisable", check_interval="quarterly",
+                                 change_detection="row_count_diff", upstream_format="arcgis",
+                                 authority="Wellington City Council")),
+    ("_schools",        dict(cadence_class="revisable", check_interval="yearly",
+                             change_detection="arcgis_lastEditDate", upstream_format="arcgis")),
+    ("_riverbank",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("_land_instability", dict(cadence_class="static", check_interval="never",
+                               change_detection="none", upstream_format="arcgis")),
+    ("_land_stability",   dict(cadence_class="static", check_interval="never",
+                               change_detection="none", upstream_format="arcgis")),
+    ("_vibration",      dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis")),
+    ("coastal_elevation", dict(cadence_class="static", check_interval="never",
+                               change_detection="none", upstream_format="arcgis",
+                               notes="Coastal DEM — refreshes only when LINZ retiles lidar.")),
+    ("coastal_inundation", dict(cadence_class="revisable", check_interval="quarterly",
+                                change_detection="row_count_diff", upstream_format="arcgis")),
+    ("contaminated_land", dict(cadence_class="revisable", check_interval="quarterly",
+                               change_detection="row_count_diff", upstream_format="arcgis")),
+    ("erosion_prone_land", dict(cadence_class="revisable", check_interval="quarterly",
+                                change_detection="row_count_diff", upstream_format="arcgis")),
+    ("resource_consents", dict(cadence_class="revisable", check_interval="monthly",
+                               change_detection="row_count_diff", upstream_format="arcgis")),
+    ("district_plan",   dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("height_controls", dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+    ("viewshafts",      dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="row_count_diff", upstream_format="arcgis")),
+
+    # Wellington-specific combo loaders
+    ("wcc_hazards",     dict(cadence_class="revisable", check_interval="quarterly",
+                             change_detection="arcgis_lastEditDate", upstream_format="arcgis",
+                             notes="WCC 2024 District Plan combo — flood + tsunami + fault + ground shaking layers.")),
+    ("gwrc_earthquake", dict(cadence_class="static", check_interval="never",
+                             change_detection="none", upstream_format="arcgis",
+                             notes="GWRC combined earthquake hazard (4 sub-layers from 2003 study) — quasi-static.")),
+    ("epb_wcc",         dict(cadence_class="continuous", check_interval="monthly",
+                             change_detection="row_count_diff", upstream_format="arcgis",
+                             notes="WCC EPB register — continuously updated as buildings are assessed.")),
+]
+
+# National sources don't share suffix patterns with councils — classify per-key.
+_NATIONAL_DEFAULTS: dict[str, dict] = {
+    # Stats NZ Census 2023 — frozen until next census (~2028).
+    "census_demographics": dict(cadence_class="static", check_interval="never",
+                                change_detection="none", authority="Stats NZ",
+                                upstream_format="arcgis",
+                                notes="Census 2023 frozen until next census (~2028)."),
+    "census_households":   dict(cadence_class="static", check_interval="never",
+                                change_detection="none", authority="Stats NZ",
+                                upstream_format="arcgis",
+                                notes="Census 2023 frozen until next census (~2028)."),
+    "census_commute":      dict(cadence_class="static", check_interval="never",
+                                change_detection="none", authority="Stats NZ",
+                                upstream_format="arcgis",
+                                notes="Census 2023 origin-destination matrix; frozen until 2028."),
+    "business_demography": dict(cadence_class="periodic", check_interval="yearly",
+                                change_detection="arcgis_lastEditDate", authority="Stats NZ",
+                                upstream_format="arcgis",
+                                notes="Stats NZ Business Demography. Annual (Q4) — check each February."),
+
+    # Climate / environment
+    "climate_normals":     dict(cadence_class="static", check_interval="never",
+                                change_detection="none", authority="NIWA / Open-Meteo",
+                                upstream_format="json",
+                                notes="30-year climate normals (1991-2020). Refreshes only when baseline window shifts."),
+
+    # Telecoms / utilities
+    "fibre_coverage":      dict(cadence_class="periodic", check_interval="yearly",
+                                change_detection="http_etag", authority="Commerce Commission",
+                                upstream_format="shp",
+                                notes="Specified Fibre Areas. Annual GPKG drop (Feb-Mar)."),
+
+    # OSM
+    "cycleways":           dict(cadence_class="periodic", check_interval="quarterly",
+                                change_detection="row_count_diff", authority="OpenStreetMap",
+                                upstream_format="json",
+                                notes="OSM via Overpass; rate-limited. Bulk reload quarterly is sufficient for residential analysis."),
+
+    # National hazard / register feeds
+    "linz_waterways":      dict(cadence_class="revisable", check_interval="quarterly",
+                                change_detection="none", authority="LINZ",
+                                upstream_format="wfs",
+                                notes="LINZ Topo50 rivers/streams. WFS endpoint; LINZ updates irregularly."),
+    "gns_landslides":      dict(cadence_class="revisable", check_interval="quarterly",
+                                change_detection="row_count_diff", authority="GNS Science",
+                                upstream_format="wfs",
+                                notes="GNS National Landslide Database — events added continuously."),
+    "gns_active_faults":   dict(cadence_class="static", check_interval="never",
+                                change_detection="none", authority="GNS Science",
+                                upstream_format="wfs",
+                                notes="1:250K active faults — quasi-static (multi-year scientific updates)."),
+    "epb_mbie":            dict(cadence_class="continuous", check_interval="monthly",
+                                change_detection="row_count_diff", authority="MBIE",
+                                upstream_format="json",
+                                notes="Earthquake-Prone Buildings register — continuously updated as buildings are assessed."),
+
+    # NZTA noise
+    "nzta_noise_contours": dict(cadence_class="revisable", check_interval="yearly",
+                                change_detection="arcgis_lastEditDate", authority="NZTA",
+                                upstream_format="arcgis",
+                                notes="National road noise modelling. Updated after major road changes."),
+
+    # MoE schools
+    "school_zones":        dict(cadence_class="revisable", check_interval="yearly",
+                                change_detection="arcgis_lastEditDate", authority="Ministry of Education",
+                                upstream_format="arcgis",
+                                notes="Annual reset (Dec/Jan)."),
+
+    # DOC
+    "doc_huts":      dict(cadence_class="revisable", check_interval="quarterly",
+                          change_detection="arcgis_lastEditDate", authority="DOC",
+                          upstream_format="arcgis"),
+    "doc_tracks":    dict(cadence_class="revisable", check_interval="quarterly",
+                          change_detection="arcgis_lastEditDate", authority="DOC",
+                          upstream_format="arcgis"),
+    "doc_campsites": dict(cadence_class="revisable", check_interval="quarterly",
+                          change_detection="arcgis_lastEditDate", authority="DOC",
+                          upstream_format="arcgis"),
+}
+
+# Authority lookup by key prefix. Used to backfill `authority` when not set.
+_AUTHORITY_BY_PREFIX: list[tuple[str, str]] = [
+    ("auckland_",     "Auckland Council"),
+    ("wcc_",          "Wellington City Council"),
+    ("wellington_",   "Wellington City Council"),
+    ("gwrc_",         "Greater Wellington Regional Council"),
+    ("hcc_",          "Hutt City Council"),
+    ("uhcc_",         "Upper Hutt City Council"),
+    ("porirua_",      "Porirua City Council"),
+    ("kapiti_",       "Kapiti Coast District Council"),
+    ("wairarapa_",    "Wairarapa Combined District Council"),
+    ("chch_",         "Christchurch City Council"),
+    ("christchurch_", "Christchurch City Council"),
+    ("ccc_",          "Christchurch City Council"),
+    ("ecan_",         "Environment Canterbury"),
+    ("selwyn_",       "Selwyn District Council"),
+    ("waimakariri_",  "Waimakariri District Council"),
+    ("hamilton_",     "Hamilton City Council"),
+    ("waikato_",      "Waikato Regional / District Council"),
+    ("waipa_",        "Waipa District Council"),
+    ("thames_",       "Thames-Coromandel District Council"),
+    ("matamata_",     "Matamata-Piako District Council"),
+    ("taupo_",        "Taupo District Council"),
+    ("rotorua_",      "Rotorua Lakes Council"),
+    ("tauranga_",     "Tauranga City Council"),
+    ("wbop_",         "Western Bay of Plenty District Council"),
+    ("whakatane_",    "Whakatane District Council"),
+    ("bop_",          "Bay of Plenty Regional Council"),
+    ("napier_",       "Napier City Council"),
+    ("hastings_",     "Hastings District Council"),
+    ("hbrc_",         "Hawke's Bay Regional Council"),
+    ("wairoa_",       "Wairoa District Council"),
+    ("gisborne_",     "Gisborne District Council"),
+    ("npdc_",         "New Plymouth District Council"),
+    ("taranaki_",     "Taranaki Regional Council"),
+    ("trc_",          "Taranaki Regional Council"),
+    ("stratford_",    "Stratford District Council"),
+    ("pncc_",         "Palmerston North City Council"),
+    ("horizons_",     "Horizons Regional Council"),
+    ("horowhenua_",   "Horowhenua District Council"),
+    ("rangitikei_",   "Rangitikei District Council"),
+    ("whanganui_",    "Whanganui District Council"),
+    ("nrc_",          "Northland Regional Council"),
+    ("whangarei_",    "Whangarei District Council"),
+    ("far_north_",    "Far North District Council"),
+    ("kaipara_",      "Kaipara District Council"),
+    ("nelson_",       "Nelson City Council"),
+    ("tasman_",       "Tasman District Council"),
+    ("marlborough_",  "Marlborough District Council"),
+    ("dunedin_",      "Dunedin City Council"),
+    ("orc_",          "Otago Regional Council"),
+    ("qldc_",         "Queenstown-Lakes District Council"),
+    ("waitaki_",      "Waitaki District Council"),
+    ("invercargill_", "Invercargill City Council"),
+    ("southland_",    "Southland District Council"),
+    ("westcoast_",    "West Coast Regional Council"),
+    ("westport_",     "Buller District Council"),
+    ("grey_",         "Grey District Council"),
+    ("westland_",     "Westland District Council"),
+    ("timaru_",       "Timaru District Council"),
+]
+
+
+def _apply_pattern_defaults(sources: list[DataSource]) -> None:
+    """Backfill cadence/change-detection metadata from key patterns.
+
+    Explicit values on a DataSource always win — this only fills fields that
+    are still set to the literal "unknown" sentinel (or empty string for
+    `authority`). Run once at module import; idempotent.
+
+    The audit that produced these patterns is in the 2026-04-29 commit; see
+    `docs/DATA-LOADERS.md` § Cadence-classes for the per-pattern reasoning."""
+    for src in sources:
+        # 1. Per-key national defaults take precedence over suffix patterns.
+        per_key = _NATIONAL_DEFAULTS.get(src.key)
+        if per_key:
+            for field, val in per_key.items():
+                cur = getattr(src, field)
+                if cur in ("unknown", "", None):
+                    setattr(src, field, val)
+        else:
+            # 2. Suffix-pattern defaults (council hazards, GTFS).
+            for suffix, defaults in _PATTERN_RULES:
+                if suffix in src.key:
+                    for field, val in defaults.items():
+                        cur = getattr(src, field)
+                        if cur in ("unknown", "", None):
+                            setattr(src, field, val)
+                    break  # most-specific rule wins; first match only
+
+        # 3. Authority lookup by prefix.
+        if not src.authority:
+            for prefix, authority in _AUTHORITY_BY_PREFIX:
+                if src.key.startswith(prefix):
+                    src.authority = authority
+                    break
+
+        # 4. Final fallback: any unclassified council-prefixed loader is most
+        #    likely a peer-reviewed hazard study (rare council quirks like
+        #    volcanic calderas, alluvial fans, peat overlays, liquefaction
+        #    investigation zones). Default to static — the honest answer for
+        #    "we don't know but the upstream probably doesn't change."
+        if src.cadence_class == "unknown" and src.authority:
+            src.cadence_class = "static"
+            src.check_interval = "never"
+            src.change_detection = "none"
+            if src.upstream_format == "unknown":
+                src.upstream_format = "arcgis"
+            if not src.notes:
+                src.notes = (
+                    "Defaulted to static via fallback (council-prefixed hazard, no specific pattern match). "
+                    "Reclassify if upstream is known to be a living register."
+                )
+
+
+_apply_pattern_defaults(DATA_SOURCES)
 
 DATA_SOURCES_BY_KEY = {s.key: s for s in DATA_SOURCES}
 
