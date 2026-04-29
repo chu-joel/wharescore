@@ -5,6 +5,7 @@ import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { GitCompare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useComparisonStore, COMPARE_MAX_ANONYMOUS } from '@/stores/comparisonStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -201,26 +202,38 @@ export function AddToCompareButton({
     );
   }
 
-  // primary — quieter outline button so it doesn't compete with the
-  // Generate Report CTA.
+  // primary — icon-only square button with a tooltip. Earlier the labelled
+  // pill was crowding the persona toggle ("I'm buying / renting") in the
+  // property report header. Going icon-only makes the action discoverable
+  // without competing for horizontal real estate.
+  const tooltipLabel = staged ? 'Remove from comparison' : 'Add to compare';
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      aria-pressed={staged}
-      onClick={handleClick}
-      className={cn(
-        'h-8 gap-1.5 text-xs font-medium transition-all bg-transparent',
-        staged
-          ? 'border-piq-primary text-piq-primary bg-piq-primary/10 hover:bg-piq-primary/15'
-          : 'border-piq-primary/60 text-piq-primary hover:bg-piq-primary/5 hover:border-piq-primary',
-        'active:scale-[0.97]',
-        className,
-      )}
-    >
-      <Icon className="size-3.5" />
-      {staged ? 'In comparison' : 'Compare'}
-    </Button>
+    <TooltipProvider delay={150}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              aria-pressed={staged}
+              aria-label={tooltipLabel}
+              onClick={handleClick}
+              className={cn(
+                'size-8 transition-all bg-transparent',
+                staged
+                  ? 'border-piq-primary text-piq-primary bg-piq-primary/10 hover:bg-piq-primary/15'
+                  : 'border-piq-primary/60 text-piq-primary hover:bg-piq-primary/5 hover:border-piq-primary',
+                'active:scale-[0.95]',
+                className,
+              )}
+            >
+              <Icon className="size-3.5" />
+            </Button>
+          }
+        />
+        <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
