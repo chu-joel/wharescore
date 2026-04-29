@@ -16,6 +16,26 @@ const COLUMN_ACCENTS = [
   'bg-piq-primary-dark text-white',
 ];
 
+/**
+ * Site-wide comparison tray.
+ *
+ * UX rationale (revised after the mobile bottom-bar collided with the
+ * MobileDrawer's drag handle):
+ *
+ * - SAME POSITION on desktop AND mobile: a small floating pill anchored
+ *   under the AppHeader at the top-right. Top-right is the universal
+ *   "tray / actions / cart" zone in apps; mobile users tap there for
+ *   menu items routinely. It NEVER collides with the bottom MobileDrawer,
+ *   never overlaps the FeedbackFAB.
+ * - DIFFERENT SIZING per breakpoint: desktop pill is wide ("⊟ 2 Compare"),
+ *   mobile pill is icon-only with a count badge ("⊟ ②") so it doesn't
+ *   crowd the narrow viewport. Same teal pill on both; same popover.
+ * - PULSE on count change so a user who just added a property notices
+ *   the count tick up even if they're focused on the report below.
+ * - The popover (a compact dropdown) is reused for both breakpoints —
+ *   one source of UI truth. On mobile it opens as a Sheet for easier
+ *   thumb interaction with the larger remove buttons.
+ */
 export function CompareTray() {
   const items = useComparisonStore((s) => s.items);
   const remove = useComparisonStore((s) => s.remove);
@@ -24,9 +44,43 @@ export function CompareTray() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [pulse, setPulse] = useState(false);
+
+  // Pulse animation triggers whenever the count changes — draws the eye
+  // to the top-right pill after the user clicks "Compare" deeper in the
+  // page. ~600ms pulse, then back to rest state.
+  const lastCountRef = useRef(items.length);
+  useEffect(() => {
+    if (items.length !== lastCountRef.current) {
+      lastCountRef.current = items.length;
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 700);
+      return () => clearTimeout(t);
+    }
+  }, [items.length]);
+
+  // Click-outside for desktop popover.
+  const popoverRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onClick);
+    return () => window.removeEventListener('mousedown', onClick);
+  }, [popoverOpen]);
+
+  // Hide entirely when 0 staged, or when on the compare page itself.
+  if (items.length === 0) return null;
+  if (pathname?.startsWith('/compare')) return null;
+
   // Removing from the tray should also dismiss the property panel if the
-  // user is currently viewing that property — otherwise the right-side
-  // panel stays open with a property they just removed.
+  // user is currently viewing that property — otherwise the panel stays
+  // open with a property they just removed.
   const removeAndDismiss = (addressId: number) => {
     if (selectedAddress?.addressId === addressId) {
       clearSelection();
@@ -34,70 +88,62 @@ export function CompareTray() {
     remove(addressId);
   };
 
-  const [desktopOpen, setDesktopOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [hidden, setHidden] = useState(false);
-
-  // Hide on scroll-down (mobile only). 10px threshold; reappear on any up.
-  const lastScrollY = useRef(0);
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastScrollY.current;
-      if (delta > 10 && y > 80) setHidden(true);
-      else if (delta < -4) setHidden(false);
-      lastScrollY.current = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // Click-outside for desktop popover.
-  const popoverRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!desktopOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setDesktopOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', onClick);
-    return () => window.removeEventListener('mousedown', onClick);
-  }, [desktopOpen]);
-
-  // Hide entirely when 0 staged, or when on the compare page itself.
-  if (items.length === 0) return null;
-  if (pathname?.startsWith('/compare')) return null;
-
   const canCompare = items.length >= 2;
   const goToCompare = () => {
     const ids = items.map((i) => i.addressId).join(',');
     router.push(`/compare?ids=${ids}`);
   };
 
+  /* ── Trigger pill — same position desktop & mobile, different sizing ── */
+  const triggerPill = (
+    <button
+      type="button"
+      onClick={() => {
+        // Desktop = popover. Mobile = sheet (better thumb hit area).
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          setMobileSheetOpen(true);
+        } else {
+          setPopoverOpen((o) => !o);
+        }
+      }}
+      aria-expanded={popoverOpen}
+      aria-label={`Comparison tray (${items.length} ${items.length === 1 ? 'property' : 'properties'})`}
+      className={cn(
+        'group flex items-center gap-1.5 rounded-full bg-piq-primary text-white shadow-md transition-all',
+        'hover:bg-piq-primary-dark hover:shadow-lg active:scale-95',
+        // Mobile: compact icon + badge. Desktop: wider pill with label.
+        'h-8 pl-2 pr-2 sm:h-9 sm:pl-3 sm:pr-4 sm:gap-2',
+        // Pulse on count change.
+        pulse && 'animate-in zoom-in-95 ring-4 ring-piq-primary/30',
+      )}
+    >
+      <GitCompare className="size-4" />
+      <span
+        className={cn(
+          'inline-flex items-center justify-center size-5 rounded-full bg-white text-piq-primary text-[11px] font-bold tabular-nums',
+          pulse && 'animate-in zoom-in-50 duration-300',
+        )}
+      >
+        {items.length}
+      </span>
+      <span className="hidden sm:inline text-sm font-medium">Compare</span>
+    </button>
+  );
+
   return (
     <>
-      {/* ─── Desktop pill (fixed top-right, below the 56px AppHeader) ─── */}
+      {/* Floating trigger anchored under the AppHeader. Same anchor on every
+          breakpoint; the pill itself shrinks below md: above. */}
       <div
         ref={popoverRef}
-        className="hidden md:block fixed top-[68px] right-4 z-[55]"
+        className="fixed top-[60px] right-3 sm:top-[68px] sm:right-4 z-[55]"
       >
-        <button
-          type="button"
-          onClick={() => setDesktopOpen((o) => !o)}
-          aria-expanded={desktopOpen}
-          aria-label={`Comparison tray (${items.length} ${items.length === 1 ? 'property' : 'properties'})`}
-          className="group flex items-center gap-2 h-9 px-4 rounded-full bg-piq-primary hover:bg-piq-primary-dark text-white text-sm font-medium shadow-md transition-colors"
-        >
-          <GitCompare className="size-4" />
-          <span className="inline-flex items-center justify-center size-5 rounded-full bg-white text-piq-primary text-xs font-bold tabular-nums">
-            {items.length}
-          </span>
-          <span>Compare</span>
-        </button>
+        {triggerPill}
 
-        {desktopOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-xl p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        {/* Desktop popover — anchored to the trigger. Hidden on mobile
+            (mobile uses the Sheet below instead). */}
+        {popoverOpen && (
+          <div className="hidden md:block absolute right-0 mt-2 w-80 bg-popover border rounded-lg shadow-xl p-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-center justify-between mb-2 px-1">
               <h3 className="text-sm font-semibold">Comparing</h3>
               <span className="text-xs text-muted-foreground">{items.length}/2</span>
@@ -145,14 +191,12 @@ export function CompareTray() {
                 type="button"
                 disabled={!canCompare}
                 onClick={() => {
-                  setDesktopOpen(false);
+                  setPopoverOpen(false);
                   goToCompare();
                 }}
                 className={cn(
                   'w-full h-9 gap-2 font-medium',
-                  canCompare
-                    ? 'bg-piq-primary hover:bg-piq-primary-dark text-white'
-                    : '',
+                  canCompare ? 'bg-piq-primary hover:bg-piq-primary-dark text-white' : '',
                 )}
               >
                 Compare now
@@ -163,37 +207,11 @@ export function CompareTray() {
         )}
       </div>
 
-      {/* ─── Mobile bottom bar ─── */}
-      <div
-        className={cn(
-          'md:hidden fixed bottom-2 left-2 right-2 z-50 transition-transform duration-200',
-          hidden && 'translate-y-[calc(100%+0.5rem)]',
-        )}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
-      >
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label={`Open comparison tray (${items.length} of 2 properties)`}
-          className="flex items-center justify-between w-full h-12 px-5 rounded-full bg-piq-primary hover:bg-piq-primary-dark text-white shadow-lg transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium">
-            <GitCompare className="size-4" />
-            <span className="inline-flex items-center justify-center size-5 rounded-full bg-white text-piq-primary text-xs font-bold tabular-nums">
-              {items.length}
-            </span>
-            <span>{canCompare ? 'Compare 2' : 'Comparing'}</span>
-          </span>
-          <ArrowRight className="size-4" />
-        </button>
-      </div>
-
-      {/* ─── Mobile expanded sheet ─── */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl max-h-[60vh]"
-        >
+      {/* Mobile expanded sheet — opens from bottom. Better than a top
+          popover on touch: gives larger remove buttons + comfortable
+          thumb reach for the primary "Compare now" CTA. */}
+      <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh]">
           <SheetHeader>
             <SheetTitle>Comparing</SheetTitle>
           </SheetHeader>
@@ -217,7 +235,7 @@ export function CompareTray() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(item.addressId)}
+                  onClick={() => removeAndDismiss(item.addressId)}
                   aria-label={`Remove ${item.fullAddress}`}
                   className="shrink-0 p-2 rounded-md text-muted-foreground hover:text-piq-accent-hot hover:bg-muted"
                 >
@@ -237,14 +255,12 @@ export function CompareTray() {
               type="button"
               disabled={!canCompare}
               onClick={() => {
-                setMobileOpen(false);
+                setMobileSheetOpen(false);
                 goToCompare();
               }}
               className={cn(
                 'w-full h-11 gap-2 font-medium',
-                canCompare
-                  ? 'bg-piq-primary hover:bg-piq-primary-dark text-white'
-                  : '',
+                canCompare ? 'bg-piq-primary hover:bg-piq-primary-dark text-white' : '',
               )}
             >
               Compare now
