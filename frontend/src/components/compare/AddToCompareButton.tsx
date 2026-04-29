@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { GitCompare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useComparisonStore, COMPARE_MAX_ANONYMOUS } from '@/stores/comparisonStore';
@@ -19,6 +22,19 @@ interface AddToCompareButtonProps {
   className?: string;
 }
 
+const PENDING_PARAM = 'compareAdd';
+
+/**
+ * Add/remove the property from the compare tray.
+ *
+ * Auth gating: a user can stage their FIRST property anonymously (so they
+ * see the tray pill appear and understand the feature exists). Adding a
+ * SECOND property requires sign-in — the prompt fires at the moment the
+ * user has demonstrated intent ("I want to compare these two") so signing
+ * up has obvious payoff. /signin?callbackUrl=… brings them back to this
+ * exact page with `?compareAdd=<id>` so the staged-on-add action
+ * completes automatically post-auth (see the useEffect below).
+ */
 export function AddToCompareButton({
   addressId,
   fullAddress,
@@ -32,17 +48,72 @@ export function AddToCompareButton({
   const items = useComparisonStore((s) => s.items);
   const add = useComparisonStore((s) => s.add);
   const remove = useComparisonStore((s) => s.remove);
+  const { status } = useSession();
+  const isSignedIn = status === 'authenticated';
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const staged = items.some((i) => i.addressId === addressId);
 
-  // Staging deliberately does NOT close the property panel or change the
-  // URL. The user expects to stay where they are; they can navigate to
-  // another property when they're ready (map click or new search).
+  // After sign-in we may land back on the property page with
+  // ?compareAdd=<id>. If that id matches THIS button's addressId and the
+  // user is now signed in, finish what they started: stage the property
+  // and clean the URL.
+  const handledRef = useRef(false);
+  useEffect(() => {
+    if (handledRef.current) return;
+    if (!isSignedIn) return;
+    const pending = parseInt(searchParams.get(PENDING_PARAM) ?? '', 10);
+    if (Number.isFinite(pending) && pending === addressId && !staged) {
+      handledRef.current = true;
+      const result = add({ addressId, fullAddress, suburb, city, lat, lng });
+      if (result.ok) {
+        toast.success('Added to comparison', {
+          description: 'Ready to compare side by side.',
+        });
+      }
+      // Strip the param so a refresh doesn't try to add again.
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete(PENDING_PARAM);
+      const next = params.toString();
+      router.replace(pathname + (next ? `?${next}` : ''), { scroll: false });
+    }
+  }, [
+    isSignedIn,
+    searchParams,
+    addressId,
+    staged,
+    add,
+    fullAddress,
+    suburb,
+    city,
+    lat,
+    lng,
+    router,
+    pathname,
+  ]);
+
   const handleClick = () => {
     if (staged) {
       remove(addressId);
       toast('Removed from comparison');
       return;
     }
+
+    // Anonymous gate: first item is free, second requires sign-in. The
+    // user sees the tray work once before being asked to sign up.
+    if (!isSignedIn && items.length >= 1) {
+      const callbackPath = pathname || '/';
+      const callbackParams = new URLSearchParams(searchParams.toString());
+      callbackParams.set(PENDING_PARAM, String(addressId));
+      const callback = `${callbackPath}?${callbackParams.toString()}`;
+      toast(`Sign in to add ${fullAddress.split(',')[0]} to your comparison`, {
+        description: 'Free with an account, takes about 10 seconds.',
+      });
+      router.push(`/signin?callbackUrl=${encodeURIComponent(callback)}`);
+      return;
+    }
+
     const result = add({ addressId, fullAddress, suburb, city, lat, lng });
     if (!result.ok) {
       if (result.reason === 'cap') {
@@ -59,7 +130,9 @@ export function AddToCompareButton({
       });
     } else {
       toast.success('Added to comparison', {
-        description: 'Pick another property to compare it with.',
+        description: isSignedIn
+          ? 'Pick another property to compare it with.'
+          : 'Add another to compare — sign in needed for the second.',
       });
     }
   };
@@ -128,9 +201,8 @@ export function AddToCompareButton({
     );
   }
 
-  // primary — deliberately quieter than the report-action buttons.
-  // Transparent fill + teal outline + teal text so it reads as a secondary
-  // action and doesn't compete with the primary "Generate Report" CTA.
+  // primary — quieter outline button so it doesn't compete with the
+  // Generate Report CTA.
   return (
     <Button
       type="button"
