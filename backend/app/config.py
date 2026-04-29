@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     CORS_ALLOW_EXTENSIONS: bool = True
     EXTENSION_ORIGIN_REGEX: str = r"^chrome-extension://[a-z]{32}$"
     ADMIN_EMAILS: str = ""  # Comma-separated list of admin email addresses
+    ADMIN_API_TOKEN: str = ""  # Service token for cron / automation calls to /admin/* endpoints (e.g. data-refresh GH Actions). Empty in dev disables the path.
     ENVIRONMENT: str = "development"  # "production" enables HSTS, bot UA blocking
 
     # Auth.js shared secret (same value as frontend AUTH_SECRET)

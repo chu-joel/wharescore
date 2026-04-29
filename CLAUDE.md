@@ -50,7 +50,8 @@ backend/app/
   routers/email_signups.py     — Email signup for region alerts
   routers/admin.py             — Admin dashboard + data management
   routers/extension.py         — Browser-extension badge endpoints (POST /extension/badge, GET /extension/status). Tier-gated payload (anon/free/pro). No host-page attributes ever stored.
-  services/data_loader.py      — 530 DataSource definitions (THE data bible)
+  services/data_loader.py      — 566 DataSource definitions + cadence/change-detection metadata (THE data bible). _PATTERN_RULES + _NATIONAL_DEFAULTS auto-classify all entries; explicit fields on a DataSource(...) call always win.
+  services/loader_freshness.py — Upstream metadata polls (arcgis_lastEditDate, http_etag) + validation gate (50% row-count floor) + data_source_health UPSERT. Wraps run_loader().
   services/snapshot_generator.py — Snapshot generation + ALL rates API wiring (~line 309-470)
   services/rent_advisor.py     — Rent estimation engine
   services/price_advisor.py    — Price estimation (CV + HPI)

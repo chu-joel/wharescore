@@ -18,7 +18,7 @@ from ..config import settings
 from .. import db as _db
 from .. import redis as _redis_module
 from ..deps import limiter
-from ..services.admin_auth import require_admin
+from ..services.admin_auth import require_admin, require_admin_or_service_token
 
 
 def _redis():
@@ -2300,6 +2300,236 @@ async def list_reinz_hpi(request: Request):
         {"month_end": str(r["month_end"]), "total": r["total"], "with_cgr": r["with_cgr"]}
         for r in rows
     ]}
+
+
+@router.get("/data-sources/health", dependencies=[Depends(require_admin)])
+async def admin_data_source_health(request: Request, only_problems: bool = False):
+    """Return the operational health of every DataSource loader.
+
+    Joins the registry with `data_source_health` so every source appears,
+    even ones that have never run (left-join → NULL fields). Sorts by
+    consecutive_failures DESC then by stalest last_success_at — the most
+    concerning sources surface first.
+
+    `only_problems=true` restricts to sources where `consecutive_failures
+    > 0` OR `last_blocked_by_gate = true` OR `last_success_at` is older
+    than the source's check_interval window. Use this for the dashboard's
+    "needs attention" view."""
+    from ..services.data_loader import DATA_SOURCES, DATA_SOURCES_BY_KEY
+    from ..services.loader_freshness import CHECK_INTERVAL_DELTA
+    from datetime import datetime, timezone
+
+    async with _db.pool.connection() as conn:
+        cur = await conn.execute(
+            """
+            SELECT source_key, last_attempt_at, last_success_at,
+                   last_freshness_check_at, last_upstream_marker,
+                   last_row_count, last_error, consecutive_failures,
+                   last_blocked_by_gate, success_count, failure_count
+            FROM data_source_health
+            """
+        )
+        health_rows = {r["source_key"]: r for r in cur.fetchall()}
+
+    now = datetime.now(timezone.utc)
+    out = []
+    for src in DATA_SOURCES:
+        h = health_rows.get(src.key) or {}
+        last_success = h.get("last_success_at")
+        consec_fail = h.get("consecutive_failures") or 0
+        blocked = h.get("last_blocked_by_gate") or False
+
+        # "stale" = last successful load is older than the source's check
+        # interval (with one extra interval as grace before flagging).
+        delta = CHECK_INTERVAL_DELTA.get(src.check_interval)
+        stale = False
+        if delta is not None and last_success is not None:
+            stale = (now - last_success) > delta * 2
+        elif delta is not None and last_success is None and src.cadence_class != "static":
+            stale = True
+
+        is_problem = consec_fail > 0 or blocked or stale
+        if only_problems and not is_problem:
+            continue
+
+        out.append({
+            "source_key": src.key,
+            "label": src.label,
+            "authority": src.authority,
+            "cadence_class": src.cadence_class,
+            "check_interval": src.check_interval,
+            "change_detection": src.change_detection,
+            "last_attempt_at": h.get("last_attempt_at"),
+            "last_success_at": last_success,
+            "last_freshness_check_at": h.get("last_freshness_check_at"),
+            "last_row_count": h.get("last_row_count"),
+            "last_error": h.get("last_error"),
+            "consecutive_failures": consec_fail,
+            "last_blocked_by_gate": blocked,
+            "success_count": h.get("success_count") or 0,
+            "failure_count": h.get("failure_count") or 0,
+            "is_stale": stale,
+            "is_problem": is_problem,
+        })
+
+    # Sort: blocked > failing > stale > healthy; within each, stalest first.
+    out.sort(key=lambda r: (
+        -(1 if r["last_blocked_by_gate"] else 0),
+        -r["consecutive_failures"],
+        -(1 if r["is_stale"] else 0),
+        r["last_success_at"] or datetime(1970, 1, 1, tzinfo=timezone.utc),
+    ))
+    return {"sources": out, "count": len(out)}
+
+
+@router.get("/data-sources/due", dependencies=[Depends(require_admin)])
+async def admin_data_sources_due(request: Request):
+    """Return the subset of DataSources that are DUE for a freshness check
+    right now. Driven by `cadence_class` + `check_interval` + the last
+    attempt timestamp in `data_source_health`.
+
+    Called by the GitHub Actions daily cron — the cron then issues
+    POST /data-sources/refresh-due to actually run the checks. Splitting
+    the query (which is cheap) from the action (which can take minutes)
+    lets the cron timeout cleanly."""
+    from ..services.data_loader import DATA_SOURCES
+    from ..services.loader_freshness import is_due_for_check, HealthRow
+    from datetime import datetime, timezone
+
+    async with _db.pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT source_key, last_attempt_at FROM data_source_health"
+        )
+        last_attempt = {r["source_key"]: r["last_attempt_at"] for r in cur.fetchall()}
+
+    now = datetime.now(timezone.utc)
+    due = []
+    for src in DATA_SOURCES:
+        h = HealthRow(
+            source_key=src.key,
+            last_attempt_at=last_attempt.get(src.key),
+        )
+        if is_due_for_check(src, h, now):
+            due.append({
+                "source_key": src.key,
+                "cadence_class": src.cadence_class,
+                "check_interval": src.check_interval,
+                "change_detection": src.change_detection,
+                "last_attempt_at": h.last_attempt_at,
+            })
+    return {"due": due, "count": len(due)}
+
+
+@router.post("/data-sources/refresh-due", dependencies=[Depends(require_admin_or_service_token)])
+@limiter.limit("1/hour")
+async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_run: bool = False):
+    """Run freshness checks on all due sources and trigger reloads where
+    upstream has changed.
+
+    Designed for the GitHub Actions daily cron. `limit` caps the number of
+    sources processed in one invocation so a backlog doesn't run away
+    (default 10). `dry_run=true` performs the cheap upstream check but
+    skips the actual reload — useful for verifying classifications before
+    enabling auto-refresh.
+
+    Each source flows through:
+      1. Cheap freshness check (arcgis_lastEditDate / http_etag).
+      2. If unchanged → record_freshness_check() and skip.
+      3. If changed → run_loader() with the validation gate active.
+
+    Returns per-source outcomes."""
+    import psycopg
+    from ..services.data_loader import (
+        DATA_SOURCES, DATA_SOURCES_BY_KEY, run_loader,
+    )
+    from ..services.loader_freshness import (
+        check_freshness_for, is_due_for_check, HealthRow,
+        record_freshness_check, _fetch_health,
+    )
+    from ..config import settings as _settings
+    from datetime import datetime, timezone
+
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"ADMIN_AUDIT: refresh_due_data_sources limit={limit} dry_run={dry_run} from {client_ip}")
+
+    # Single-flight: guard via Redis, same key as load_data_source.
+    if redis_client:
+        try:
+            active = await redis_client.get("data_loader:active")
+            if active:
+                return JSONResponse(
+                    {"error": "A data load is already in progress", "active": json.loads(active)},
+                    status_code=409,
+                )
+        except Exception:
+            pass
+
+    # Read attempts via the async pool, then run the rest synchronously
+    # in a thread (the loaders are sync + I/O-bound).
+    async with _db.pool.connection() as conn:
+        cur = await conn.execute(
+            "SELECT source_key, last_attempt_at FROM data_source_health"
+        )
+        last_attempt = {r["source_key"]: r["last_attempt_at"] for r in cur.fetchall()}
+
+    now = datetime.now(timezone.utc)
+    due_sources = []
+    for src in DATA_SOURCES:
+        h = HealthRow(source_key=src.key, last_attempt_at=last_attempt.get(src.key))
+        if is_due_for_check(src, h, now):
+            due_sources.append(src)
+            if len(due_sources) >= limit:
+                break
+
+    # Run the freshness checks + reloads on a sync connection in a thread.
+    import asyncio
+
+    def _process_due():
+        results = []
+        sync_url = _settings.database_url.replace(
+            "postgresql+psycopg://", "postgresql://"
+        ).replace(
+            "postgresql+asyncpg://", "postgresql://"
+        )
+        sync_conn = psycopg.connect(sync_url)
+        try:
+            for src in due_sources:
+                fr = check_freshness_for(src, sync_conn)
+                entry = {
+                    "source_key": src.key,
+                    "changed": fr.changed,
+                    "reason": fr.reason,
+                    "marker": fr.marker,
+                    "action": "skipped",
+                    "rows": None,
+                    "error": None,
+                }
+                if not fr.changed:
+                    entry["action"] = "no-change"
+                elif dry_run:
+                    entry["action"] = "would-reload"
+                else:
+                    # Trigger the full loader. run_loader manages its own
+                    # connection so sync_conn doesn't block.
+                    result = run_loader(src.key)
+                    entry["action"] = "blocked-by-gate" if result.get("blocked_by_gate") else (
+                        "reloaded" if not result.get("error") else "failed"
+                    )
+                    entry["rows"] = result.get("rows")
+                    entry["error"] = result.get("error")
+                results.append(entry)
+        finally:
+            sync_conn.close()
+        return results
+
+    results = await asyncio.to_thread(_process_due)
+    return {
+        "checked": len(results),
+        "due_total": len([s for s in DATA_SOURCES if s.key in [r["source_key"] for r in results]]),
+        "limit": limit,
+        "dry_run": dry_run,
+        "results": results,
+    }
 
 
 @router.post("/cache/flush", dependencies=[Depends(require_admin)])

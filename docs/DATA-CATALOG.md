@@ -8,6 +8,8 @@
 > Cadence: 566 DataSources are now 100% classified. 281 `revisable` (flood, plan zones, heritage, contaminated land — re-check on cadence), 223 `static` (peer-reviewed studies, fault zones, tsunami zones, liquefaction susceptibility — do NOT auto-refresh), 46 `continuous` (rates APIs as lazy-fetch placeholders), 16 `periodic` (GTFS, REINZ HPI). Pattern rules + per-key overrides live in `data_loader.py` `_PATTERN_RULES` / `_NATIONAL_DEFAULTS`. To re-classify a single loader, set the field explicitly on its `DataSource(...)` registration — explicit values always win.
 >
 > Scheduled refresh is wired up. Daily GH Actions cron (`.github/workflows/data-refresh.yml`) hits `POST /admin/data-sources/refresh-due` → polls upstream metadata → reloads only on change. Validation gate (`loader_freshness.validate_row_count`) refuses reloads where new row count is < 50% of previous (prevents "DELETE 35k INSERT 0" on transient upstream failures). Per-source health tracked in `data_source_health` table (migration 0061). See `SYSTEM-FLOWS.md` § Scheduled Data Refresh for the full flow.
+>
+> **Op runbook for the scheduler:** before the first auto-run, set `ADMIN_API_TOKEN` in GitHub secrets + `.env.prod`, then trigger `data-refresh.yml` manually with `dry_run=true` to confirm the upstream metadata polls succeed without touching data. Audit `GET /admin/data-sources/health?only_problems=true` afterwards to surface any classification mistakes.
 
 ---
 

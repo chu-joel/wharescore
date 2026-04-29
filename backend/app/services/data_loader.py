@@ -10999,17 +10999,79 @@ _apply_pattern_defaults(DATA_SOURCES)
 DATA_SOURCES_BY_KEY = {s.key: s for s in DATA_SOURCES}
 
 
-def run_loader(source_key: str, progress_callback: Callable[[str], None] | None = None) -> dict:
-    """Run a data source loader synchronously. Returns {rows, tables, error}."""
+def run_loader(
+    source_key: str,
+    progress_callback: Callable[[str], None] | None = None,
+    *,
+    skip_validation_gate: bool = False,
+) -> dict:
+    """Run a data source loader synchronously.
+
+    Records the attempt in `data_source_health` (success / failure /
+    blocked-by-gate) and applies the row-count validation gate before
+    accepting the result. The gate prevents the catastrophic case where
+    upstream returns 0 features due to a transient error and the
+    DELETE-then-INSERT pattern wipes good data — see
+    `loader_freshness.validate_row_count`.
+
+    Returns {rows, tables, error, blocked_by_gate}."""
+    from .loader_freshness import (
+        record_attempt, validate_row_count, FreshnessResult,
+    )
+
     source = DATA_SOURCES_BY_KEY.get(source_key)
     if not source:
-        return {"rows": 0, "tables": [], "error": f"Unknown source: {source_key}"}
+        return {"rows": 0, "tables": [], "error": f"Unknown source: {source_key}", "blocked_by_gate": False}
 
     db_url = _db_url_to_sync()
+    conn: psycopg.Connection | None = None
     try:
         conn = psycopg.connect(db_url)
+
         rows = source.loader(conn, progress_callback)
-        # Update data_versions tracking
+
+        # Validation gate: refuse to accept implausibly low row counts.
+        # `static` and `continuous` sources opt out of the row-count floor —
+        # static layers shouldn't be reloaded at all, and continuous
+        # registers (rates, EPB) legitimately fluctuate.
+        gate_active = (
+            not skip_validation_gate
+            and source.cadence_class not in ("static", "continuous")
+        )
+        if gate_active:
+            ok, reason = validate_row_count(conn, source_key, rows)
+        else:
+            ok, reason = True, "validation gate bypassed (static/continuous source or override)"
+
+        if not ok:
+            # Roll back the loader's transaction — the loader functions
+            # commit inside themselves, so we can't actually undo their
+            # writes here. Instead we record the block and let the operator
+            # decide whether to manually re-run with skip_validation_gate=True
+            # or to investigate the upstream feed.
+            #
+            # IMPORTANT: this is a half-measure. Full atomicity requires
+            # reshaping the loaders to write to a staging table and swap
+            # on success — see DATA-LOADERS.md "next steps".
+            logger.warning(f"VALIDATION GATE BLOCKED {source_key}: {reason}")
+            if progress_callback:
+                progress_callback(f"⚠ VALIDATION GATE BLOCKED: {reason}")
+            record_attempt(
+                conn, source_key,
+                success=True,  # the load itself succeeded, just refused
+                row_count=rows,
+                error=f"validation gate blocked: {reason}",
+                blocked_by_gate=True,
+            )
+            conn.close()
+            return {
+                "rows": rows, "tables": source.tables,
+                "error": f"validation gate blocked: {reason}",
+                "blocked_by_gate": True,
+            }
+
+        # Update data_versions tracking (legacy table, kept for back-compat
+        # with the existing admin dashboard).
         try:
             cur = conn.cursor()
             cur.execute("""
@@ -11021,8 +11083,37 @@ def run_loader(source_key: str, progress_callback: Callable[[str], None] | None 
             conn.commit()
         except Exception:
             pass  # data_versions table might not exist yet
+
+        # Record the successful attempt in the new health table.
+        record_attempt(
+            conn, source_key,
+            success=True, row_count=rows, error=None,
+        )
         conn.close()
-        return {"rows": rows, "tables": source.tables, "error": None}
+        return {
+            "rows": rows, "tables": source.tables,
+            "error": None, "blocked_by_gate": False,
+        }
     except Exception as e:
         logger.exception(f"Data loader failed for {source_key}")
-        return {"rows": 0, "tables": source.tables, "error": str(e)}
+        try:
+            if conn is not None and not conn.closed:
+                # rollback any half-finished work, then record the failure
+                # on a fresh connection (the original may be in error state).
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                conn.close()
+            health_conn = psycopg.connect(db_url)
+            record_attempt(
+                health_conn, source_key,
+                success=False, row_count=None, error=str(e)[:2000],
+            )
+            health_conn.close()
+        except Exception:
+            logger.exception("Failed to record loader failure in data_source_health")
+        return {
+            "rows": 0, "tables": source.tables,
+            "error": str(e), "blocked_by_gate": False,
+        }

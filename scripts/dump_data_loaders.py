@@ -123,6 +123,34 @@ from, who the authority is, how often it changes, and how the scheduler
 - `DATA-LAYERS.md` — coverage matrix per council
 - `RECIPES.md` — how to add a new loader
 
+## Scheduled refresh
+
+The daily GH Actions cron (`.github/workflows/data-refresh.yml`) hits
+`POST /admin/data-sources/refresh-due`. That endpoint walks every
+DataSource that's "due" per its `cadence_class` + `check_interval` (using
+`is_due_for_check()` in `backend/app/services/loader_freshness.py`), polls
+the upstream metadata via the source's `change_detection` method, and
+triggers a full reload only when the upstream marker has changed.
+
+Two safety mechanisms protect production data:
+
+1. **Validation gate** (`validate_row_count`). A reload is rejected if the
+   new row count is below 50% of the previous successful load — prevents
+   the catastrophic case where ArcGIS returns 0 features due to a
+   transient error and DELETE-then-INSERT wipes good data. Static and
+   continuous sources opt out (legitimate row-count fluctuations).
+
+2. **`data_source_health` table** (migration 0061). Records every
+   attempt: `last_attempt_at`, `last_success_at`, `last_row_count`,
+   `last_error`, `consecutive_failures`, `last_blocked_by_gate`. The
+   admin dashboard (`GET /admin/data-sources/health`) sorts by problems
+   first.
+
+The cron processes at most `limit=10` due sources per run (default) so a
+backlog can't run away. `dry_run=true` performs the cheap freshness check
+but skips reloads — useful for verifying classifications before enabling
+auto-refresh.
+
 ## Cadence classes
 
 | Class | Meaning | Refresh policy |

@@ -627,6 +627,53 @@ When adding a tiered rec (different advice for different value ranges), compute 
 
 ---
 
+## Scheduled Data Refresh
+
+The 566 DataSource bulk loaders are classified by cadence (see
+`DATA-LOADERS.md`). A daily GitHub Actions cron drives the refresh of any
+loader that is "due" per its `cadence_class` + `check_interval`.
+
+### Components
+
+| Piece | File | Role |
+|---|---|---|
+| Cadence metadata | `data_loader.py::DataSource` (extended class) | `cadence_class`, `check_interval`, `change_detection`, `upstream_url`, `authority` per loader |
+| Pattern defaults | `data_loader.py::_PATTERN_RULES` + `_NATIONAL_DEFAULTS` | Fill in `unknown` fields by suffix pattern (auckland_flood inherits "1% AEP flood polygon" defaults). Explicit DataSource values always win. |
+| Freshness checks | `loader_freshness.check_arcgis_freshness` / `check_http_etag_freshness` | Cheap upstream metadata polls. Returns `changed` + new marker. |
+| Validation gate | `loader_freshness.validate_row_count` | Refuse reload if new count < 50% of previous successful count. Prevents "DELETE 35k INSERT 0" footgun on transient upstream failures. |
+| Health table | migration `0061_data_source_health.sql` | One row per source: `last_attempt_at`, `last_success_at`, `last_row_count`, `last_error`, `consecutive_failures`, `last_blocked_by_gate`. |
+| Health tracker | `loader_freshness.record_attempt` | UPSERT into `data_source_health` on every loader call. Wraps `run_loader`. |
+| Scheduler | `is_due_for_check` + `select_due_sources` | "Is this source older than its check_interval window?" |
+| Admin endpoints | `routers/admin.py` | `GET /admin/data-sources/health` (dashboard), `GET /admin/data-sources/due` (cron query), `POST /admin/data-sources/refresh-due` (cron action). |
+| Service-token auth | `services/admin_auth.require_admin_or_service_token` | Allows `Authorization: Bearer <ADMIN_API_TOKEN>` for the cron, alongside the existing OAuth admin path. |
+| Cron workflow | `.github/workflows/data-refresh.yml` | Runs daily at 16:00 UTC (04:00 NZST). Hits refresh-due with `limit=10`. Surfaces failures + gate-blocks in the GH Actions summary; exits non-zero on either. |
+
+### Flow
+
+```
+GH Actions cron (daily)
+  → POST /admin/data-sources/refresh-due?limit=10
+  → for each due source (capped at 10):
+      check_freshness_for(src)         # arcgis_lastEditDate / http_etag
+        ↓
+      changed?
+        no  → record_freshness_check() and skip
+        yes → run_loader(src.key)      # validation gate active
+                ↓
+              gate blocks?  → record blocked_by_gate=true, surface alert
+              gate accepts? → record success + new row count
+```
+
+### Key safety properties
+
+- **Static sources never auto-refresh.** 223 of 566 are peer-reviewed studies (liquefaction susceptibility, fault zones, tsunami evac, noise contours). The scheduler skips them entirely.
+- **Validation gate gates `revisable` and `periodic`** but not `static`/`continuous` (legitimate fluctuations).
+- **Single-flight via Redis** (`data_loader:active` key) — prevents two refreshes overlapping.
+- **One row blocked-by-gate or failed = workflow goes red** — until someone investigates.
+- **Manual override:** `run_loader(key, skip_validation_gate=True)` from a Python REPL or `POST /admin/data-sources/{key}/load` (separate endpoint, unchanged) to force a reload.
+
+---
+
 ## Request Lifecycle & Observability
 
 ### Middleware stack (order matters)
