@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Heart, FileText } from 'lucide-react';
+import { X, Heart, FileText, GitCompare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import {
   shouldShowSignupNudge,
@@ -75,15 +75,22 @@ export function SignupNudge() {
             Free account, in your corner
           </p>
           <p className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">
-            Sign up to unlock two things, completely free:
+            Sign up to unlock three things, completely free:
           </p>
 
           <ul className="space-y-1.5 mb-3 text-xs">
             <li className="flex items-start gap-2">
+              <GitCompare className="h-3.5 w-3.5 text-piq-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium">Compare properties side by side</span>{' '}
+                — risk, rent, transport, planning, all on one page
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
               <Heart className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
               <span>
                 <span className="font-medium">Save properties</span> you're
-                shortlisting and compare them side by side
+                shortlisting across devices
               </span>
             </li>
             <li className="flex items-start gap-2">

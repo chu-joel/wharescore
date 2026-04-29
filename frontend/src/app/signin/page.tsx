@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, ArrowLeft, Shield, TrendingUp, MapPin } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, Shield, TrendingUp, MapPin, GitCompare } from 'lucide-react';
 
 export default function SignInPage() {
   return (
@@ -17,6 +17,14 @@ export default function SignInPage() {
 function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  // Detect a compare-driven sign-in flow so we can lead with comparison
+  // copy instead of the generic value prop. The AddToCompareButton
+  // encodes ?compareAdd=<id> in the callback when a 2nd property triggers
+  // the gate; /compare?ids=A,B is the direct-link case.
+  const isCompareFlow =
+    callbackUrl.includes('compareAdd=') ||
+    callbackUrl.startsWith('/compare') ||
+    callbackUrl.includes('%2Fcompare');
   const [mode, setMode] = useState<'choose' | 'email' | 'code'>('choose');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -80,9 +88,13 @@ function SignInContent() {
     <div className="min-h-screen bg-background flex items-start sm:items-center justify-center pt-[15vh] sm:pt-0">
       <div className="mx-auto max-w-sm px-4 text-center">
         <img src="/wharescore-logo.png" alt="WhareScore" width={48} height={45} className="mx-auto mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Sign in to WhareScore</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          {isCompareFlow ? 'Sign in to compare' : 'Sign in to WhareScore'}
+        </h1>
         <p className="text-muted-foreground mb-6">
-          Sign in to save reports, track properties, and access premium features.
+          {isCompareFlow
+            ? 'Free with an account, takes about 10 seconds. Your staged properties are waiting on the other side.'
+            : 'Sign in to save reports, track properties, and access premium features.'}
         </p>
 
         {mode === 'choose' && (
@@ -198,6 +210,25 @@ function SignInContent() {
         {mode === 'choose' && (
           <div className="mt-10 pt-6 border-t border-border space-y-3 text-left">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider text-center">What you get with an account</p>
+            {/* Lead bullet swaps for compare flows so the gate's payoff
+                is named explicitly. */}
+            {isCompareFlow ? (
+              <div className="flex items-start gap-3 rounded-md bg-piq-primary/5 border border-piq-primary/20 p-3">
+                <GitCompare className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Compare properties side by side</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Risk, rent, transport, planning, demographics — every metric
+                    aligned in one view, with a head-to-head verdict at the top.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <GitCompare className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">Compare properties side by side with a head-to-head verdict</p>
+              </div>
+            )}
             <div className="flex items-start gap-3">
               <Shield className="h-4 w-4 text-piq-primary shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">Free Quick Reports with key findings and a shareable link</p>

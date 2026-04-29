@@ -7,6 +7,7 @@ import { useComparisonStore } from '@/stores/comparisonStore';
 import { useSearchStore } from '@/stores/searchStore';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 const COLUMN_LETTERS = ['A', 'B', 'C'] as const;
@@ -94,8 +95,12 @@ export function CompareTray() {
     router.push(`/compare?ids=${ids}`);
   };
 
-  /* ── Trigger pill — same position desktop & mobile, different sizing ── */
-  const triggerPill = (
+  const trayLabel = `Comparison tray — ${items.length} of 2 properties`;
+
+  /* ── Trigger pill — icon-only at every breakpoint to keep it small and
+       out of the way of in-page UI (e.g. the persona toggle in property
+       reports). Tooltip on hover/focus carries the "Compare" affordance. */
+  const triggerButton = (
     <button
       type="button"
       onClick={() => {
@@ -107,27 +112,39 @@ export function CompareTray() {
         }
       }}
       aria-expanded={popoverOpen}
-      aria-label={`Comparison tray (${items.length} ${items.length === 1 ? 'property' : 'properties'})`}
+      aria-label={trayLabel}
       className={cn(
-        'group flex items-center gap-1.5 rounded-full bg-piq-primary text-white shadow-md transition-all',
+        'relative group inline-flex items-center justify-center rounded-full bg-piq-primary text-white shadow-md transition-all',
         'hover:bg-piq-primary-dark hover:shadow-lg active:scale-95',
-        // Mobile: compact icon + badge. Desktop: wider pill with label.
-        'h-8 pl-2 pr-2 sm:h-9 sm:pl-3 sm:pr-4 sm:gap-2',
-        // Pulse on count change.
+        'size-9 sm:size-10',
         pulse && 'animate-in zoom-in-95 ring-4 ring-piq-primary/30',
       )}
     >
-      <GitCompare className="size-4" />
+      <GitCompare className="size-4 sm:size-[18px]" />
       <span
         className={cn(
-          'inline-flex items-center justify-center size-5 rounded-full bg-white text-piq-primary text-[11px] font-bold tabular-nums',
+          'absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full',
+          'bg-white text-piq-primary text-[11px] font-bold tabular-nums',
+          'ring-2 ring-piq-primary',
           pulse && 'animate-in zoom-in-50 duration-300',
         )}
       >
         {items.length}
       </span>
-      <span className="hidden sm:inline text-sm font-medium">Compare</span>
     </button>
+  );
+
+  const triggerPill = (
+    <div className="relative">
+      <TooltipProvider delay={150}>
+        <Tooltip>
+          <TooltipTrigger render={triggerButton} />
+          <TooltipContent side="left">
+            {items.length === 1 ? 'Compare — 1 staged' : 'Compare — ready'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
   );
 
   return (
