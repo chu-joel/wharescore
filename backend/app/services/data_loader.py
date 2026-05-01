@@ -1661,15 +1661,26 @@ def _load_council_arcgis_upsert(
     # 1. Index existing rows by stable_id. Pull only the columns we'll
     #    diff against (caller's `cols` list), plus the DB row id for
     #    cheap UPDATE/DELETE.
+    #
+    #    IMPORTANT: query ALL rows for this council, not just those with
+    #    a non-null feature_stable_id. Rows loaded by the previous
+    #    truncate+insert path have NULL stable_ids — they need to flow
+    #    through the deletes path on first upsert run, or they'd remain
+    #    as orphans alongside the newly-inserted rows (bug observed
+    #    2026-05-02 on prod auckland_flood: 35,338 NULL-id orphans
+    #    left behind after first cold-start upsert run, doubling table
+    #    size). We can't match them to upstream features (no stable
+    #    key), so the only safe action is delete-and-replace.
     col_id_list = sql.SQL(", ").join([sql.Identifier(c) for c in cols])
     cur.execute(
         sql.SQL(
             "SELECT id, feature_stable_id, {} FROM {} "
-            "WHERE source_council = %s AND feature_stable_id IS NOT NULL"
+            "WHERE source_council = %s"
         ).format(col_id_list, sql.Identifier(table)),
         (council,),
     )
     existing: dict[str, tuple[int, tuple]] = {}
+    legacy_orphans: list[tuple[int, tuple]] = []
     for row in cur.fetchall():
         # row is a dict (psycopg dict_row factory) OR tuple, depending
         # on the connection. Handle both.
@@ -1683,6 +1694,10 @@ def _load_council_arcgis_upsert(
             attrs = tuple(row[2 : 2 + len(cols)])
         if sid:
             existing[str(sid)] = (db_id, attrs)
+        else:
+            # Pre-migration row with no stable_id. Will be deleted in
+            # the diff phase — it can't match any upstream feature.
+            legacy_orphans.append((db_id, attrs))
 
     # 2. Build the upstream view, indexed by stable_id. Skip features
     #    that lack a stable_id value or geometry — they can't upsert.
@@ -1780,6 +1795,16 @@ def _load_council_arcgis_upsert(
         db_id, prev_vals = existing[sid]
         cur.execute(delete_q, (db_id,))
         deletes.append((sid, dict(zip(cols, prev_vals))))
+        deleted_count += 1
+
+    # Legacy orphans: pre-migration rows with no stable_id. Delete them
+    # all — there's no way to safely match them to upstream features.
+    # The change log records them with a synthetic source_feature_id
+    # of "_legacy_<db_id>" so the audit trail is clear that these were
+    # cold-start cleanups, not real upstream deletions.
+    for db_id, prev_vals in legacy_orphans:
+        cur.execute(delete_q, (db_id,))
+        deletes.append((f"_legacy_{db_id}", dict(zip(cols, prev_vals))))
         deleted_count += 1
 
     # 4. Write change-log entries within the same transaction. If anything
