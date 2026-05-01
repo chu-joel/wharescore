@@ -2484,15 +2484,30 @@ async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_
     client_ip = request.client.host if request.client else "unknown"
     logger.info(f"ADMIN_AUDIT: refresh_due_data_sources limit={limit} dry_run={dry_run} from {client_ip}")
 
-    # Single-flight: guard via Redis, same key as load_data_source.
+    # Single-flight: guard via Redis, same key as load_data_source. Unlike
+    # the other admin loader endpoints, refresh-due only blocks when an
+    # active job is genuinely IN PROGRESS — a terminal entry from a prior
+    # completed job (which sits at the same key for 600s TTL so operators
+    # can inspect it) does NOT block a new run. Without this distinction
+    # the cron 409s every run within ~10 min of a previous successful one.
     if redis_client:
         try:
             active = await redis_client.get("data_loader:active")
             if active:
-                return JSONResponse(
-                    {"error": "A data load is already in progress", "active": json.loads(active)},
-                    status_code=409,
-                )
+                try:
+                    parsed = json.loads(active)
+                    status = (parsed.get("status") or "").lower()
+                except Exception:
+                    parsed = {}
+                    status = "running"  # be conservative if we can't parse
+                if status == "running":
+                    return JSONResponse(
+                        {"error": "A data load is already in progress",
+                         "active": parsed},
+                        status_code=409,
+                    )
+                # Terminal status (completed / completed_with_errors / failed) —
+                # safe to start a fresh refresh-due job.
         except Exception:
             pass
 

@@ -59,12 +59,39 @@ jobs:
           # dry_run=false (kicks off a background task; returns a job_id
           # immediately so nginx doesn't 504 on long bulk reloads).
           # 60s timeout is plenty for either path.
-          response=$(curl --silent --show-error --fail-with-body \
+          #
+          # We capture both body + HTTP code so we can handle 409 ("a load
+          # is in progress") gracefully — that's an expected condition
+          # (operator triggered a parallel load) not a workflow failure.
+          # Drop --fail-with-body so curl returns the body even on 4xx.
+          http=$(curl --silent --show-error \
             --max-time 60 \
             -X POST \
+            -w "\nHTTP_CODE:%{http_code}" \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "${API_BASE}/api/v1/admin/data-sources/refresh-due?limit=${LIMIT}&dry_run=${DRY_RUN}")
+          code=$(echo "$http" | sed -n 's/^HTTP_CODE://p' | tail -1)
+          response=$(echo "$http" | sed '$d')
+
+          if [ "$code" = "409" ]; then
+            echo "Skipped: another data load is already in progress (409)."
+            echo "$response" | jq -r '.active // empty | "Active job: \(.source // "?") (\(.status // "?"))"'
+            {
+              echo "## Daily refresh — $(date -u +%Y-%m-%d)"
+              echo ""
+              echo "**Skipped** — another data load was already in progress (409). Will try again tomorrow."
+              echo ""
+              echo "$response" | jq -r '.active // empty | "Active: `\(.source // "?")` (status: `\(.status // "?")`)"'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Unexpected HTTP $code from refresh-due endpoint"
+            echo "$response"
+            exit 1
+          fi
 
           mode=$(echo "$response" | jq -r '.dry_run')
           if [ "$mode" = "true" ]; then
