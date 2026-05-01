@@ -107,12 +107,12 @@ jobs:
             echo "$response" | jq -r '
               "Kicked off **\(.due_count)** sources (limit \(.limit), job_id \(.job_id))",
               "",
-              "Per-source outcomes land in \`data_source_health\`. Inspect:",
+              "Per-source outcomes land in `data_source_health`. Inspect:",
               "",
               "    GET /api/v1/admin/data-sources/health?only_problems=true",
               "",
               "Sources due in this run:",
               "",
-              (.due_keys[]? // empty | "- `\(.)`")
+              (.due_keys[]? // empty | "- " + .)
             '
           } >> "$GITHUB_STEP_SUMMARY"
