@@ -54,36 +54,65 @@ jobs:
             exit 1
           fi
           echo "Hitting ${API_BASE}/api/v1/admin/data-sources/refresh-due (limit=${LIMIT}, dry_run=${DRY_RUN})..."
+          # The endpoint is synchronous when dry_run=true (cheap freshness
+          # checks, finishes in seconds) and fire-and-forget when
+          # dry_run=false (kicks off a background task; returns a job_id
+          # immediately so nginx doesn't 504 on long bulk reloads).
+          # 60s timeout is plenty for either path.
           response=$(curl --silent --show-error --fail-with-body \
-            --max-time 1800 \
+            --max-time 60 \
             -X POST \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "${API_BASE}/api/v1/admin/data-sources/refresh-due?limit=${LIMIT}&dry_run=${DRY_RUN}")
-          echo "$response" | jq -r '
-            "Checked \(.checked) sources (limit \(.limit), dry_run=\(.dry_run))",
-            "",
-            (.results[] | "  \(.action | ascii_upcase): \(.source_key)  —  \(.reason // "")  \(if .rows then "(\(.rows) rows)" else "" end)\(if .error then "  ERROR: \(.error)" else "" end)")
-          '
 
-          # Surface failures + gate-blocks into the GitHub Actions summary
-          # so we don't have to dig into logs.
+          mode=$(echo "$response" | jq -r '.dry_run')
+          if [ "$mode" = "true" ]; then
+            # ── Sync dry-run response (.results[] populated) ─────────────
+            echo "$response" | jq -r '
+              "Checked \(.checked) sources (limit \(.limit), dry_run=\(.dry_run))",
+              "",
+              (.results[] | "  \(.action | ascii_upcase): \(.source_key)  —  \(.reason // "")")
+            '
+            {
+              echo "## Daily refresh dry-run — $(date -u +%Y-%m-%d)"
+              echo ""
+              echo "$response" | jq -r '
+                "Checked **\(.checked)** sources (limit \(.limit))",
+                "",
+                "| Source | Action | Reason |",
+                "|---|---|---|",
+                (.results[] | "| \(.source_key) | \(.action) | \(.reason // "") |")
+              '
+            } >> "$GITHUB_STEP_SUMMARY"
+            # Dry-run never fails — it only polls upstream metadata.
+            exit 0
+          fi
+
+          # ── Async real-run response (.job_id + .due_keys) ──────────────
+          # The actual reloads run in a background task on the server.
+          # Per-source outcomes land in data_source_health; we don't wait
+          # for them here. A separate observability path (admin dashboard
+          # or follow-up workflow) surfaces stuck/failed sources.
+          echo "$response" | jq -r '
+            "Kicked off \(.due_count) sources (limit \(.limit))",
+            "  job_id: \(.job_id)",
+            "",
+            "Sources due:",
+            (.due_keys[]? // empty | "  - \(.)")
+          '
           {
             echo "## Daily refresh — $(date -u +%Y-%m-%d)"
             echo ""
             echo "$response" | jq -r '
-              "Checked **\(.checked)** sources (limit \(.limit), dry_run=\(.dry_run))",
+              "Kicked off **\(.due_count)** sources (limit \(.limit), job_id \(.job_id))",
               "",
-              "| Source | Action | Rows | Reason / Error |",
-              "|---|---|---|---|",
-              (.results[] | "| \(.source_key) | \(.action) | \(.rows // "-") | \(.error // .reason // "") |")
+              "Per-source outcomes land in \`data_source_health\`. Inspect:",
+              "",
+              "    GET /api/v1/admin/data-sources/health?only_problems=true",
+              "",
+              "Sources due in this run:",
+              "",
+              (.due_keys[]? // empty | "- `\(.)`")
             '
           } >> "$GITHUB_STEP_SUMMARY"
-
-          # Exit 1 if any source was blocked-by-gate or failed — keeps the
-          # workflow red until someone investigates.
-          problems=$(echo "$response" | jq '[.results[] | select(.action == "blocked-by-gate" or .action == "failed")] | length')
-          if [ "$problems" != "0" ]; then
-            echo "::warning::${problems} source(s) blocked-by-gate or failed — see summary."
-            exit 1
-          fi

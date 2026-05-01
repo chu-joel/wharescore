@@ -2451,7 +2451,23 @@ async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_
       2. If unchanged → record_freshness_check() and skip.
       3. If changed → run_loader() with the validation gate active.
 
-    Returns per-source outcomes."""
+    **Response shape depends on `dry_run`:**
+
+    - `dry_run=true` runs SYNCHRONOUSLY: every source is checked in one
+      request and results returned in `.results[]`. Cheap (only metadata
+      polls), so the request finishes in seconds.
+    - `dry_run=false` runs ASYNCHRONOUSLY: kicks off a background task and
+      returns `{job_id, status:"running", ...}` immediately. The actual
+      reloads (which can take minutes per source — auckland_flood is
+      ~35k features over AC's paginated ArcGIS) happen in the
+      background. Outcomes are recorded in `data_source_health` (per-
+      source) and summarised in Redis under `data_loader:active`. This
+      decouples nginx's 90s upstream timeout from the loader's wall
+      time.
+
+    Cron callers should treat the async response as success (the work
+    has been kicked off) and rely on `data_source_health` /
+    `/admin/data-sources/health` for per-source outcomes."""
     import psycopg
     from ..services.data_loader import (
         DATA_SOURCES, DATA_SOURCES_BY_KEY, run_loader,
@@ -2462,6 +2478,8 @@ async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_
     )
     from ..config import settings as _settings
     from datetime import datetime, timezone
+    import asyncio
+    import uuid
 
     client_ip = request.client.host if request.client else "unknown"
     logger.info(f"ADMIN_AUDIT: refresh_due_data_sources limit={limit} dry_run={dry_run} from {client_ip}")
@@ -2495,54 +2513,185 @@ async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_
             if len(due_sources) >= limit:
                 break
 
-    # Run the freshness checks + reloads on a sync connection in a thread.
-    import asyncio
+    # Build the sync DB url once — used by both the dry-run path and the
+    # background task.
+    sync_url = _settings.DATABASE_URL.replace(
+        "postgresql+psycopg://", "postgresql://"
+    ).replace(
+        "postgresql+asyncpg://", "postgresql://"
+    )
 
-    def _process_due():
-        results = []
-        sync_url = _settings.DATABASE_URL.replace(
-            "postgresql+psycopg://", "postgresql://"
-        ).replace(
-            "postgresql+asyncpg://", "postgresql://"
-        )
-        sync_conn = psycopg.connect(sync_url)
+    # ─── Dry-run path: synchronous, immediate response ──────────────────
+    # Only metadata polls (no loader runs), so this is fast — well within
+    # nginx's upstream timeout. Used by ops to verify classifications
+    # before enabling auto-refresh.
+    if dry_run:
+        def _check_only():
+            results = []
+            sync_conn = psycopg.connect(sync_url)
+            try:
+                for src in due_sources:
+                    fr = check_freshness_for(src, sync_conn)
+                    results.append({
+                        "source_key": src.key,
+                        "changed": fr.changed,
+                        "reason": fr.reason,
+                        "marker": fr.marker,
+                        "action": "no-change" if not fr.changed else "would-reload",
+                        "rows": None,
+                        "error": None,
+                    })
+            finally:
+                sync_conn.close()
+            return results
+
+        results = await asyncio.to_thread(_check_only)
+        return {
+            "checked": len(results),
+            "due_total": len(due_sources),
+            "limit": limit,
+            "dry_run": True,
+            "results": results,
+        }
+
+    # ─── Real run: fire-and-forget background task ──────────────────────
+    # Each loader can take minutes (auckland_flood is ~5 min over AC's
+    # paginated ArcGIS). Returning synchronously would 504 at nginx.
+    # Instead, kick off the work and return a job_id immediately. Per-
+    # source outcomes land in `data_source_health` via record_attempt;
+    # the cron workflow reports "kicked off N sources" and exits 0.
+    job_id = str(uuid.uuid4())[:8]
+    job = {
+        "id": job_id,
+        "source": f"refresh-due ({len(due_sources)} sources)",
+        "status": "running",
+        "progress": [],
+        "due_count": len(due_sources),
+        "due_keys": [s.key for s in due_sources],
+        "completed": 0,
+        "reloaded": 0,
+        "no_change": 0,
+        "blocked_by_gate": 0,
+        "failed": 0,
+    }
+    if redis_client:
         try:
-            for src in due_sources:
-                fr = check_freshness_for(src, sync_conn)
-                entry = {
-                    "source_key": src.key,
-                    "changed": fr.changed,
-                    "reason": fr.reason,
-                    "marker": fr.marker,
-                    "action": "skipped",
-                    "rows": None,
-                    "error": None,
-                }
-                if not fr.changed:
-                    entry["action"] = "no-change"
-                elif dry_run:
-                    entry["action"] = "would-reload"
-                else:
-                    # Trigger the full loader. run_loader manages its own
-                    # connection so sync_conn doesn't block.
-                    result = run_loader(src.key)
-                    entry["action"] = "blocked-by-gate" if result.get("blocked_by_gate") else (
-                        "reloaded" if not result.get("error") else "failed"
-                    )
-                    entry["rows"] = result.get("rows")
-                    entry["error"] = result.get("error")
-                results.append(entry)
-        finally:
-            sync_conn.close()
-        return results
+            # 2h TTL — long enough for the slowest realistic batch
+            # (~10 sources × ~5 min each = 50 min, plus margin).
+            await redis_client.set("data_loader:active", json.dumps(job), ex=7200)
+        except Exception:
+            pass
 
-    results = await asyncio.to_thread(_process_due)
+    async def _background():
+        completed = 0
+        reloaded = 0
+        no_change = 0
+        blocked = 0
+        failed = 0
+        last_msg = ""
+
+        def _process_one_source(src):
+            """Sync helper — runs in a worker thread so we don't block
+            the event loop. Returns ("action_string", rows, error, reason)."""
+            sync_conn = psycopg.connect(sync_url)
+            try:
+                fr = check_freshness_for(src, sync_conn)
+                if not fr.changed:
+                    return ("no-change", None, None, fr.reason)
+                # Upstream changed — run the full loader. run_loader
+                # manages its own DB connection + records to
+                # data_source_health internally.
+                result = run_loader(src.key)
+                if result.get("blocked_by_gate"):
+                    return ("blocked-by-gate", result.get("rows"),
+                            result.get("error"), fr.reason)
+                if result.get("error"):
+                    return ("failed", result.get("rows"),
+                            result.get("error"), fr.reason)
+                return ("reloaded", result.get("rows"), None, fr.reason)
+            finally:
+                sync_conn.close()
+
+        loop = asyncio.get_event_loop()
+        for src in due_sources:
+            try:
+                action, rows, error, reason = await loop.run_in_executor(
+                    None, _process_one_source, src
+                )
+                last_msg = f"{src.key}: {action}"
+                if rows is not None:
+                    last_msg += f" ({rows} rows)"
+                if error:
+                    last_msg += f" — {error[:80]}"
+                if action == "no-change":
+                    no_change += 1
+                elif action == "reloaded":
+                    reloaded += 1
+                elif action == "blocked-by-gate":
+                    blocked += 1
+                elif action == "failed":
+                    failed += 1
+            except Exception as e:
+                failed += 1
+                last_msg = f"{src.key}: exception — {str(e)[:80]}"
+                logger.exception(f"refresh-due: unexpected failure on {src.key}")
+            completed += 1
+
+            # Update progress in Redis after each source
+            if redis_client:
+                try:
+                    update = {
+                        **job,
+                        "completed": completed,
+                        "reloaded": reloaded,
+                        "no_change": no_change,
+                        "blocked_by_gate": blocked,
+                        "failed": failed,
+                        "progress": [last_msg],
+                        "current": src.key,
+                    }
+                    await redis_client.set(
+                        "data_loader:active", json.dumps(update), ex=7200
+                    )
+                except Exception:
+                    pass
+
+        # Mark complete (shorter TTL — terminal state, just for inspection)
+        final = {
+            **job,
+            "status": (
+                "completed" if (failed == 0 and blocked == 0)
+                else "completed_with_errors"
+            ),
+            "completed": completed,
+            "reloaded": reloaded,
+            "no_change": no_change,
+            "blocked_by_gate": blocked,
+            "failed": failed,
+        }
+        if redis_client:
+            try:
+                await redis_client.set(
+                    "data_loader:active", json.dumps(final), ex=600
+                )
+            except Exception:
+                pass
+
+    asyncio.create_task(_background())
+
     return {
-        "checked": len(results),
-        "due_total": len([s for s in DATA_SOURCES if s.key in [r["source_key"] for r in results]]),
+        "job_id": job_id,
+        "status": "running",
+        "due_count": len(due_sources),
+        "due_keys": [s.key for s in due_sources],
         "limit": limit,
-        "dry_run": dry_run,
-        "results": results,
+        "dry_run": False,
+        "message": (
+            "Kicked off background refresh. Per-source outcomes land in "
+            "data_source_health (poll GET /admin/data-sources/health) and "
+            "live progress is in Redis key data_loader:active "
+            "(poll GET /admin/data-sources/job)."
+        ),
     }
 
 
