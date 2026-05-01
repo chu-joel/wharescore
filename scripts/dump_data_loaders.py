@@ -372,11 +372,14 @@ def main() -> None:
     # ─── Summary footer ──────────────────────────────────────────────────
     total = len(DATA_SOURCES)
     classified = sum(1 for d in DATA_SOURCES if d.cadence_class != "unknown")
+    auto_on = sum(1 for d in DATA_SOURCES if getattr(d, "auto_load_enabled", True))
     out.append(
         f"\n\n---\n\n"
         f"**Coverage summary:**\n\n"
         f"- DataSource registry: **{total} loaders, {classified} classified "
         f"({classified * 100 // total}%)**\n"
+        f"- Auto-load enabled (eligible for the daily cron): **{auto_on}**\n"
+        f"- Auto-load disabled (registered for inventory; need `upstream_url` populated before they can join the cron): **{total - auto_on}**\n"
         f"- Script-only loaders not yet migrated: **{len(_SCRIPT_ONLY_LOADERS)}**\n"
         f"- Seed-only tables (intentional, no loader): **{len(_SEED_ONLY_TABLES)}**\n"
         f"- Genuinely-missing loaders: **{len(_MISSING_LOADERS)}**\n"

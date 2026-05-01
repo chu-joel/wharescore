@@ -12,6 +12,8 @@
 > **Op runbook for the scheduler:** before the first auto-run, set `ADMIN_API_TOKEN` in GitHub secrets + `.env.prod`, then trigger `data-refresh.yml` manually with `dry_run=true` to confirm the upstream metadata polls succeed without touching data. Audit `GET /admin/data-sources/health?only_problems=true` afterwards to surface any classification mistakes.
 >
 > **Safe-migration flag.** New `auto_load_enabled: bool = True` field on `DataSource`. When `False`, the source is registered for inventory but excluded from `load-new`, `reload-all` (without explicit `keys=`), and the cron's `refresh-due`. The single-source `POST /admin/data-sources/{key}/load` endpoint still runs it — operators can fire explicitly. Use `False` for newly-migrated script-based loaders that need verification on prod before they're trusted unattended; flip to `True` once confirmed end-to-end.
+>
+> **Cron eligibility gate.** `_apply_pattern_defaults` automatically sets `auto_load_enabled=False` on any DataSource where `upstream_url is None` — without a URL, the freshness check has nothing to poll, so the cron would fall through to a full reload every run. **As of 2026-05-01 this leaves only `auckland_flood` and `auckland_flood_sensitive` cron-eligible** — the only two with explicit URLs. To bring more sources online: extract the upstream URL from each loader function, pass it as `upstream_url=...` on the `DataSource(...)` call, and the gate auto-flips.
 
 ---
 

@@ -11002,6 +11002,22 @@ def _apply_pattern_defaults(sources: list[DataSource]) -> None:
                     "Reclassify if upstream is known to be a living register."
                 )
 
+        # 5. Auto-load gating: a DataSource without an explicit `upstream_url`
+        #    cannot be efficiently auto-refreshed — `check_freshness_for`
+        #    always returns "no automatic check available" and the cron
+        #    falls back to running a full loader every time. Worse, with
+        #    no URL we can't even verify the loader is hitting the right
+        #    endpoint. Flip such sources to `auto_load_enabled=False` so
+        #    the cron skips them until someone extracts the URL from the
+        #    loader function and sets it explicitly on the registration.
+        #
+        #    Sources with a URL keep their existing `auto_load_enabled`
+        #    value — the suffix-pattern and per-key paths leave it alone,
+        #    and the only way for it to be False here is via an explicit
+        #    `auto_load_enabled=False` kwarg on the DataSource constructor.
+        if src.upstream_url is None:
+            src.auto_load_enabled = False
+
 
 _apply_pattern_defaults(DATA_SOURCES)
 
