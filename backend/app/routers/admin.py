@@ -2500,7 +2500,7 @@ async def admin_refresh_due_data_sources(request: Request, limit: int = 10, dry_
 
     def _process_due():
         results = []
-        sync_url = _settings.database_url.replace(
+        sync_url = _settings.DATABASE_URL.replace(
             "postgresql+psycopg://", "postgresql://"
         ).replace(
             "postgresql+asyncpg://", "postgresql://"
