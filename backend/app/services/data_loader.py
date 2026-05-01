@@ -1615,6 +1615,194 @@ def load_gns_active_faults(conn: psycopg.Connection, log: Callable = None) -> in
 # AUCKLAND COUNCIL LOADERS
 # ═══════════════════════════════════════════════════════════════
 
+def _load_council_arcgis_upsert(
+    conn: psycopg.Connection, log: Callable,
+    url: str, table: str, council: str,
+    cols: list[str], extract: Callable,
+    *,
+    source_key: str,
+    stable_id_field: str,
+    srid: int = 2193, geom_type: str = "polygon",
+    max_allowable_offset: float | None = None,
+    page_size: int = 2000,
+    job_id: str | None = None,
+) -> int:
+    """Upsert-capable loader for ArcGIS sources with a stable feature ID.
+
+    Differs from `_load_council_arcgis` in two ways:
+
+    1. **No DELETE-then-INSERT window.** Existing rows are matched by
+       `feature_stable_id` (extracted from the upstream attribute named
+       in `stable_id_field`, e.g. AC's `FPA_ID`). Inserts add new
+       features, updates touch only changed rows, deletes remove rows
+       whose stable_id vanished from upstream. All in one transaction.
+
+    2. **Writes per-row diffs to `data_change_log`.** Each insert /
+       update / delete is logged with before/after attribute snapshots,
+       enabling audit trails ("when did this property flip in/out of
+       the AC flood zone?") and informing the diff-aware validation
+       gate in a future iteration.
+
+    The target table MUST have a `feature_stable_id TEXT` column
+    (added per-table as needed; see migration 0063 for flood_hazard).
+    Features whose `stable_id_field` is missing or null on the upstream
+    are skipped — they can't participate in upsert without a key.
+
+    Returns the count of features successfully processed
+    (insert + update + unchanged). Caller is responsible for the
+    validation gate via run_loader().
+    """
+    from .loader_freshness import record_change_log_entries
+
+    _progress(log, f"Fetching {table} ({council}) [upsert via {stable_id_field}]...")
+    features = _fetch_arcgis(url, page_size, max_allowable_offset=max_allowable_offset)
+    cur = conn.cursor()
+
+    # 1. Index existing rows by stable_id. Pull only the columns we'll
+    #    diff against (caller's `cols` list), plus the DB row id for
+    #    cheap UPDATE/DELETE.
+    col_id_list = sql.SQL(", ").join([sql.Identifier(c) for c in cols])
+    cur.execute(
+        sql.SQL(
+            "SELECT id, feature_stable_id, {} FROM {} "
+            "WHERE source_council = %s AND feature_stable_id IS NOT NULL"
+        ).format(col_id_list, sql.Identifier(table)),
+        (council,),
+    )
+    existing: dict[str, tuple[int, tuple]] = {}
+    for row in cur.fetchall():
+        # row is a dict (psycopg dict_row factory) OR tuple, depending
+        # on the connection. Handle both.
+        if isinstance(row, dict):
+            db_id = row["id"]
+            sid = row["feature_stable_id"]
+            attrs = tuple(row[c] for c in cols)
+        else:
+            db_id = row[0]
+            sid = row[1]
+            attrs = tuple(row[2 : 2 + len(cols)])
+        if sid:
+            existing[str(sid)] = (db_id, attrs)
+
+    # 2. Build the upstream view, indexed by stable_id. Skip features
+    #    that lack a stable_id value or geometry — they can't upsert.
+    upstream: dict[str, tuple[tuple, str]] = {}
+    skipped_no_id = 0
+    skipped_no_geom = 0
+    for f in features:
+        a = f.get("attributes", {}) or {}
+        raw_sid = a.get(stable_id_field)
+        if raw_sid is None or str(raw_sid).strip() == "":
+            skipped_no_id += 1
+            continue
+        sid = str(raw_sid)
+
+        geom = f.get("geometry")
+        if geom_type == "polygon":
+            if not geom or not geom.get("rings"):
+                skipped_no_geom += 1
+                continue
+            wkt = _mp_wkt(geom)
+        elif geom_type == "line":
+            if not geom or not geom.get("paths"):
+                skipped_no_geom += 1
+                continue
+            wkt = _ml_wkt(geom)
+        elif geom_type == "point":
+            if not geom:
+                skipped_no_geom += 1
+                continue
+            x, y = geom.get("x"), geom.get("y")
+            if x is None or y is None:
+                skipped_no_geom += 1
+                continue
+            wkt = f"POINT({x} {y})"
+        else:
+            continue
+        if not wkt:
+            skipped_no_geom += 1
+            continue
+
+        vals = extract(a)
+        if vals is None:
+            continue
+        upstream[sid] = (tuple(vals), wkt)
+
+    # 3. Diff: inserts (in upstream, not in DB), updates (in both, attrs
+    #    differ), deletes (in DB, not in upstream).
+    placeholders = sql.SQL(", ").join([sql.Placeholder()] * len(cols))
+    insert_q = sql.SQL(
+        "INSERT INTO {} ({}, source_council, feature_stable_id, geom) "
+        "VALUES ({}, %s, %s, ST_Transform(ST_SetSRID(ST_GeomFromText(%s), %s), 4326))"
+    ).format(sql.Identifier(table), col_id_list, placeholders)
+
+    set_clause = sql.SQL(", ").join([
+        sql.SQL("{} = %s").format(sql.Identifier(c)) for c in cols
+    ])
+    update_q = sql.SQL(
+        "UPDATE {} SET {}, geom = ST_Transform(ST_SetSRID(ST_GeomFromText(%s), %s), 4326) "
+        "WHERE id = %s"
+    ).format(sql.Identifier(table), set_clause)
+
+    delete_q = sql.SQL(
+        "DELETE FROM {} WHERE id = %s"
+    ).format(sql.Identifier(table))
+
+    inserts: list[tuple[str, dict]] = []
+    updates: list[tuple[str, dict, dict]] = []
+    deletes: list[tuple[str, dict]] = []
+
+    inserted_count = updated_count = deleted_count = unchanged_count = 0
+
+    for sid, (vals, wkt) in upstream.items():
+        existing_row = existing.get(sid)
+        if existing_row is None:
+            # New feature — INSERT.
+            cur.execute(insert_q, (*vals, council, sid, wkt, srid))
+            inserts.append((sid, dict(zip(cols, vals))))
+            inserted_count += 1
+        else:
+            db_id, prev_vals = existing_row
+            if tuple(prev_vals) == tuple(vals):
+                unchanged_count += 1
+            else:
+                # Attribute change — UPDATE. (Geometry is always rewritten;
+                # we don't separately diff it. Geometry-only changes go
+                # untracked in the change log, which is acceptable for now.)
+                cur.execute(update_q, (*vals, wkt, srid, db_id))
+                updates.append(
+                    (sid, dict(zip(cols, prev_vals)), dict(zip(cols, vals)))
+                )
+                updated_count += 1
+
+    # Deletes: DB stable_ids not present upstream.
+    for sid in existing.keys() - upstream.keys():
+        db_id, prev_vals = existing[sid]
+        cur.execute(delete_q, (db_id,))
+        deletes.append((sid, dict(zip(cols, prev_vals))))
+        deleted_count += 1
+
+    # 4. Write change-log entries within the same transaction. If anything
+    #    blows up, the row writes AND the change log roll back together —
+    #    no half-recorded history.
+    if inserts or updates or deletes:
+        record_change_log_entries(
+            conn, source_key=source_key, target_table=table,
+            inserts=inserts, updates=updates, deletes=deletes,
+            job_id=job_id,
+        )
+
+    conn.commit()
+
+    _progress(log,
+        f"  {table} ({council}): "
+        f"+{inserted_count} -{deleted_count} ~{updated_count} "
+        f"={unchanged_count} unchanged "
+        f"(skipped {skipped_no_id} no-id, {skipped_no_geom} no-geom)"
+    )
+    return inserted_count + updated_count + unchanged_count
+
+
 def _load_council_arcgis(
     conn: psycopg.Connection, log: Callable,
     url: str, table: str, council: str,
