@@ -190,7 +190,8 @@ def record_attempt(
             success, blocked_by_gate, row_count,
             error,
             consecutive_clear,
-            success_inc, failure_inc,
+            # last_blocked_by_gate, success_count, failure_count:
+            blocked_by_gate, success_inc, failure_inc,
             # ON CONFLICT params:
             success, blocked_by_gate, row_count, row_count,
             consecutive_clear,
