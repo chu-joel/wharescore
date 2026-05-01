@@ -1958,10 +1958,15 @@ def _load_council_wfs(
 
 def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
     """Auckland flood prone areas. AC's `Flood_Prone_Areas` is the authoritative
-    1% AEP (1-in-100yr) layer — every feature carries `Depth100y`. Encode the
-    AEP as "1%" so downstream scoring and `getFloodTier` treat it as a real
-    flood zone (not the heuristic "unknown" fallback). Depth drives ranking:
-    >0.5m = High, >0 = Medium, 0/null = Low."""
+    1% AEP (1-in-100yr) layer — every feature carries `Depth100y` and a stable
+    `FPA_ID`. Encode the AEP as "1%" so downstream scoring and `getFloodTier`
+    treat it as a real flood zone (not the heuristic "unknown" fallback).
+    Depth drives ranking: >0.5m = High, >0 = Medium, 0/null = Low.
+
+    First loader to use the upsert path (`_load_council_arcgis_upsert`).
+    Per-feature diffs are recorded in `data_change_log` via FPA_ID, so we
+    can answer "when did this property's flood polygon change?" — and the
+    refresh has no DELETE-then-INSERT inconsistency window."""
     url = "https://services1.arcgis.com/n4yPwebTjJCmXB6W/arcgis/rest/services/Flood_Prone_Areas/FeatureServer/0"
 
     def _depth(a: dict) -> float | None:
@@ -1983,10 +1988,12 @@ def load_auckland_flood(conn: psycopg.Connection, log: Callable = None) -> int:
             return "Low"
         return "High" if d > 0.5 else "Medium"
 
-    return _load_council_arcgis(
+    return _load_council_arcgis_upsert(
         conn, log, url, "flood_hazard", "auckland",
         ["name", "hazard_ranking", "hazard_type"],
         lambda a: (_label(a), _ranking(a), "1%"),
+        source_key="auckland_flood",
+        stable_id_field="FPA_ID",
     )
 
 
