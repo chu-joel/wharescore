@@ -646,7 +646,7 @@ loader that is "due" per its `cadence_class` + `check_interval`.
 | Scheduler | `is_due_for_check` + `select_due_sources` | "Is this source older than its check_interval window?" |
 | Admin endpoints | `routers/admin.py` | `GET /admin/data-sources/health` (dashboard), `GET /admin/data-sources/due` (cron query), `POST /admin/data-sources/refresh-due` (cron action). |
 | Service-token auth | `services/admin_auth.require_admin_or_service_token` | Allows `Authorization: Bearer <ADMIN_API_TOKEN>` for the cron, alongside the existing OAuth admin path. |
-| Cron workflow | `.github/workflows/data-refresh.yml` | Runs daily at 16:00 UTC (04:00 NZST). Hits refresh-due with `limit=10`. Surfaces failures + gate-blocks in the GH Actions summary; exits non-zero on either. |
+| Cron workflow | `.github/workflows/data-refresh.yml` | Runs **weekly** Sundays 16:00 UTC (Mondays 04:00 NZST). Hits refresh-due with `limit=10`. Surfaces failures + gate-blocks in the GH Actions summary; exits non-zero on either. Weekly cadence matches the actual workload — most cron-eligible sources are revisable+monthly, so daily checks were mostly idle. Gives operators a "Monday is data day" mental model and leaves six lock-free days for manual reloads. |
 
 ### Flow
 

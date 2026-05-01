@@ -19,8 +19,18 @@ name: Daily data-source freshness check
 
 on:
   schedule:
-    # 16:00 UTC = 04:00 NZST (overnight, before traffic peaks)
-    - cron: "0 16 * * *"
+    # Sundays 16:00 UTC = Mondays 04:00 NZST (overnight, before traffic peaks).
+    # Weekly is the right cadence for our system today: most cron-eligible
+    # sources are revisable+monthly (only become due every 30 days), so daily
+    # checks were mostly idle. Weekly aligns work into one predictable slot,
+    # gives operators a clear "Monday morning is data day" mental model, and
+    # leaves six other days when the loader's single-flight Redis lock isn't
+    # held — making operator-triggered manual reloads frictionless.
+    #
+    # Sources whose check_interval is shorter than weekly (the 12 GTFS feeds
+    # at "weekly") will be a few hours late on average, which is fine —
+    # transit timetables don't change between Sunday and Monday morning.
+    - cron: "0 16 * * 0"
   workflow_dispatch:
     inputs:
       limit:
