@@ -10,6 +10,8 @@
 > Scheduled refresh is wired up. Daily GH Actions cron (`.github/workflows/data-refresh.yml`) hits `POST /admin/data-sources/refresh-due` → polls upstream metadata → reloads only on change. Validation gate (`loader_freshness.validate_row_count`) refuses reloads where new row count is < 50% of previous (prevents "DELETE 35k INSERT 0" on transient upstream failures). Per-source health tracked in `data_source_health` table (migration 0061). See `SYSTEM-FLOWS.md` § Scheduled Data Refresh for the full flow.
 >
 > **Op runbook for the scheduler:** before the first auto-run, set `ADMIN_API_TOKEN` in GitHub secrets + `.env.prod`, then trigger `data-refresh.yml` manually with `dry_run=true` to confirm the upstream metadata polls succeed without touching data. Audit `GET /admin/data-sources/health?only_problems=true` afterwards to surface any classification mistakes.
+>
+> **Safe-migration flag.** New `auto_load_enabled: bool = True` field on `DataSource`. When `False`, the source is registered for inventory but excluded from `load-new`, `reload-all` (without explicit `keys=`), and the cron's `refresh-due`. The single-source `POST /admin/data-sources/{key}/load` endpoint still runs it — operators can fire explicitly. Use `False` for newly-migrated script-based loaders that need verification on prod before they're trusted unattended; flip to `True` once confirmed end-to-end.
 
 ---
 

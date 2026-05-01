@@ -403,7 +403,10 @@ def is_due_for_check(source: Any, health: HealthRow, now: datetime | None = None
       - the last attempt is older than the source's check_interval window.
 
     `static` / `never` sources are never due — we explicitly do not
-    auto-refresh peer-reviewed studies."""
+    auto-refresh peer-reviewed studies. `auto_load_enabled=False` sources
+    are also never due — they need explicit operator action to run."""
+    if not getattr(source, "auto_load_enabled", True):
+        return False
     if source.cadence_class == "static" or source.check_interval == "never":
         return False
 

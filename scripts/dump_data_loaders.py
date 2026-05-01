@@ -90,6 +90,7 @@ def _esc(s: str) -> str:
 
 
 def _row(ds: DataSource) -> str:
+    auto = "yes" if getattr(ds, "auto_load_enabled", True) else "**no**"
     return " | ".join(
         [
             f"`{ds.key}`",
@@ -102,6 +103,7 @@ def _row(ds: DataSource) -> str:
             _esc(ds.cadence_class),
             _esc(ds.check_interval),
             _esc(ds.change_detection),
+            auto,
             _esc(ds.notes) or "-",
         ]
     )
@@ -172,6 +174,23 @@ auto-refresh.
 | `none` | - | No upstream poll possible (e.g. one-shot CSV imports) |
 | `unknown` | - | Not yet classified |
 
+## auto_load_enabled flag
+
+Each DataSource has an `auto_load_enabled` boolean (default `True`). When
+set to `False`, the source is **registered for inventory** but **excluded
+from all bulk automation**:
+
+- `POST /admin/data-sources/load-new` skips it.
+- `POST /admin/data-sources/reload-all` (without explicit `keys=`) skips it.
+- `is_due_for_check` returns False, so the cron's
+  `POST /admin/data-sources/refresh-due` skips it.
+
+The single-source endpoint `POST /admin/data-sources/{key}/load` still
+runs it — operators can fire it explicitly. Use `auto_load_enabled=False`
+for newly-migrated script-based loaders that need verification on prod
+before they're trusted to run unattended. Flip to `True` once the loader
+has been confirmed end-to-end.
+
 ## Loaders
 
 Columns: `key` (DataSource identifier) · `label` (human description) · `tables` (DB targets) · `loader` (function or lambda location) · `authority` · `format` · `upstream URL` · `cadence_class` · `check_interval` · `change_detection` · `notes`.
@@ -180,8 +199,8 @@ Columns: `key` (DataSource identifier) · `label` (human description) · `tables
 
 
 TABLE_HDR = (
-    "| key | label | tables | loader | authority | format | upstream | cadence | check | detection | notes |\n"
-    "|---|---|---|---|---|---|---|---|---|---|---|"
+    "| key | label | tables | loader | authority | format | upstream | cadence | check | detection | auto | notes |\n"
+    "|---|---|---|---|---|---|---|---|---|---|---|---|"
 )
 
 

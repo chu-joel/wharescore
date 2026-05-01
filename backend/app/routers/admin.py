@@ -1113,7 +1113,13 @@ async def admin_load_all_new(request: Request):
         except Exception:
             loaded = set()
 
-        unloaded = [s.key for s in DATA_SOURCES if s.key not in loaded]
+        # Skip DataSources with auto_load_enabled=False — they're registered
+        # for inventory but require explicit operator action via the
+        # single-source endpoint, not this bulk path.
+        unloaded = [
+            s.key for s in DATA_SOURCES
+            if s.key not in loaded and getattr(s, "auto_load_enabled", True)
+        ]
 
     if not unloaded:
         return {"status": "nothing_to_load", "message": "All datasets already loaded", "total": len(DATA_SOURCES)}
@@ -1270,13 +1276,20 @@ async def admin_reload_all_data_sources(request: Request, keys: str | None = Non
     # declaration order (DATA_SOURCES list order is meaningful — National
     # Census first, then regional hazards, etc.).
     if keys:
+        # Explicit caller-supplied keys override auto_load_enabled — operator
+        # explicitly named these, so respect their intent.
         requested = [k.strip() for k in keys.split(",") if k.strip()]
         unknown = [k for k in requested if k not in DATA_SOURCES_BY_KEY]
         if unknown:
             raise HTTPException(400, f"Unknown data source keys: {unknown}")
         target_keys = requested
     else:
-        target_keys = [s.key for s in DATA_SOURCES]
+        # Bulk reload-all: skip auto_load_enabled=False sources (registered
+        # for inventory but not safe for unattended runs).
+        target_keys = [
+            s.key for s in DATA_SOURCES
+            if getattr(s, "auto_load_enabled", True)
+        ]
 
     if not target_keys:
         return {"status": "nothing_to_reload", "total": 0}
@@ -2359,6 +2372,7 @@ async def admin_data_source_health(request: Request, only_problems: bool = False
             "cadence_class": src.cadence_class,
             "check_interval": src.check_interval,
             "change_detection": src.change_detection,
+            "auto_load_enabled": getattr(src, "auto_load_enabled", True),
             "last_attempt_at": h.get("last_attempt_at"),
             "last_success_at": last_success,
             "last_freshness_check_at": h.get("last_freshness_check_at"),

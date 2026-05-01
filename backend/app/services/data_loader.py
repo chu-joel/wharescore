@@ -296,6 +296,7 @@ class DataSource:
         check_interval: CheckInterval = "unknown",
         change_detection: ChangeDetection = "unknown",
         notes: str = "",
+        auto_load_enabled: bool = True,
     ):
         self.key = key
         self.label = label
@@ -306,8 +307,16 @@ class DataSource:
         self.authority = authority
         self.cadence_class = cadence_class
         self.check_interval = check_interval
+        # When False, this DataSource is REGISTERED for inventory but EXCLUDED
+        # from all automation paths: the scheduler's refresh-due, the bulk
+        # `load-new` and `reload-all` admin endpoints, and the freshness check
+        # cron. The single-source manual endpoint (`POST /admin/data-sources/
+        # {key}/load`) still works — operators can fire it explicitly. Used
+        # for newly-migrated script-based loaders that need verification on
+        # prod before they're trusted to run unattended.
         self.change_detection = change_detection
         self.notes = notes
+        self.auto_load_enabled = auto_load_enabled
 
 
 def _progress(log_fn, msg: str):
