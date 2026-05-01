@@ -201,6 +201,87 @@ def record_attempt(
     conn.commit()
 
 
+def record_change_log_entries(
+    conn: psycopg.Connection,
+    source_key: str,
+    target_table: str,
+    inserts: list[tuple[str, dict | None]] | None = None,
+    updates: list[tuple[str, dict | None, dict | None]] | None = None,
+    deletes: list[tuple[str, dict | None]] | None = None,
+    job_id: str | None = None,
+) -> dict:
+    """Bulk-write per-row change history to data_change_log.
+
+    Called from the upsert path in `_load_council_arcgis()` when the loader
+    has computed which features were inserted, updated, or deleted relative
+    to the previous load. Does NOT commit — the caller wraps this in the
+    same transaction as the row writes so the change log is consistent
+    with the actual data.
+
+    Args:
+        source_key: DataSource registry key (e.g. 'auckland_flood').
+        target_table: The DB table being modified (e.g. 'flood_hazard').
+        inserts: list of (stable_id, after_attrs_dict) for new features.
+        updates: list of (stable_id, before_attrs, after_attrs) for changed
+                 features. Caller is responsible for filtering to genuinely-
+                 changed rows (i.e. don't pass IS DISTINCT FROM = false rows).
+        deletes: list of (stable_id, before_attrs_dict) for vanished
+                 features. Note: stable_id is required even for deletes so
+                 history can be reconstructed.
+        job_id: optional job identifier from data_loader:active so all
+                rows from one cron run can be grouped.
+
+    Returns a counts dict {inserts, updates, deletes} so callers can
+    aggregate metrics for the validation gate.
+    """
+    inserts = inserts or []
+    updates = updates or []
+    deletes = deletes or []
+
+    if not (inserts or updates or deletes):
+        return {"inserts": 0, "updates": 0, "deletes": 0}
+
+    cur = conn.cursor()
+    rows = []
+    for sid, after in inserts:
+        rows.append((source_key, target_table, str(sid), "insert", None,
+                     _to_jsonb(after), job_id))
+    for sid, before, after in updates:
+        rows.append((source_key, target_table, str(sid), "update",
+                     _to_jsonb(before), _to_jsonb(after), job_id))
+    for sid, before in deletes:
+        rows.append((source_key, target_table, str(sid), "delete",
+                     _to_jsonb(before), None, job_id))
+
+    cur.executemany(
+        """
+        INSERT INTO data_change_log
+            (source_key, target_table, source_feature_id, op,
+             before_attrs, after_attrs, job_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """,
+        rows,
+    )
+    return {
+        "inserts": len(inserts),
+        "updates": len(updates),
+        "deletes": len(deletes),
+    }
+
+
+def _to_jsonb(d: dict | None) -> str | None:
+    """Serialise a dict to a JSON string for psycopg's jsonb adapter.
+
+    Returns None for None (so NULL hits the column), otherwise compact
+    JSON. Keys are sorted for deterministic output — makes diffs in the
+    change log readable when comparing two before/after snapshots."""
+    if d is None:
+        return None
+    import json
+    # default=str handles datetimes, Decimals, etc. that may sneak in
+    return json.dumps(d, sort_keys=True, default=str)
+
+
 def record_freshness_check(
     conn: psycopg.Connection,
     source_key: str,
