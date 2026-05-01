@@ -53,13 +53,13 @@ jobs:
             echo "::error::ADMIN_API_TOKEN secret is not set — configure it in repo Settings → Secrets → Actions before this workflow can run."
             exit 1
           fi
-          echo "Hitting ${API_BASE}/admin/data-sources/refresh-due (limit=${LIMIT}, dry_run=${DRY_RUN})..."
+          echo "Hitting ${API_BASE}/api/v1/admin/data-sources/refresh-due (limit=${LIMIT}, dry_run=${DRY_RUN})..."
           response=$(curl --silent --show-error --fail-with-body \
             --max-time 1800 \
             -X POST \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            "${API_BASE}/admin/data-sources/refresh-due?limit=${LIMIT}&dry_run=${DRY_RUN}")
+            "${API_BASE}/api/v1/admin/data-sources/refresh-due?limit=${LIMIT}&dry_run=${DRY_RUN}")
           echo "$response" | jq -r '
             "Checked \(.checked) sources (limit \(.limit), dry_run=\(.dry_run))",
             "",
