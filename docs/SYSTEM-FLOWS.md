@@ -667,10 +667,44 @@ GH Actions cron (daily)
 ### Key safety properties
 
 - **Static sources never auto-refresh.** 223 of 566 are peer-reviewed studies (liquefaction susceptibility, fault zones, tsunami evac, noise contours). The scheduler skips them entirely.
+- **Cron eligibility gate.** `_apply_pattern_defaults` flips `auto_load_enabled=False` on any source where `upstream_url is None`. As of the initial wiring (2026-05-01) this leaves only `auckland_flood` + `auckland_flood_sensitive` cron-eligible. Bringing more sources online requires extracting the upstream URL from each loader function and passing it as `upstream_url=...` on the `DataSource(...)` constructor.
 - **Validation gate gates `revisable` and `periodic`** but not `static`/`continuous` (legitimate fluctuations).
 - **Single-flight via Redis** (`data_loader:active` key) — prevents two refreshes overlapping.
 - **One row blocked-by-gate or failed = workflow goes red** — until someone investigates.
-- **Manual override:** `run_loader(key, skip_validation_gate=True)` from a Python REPL or `POST /admin/data-sources/{key}/load` (separate endpoint, unchanged) to force a reload.
+- **Manual override:** `run_loader(key, skip_validation_gate=True)` from a Python REPL or `POST /api/v1/admin/data-sources/{key}/load` (separate endpoint, unchanged) to force a reload.
+
+### Runbook: ADMIN_API_TOKEN
+
+The cron authenticates to `POST /api/v1/admin/data-sources/refresh-due` via `Authorization: Bearer ADMIN_API_TOKEN`. The token lives in **four places** that all need to agree:
+
+| Location | How it gets there | When to touch |
+|---|---|---|
+| GitHub repo secret `ADMIN_API_TOKEN` | `gh secret set ADMIN_API_TOKEN --repo chu-joel/wharescore` | Only when rotating |
+| `.env.prod` on the VM | Auto-regenerated on every deploy by `.github/workflows/deploy.yml` | **Never edit by hand** — deploy will overwrite |
+| Docker Compose `api` service env | Listed in `docker-compose.prod.yml` `api.environment.ADMIN_API_TOKEN` | Already wired |
+| Container `os.environ` → `Settings.ADMIN_API_TOKEN` | Pydantic reads from env at startup | Already wired |
+
+**Rotation procedure:**
+
+```bash
+# 1. Generate a new value
+NEW=$(openssl rand -hex 32)
+
+# 2. Update GitHub repo secret
+echo "$NEW" | gh secret set ADMIN_API_TOKEN --repo chu-joel/wharescore
+
+# 3. Push any commit (or trigger a re-run of the latest deploy) to redeploy.
+#    deploy.yml writes the new value to .env.prod, docker compose picks it up
+#    on container restart, the running app reads it from env.
+git commit --allow-empty -m "chore: trigger redeploy for ADMIN_API_TOKEN rotation"
+git push origin main
+
+# 4. (Optional) verify the new length on prod after deploy completes
+ssh wharescore@20.5.86.126 'docker exec app-api-1 sh -c "echo \${#ADMIN_API_TOKEN}"'
+# → 64
+```
+
+No manual VM editing required. The local-machine plaintext copy from initial setup (`/tmp/admin_api_token.txt`) is not part of the chain — delete it after verifying the deploy.
 
 ---
 
