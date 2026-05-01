@@ -942,4 +942,69 @@ Columns: `key` (DataSource identifier) · `label` (human description) · `tables
 
 ---
 
-**Summary:** 566 DataSources total, 566 classified (100%). Backfill the rest by adding `upstream_url`, `cadence_class`, `check_interval`, and `change_detection` to each DataSource registration in `data_loader.py`, then re-run this script.
+## Script-only loaders (NOT in DATA_SOURCES registry)
+
+These scripts in `scripts/` populate tables the report actively
+queries, but are **not registered** in `DATA_SOURCES`. They run
+only when an operator manually executes the script on the prod
+VM — they are outside the cron, outside the validation gate, and
+outside the health table. Each row should eventually be migrated
+into a real DataSource entry; until then they're tracked here so
+the inventory is complete.
+
+When migrating: open the script, extract its `main()` /
+ingest function, wrap it in a `def load_X(conn, log)` matching
+the DataSource loader signature, then add a `DataSource(...)`
+entry to `DATA_SOURCES` with the cadence fields shown below.
+
+| script | tables | authority | cadence_class | check_interval | change_detection | notes |
+|---|---|---|---|---|---|---|
+| `scripts/load_osm_amenities.py` | osm_amenities | OpenStreetMap | periodic | quarterly | row_count_diff | Overpass API per city. Rate-limited; bulk reload only. |
+| `scripts/load_all_datasets.py` | crashes, earthquakes, schools | NZTA CAS / GeoNet / MoE | periodic | yearly | row_count_diff | Multi-table CSV ingest. Should be split into 3 separate DataSources before migration. |
+| `scripts/load_tier3_datasets.py` | air_quality_sites, water_quality_sites, wildfire_risk, heritage_sites | LAWA / FENZ / NZHPT | revisable | monthly | row_count_diff | LAWA monitoring + FENZ fire risk + NZHPT heritage. Split per source on migration. |
+| `scripts/load_tier4_datasets.py` | contaminated_land, district_plan_zones, earthquake_prone_buildings, height_controls, resource_consents | Multi-source national bulk | revisable | quarterly | row_count_diff | Mostly redundant with per-council DataSources — verify before migrating; may be deletable. |
+| `scripts/load_doc_conservation.py` | conservation_land | DOC | revisable | quarterly | row_count_diff | DOC public conservation land. Used in nearby.py + report. |
+| `scripts/load_landslides.py` | landslide_areas, landslide_events | GNS Science | revisable | quarterly | row_count_diff | Possibly overlaps with the registered `gns_landslides` DataSource — verify. |
+| `scripts/load_nzdep.py` | nzdep | Stats NZ / University of Otago | static | never | none | NZ Deprivation Index. Census-aligned, every 5 years (next ~2028). |
+| `scripts/load_climate_projections.py` | climate_projections | NIWA / MfE | static | never | none | NIWA climate projection report data. One-off ingest per IPCC report cycle. |
+| `scripts/load_bonds_detailed.py` | bonds_detailed | MBIE Tenancy | periodic | monthly | http_etag | MBIE rental bond lodgements. Published monthly. |
+| `scripts/load_rbnz_housing.py` | rbnz_housing | Reserve Bank of NZ | periodic | quarterly | http_etag | RBNZ housing data. Quarterly publication. |
+| `scripts/load_wcc_valuations.py` | council_valuations | Wellington City Council | periodic | yearly | row_count_diff | WCC property valuations. Annual revaluation cycle. |
+| `scripts/load_infrastructure.py` | infrastructure_projects | Manual research | revisable | quarterly | manual | Hand-curated infrastructure project register. Update when new major projects announced. |
+| `scripts/load_wellington_data.py` | gwrc_earthquake_hazard, gwrc_ground_shaking, gwrc_liquefaction, gwrc_slope_failure, mbie_epb_history | GWRC / MBIE | revisable | quarterly | row_count_diff | Mostly redundant with `wcc_hazards` + `gwrc_earthquake` registered DataSources — verify before migrating. |
+| `backend/scripts/load_christchurch_hazards.py + load_regional_hazards.py` | flood_zones, liquefaction_zones, tsunami_zones | Multi-council national base layers | revisable | quarterly | row_count_diff | National base hazard layers — flood_zones, liquefaction_zones, tsunami_zones — populated per-region. Mostly Wellington-only in current data; report SQL queries these as fallback alongside per-council overlays. |
+
+
+## Seed-only tables (no loader, populated once at deploy)
+
+These tables are populated by initial `pg_dump` restore, by
+hardcoded `INSERT` statements in migrations, or by operator
+uploads. They have **no upstream feed** that needs polling and
+do **not** require a DataSource entry. Documented here so future
+agents don't try to build a loader for them.
+
+| table | populated by | notes |
+|---|---|---|
+| `addresses` | Bulk pg_dump restore on initial deploy | NZ Post / LINZ address dataset. ~2M rows. Restored from a seed package, not loaded. |
+| `meshblocks` | Bulk pg_dump restore on initial deploy | Stats NZ Census 2023 meshblock geographies. Restored from seed. |
+| `sa2_boundaries` | Bulk pg_dump restore on initial deploy | Stats NZ Statistical Area 2 boundaries. Restored from seed. |
+| `cbd_points` | Hardcoded INSERT in migration 0023_universal_transit.sql | City CBD coordinates for distance calculations. Static — only changes if we add a new city. |
+| `hpi_national` | Hardcoded INSERT in migration 0023 | National HPI seed. Superseded by reinz_hpi_ta (per-TA) — see admin REINZ HPI upload endpoint. |
+| `reinz_hpi_ta` | Operator-uploaded via POST /admin/reinz-hpi/upload | Per-territorial-authority HPI from REINZ. Uploaded monthly by an operator pulling REINZ's published Excel; not auto-fetched (REINZ has no public API for this). |
+
+
+## Missing loaders (real gaps — table queried, no writer)
+
+_None as of last audit. Every table the report queries has at
+least a script-based or seed-based writer._
+
+
+
+---
+
+**Coverage summary:**
+
+- DataSource registry: **566 loaders, 566 classified (100%)**
+- Script-only loaders not yet migrated: **14**
+- Seed-only tables (intentional, no loader): **6**
+- Genuinely-missing loaders: **0**

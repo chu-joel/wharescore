@@ -185,6 +185,95 @@ TABLE_HDR = (
 )
 
 
+# Script-only loaders: scripts/load_*.py that populate tables the report
+# actively queries but are NOT registered in DATA_SOURCES. They run only
+# when an operator manually executes the script on the prod VM. Outside
+# the cron + validation gate. Each row should eventually become a real
+# DataSource — until then, these are tracked here for inventory.
+#
+# Schema: (script_path, [tables], authority, intended_cadence_class,
+#          intended_check_interval, intended_change_detection, notes)
+_SCRIPT_ONLY_LOADERS: list[tuple] = [
+    ("scripts/load_osm_amenities.py", ["osm_amenities"],
+     "OpenStreetMap", "periodic", "quarterly", "row_count_diff",
+     "Overpass API per city. Rate-limited; bulk reload only."),
+    ("scripts/load_all_datasets.py", ["crashes", "earthquakes", "schools"],
+     "NZTA CAS / GeoNet / MoE", "periodic", "yearly", "row_count_diff",
+     "Multi-table CSV ingest. Should be split into 3 separate DataSources before migration."),
+    ("scripts/load_tier3_datasets.py",
+     ["air_quality_sites", "water_quality_sites", "wildfire_risk", "heritage_sites"],
+     "LAWA / FENZ / NZHPT", "revisable", "monthly", "row_count_diff",
+     "LAWA monitoring + FENZ fire risk + NZHPT heritage. Split per source on migration."),
+    ("scripts/load_tier4_datasets.py",
+     ["contaminated_land", "district_plan_zones", "earthquake_prone_buildings",
+      "height_controls", "resource_consents"],
+     "Multi-source national bulk", "revisable", "quarterly", "row_count_diff",
+     "Mostly redundant with per-council DataSources — verify before migrating; may be deletable."),
+    ("scripts/load_doc_conservation.py", ["conservation_land"],
+     "DOC", "revisable", "quarterly", "row_count_diff",
+     "DOC public conservation land. Used in nearby.py + report."),
+    ("scripts/load_landslides.py", ["landslide_areas", "landslide_events"],
+     "GNS Science", "revisable", "quarterly", "row_count_diff",
+     "Possibly overlaps with the registered `gns_landslides` DataSource — verify."),
+    ("scripts/load_nzdep.py", ["nzdep"],
+     "Stats NZ / University of Otago", "static", "never", "none",
+     "NZ Deprivation Index. Census-aligned, every 5 years (next ~2028)."),
+    ("scripts/load_climate_projections.py", ["climate_projections"],
+     "NIWA / MfE", "static", "never", "none",
+     "NIWA climate projection report data. One-off ingest per IPCC report cycle."),
+    ("scripts/load_bonds_detailed.py", ["bonds_detailed"],
+     "MBIE Tenancy", "periodic", "monthly", "http_etag",
+     "MBIE rental bond lodgements. Published monthly."),
+    ("scripts/load_rbnz_housing.py", ["rbnz_housing"],
+     "Reserve Bank of NZ", "periodic", "quarterly", "http_etag",
+     "RBNZ housing data. Quarterly publication."),
+    ("scripts/load_wcc_valuations.py", ["council_valuations"],
+     "Wellington City Council", "periodic", "yearly", "row_count_diff",
+     "WCC property valuations. Annual revaluation cycle."),
+    ("scripts/load_infrastructure.py", ["infrastructure_projects"],
+     "Manual research", "revisable", "quarterly", "manual",
+     "Hand-curated infrastructure project register. Update when new major projects announced."),
+    ("scripts/load_wellington_data.py",
+     ["gwrc_earthquake_hazard", "gwrc_ground_shaking", "gwrc_liquefaction",
+      "gwrc_slope_failure", "mbie_epb_history"],
+     "GWRC / MBIE", "revisable", "quarterly", "row_count_diff",
+     "Mostly redundant with `wcc_hazards` + `gwrc_earthquake` registered DataSources — verify before migrating."),
+    ("backend/scripts/load_christchurch_hazards.py + load_regional_hazards.py",
+     ["flood_zones", "liquefaction_zones", "tsunami_zones"],
+     "Multi-council national base layers", "revisable", "quarterly", "row_count_diff",
+     "National base hazard layers — flood_zones, liquefaction_zones, tsunami_zones — populated per-region. Mostly Wellington-only in current data; report SQL queries these as fallback alongside per-council overlays."),
+]
+
+
+# Seed-only tables: populated once on initial deploy via pg_dump restore or
+# inline migration INSERTs. They are NOT loaders — they don't have an
+# upstream that needs polling. Documented here so future agents don't try
+# to "fix" the missing loader.
+_SEED_ONLY_TABLES: list[tuple[str, str, str]] = [
+    ("addresses", "Bulk pg_dump restore on initial deploy",
+     "NZ Post / LINZ address dataset. ~2M rows. Restored from a seed package, not loaded."),
+    ("meshblocks", "Bulk pg_dump restore on initial deploy",
+     "Stats NZ Census 2023 meshblock geographies. Restored from seed."),
+    ("sa2_boundaries", "Bulk pg_dump restore on initial deploy",
+     "Stats NZ Statistical Area 2 boundaries. Restored from seed."),
+    ("cbd_points", "Hardcoded INSERT in migration 0023_universal_transit.sql",
+     "City CBD coordinates for distance calculations. Static — only changes if we add a new city."),
+    ("hpi_national", "Hardcoded INSERT in migration 0023",
+     "National HPI seed. Superseded by reinz_hpi_ta (per-TA) — see admin REINZ HPI upload endpoint."),
+    ("reinz_hpi_ta", "Operator-uploaded via POST /admin/reinz-hpi/upload",
+     "Per-territorial-authority HPI from REINZ. Uploaded monthly by an operator pulling REINZ's published Excel; not auto-fetched (REINZ has no public API for this)."),
+]
+
+
+# Genuinely missing — no writer in code, no seed, but the report queries it.
+# These are real gaps to fix.
+_MISSING_LOADERS: list[tuple[str, str, str]] = [
+    # (intentionally empty — every table the audit flagged as "missing"
+    #  turned out to have either a script-based loader or a seed path.
+    #  Keep this list as the place to record a real gap when one appears.)
+]
+
+
 def main() -> None:
     grouped: dict[str, list[DataSource]] = defaultdict(list)
     for ds in DATA_SOURCES:
@@ -205,16 +294,73 @@ def main() -> None:
         for ds in sorted(rows, key=lambda d: d.key):
             out.append("| " + _row(ds) + " |")
 
-    # Summary footer
+    # ─── Script-only loaders ─────────────────────────────────────────────
+    out.append(
+        "\n\n---\n\n## Script-only loaders (NOT in DATA_SOURCES registry)\n\n"
+        "These scripts in `scripts/` populate tables the report actively\n"
+        "queries, but are **not registered** in `DATA_SOURCES`. They run\n"
+        "only when an operator manually executes the script on the prod\n"
+        "VM — they are outside the cron, outside the validation gate, and\n"
+        "outside the health table. Each row should eventually be migrated\n"
+        "into a real DataSource entry; until then they're tracked here so\n"
+        "the inventory is complete.\n\n"
+        "When migrating: open the script, extract its `main()` /\n"
+        "ingest function, wrap it in a `def load_X(conn, log)` matching\n"
+        "the DataSource loader signature, then add a `DataSource(...)`\n"
+        "entry to `DATA_SOURCES` with the cadence fields shown below.\n\n"
+        "| script | tables | authority | cadence_class | check_interval | change_detection | notes |\n"
+        "|---|---|---|---|---|---|---|"
+    )
+    for script, tables, authority, cadence, check, detection, notes in _SCRIPT_ONLY_LOADERS:
+        out.append(
+            f"| `{script}` | {', '.join(tables)} | {authority} | "
+            f"{cadence} | {check} | {detection} | {_esc(notes)} |"
+        )
+
+    # ─── Seed-only tables ────────────────────────────────────────────────
+    out.append(
+        "\n\n## Seed-only tables (no loader, populated once at deploy)\n\n"
+        "These tables are populated by initial `pg_dump` restore, by\n"
+        "hardcoded `INSERT` statements in migrations, or by operator\n"
+        "uploads. They have **no upstream feed** that needs polling and\n"
+        "do **not** require a DataSource entry. Documented here so future\n"
+        "agents don't try to build a loader for them.\n\n"
+        "| table | populated by | notes |\n"
+        "|---|---|---|"
+    )
+    for table, populated_by, notes in _SEED_ONLY_TABLES:
+        out.append(f"| `{table}` | {populated_by} | {_esc(notes)} |")
+
+    # ─── Genuinely missing ───────────────────────────────────────────────
+    if _MISSING_LOADERS:
+        out.append(
+            "\n\n## Missing loaders (real gaps — table queried, no writer)\n\n"
+            "These tables are queried by the production code path but no\n"
+            "loader (DataSource OR script) writes to them. Each is a real\n"
+            "gap that should be filled with a new DataSource.\n\n"
+            "| table | queried by | suggested upstream | notes |\n"
+            "|---|---|---|---|"
+        )
+        for table, queried_by, suggested in _MISSING_LOADERS:
+            out.append(f"| `{table}` | {queried_by} | {suggested} | - |")
+    else:
+        out.append(
+            "\n\n## Missing loaders (real gaps — table queried, no writer)\n\n"
+            "_None as of last audit. Every table the report queries has at\n"
+            "least a script-based or seed-based writer._\n"
+        )
+
+    # ─── Summary footer ──────────────────────────────────────────────────
     total = len(DATA_SOURCES)
     classified = sum(1 for d in DATA_SOURCES if d.cadence_class != "unknown")
     out.append(
         f"\n\n---\n\n"
-        f"**Summary:** {total} DataSources total, {classified} classified "
-        f"({classified * 100 // total}%). Backfill the rest by adding "
-        f"`upstream_url`, `cadence_class`, `check_interval`, and "
-        f"`change_detection` to each DataSource registration in "
-        f"`data_loader.py`, then re-run this script.\n"
+        f"**Coverage summary:**\n\n"
+        f"- DataSource registry: **{total} loaders, {classified} classified "
+        f"({classified * 100 // total}%)**\n"
+        f"- Script-only loaders not yet migrated: **{len(_SCRIPT_ONLY_LOADERS)}**\n"
+        f"- Seed-only tables (intentional, no loader): **{len(_SEED_ONLY_TABLES)}**\n"
+        f"- Genuinely-missing loaders: **{len(_MISSING_LOADERS)}**\n"
     )
 
     OUT_PATH.write_text("\n".join(out), encoding="utf-8")
