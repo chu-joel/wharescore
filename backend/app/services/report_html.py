@@ -671,8 +671,16 @@ SOURCE_CATALOG: dict[str, dict[str, str]] = {
     "linz_waterways": {"authority": "LINZ Topo50 waterways", "url": "https://data.linz.govt.nz/"},
     "council_zones": {"authority": "Council District / Unitary Plan zones", "url": "https://www.lawa.org.nz/"},
     "council_heritage_overlay": {"authority": "Council heritage overlay", "url": "https://www.heritage.org.nz/"},
+    "council_valuations": {"authority": "Council rating valuations (live API)", "url": "https://www.qv.co.nz/"},
     "transpower": {"authority": "Transpower transmission network", "url": "https://www.transpower.co.nz/"},
     "srtm": {"authority": "NASA/USGS SRTM 30m DEM (computed by WhareScore)", "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm"},
+    # Market
+    "tenancy_bonds": {"authority": "MBIE Tenancy Services bond data", "url": "https://www.tenancy.govt.nz/about-tenancy-services/data-and-statistics/rental-bond-data/"},
+    "reinz_hpi_national": {"authority": "REINZ House Price Index (national)", "url": "https://www.reinz.co.nz/reinz-hpi"},
+    "reinz_hpi_ta": {"authority": "REINZ House Price Index (territorial authority)", "url": "https://www.reinz.co.nz/reinz-hpi"},
+    "rbnz_housing": {"authority": "RBNZ housing statistics", "url": "https://www.rbnz.govt.nz/statistics/series/economic-indicators/housing"},
+    # Recreation / conservation
+    "doc_conservation": {"authority": "Department of Conservation public estate", "url": "https://www.doc.govt.nz/our-work/data-and-resources/"},
 }
 
 
@@ -1831,8 +1839,8 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         if nzdep >= 8:
             result["liveability"].append(Insight(
                 "warn",
-                f"NZDep decile {nzdep}/10. among the 30% most deprived NZ areas (2018 index covering income, employment, qualifications, access).",
-                "Decile does not reflect gentrification since 2018. Visit at different times to assess character.",
+                f"NZDep decile {nzdep}/10. among the 30% most deprived NZ areas (2023 index covering income, employment, qualifications, access).",
+                "Decile does not reflect gentrification since 2023. Visit at different times to assess character.",
                 source=_src("nzdep"),
             ).to_dict())
         elif nzdep <= 3:

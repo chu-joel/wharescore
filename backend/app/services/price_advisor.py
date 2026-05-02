@@ -524,23 +524,12 @@ async def compute_price_advice(
                 "category": "property",
             })
 
-    # Parking (multi-unit only)
-    if has_parking is not None and is_multi_unit:
-        factors_analysed += 1
-        if has_parking:
-            lo, hi = 0.01, 0.03
-        else:
-            lo, hi = -0.03, -0.01
-        adjustments.append({
-            "factor": "parking",
-            "label": "Parking included" if has_parking else "No parking",
-            "pct_low": round(lo * 100, 1),
-            "pct_high": round(hi * 100, 1),
-            "dollar_low": round(estimated_value * lo),
-            "dollar_high": round(estimated_value * hi),
-            "reason": "Dedicated parking adds value for units",
-            "category": "property",
-        })
+    # Parking: intentionally NOT modelled for buying. Estimated value derives
+    # from CV which is per-title — if the park is on the apartment's title CV
+    # already reflects it, and if it's a separate title the buyer transacts it
+    # separately and our estimate is for the apartment title alone. A flat
+    # ±1-3% adjustment was wrong in both cases. The has_parking input is kept
+    # on the API for budget-store / persona-input continuity.
 
     # 8. Apply adjustments to estimate
     product_low = 1.0

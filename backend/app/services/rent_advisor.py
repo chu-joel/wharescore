@@ -844,23 +844,32 @@ async def compute_rent_advice(
                 "category": "property",
             })
 
-    # Parking (flats/apartments only)
-    # Note: bond data mixes tenancies with/without parking, so the median
-    # already partially reflects parking. Adjustment captures the delta.
-    if has_parking is not None and dwelling_type in ("Flat", "Apartment"):
+    # Parking (flats/apartments only). Bond medians for these dwelling types
+    # skew toward no-parking tenancies (especially in CBDs), so the band is
+    # asymmetric: a real premium above the baseline when parked, only a small
+    # marginal discount below it when not.
+    if dwelling_type in ("Flat", "Apartment"):
         factors_analysed += 1
-        if has_parking:
-            lo, hi = 0.01, 0.03
+        if has_parking is True:
+            lo, hi = 0.03, 0.06
+            label = "Parking included"
+            reason = "Bond median skews no-parking; premium for parked is larger than the discount for not"
+        elif has_parking is False:
+            lo, hi = -0.02, -0.01
+            label = "No parking"
+            reason = "Bond median skews no-parking; premium for parked is larger than the discount for not"
         else:
-            lo, hi = -0.03, -0.01
+            lo, hi = -0.02, 0.06
+            label = "Parking unknown"
+            reason = "Parking status not provided; band widened to cover parked (+3 to +6%) and no-parking (-2 to -1%) cases"
         adjustments.append({
             "factor": "parking",
-            "label": "Parking included" if has_parking else "No parking",
+            "label": label,
             "pct_low": round(lo * 100, 1),
             "pct_high": round(hi * 100, 1),
             "dollar_low": round(raw_median * lo),
             "dollar_high": round(raw_median * hi),
-            "reason": "Median includes a mix of with/without",
+            "reason": reason,
             "category": "property",
         })
 
