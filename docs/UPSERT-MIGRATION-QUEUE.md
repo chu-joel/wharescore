@@ -16,8 +16,8 @@ verifiable on prod before the next.
 | Status | Count | Meaning |
 |---|---|---|
 | done | 1 | Already migrated to upsert |
-| pending | 1 | Good candidate; awaiting skill invocation |
-| skipped | 564 | Deliberately NOT migrated (reason in row) |
+| pending | 0 | Good candidate; awaiting skill invocation |
+| skipped | 565 | Deliberately NOT migrated (reason in row) |
 
 ## How to use
 
@@ -33,7 +33,6 @@ verifiable on prod before the next.
 | # | source_key | tables | authority | cadence | check | detection | priority |
 |---|---|---|---|---|---|---|---|
 
-| 1 | `auckland_flood_sensitive` | flood_hazard | Auckland Council | revisable | monthly | arcgis_lastEditDate | 115 |
 
 ## Done
 
@@ -52,6 +51,7 @@ verifiable on prod before the next.
 | `auckland_coastal_erosion` | no upstream_url set — populate URL first |
 | `auckland_coastal_erosion_2130` | no upstream_url set — populate URL first |
 | `auckland_ecological` | no upstream_url set — populate URL first |
+| `auckland_flood_sensitive` | no stable ID — upstream has only OBJECTID (auto-increment, regenerated on every export) as the unique-per-feature field. All other fields repeat across rows or are nullable. AC re-runs the whole model wholesale rather than editing per-feature, so truncate+insert is the honest pattern. Investigated 2026-05-02 via the upsert-loader skill. |
 | `auckland_geotech` | no upstream_url set — populate URL first |
 | `auckland_height_variation` | no upstream_url set — populate URL first |
 | `auckland_heritage` | no upstream_url set — populate URL first |

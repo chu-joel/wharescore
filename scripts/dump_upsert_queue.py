@@ -35,7 +35,14 @@ DONE_KEYS = {"auckland_flood"}
 
 # Sources NOT to migrate. Reason captured per-key.
 SKIP_REASONS = {
-    # Patterns where upsert doesn't apply or isn't worth it.
+    "auckland_flood_sensitive": (
+        "no stable ID — upstream has only OBJECTID (auto-increment, "
+        "regenerated on every export) as the unique-per-feature field. "
+        "All other fields repeat across rows or are nullable. AC re-runs "
+        "the whole model wholesale rather than editing per-feature, so "
+        "truncate+insert is the honest pattern. Investigated 2026-05-02 "
+        "via the upsert-loader skill."
+    ),
 }
 
 
