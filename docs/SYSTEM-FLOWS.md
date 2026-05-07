@@ -360,7 +360,7 @@ Known limitation: 5-year CGR is a smoothed line. Revals dated near the late-2021
 | Liveability | 0.13 | Weighted mean | 4 |
 | Transport | 0.10 | Weighted mean | 6 |
 | Market | 0.10 | Weighted mean | 3 |
-| Planning | 0.10 | Weighted mean | 5 |
+| Planning | 0.10 | Weighted mean | 2 (`resource_consents` 0.50, `infrastructure` 0.50). `zone_permissiveness`, `height_limit`, `school_zone` removed 2026-05-07: scoring them honestly needs persona context (a buyer wanting to subdivide values permissiveness; another buyer values restriction). Until that exists they are not weighted. |
 
 Hazards at 50% reflects the dominant role of physical safety in NZ property decisions — flood, liquefaction, tsunami, slope and earthquake exposure drive insurance premiums, lender appetite and resale value in ways no other category does. The other five categories share the remaining 50% in the original proportions (non-hazard sum was 0.75 → scale by 2/3). Previous value was 0.25.
 

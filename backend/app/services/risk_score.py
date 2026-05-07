@@ -286,9 +286,12 @@ WEIGHTS_MARKET = {           # Sum = 1.0, WAM
 }
 
 WEIGHTS_PLANNING = {         # Sum = 1.0, WAM
-    "zone_permissiveness": 0.25, "height_limit": 0.20,
-    "resource_consents": 0.20, "infrastructure": 0.20,
-    "school_zone": 0.15,
+    # zone_permissiveness, height_limit, school_zone removed — scoring them
+    # honestly needs persona context (a buyer wanting to subdivide values
+    # permissiveness; another buyer values restriction). Until that exists,
+    # the only two planning signals that score on real data drive the category.
+    "resource_consents": 0.50,
+    "infrastructure": 0.50,
 }
 
 # Cross-category composite weights.
@@ -745,15 +748,13 @@ def enrich_with_scores(report: dict) -> dict:
     serious = (liv.get("crashes_300m_serious") or 0) + (liv.get("crashes_300m_fatal") or 0)
     indicators["road_safety"] = normalize_min_max(serious, 0, 20)
 
-    # Planning (mostly neutral for MVP. no user preference context yet)
-    indicators["zone_permissiveness"] = 50
-    indicators["height_limit"] = 50
+    # Planning. Two indicators score on real data; persona-dependent indicators
+    # (zone permissiveness, height limit, school zone) are not weighted today.
     indicators["resource_consents"] = log_normalize(
         plan.get("resource_consents_500m_2yr"), 30
     )
     infra = plan.get("infrastructure_5km")
     indicators["infrastructure"] = log_normalize(len(infra) if infra else 0, 40)
-    indicators["school_zone"] = 50
 
     # Market. derive from rental overview data in report
     market = report.get("market") or {}

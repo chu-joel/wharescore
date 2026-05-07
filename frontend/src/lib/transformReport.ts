@@ -43,7 +43,6 @@ const INDICATOR_LABELS: Record<string, string> = {
   air_quality: 'Air Quality',
   water_quality: 'Water Quality',
   contaminated_land: 'Contaminated Land',
-  school_zone: 'School Zoning',
   transit_access: 'Transit Access',
   commute_frequency: 'Commute Frequency',
   rail_proximity: 'Rail Proximity',
@@ -52,8 +51,6 @@ const INDICATOR_LABELS: Record<string, string> = {
   rental_fairness: 'Rental Fairness',
   rental_trend: 'Rental Trend',
   market_heat: 'Market Heat',
-  zone_permissiveness: 'Zoning',
-  height_limit: 'Height Limit',
   resource_consents: 'Resource Consents',
   coastal_erosion: 'Coastal Erosion',
   ground_shaking: 'Ground Shaking',
@@ -76,15 +73,12 @@ const INDICATOR_CATEGORIES: Record<string, string> = {
   coastal_erosion: 'risk', wind: 'risk', wildfire: 'risk', epb: 'risk', slope_failure: 'risk',
   noise: 'risk', air_quality: 'risk', water_quality: 'risk',
   climate: 'risk', contaminated_land: 'risk',
-  nzdep: 'liveability', schools: 'liveability', school_zone: 'liveability',
-  heritage: 'liveability',
+  nzdep: 'liveability', schools: 'liveability', heritage: 'liveability',
   transit_access: 'transport', cbd_proximity: 'transport', commute_frequency: 'transport',
   rail_proximity: 'transport', bus_density: 'transport', road_safety: 'transport',
   // Legacy fallback
   transit: 'transport', crashes: 'transport',
-  zone_permissiveness: 'planning',
-  height_limit: 'planning', resource_consents: 'planning',
-  infrastructure: 'planning',
+  resource_consents: 'planning', infrastructure: 'planning',
 };
 
 /**

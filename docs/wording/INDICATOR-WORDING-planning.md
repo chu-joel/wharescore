@@ -25,7 +25,7 @@ Source authorities used in this slice:
 
 - File created from scratch on 2026-05-02. There was no existing planning category file in `docs/wording/`; only `_INVENTORY.md` listed the category.
 - Verified all 33 indicator dot-paths against `migrations/0054_flood_nearest_m.sql` (lines 801-838). Every key is still produced by the SQL function.
-- Verified `risk_score.py` weights: `WEIGHTS_PLANNING = {zone_permissiveness 0.25, height_limit 0.20, resource_consents 0.20, infrastructure 0.20, school_zone 0.15}` at lines 288-291. Two indicators are hard-coded neutral (50): `zone_permissiveness` (line 749) and `height_limit` (line 750), flagged in their cells.
+- `risk_score.py` weights (post-2026-05-07): `WEIGHTS_PLANNING = {resource_consents 0.50, infrastructure 0.50}`. The persona-dependent indicators (`zone_permissiveness`, `height_limit`, `school_zone`) were removed because they had been hard-coded neutral 50 and silently anchored 60% of the sub-score regardless of the property. Their fields are still rendered as informational context; they just no longer feed the composite. Restoring them needs persona-aware scoring (a V2 feature).
 - Verified planning Insights in `report_html.py` at lines 1402-1506 (overlay set) and 2034-2081 (rules engine). **None of the planning Insights in those two ranges pass `source=`**, so every `source_key status` cell below reads "TODO, no `source=` parameter on the Insight call". Note: `_src("mbie_epb")` IS attached at `report_html.py:849, 887` and `_src("council_slur")` at `:1797, 1805, 1813`. These are EPB and contamination Insights elsewhere in the file (not in the planning rules engine), so the gap is local to the two ranges audited.
 - Verified `SOURCE_CATALOG` keys (`report_html.py:637-676`): planning-relevant keys present are `council_zones`, `council_heritage_overlay`, `transpower`, `mbie_epb`, `heritage_nz`. **Missing**: dedicated keys for `te_waihanga` (infrastructure), `moe_zones` (school zones), `osm_amenities` / `linz_parks` for parks (osm_amenities exists but is generic), `council_viewshafts`, `council_character`, `council_special_character`, `council_ecological`, `council_mana_whenua`, `council_notable_trees`, `council_height_controls`, `council_height_variation`, `council_resource_consents`, council `contaminated_land`. These need adding to SOURCE_CATALOG before planning Insights can attach attribution.
 - Wording rules applied: 6 surfaces × 3 personas, NZ English, ≤60 char labels, defuse common misreading, name comparators when relevant, Renter ~grade 2 / Buyer ~grade 3 / Pro ~grade 4.
@@ -70,7 +70,7 @@ Source authorities used in this slice:
 - Query path: `get_property_report()` LATERAL `dpz`, `SELECT zone_name, zone_code, category FROM district_plan_zones … ORDER BY zone_name IS NULL, zone_code IS NULL, ST_Area … LIMIT 1` (migrations/0054_flood_nearest_m.sql:842-848). Returned as `planning.zone_name` at :801.
 - Rendered by: `frontend/src/components/property/sections/PlanningSection.tsx:75-81` (zone pill); `frontend/src/components/report/HostedExecutiveSummary.tsx:90` (executive summary line); `frontend/src/components/property/ActionCard.tsx:291-297` (recommendation copy); `frontend/src/lib/compareSections.ts:452` (compare row).
 - Threshold / classification logic: `_derive_zone_category()` in `data_loader.py` maps free-text zone names → category (residential / business / rural / open space / etc.) using substring rules (e.g. "open space"/"recreation"/"reserve"/"park" → open space at line 233).
-- Score contribution: Drives `zone_permissiveness` indicator (`WEIGHTS_PLANNING = 0.25`). Currently hard-coded to neutral 50, `risk_score.py:749 indicators["zone_permissiveness"] = 50`. So today the field is rendered but does NOT yet move the planning sub-score.
+- Score contribution: removed from WEIGHTS_PLANNING on 2026-05-07 (was 0.25, hard-coded neutral 50). Field still rendered as informational context; does not feed the composite. Restoring requires persona-aware scoring.
 - Coverage: 20+ councils. See `WIRING-TRACES.md` § Planning-traces row 131.
 - Common misreading: Treating the zone string as a permission to build whatever you want, zones grant permitted activities only; most modifications still need design / building consent and may trigger overlay rules.
 - What it does NOT tell you: Specific permitted activities, density limits, setbacks, design controls, or whether overlays add restrictions on top of the base zone, those live in the District Plan chapter, not in this field.
@@ -151,7 +151,7 @@ Source authorities used in this slice:
 - Query path: `get_property_report()` LATERAL `hc`, `SELECT height_metres FROM height_controls … LIMIT 1` (migrations/0054_flood_nearest_m.sql:851), returned as `max_height_m` at :802. Frontend/snapshot reads it as `height_limit`.
 - Rendered by: `PlanningSection.tsx:98-103` (reads `planning.height_limit`); `ActionCard.tsx:296` (recommendation text).
 - Threshold / classification logic: not applicable.
-- Score contribution: Drives `height_limit` indicator (`WEIGHTS_PLANNING = 0.20`). Currently hard-coded neutral 50 (`risk_score.py:750`).
+- Score contribution: removed from WEIGHTS_PLANNING on 2026-05-07 (was 0.20, hard-coded neutral 50). Field still rendered as informational context; does not feed the composite.
 - Coverage: WCC + select councils. See `DATA-PROVENANCE.md:193`.
 - Common misreading: Treating the figure as the height a buyer can build to, height variation overlays, viewshafts, character precincts, and design rules can all reduce it below the base limit.
 - What it does NOT tell you: Whether a viewshaft or height variation overlay overrides this; whether the rule is metres-above-ground or absolute RL; whether it is a permitted-activity height or a discretionary cap.
@@ -286,7 +286,7 @@ Source authorities used in this slice:
 - Query path: `get_property_report()` LATERAL `rc`, `SELECT COUNT(*)::int … FROM resource_consents WHERE ST_DWithin(…) AND granted_date >= now() - interval '2 years'` (migrations/0054_flood_nearest_m.sql:881), returned as `resource_consents_500m_2yr` at :806.
 - Rendered by: `PlanningSection.tsx:166` (`consent_count` checklist row, `positive=true`); `HostedNeighbourhoodStats.tsx`; `report_html.py:2070-2081` Insight (info, threshold ≥ 10).
 - Threshold / classification logic: Insight fires when `consents >= 10`.
-- Score contribution: `resource_consents` indicator (`WEIGHTS_PLANNING = 0.20`). Log-normalised: `log_normalize(plan.get("resource_consents_500m_2yr"), 30)`, `risk_score.py:751-753`.
+- Score contribution: `resource_consents` indicator (`WEIGHTS_PLANNING = 0.50` after the 2026-05-07 reweighting). Log-normalised: `log_normalize(plan.get("resource_consents_500m_2yr"), 30)`.
 - Coverage: Wellington region + Canterbury only. See `WIRING-TRACES.md:136`.
 - Common misreading: Reading high consent count as "bad", it usually signals an active development area, with potential amenity uplift (and short-term construction disruption); the on-screen UI marks it `positive=true`.
 - What it does NOT tell you: The TYPE of consents (subdivision, alteration, change-of-use, infrastructure), that requires the council consent portal.
@@ -313,7 +313,7 @@ Source authorities used in this slice:
 - Query path: `get_property_report()` LATERAL `infra`, `FROM infrastructure_projects ip … WHERE ST_DWithin(...)` (migrations/0054_flood_nearest_m.sql:895), returned as `infrastructure_5km` at :807.
 - Rendered by: `PlanningSection.tsx:160` (`infrastructure_count`); `HostedInfrastructure.tsx:27` (reads `infrastructure_5km` or `infrastructure_projects`); `report_html.py:2021-2032` upper-section narrative (rent / amenity uplift).
 - Threshold / classification logic: not applicable.
-- Score contribution: `infrastructure` indicator (`WEIGHTS_PLANNING = 0.20`). Log-normalised: `log_normalize(len(infra) if infra else 0, 40)`, `risk_score.py:754-755`.
+- Score contribution: `infrastructure` indicator (`WEIGHTS_PLANNING = 0.50` after the 2026-05-07 reweighting). Log-normalised: `log_normalize(len(infra) if infra else 0, 40)`.
 - Coverage: National, assuming the Te Waihanga pipeline is loaded at all.
 - Common misreading: Treating listed projects as committed, the pipeline includes proposed, business-case and committed projects; only some are funded / dated.
 - What it does NOT tell you: Whether the project will go ahead, when, or what the construction footprint will be.
@@ -904,10 +904,10 @@ Source authorities used in this slice:
 - Dataset / endpoint: National school enrolment zones (data_loader.py:3877 `load_school_zones`).
 - DataSource key(s): `school_zones` (data_loader.py:7137-7140).
 - Table(s): `school_zones`
-- Query path: Tested via `EXISTS (SELECT 1 FROM school_zones sz WHERE ST_Intersects(...))` in migrations/0054_flood_nearest_m.sql:666 (used elsewhere). The `school_zone` indicator value itself is computed by `risk_score.py:756 indicators["school_zone"] = 50`, currently hard-coded neutral.
-- Rendered by: `frontend/src/components/report/HostedSchoolZones.tsx`; risk score indicator only (no dedicated on-screen tile).
-- Threshold / classification logic: Currently fixed at 50 (`risk_score.py:756`), no real implementation yet.
-- Score contribution: `school_zone` indicator (`WEIGHTS_PLANNING = 0.15`, `risk_score.py:288-291`).
+- Query path: Tested via `EXISTS (SELECT 1 FROM school_zones sz WHERE ST_Intersects(...))` in migrations/0054_flood_nearest_m.sql:666. The `school_zone` indicator was removed from WEIGHTS_PLANNING on 2026-05-07; field is still rendered as informational context.
+- Rendered by: `frontend/src/components/report/HostedSchoolZones.tsx`; no on-screen tile.
+- Threshold / classification logic: not applicable, no scoring contribution.
+- Score contribution: removed from WEIGHTS_PLANNING on 2026-05-07 (was 0.15, hard-coded neutral 50). Restoring requires persona-aware scoring (the user picks which school they care about).
 - Coverage: National (school zones loaded).
 - Common misreading: Reading "in zone" as guaranteed enrolment, zoned schools must accept in-zone students, but enrolment caps and balloted out-of-zone places change yearly.
 - What it does NOT tell you: Which school(s) the address is zoned for; current decile / EQI / academic data.
@@ -917,11 +917,11 @@ Source authorities used in this slice:
 | Surface | Renter | Buyer | Pro |
 |---|---|---|---|
 | On-screen, label (≤60 chars) | School zone match | School zoning | School enrolment zone |
-| On-screen, finding (1 sentence, "(no rule)" if none exists) | (no rule, indicator value is hard-coded neutral 50) | (no rule yet) | (indicator hard-coded neutral 50; `school_zone` indicator currently a placeholder per risk_score.py:756) |
+| On-screen, finding (1 sentence, "(no rule)" if none exists) | (no rule) | (no rule) | (no rule; `school_zone` indicator removed from WEIGHTS_PLANNING 2026-05-07 — field rendered, not scored) |
 | Hosted Quick, label (≤60 chars) | School zone | School zone | School enrolment zone (MoE) |
 | Hosted Quick, narrative (1 sentence) | This address is in a school's home zone. | The address sits in a school enrolment zone; see the schools list for which one(s). | MoE enrolment-zone match (zoned school name in `HostedSchoolZones.tsx`). |
 | Hosted Full, label (≤60 chars) | School zone | School enrolment zone | School enrolment zone (MoE) |
-| Hosted Full, narrative + tech (≤2 sentences) | This address is in a school's home zone, so kids living here have a right to enrol there. | This address is in a school enrolment zone. In-zone students must be accepted; out-of-zone places are usually balloted and capped year-by-year. | Address intersects MoE `school_zones`. Source: Ministry of Education. The `school_zone` risk-score indicator (WEIGHTS_PLANNING 0.15) is currently a placeholder fixed at 50 (see risk_score.py:756). |
+| Hosted Full, narrative + tech (≤2 sentences) | This address is in a school's home zone, so kids living here have a right to enrol there. | This address is in a school enrolment zone. In-zone students must be accepted; out-of-zone places are usually balloted and capped year-by-year. | Address intersects MoE `school_zones`. Source: Ministry of Education. The `school_zone` risk-score indicator was removed from WEIGHTS_PLANNING on 2026-05-07; restoring it requires persona-aware scoring (which school does the user care about). |
 
 ---
 
@@ -958,7 +958,7 @@ Indicators with UNKNOWN entries or missing source_key:
 | `planning.zone_name` | source_key TODO. `council_zones` exists in SOURCE_CATALOG (report_html.py:672); attach to leasehold / zone-derived findings. No Insight currently exists for the zone field by itself. |
 | `planning.zone_code` | source_key TODO. Bundled with `zone_name`. |
 | `planning.zone_category` | source_key TODO. Bundled with `zone_name`. |
-| `planning.max_height_m` | source_key TODO. `council_zones` is closest existing key; a dedicated `council_height_controls` would be more precise. Also: `zone_permissiveness` and `height_limit` indicators are hard-coded to neutral 50 (`risk_score.py:749-750`), so the field is rendered but does not move the planning sub-score today. |
+| `planning.max_height_m` | source_key TODO. `council_zones` is closest existing key; a dedicated `council_height_controls` would be more precise. The `height_limit` indicator was removed from WEIGHTS_PLANNING on 2026-05-07; field rendered as informational context only. |
 | `planning.height_variation_limit` | source_key TODO. Insight at report_html.py:1500 needs `source=`. Add `council_height_variation` to SOURCE_CATALOG (or reuse `council_zones`). Auckland-only. |
 | `planning.heritage_listed` | source_key TODO. Insight at report_html.py:2050 should attach `heritage_nz` (already in SOURCE_CATALOG at :658). |
 | `planning.contaminated_listed` | source_key TODO. Insight at report_html.py:2043 should attach `council_slur` (already in SOURCE_CATALOG at :667). |
@@ -975,7 +975,7 @@ Indicators with UNKNOWN entries or missing source_key:
 | `planning.notable_trees_50m` (+ nearest) | source_key TODO. Insight at report_html.py:1493 needs `source=`. **No `council_notable_trees` key** (needs adding). |
 | `planning.park_count_500m` | source_key TODO. No Insight currently. If added, `osm_amenities` is the closest existing key; a dedicated `council_parks` would be cleaner. |
 | `planning.nearest_park_name` (+ distance_m) | source_key TODO. Insight at report_html.py:1509 needs `source=`. |
-| `school_zone` (planning indicator) | source_key TODO. Indicator value hard-coded neutral 50 at `risk_score.py:756` (no real implementation). **No `moe_zones` key in SOURCE_CATALOG**; `moe_schools` (report_html.py:657) exists for the directory but a `moe_zones` key would be more specific. |
+| `school_zone` (planning indicator) | Removed from WEIGHTS_PLANNING on 2026-05-07. `moe_zones` key now exists in SOURCE_CATALOG (added 2026-05-07); attach when a real persona-aware Insight is wired. |
 
 Required SOURCE_CATALOG additions to close source_key gaps in this slice:
 1. `te_waihanga`, for the infrastructure pipeline.

@@ -40,11 +40,8 @@ const INDICATOR_LABELS: Record<string, string> = {
   rental_fairness: 'Rental Market Depth',
   rental_trend: 'Rental Trend',
   market_heat: 'Market Heat',
-  zone_permissiveness: 'Zoning',
-  height_limit: 'Height Limit',
   resource_consents: 'Resource Consents',
   infrastructure: 'Infrastructure Projects',
-  school_zone: 'School Zoning',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

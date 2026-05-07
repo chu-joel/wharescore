@@ -143,19 +143,16 @@ Of your 35 PostGIS tables, not all are scoreable risk indicators. Some are **pro
 
 **Why these weights:** Rental fairness is the direct "am I getting ripped off?" answer — the core of the Fair Price Engine. Rental trend signals whether the area is getting more or less expensive. Market heat (HPI) is broader economic context. Note: these are **renter-weighted** for MVP because renters are the primary user. For buyers, the weights would shift toward HPI and capital value comparisons (V2 when council RV/CV data is integrated).
 
-#### Planning & Regulatory (5 indicators) — Weight: 15% of composite
+#### Planning & Regulatory (2 scored indicators) — Weight: 10% of composite
 
 | # | Indicator | Table | Data Type | Direction | Raw Range | Normalization | Category Weight |
 |---|-----------|-------|-----------|-----------|-----------|---------------|-----------------|
-| 23 | **Zone permissiveness** | `district_plan_zones` | Categorical (14 zone types) | Varies by user intent | Zone type | Context-dependent | **25%** |
-| 24 | **Height limit** | `height_controls` | Continuous (metres) | Varies by user intent | 4–95m | Context-dependent | **20%** |
-| 25 | **Nearby resource consents** | `resource_consents` | Count (granted, within 500m, 2yr) | More = more development activity | 0–50+ | Log-scaled | **20%** |
-| 26 | **Infrastructure investment** | `infrastructure_projects` | Count + value (within 5km) | More = generally positive | 0–50 projects | Log-scaled, positive | **20%** |
-| 27 | **School zone** | `school_zones` | Binary (in/out of desirable zone) | In zone = positive | Yes/no | Binary positive | **15%** |
+| 25 | **Nearby resource consents** | `resource_consents` | Count (granted, within 500m, 2yr) | More = more development activity | 0–50+ | Log-scaled | **50%** |
+| 26 | **Infrastructure investment** | `infrastructure_projects` | Count + value (within 5km) | More = generally positive | 0–50 projects | Log-scaled, positive | **50%** |
 
-**Why these weights:** Planning indicators are unusual because **direction depends on user intent**. A buyer may want a permissive zone (development potential) while a neighbour may want restrictive zoning (character protection). For MVP, these are scored as **informational context** rather than strict risk — they contribute to the composite but with clearly labelled "this could be positive or negative depending on your goals."
+**Why these weights:** Planning has only two scored indicators because the others (zone permissiveness, height limit, school zone) are persona-dependent — a buyer wanting to subdivide values permissiveness; a buyer wanting quiet values restriction; school zone matters only relative to a chosen school. Without persona context, scoring them imposes an arbitrary polarity on every report. The two indicators that remain (consents activity, infrastructure pipeline) score on real surrounding-area activity and are direction-stable for most users (more activity = more change, more change = more risk).
 
-**MVP default direction:** Until user preference sliders are available (V2), zone permissiveness and height limit are scored as **neutral 50** (no impact on composite). Resource consents, infrastructure investment, and school zones use their defined positive/log-scaled directions. This prevents Planning from distorting the composite with arbitrary polarity assumptions.
+**Removed 2026-05-07.** Earlier versions weighted zone permissiveness (25%), height limit (20%) and school zone (15%) but hard-coded them to neutral 50, which silently anchored 60% of the planning sub-score regardless of the property. Surfaced via the wording-doc audit (`docs/wording/INDICATOR-WORDING-planning.md`). Restoring them requires persona-aware scoring (a V2 feature). Until then, the values are still surfaced in the report as **informational context** under the indicator's display logic — they just don't feed the composite. The indicator fields (`zone_name`, `max_height_m`, `school_zone`) remain in `get_property_report()` and continue to render in the on-screen and hosted reports; only the composite weighting changed.
 
 ### Non-Scoring Layers (9 tables — property context & infrastructure)
 
