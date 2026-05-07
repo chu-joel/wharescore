@@ -1,8 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { X, Info, AlertTriangle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { usePublicBanner, type BannerType } from '@/hooks/usePublicBanner';
+import { useAuthToken } from '@/hooks/useAuthToken';
+import { apiFetch } from '@/lib/api';
+import { safeRedirect } from '@/lib/utils';
 
 const STORAGE_PREFIX = 'ws-banner-dismissed:';
 const HEIGHT_VAR = '--ws-banner-h';
@@ -42,9 +46,13 @@ const TYPE_STYLES: Record<BannerType, { bg: string; border: string; text: string
 
 export function PublicBanner() {
   const { data: banner } = usePublicBanner();
+  const { status: sessionStatus } = useSession();
+  const { getToken } = useAuthToken();
   const [dismissed, setDismissed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [buying, setBuying] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const isSignedIn = sessionStatus === 'authenticated';
 
   const hash = banner ? bannerHash(banner.text) : null;
   const visible = mounted && !!banner && !!hash && !dismissed;
@@ -96,6 +104,26 @@ export function PublicBanner() {
     setDismissed(true);
   };
 
+  const handleBuy = async () => {
+    if (buying) return;
+    setBuying(true);
+    try {
+      const token = await getToken();
+      const res = await apiFetch<{ checkout_url?: string }>('/api/v1/checkout/session', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'full_single' }),
+        token: token ?? undefined,
+      });
+      if (res.checkout_url) {
+        safeRedirect(res.checkout_url);
+      } else {
+        setBuying(false);
+      }
+    } catch {
+      setBuying(false);
+    }
+  };
+
   return (
     <div
       ref={wrapperRef}
@@ -105,6 +133,22 @@ export function PublicBanner() {
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <Icon className={`h-4 w-4 shrink-0 ${iconColor}`} aria-hidden="true" />
         <p className={`flex-1 text-xs sm:text-sm ${text}`}>{banner.text}</p>
+        {isSignedIn && (
+          <button
+            type="button"
+            onClick={handleBuy}
+            disabled={buying}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-piq-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-piq-primary/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-piq-primary focus-visible:ring-offset-1"
+          >
+            {buying ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span className="hidden sm:inline">Buy Full Report — $2.99</span>
+            <span className="sm:hidden">Buy $2.99</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={handleDismiss}
