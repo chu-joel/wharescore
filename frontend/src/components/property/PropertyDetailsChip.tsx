@@ -41,6 +41,9 @@ interface PropertyDetailsChipProps {
 // Module-scoped so all 3 PropertyReport breakpoint instances share one
 // dedupe key. Set by whichever instance fires the POST first.
 let lastAutoSaveKey: string | null = null;
+// Same idea for the auto-expand-accordion-on-complete effect — fire it
+// at most once per (address, persona, full input combination).
+let lastAutoExpandKey: string | null = null;
 
 function getRentalOverview(report: PropertyReport) {
   return report.market?.rental_overview ?? [];
@@ -99,6 +102,43 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
   // breakpoint, all mounted but only one visible). The dedupe key lives
   // at module scope so all 3 chip instances see the same last-sent value
   // and only one POST fires per change.
+  // Once the user has provided everything the advisor needs (bedrooms +
+  // bathrooms + dwelling + finish + rent or asking price), open the
+  // matching accordion and pulse its inputs so the result is visible
+  // without making them go hunting for it. Keyed by all five values so
+  // the trigger fires once per unique combination per address.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!bedrooms || !bathrooms || !dwellingType || !finishTier) return;
+    const userValue = persona === 'renter' ? weeklyRent : askingPrice;
+    if (!userValue || userValue <= 0) return;
+    const key = `${addressId}|${persona}|${dwellingType}|${bedrooms}|${bathrooms}|${finishTier}|${userValue}`;
+    if (lastAutoExpandKey === key) return;
+    const timer = window.setTimeout(() => {
+      if (lastAutoExpandKey === key) return;
+      lastAutoExpandKey = key;
+      const sectionAttr = persona === 'renter' ? 'rent-fair' : 'true-cost';
+      const target = document.querySelector<HTMLElement>(
+        `[data-tour-section="${sectionAttr}"]`,
+      );
+      if (!target) return;
+      const trigger = target.querySelector<HTMLButtonElement>(
+        'button[aria-expanded]',
+      );
+      const isOpen = trigger?.getAttribute('aria-expanded') === 'true';
+      if (trigger && !isOpen) trigger.click();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent(
+          persona === 'renter'
+            ? 'wharescore:highlight-rent-inputs'
+            : 'wharescore:highlight-price-inputs',
+        ));
+      }, 450);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [persona, addressId, dwellingType, bedrooms, bathrooms, finishTier, weeklyRent, askingPrice]);
+
   useEffect(() => {
     if (!bedrooms || !bathrooms) return;
     const key = `${addressId}|${persona}|${dwellingType ?? ''}|${bedrooms}|${bathrooms}|${finishTier ?? ''}`;
