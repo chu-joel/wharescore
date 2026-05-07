@@ -46,7 +46,7 @@ export default async function SuburbsIndexPage() {
   return (
     <>
       <AppHeader />
-      <main className="pt-14">
+      <main className="pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <div className="mx-auto max-w-4xl px-4 py-8">
           <header className="mb-6">
             <h1 className="text-3xl font-bold">New Zealand Suburb Guides</h1>

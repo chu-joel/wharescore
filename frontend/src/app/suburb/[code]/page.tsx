@@ -12,7 +12,7 @@ export default function SuburbPage({ params }: { params: Promise<{ code: string 
     return (
       <>
         <AppHeader />
-        <div className="pt-14 flex items-center justify-center h-screen">
+        <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))] flex items-center justify-center h-screen">
           <ErrorState variant="suburb-not-found" />
         </div>
       </>
@@ -22,7 +22,7 @@ export default function SuburbPage({ params }: { params: Promise<{ code: string 
   return (
     <>
       <AppHeader />
-      <div className="pt-14">
+      <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <SuburbSummaryPage sa2Code={code} />
       </div>
     </>

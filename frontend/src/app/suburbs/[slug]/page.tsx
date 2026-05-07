@@ -153,7 +153,7 @@ export default async function SuburbGuidePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="pt-14">
+      <main className="pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <article className="mx-auto max-w-3xl px-4 py-8">
           {/* Breadcrumb */}
           <nav className="mb-4 text-xs text-muted-foreground" aria-label="Breadcrumb">

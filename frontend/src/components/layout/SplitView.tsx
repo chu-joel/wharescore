@@ -53,7 +53,7 @@ export function SplitView({ map, panel }: SplitViewProps) {
   }, [isDragging]);
 
   return (
-    <div ref={containerRef} className="flex h-[calc(100vh-56px)]">
+    <div ref={containerRef} className="flex h-[calc(100vh-3.5rem-var(--ws-banner-h,0px))]">
       {/* Map side */}
       <div
         className="relative transition-[width] duration-75"

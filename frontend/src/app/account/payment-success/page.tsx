@@ -182,7 +182,7 @@ export default function PaymentSuccessPage() {
     'Credits added';
 
   return (
-    <div className="min-h-screen bg-background pt-14 flex items-center justify-center">
+    <div className="min-h-screen bg-background pt-[calc(3.5rem+var(--ws-banner-h,0px))] flex items-center justify-center">
       <div className="mx-auto max-w-md px-4 text-center">
         <div className="mb-6 animate-in zoom-in-50 duration-500">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">

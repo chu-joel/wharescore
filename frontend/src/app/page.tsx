@@ -120,7 +120,7 @@ export default function Home() {
       <OnboardingTour />
 
       {bp === 'desktop' && (
-        <div className="pt-14">
+        <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
           <SplitView
             map={map}
             panel={
@@ -135,7 +135,7 @@ export default function Home() {
       )}
 
       {bp === 'tablet' && (
-        <div className="pt-14 h-[calc(100vh-56px)]">
+        <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))] h-[calc(100vh-3.5rem-var(--ws-banner-h,0px))]">
           <div className="relative w-full h-full">
             {map}
             {selectedAddress && (
@@ -148,7 +148,7 @@ export default function Home() {
       )}
 
       {bp === 'mobile' && (
-        <div className="pt-14 h-[calc(100vh-56px)] relative">
+        <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))] h-[calc(100vh-3.5rem-var(--ws-banner-h,0px))] relative">
           {map}
           <SearchOverlay onSelect={(result) => {
             selectAddress({

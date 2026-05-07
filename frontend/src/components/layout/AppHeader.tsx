@@ -85,7 +85,7 @@ export function AppHeader() {
   const showHeaderSearch = true;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[60] h-14 border-b border-border bg-background/95 backdrop-blur-sm">
+    <header className="fixed left-0 right-0 z-[60] h-14 border-b border-border bg-background/95 backdrop-blur-sm top-[var(--ws-banner-h,0px)]">
       <div className="flex h-full items-center gap-2 px-3 sm:px-4">
         {/* Left: Logo or Back button */}
         <div className="flex items-center gap-1.5 shrink-0">

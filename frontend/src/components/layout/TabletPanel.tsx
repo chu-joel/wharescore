@@ -28,7 +28,7 @@ export function TabletPanel({ children }: TabletPanelProps) {
 
       {/* Panel */}
       <div
-        className={`fixed top-14 right-0 bottom-0 w-[340px] bg-background border-l border-border z-30 overflow-y-auto overscroll-contain shadow-xl transition-transform duration-300 ease-out ${
+        className={`fixed top-[calc(3.5rem+var(--ws-banner-h,0px))] right-0 bottom-0 w-[340px] bg-background border-l border-border z-30 overflow-y-auto overscroll-contain shadow-xl transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

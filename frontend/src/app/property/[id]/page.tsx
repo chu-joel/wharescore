@@ -38,7 +38,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
     return (
       <>
         <AppHeader />
-        <div className="pt-14 flex items-center justify-center h-screen">
+        <div className="pt-[calc(3.5rem+var(--ws-banner-h,0px))] flex items-center justify-center h-screen">
           <ErrorState variant="not-found" />
         </div>
       </>
@@ -50,7 +50,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
       <AppHeader />
 
       {/* Desktop: split view */}
-      <div className="hidden lg:block pt-14">
+      <div className="hidden lg:block pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <SplitView
           map={<MapContainer />}
           panel={<PropertyReport addressId={addressId} />}
@@ -58,7 +58,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Tablet: map above, report below */}
-      <div className="hidden sm:block lg:hidden pt-14">
+      <div className="hidden sm:block lg:hidden pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <div className="h-[35vh] relative">
           <MapContainer />
         </div>
@@ -68,7 +68,7 @@ export default function PropertyPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Mobile: report only (map on home page) */}
-      <div className="sm:hidden pt-14">
+      <div className="sm:hidden pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
         <PropertyReport addressId={addressId} />
       </div>
 

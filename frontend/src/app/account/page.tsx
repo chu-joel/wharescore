@@ -346,7 +346,7 @@ export default function AccountPage() {
   // Auth loading state
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-background pt-14 flex items-center justify-center">
+      <div className="min-h-screen bg-background pt-[calc(3.5rem+var(--ws-banner-h,0px))] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -355,7 +355,7 @@ export default function AccountPage() {
   // Unauthenticated state
   if (!user) {
     return (
-      <div className="min-h-screen bg-background pt-14 flex items-center justify-center">
+      <div className="min-h-screen bg-background pt-[calc(3.5rem+var(--ws-banner-h,0px))] flex items-center justify-center">
         <div className="text-center max-w-sm px-4">
           <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">Sign in to view your account</h1>
@@ -376,7 +376,7 @@ export default function AccountPage() {
   return (
     <>
     <UpgradeModal />
-    <div className="min-h-screen bg-background pt-14">
+    <div className="min-h-screen bg-background pt-[calc(3.5rem+var(--ws-banner-h,0px))]">
       <div className="mx-auto max-w-3xl px-4 py-8">
         {/* Header */}
         <div className="mb-6">
