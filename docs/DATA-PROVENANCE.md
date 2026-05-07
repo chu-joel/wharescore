@@ -251,5 +251,66 @@ These fields are **derived** from an SRTM digital elevation model — they are n
 ## Cross-references
 
 - **Authorities with multiple endpoints**: expand the relevant DATA-CATALOG.md section (DataSources-by-region for 63 flood / 16 liquefaction / 12 tsunami / 20+ zone loaders; Live-rates-APIs for 25 councils; GTFS-transit for 12 cities).
-- **Adding a new DataSource**: add a row here **and** a row in DATA-CATALOG.md § DataSources-by-region. If the DataSource surfaces in findings/insights, also update `report_html.py` to set a `source_key` on the Insight — see `FRONTEND-WIRING.md` § Source-attribution.
-- **Verifying a row**: `grep` the DataSource key in `backend/app/services/data_loader.py` — every row with a key should resolve to one `DataSource(...)` registration. Rows with `-` in the DataSource column are bulk/one-off loads with no active loader.
+- **Adding a new DataSource**: add a row here **and** a row in DATA-CATALOG.md § DataSources-by-region. If the DataSource surfaces in findings/insights, also update `report_html.py` to set a `source_key` on the Insight, see `FRONTEND-WIRING.md` § Source-attribution.
+- **Verifying a row**: `grep` the DataSource key in `backend/app/services/data_loader.py`. Every row with a key should resolve to one `DataSource(...)` registration. Rows with `-` in the DataSource column are bulk/one-off loads with no active loader.
+
+## SOURCE_CATALOG attribution keys
+
+<!-- UPDATE: When adding a new attribution key to SOURCE_CATALOG in report_html.py, add a row here so agents can find the human-readable authority string in one place. -->
+
+Findings render a "Source: {authority}" caption from these keys via `Insight(source=_src("key"))`. Authority strings are intentionally plain language so a homebuyer can read them.
+
+| Key | Authority (rendered to user) | Used by |
+|---|---|---|
+| `council_flood` | Regional council flood maps | Hazards: flood Insights |
+| `wcc_flood` | Wellington City Council 2024 District Plan | Hazards: WCC flood Insights |
+| `gwrc_flood` | Greater Wellington Regional Council | Hazards: GWRC flood Insights |
+| `gns_faults` | GNS Science Active Faults Database | Hazards: fault Insights |
+| `gns_landslides` | GNS NZ Landslide Database | Hazards: landslide Insights |
+| `geonet_earthquakes` | GeoNet / GNS Science | Hazards: quake history Insights |
+| `gwrc_earthquake` | Greater Wellington Emergencies Portal | Hazards: GWRC liquefaction / slope Insights |
+| `council_liquefaction` | Regional council liquefaction maps | Hazards: liquefaction Insights |
+| `council_tsunami` | Regional council tsunami zones | Hazards: tsunami Insights |
+| `wcc_hazards` | Wellington City Council 2024 District Plan | Hazards: WCC hazard Insights |
+| `mbie_epb` | MBIE Earthquake-Prone Building Register | Hazards / planning: EPB Insights |
+| `niwa_coastal` | NIWA Coastal Sensitivity Index | Hazards: coastal sensitivity Insights |
+| `council_coastal` | Regional council coastal hazard maps | Hazards: coastal Insights |
+| `nzta_crashes` | Waka Kotahi Crash Analysis System (CAS) | Liveability: crash Insights |
+| `nzta_noise` | Waka Kotahi noise contours | Environment: road noise Insights |
+| `nz_police_crime` | NZ Police victimisations data | Liveability: crime Insights |
+| `moe_schools` | Ministry of Education | Liveability: school directory Insights |
+| `moe_zones` | Ministry of Education school enrolment zones | Liveability / planning: school zone Insights |
+| `heritage_nz` | Heritage NZ Pouhere Taonga Register | Planning: heritage listing Insights |
+| `gtfs_transit` | Regional transit operators (GTFS feeds) | Transport / liveability: transit Insights |
+| `osm_amenities` | OpenStreetMap contributors | Liveability: amenity Insights |
+| `nzdep` | University of Otago NZDep / Stats NZ | Liveability: deprivation Insights |
+| `lawa_air` | LAWA (Land Air Water Aotearoa) | Environment: air quality Insights |
+| `lawa_water` | LAWA (Land Air Water Aotearoa) | Environment: water quality Insights |
+| `niwa_climate` | NIWA climate projections | Environment: climate Insights |
+| `open_meteo` | Open-Meteo historical weather archive (CC BY 4.0) | Environment: historical weather Insights |
+| `council_slur` | Regional council SLUR / HAIL registers | Environment: contaminated land Insights |
+| `linz_titles` | LINZ Property Titles | Property: title-type Insights (leasehold / cross-lease) |
+| `linz_outlines` | LINZ Building Outlines | Property: footprint Insights |
+| `linz_waterways` | LINZ Topo50 waterways | Hazards: nearby waterway Insights |
+| `linz_addresses` | LINZ NZ Street Address points | Property: multi-unit derivation |
+| `council_zones` | Council District / Unitary Plan zones | Planning: zone-derived Insights |
+| `council_heritage_overlay` | Council heritage overlay | Planning: heritage overlay Insights |
+| `council_valuations` | Council rating valuations (live API) | Market / property: site value Insights |
+| `council_resource_consents` | Council resource consents register | Planning: nearby consents Insights |
+| `council_viewshafts` | Council protected view (viewshaft) overlay | Planning: viewshaft Insights |
+| `council_character_precincts` | Council character precinct overlay | Planning: character precinct Insights |
+| `council_special_character` | Council special character area | Planning: special character Insights |
+| `council_ecological` | Council significant ecological area overlay | Planning: ecological area Insights |
+| `council_mana_whenua` | Council sites and areas of significance to mana whenua | Planning: mana whenua sites Insights |
+| `council_notable_trees` | Council notable trees register | Planning: notable trees Insights |
+| `council_height_variation` | Council height variation overlay | Planning: height variation Insights |
+| `te_waihanga` | Te Waihanga / NZ Infrastructure Commission pipeline | Planning: nearby infrastructure project Insights |
+| `transpower` | Transpower transmission network | Planning: transmission line Insights |
+| `wcc_corrosion` | Wellington City Council corrosion zones | Environment: marine corrosion Insights |
+| `wcc_rail_vibration` | Wellington City Council rail vibration overlay | Environment: rail vibration Insights |
+| `srtm` | NASA/USGS SRTM 30m DEM (computed by WhareScore) | Hazards / terrain: DEM-derived Insights |
+| `tenancy_bonds` | MBIE Tenancy Services bond data | Market: rent / yield Insights |
+| `reinz_hpi_national` | REINZ House Price Index (national) | Market: HPI Insights (national) |
+| `reinz_hpi_ta` | REINZ House Price Index (territorial authority) | Market: HPI Insights (TA) |
+| `rbnz_housing` | RBNZ housing statistics | Market: macro housing Insights |
+| `doc_conservation` | Department of Conservation public estate | Liveability: conservation Insights |

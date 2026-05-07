@@ -19,7 +19,7 @@ Findings and insights carry an optional `source` field that renders a "Source: {
 | On-screen free tier | `frontend/src/components/property/KeyFindings.tsx` (`asFrontendFinding`) | Reads `ranked.source.authority`/`.url` | Falls back to `'WhareScore data'` when snapshot predates the field. |
 | Hosted (Jinja, legacy) | `backend/app/templates/report/property_report.html` (4 insight loops) | `{% if i.source %}` | Only renders when present — old snapshots pass-through safely. |
 
-**Coverage:** ~15 of 103 `Insight(...)` call sites annotated so far (highest-visibility hazards, crime, noise, crashes, contamination, climate, NZDep). Remaining calls render without attribution — adding more is a one-line edit per site.
+**Coverage:** 75 of 105 `Insight(...)` call sites annotated. Hazards / planning / market / liveability / environment / transport all carry source attribution on their wired Insights. Remaining 30 are rules whose data sources don't yet have a SOURCE_CATALOG entry (e.g. `branz_wind`, `scion_wildfire`, `linz_8m_dem`, `mfe_coastal_inundation`, `airport_noise_overlay`) — add the key to SOURCE_CATALOG and the source kwarg in one edit per site.
 
 ## Report Fields → Components
 <!-- UPDATE: When adding a report field, add the row. When adding a component, add its fields. -->

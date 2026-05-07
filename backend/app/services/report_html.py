@@ -672,6 +672,19 @@ SOURCE_CATALOG: dict[str, dict[str, str]] = {
     "council_zones": {"authority": "Council District / Unitary Plan zones", "url": "https://www.lawa.org.nz/"},
     "council_heritage_overlay": {"authority": "Council heritage overlay", "url": "https://www.heritage.org.nz/"},
     "council_valuations": {"authority": "Council rating valuations (live API)", "url": "https://www.qv.co.nz/"},
+    "council_resource_consents": {"authority": "Council resource consents register", "url": "https://www.lawa.org.nz/"},
+    "council_viewshafts": {"authority": "Council protected view (viewshaft) overlay", "url": "https://www.lawa.org.nz/"},
+    "council_character_precincts": {"authority": "Council character precinct overlay", "url": "https://www.lawa.org.nz/"},
+    "council_special_character": {"authority": "Council special character area", "url": "https://www.lawa.org.nz/"},
+    "council_ecological": {"authority": "Council significant ecological area overlay", "url": "https://www.lawa.org.nz/"},
+    "council_mana_whenua": {"authority": "Council sites and areas of significance to mana whenua", "url": "https://www.lawa.org.nz/"},
+    "council_notable_trees": {"authority": "Council notable trees register", "url": "https://www.lawa.org.nz/"},
+    "council_height_variation": {"authority": "Council height variation overlay", "url": "https://www.lawa.org.nz/"},
+    "moe_zones": {"authority": "Ministry of Education school enrolment zones", "url": "https://www.educationcounts.govt.nz/directories"},
+    "linz_addresses": {"authority": "LINZ NZ Street Address points", "url": "https://data.linz.govt.nz/layer/53353-nz-street-address/"},
+    "te_waihanga": {"authority": "Te Waihanga / NZ Infrastructure Commission pipeline", "url": "https://infracom.govt.nz/projects/pipeline/"},
+    "wcc_corrosion": {"authority": "Wellington City Council corrosion zones", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
+    "wcc_rail_vibration": {"authority": "Wellington City Council rail vibration overlay", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
     "transpower": {"authority": "Transpower transmission network", "url": "https://www.transpower.co.nz/"},
     "srtm": {"authority": "NASA/USGS SRTM 30m DEM (computed by WhareScore)", "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm"},
     # Market
@@ -745,6 +758,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Leasehold title. you own the building, not the land. Ground rent reviews (typically every 7–21 years) can jump 20–50%.",
             "Ask for current ground rent, next review date, and lessor identity. Not every bank lends on leasehold; "
             "confirm mortgage eligibility before unconditional. A property lawyer should review the ground lease clauses.",
+            source=_src("linz_titles"),
         ).to_dict())
     elif is_cross_lease:
         result["planning"].append(Insight(
@@ -752,6 +766,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Cross-lease title. shared land ownership with the other flats. Any structural change outside the flat plan needs co-owner consent.",
             "Compare as-built to the flats plan. Unapproved additions (decks, extensions, garages) are the most common "
             "cross-lease pitfall and routinely block sale or refinance until remedied.",
+            source=_src("linz_titles"),
         ).to_dict())
 
     # ── Hazard Rules ──────────────────────────────────────────────────────────
@@ -1124,6 +1139,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"On erosion-prone land{_angle_str}. slope is steep enough that standard building consent may not apply.",
             "Any new structures, additions, or significant earthworks will likely require a slope stability report. "
             "Existing structures: check the LIM for any engineering consent notices on the title.",
+            source=_src("gwrc_earthquake"),
         ).to_dict())
 
     # §4-e. Coastal inundation scenario. Ranking High = within council-mapped
@@ -1162,6 +1178,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Most likely next buyers will be redevelopers. That affects how aggressively you should negotiate "
             "building condition issues, and the realistic hold is until the land story plays out rather than "
             "until the house needs its next kitchen.",
+            source=_src("council_valuations"),
         ).to_dict())
 
     # §2.17. Thin rental market with rising rents. Renter-relevant: hard to
@@ -1195,6 +1212,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Thin rental market here. only {_bonds_i} active bonds in this suburb. with rents growing {_cagr_3_f:.1f}%/yr over 3 years.",
             "Thin markets are harder to benchmark. If your landlord proposes a rent increase, keep TradeMe and "
             "realestate.co.nz listings for comparable properties. you'll need them to dispute or negotiate.",
+            source=_src("tenancy_bonds"),
         ).to_dict())
 
     # §2.20. Rates trajectory. Council rates are CV-linked. When area values
@@ -1213,6 +1231,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Council rates are linked to the capital value. When the whole area appreciates, the next triennial "
             "revaluation typically pushes rates bills up noticeably (often well beyond CPI). Budget for rates to "
             "climb, not stay flat, over your hold.",
+            source=_src("tenancy_bonds"),
         ).to_dict())
 
     # ── Regional Hazard Rules (from source_council-based layers) ────────────
@@ -1226,6 +1245,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"High ground shaking amplification zone. earthquake shaking is amplified here.{geo_str}",
             "Older buildings (pre-1976) are most at risk. Ask about seismic strengthening history. "
             "Modern foundations designed for amplification zones perform significantly better.",
+            source=_src("gwrc_earthquake"),
         ).to_dict())
 
     gwrc_geology = str(hazards.get("gwrc_liquefaction_geology") or "").lower()
@@ -1235,6 +1255,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Built on reclaimed/fill land. very high liquefaction and ground deformation risk.",
             "Commission geotechnical assessment. Check foundation type. raft/deep pile foundations "
             "perform best on fill. Review EQC claim history. Insurance excesses may be higher.",
+            source=_src("gwrc_earthquake"),
         ).to_dict())
 
     fault_name = hazards.get("fault_zone_name")
@@ -1245,6 +1266,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Within **{fault_name}** fault zone (ranking: {ranking}). risk of surface rupture.",
             "District Plan rules restrict building in fault avoidance zones. Check if resource consent "
             "is required for modifications. Surface rupture cannot be mitigated by building design.",
+            source=_src("wcc_hazards"),
         ).to_dict())
     else:
         # GNS national active fault. falls back when no council-specific fault_zone_name is set
@@ -1269,6 +1291,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     f"Within 200m of the **{af['name']}** active fault (slip rate {af_slip} mm/yr). direct surface-rupture risk.",
                     "Fault rupture can cause 1–6m of ground offset. not mitigable by building design. "
                     "Check the title for any fault-avoidance consent notice and confirm MBIE/GNS setback compliance before offer.",
+                    source=_src("gns_faults"),
                 ).to_dict())
             elif af_dist is not None and af_dist <= 2000:
                 slip_str = f" Slip rate {af_slip} mm/yr." if af_slip is not None else ""
@@ -1277,6 +1300,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     f"Nearest active fault: **{af['name']}**, {af_dist_str} away.{slip_str}",
                     "Proximity to an active fault raises expected earthquake shaking at this site. "
                     "Modern code-compliant design mitigates this. verify the building consent file and any seismic assessments.",
+                    source=_src("gns_faults"),
                 ).to_dict())
 
     wcc_tsunami = hazards.get("wcc_tsunami_return_period")
@@ -1286,6 +1310,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"District Plan tsunami zone ({wcc_tsunami} return period).",
             "Know your evacuation route to high ground. Long or strong earthquake = move immediately. "
             "Zone affects insurance and may restrict future building consent for habitable rooms.",
+            source=_src("wcc_hazards"),
         ).to_dict())
 
     wcc_flood_type = hazards.get("wcc_flood_type")
@@ -1297,6 +1322,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"District Plan flood overlay: **{wcc_flood_type}** ({wcc_flood_rank} ranking).",
             "Stream corridor = highest risk. Check floor level relative to estimated flood level. "
             "Resource consent may be needed for new buildings/additions in flood overlay areas.",
+            source=_src("wcc_flood"),
         ).to_dict())
 
     solar_kwh = hazards.get("solar_mean_kwh")
@@ -1338,6 +1364,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "ok",
             f"Multi-modal transit within 800m: {', '.join(modes)} stops.",
             "",
+            source=_src("gtfs_transit"),
         ).to_dict())
 
     # ── New Overlay Insights ────────────────────────────────────────────────
@@ -1364,12 +1391,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"{'Very high' if 'very' in ls_rating else 'High'} landslide susceptibility zone (council assessment).",
             "Commission a geotechnical assessment. Check retaining walls, drainage, and slope stability. "
             "This rating considers rainfall-triggered landslides as well as earthquake-induced failures.",
+            source=_src("gns_landslides"),
         ).to_dict())
     elif "moderate" in ls_rating or "medium" in ls_rating:
         result["hazards"].append(Insight(
             "info",
             "Moderate landslide susceptibility. some slope instability risk during heavy rain or earthquakes.",
             "Check retaining wall condition and drainage during inspection.",
+            source=_src("gns_landslides"),
         ).to_dict())
 
     # Geotechnical reports nearby
@@ -1404,6 +1433,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 + (f" (timeframe: {tf}yr)" if tf else "")
                 + (f". {scenario}" if scenario else "") + ".",
                 "Review coastal hazard assessment before purchase. Erosion may affect insurance and resale value.",
+                source=_src("council_coastal"),
             ).to_dict())
 
     # Viewshaft
@@ -1415,6 +1445,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Property is within a protected **viewshaft**{sig_str}: {vs_name}.",
             "Height and bulk restrictions apply. New buildings and additions must not obstruct the protected view.",
+            source=_src("council_viewshafts"),
         ).to_dict())
 
     # Character precinct
@@ -1424,6 +1455,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Within a **character precinct** ({cp_name}). Design controls protect neighbourhood character.",
             "Additions and new builds must be sympathetic. Demolition may require resource consent.",
+            source=_src("council_character_precincts"),
         ).to_dict())
 
     # Coastal elevation
@@ -1455,6 +1487,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Within regional flood extent ({fe_aep} AEP)"
             + (f". {fe_label}" if fe_label else "") + ".",
             "Annual Exceedance Probability indicates likelihood of flooding in any given year. Check floor levels.",
+            source=_src("council_flood"),
         ).to_dict())
 
     # Heritage overlay
@@ -1464,6 +1497,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Property is within a council heritage overlay (**{name}**). External modifications may require resource consent.",
             "Check the district/unitary plan heritage schedule for specific controls on this site.",
+            source=_src("council_heritage_overlay"),
         ).to_dict())
 
     # Special character area
@@ -1473,6 +1507,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Within a **Special Character Area** ({name}). Demolition and major alterations are controlled.",
             "Design of new builds and additions must be sympathetic to neighbourhood character.",
+            source=_src("council_special_character"),
         ).to_dict())
 
     # Significant ecological area
@@ -1484,6 +1519,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Within a **Significant Ecological Area** ({name})"
             + (f". {eco_type}" if eco_type else "") + ".",
             "Vegetation removal, earthworks, and building may require ecological assessment and resource consent.",
+            source=_src("council_ecological"),
         ).to_dict())
 
     # Mana whenua
@@ -1493,6 +1529,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Within a **Site of Significance to Mana Whenua** ({name}).",
             "Cultural heritage assessment may be required for development. Engage early with iwi/hapū.",
+            source=_src("council_mana_whenua"),
         ).to_dict())
 
     # Notable trees
@@ -1502,6 +1539,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"{nt_count} notable/scheduled tree{'s' if nt_count != 1 else ''} within 50m. protected under the district/unitary plan.",
             "Removal or significant pruning requires resource consent. Root protection zones may restrict building.",
+            source=_src("council_notable_trees"),
         ).to_dict())
 
     # Height variation control
@@ -1511,6 +1549,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"Height variation control applies: **{hv_limit}** maximum.",
             "This overrides the base zone height limit. Check the district/unitary plan for specific rules.",
+            source=_src("council_height_variation"),
         ).to_dict())
 
     # Nearest park
@@ -1624,6 +1663,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"A {type_label}{name_str} is just {waterway_m}m away. very close proximity increases flood risk.",
             "Check floor levels relative to the waterway. Ask the council about flood history for this "
             "specific location. Ensure building and contents insurance covers riverine flooding.",
+            source=_src("linz_waterways"),
         ).to_dict())
     elif waterway_m is not None and waterway_m <= 100:
         name_str = f" ({waterway_name})" if waterway_name else ""
@@ -1632,12 +1672,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"{type_label.capitalize()}{name_str} within {waterway_m}m. proximity to waterways increases flood exposure.",
             "Properties near waterways face higher flood risk during heavy rain. Check council flood maps "
             "and whether the property has flooded before.",
+            source=_src("linz_waterways"),
         ).to_dict())
     elif waterway_m is not None and waterway_m <= 200 and waterway_count >= 2:
         result["hazards"].append(Insight(
             "info",
             f"{waterway_count} waterways within 500m, nearest {waterway_m}m away. moderate proximity to water.",
             "Multiple nearby waterways increase flood exposure during extreme rainfall events.",
+            source=_src("linz_waterways"),
         ).to_dict())
 
     # ── Event History Rules ───────────────────────────────────────────────────
@@ -1657,12 +1699,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"{total_weather} extreme weather events recorded within 50km in the last 5 years{rain_str}.",
             "Frequent severe weather increases risk of flooding, slips, and property damage. "
             "Check insurance covers weather-related damage without excessive excesses.",
+            source=_src("open_meteo"),
         ).to_dict())
     elif total_weather >= 2:
         result["hazards"].append(Insight(
             "info",
             f"{total_weather} extreme weather events recorded within 50km in the last 5 years.",
             "Review property for weather resilience. drainage, roof condition, and tree proximity.",
+            source=_src("open_meteo"),
         ).to_dict())
 
     if worst_rain and worst_rain >= 80:
@@ -1672,6 +1716,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             + ("extreme" if worst_rain >= 120 else "very heavy") + " for NZ conditions.",
             "Intense rainfall events overwhelm stormwater systems. Check the property's "
             "drainage capacity and whether the floor level is raised above surrounding ground.",
+            source=_src("open_meteo"),
         ).to_dict())
 
     if quake_count >= 5:
@@ -1681,6 +1726,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"{quake_count} earthquakes M4+ within 30km in the last 10 years{mag_str}. seismically active area.",
             "Check the building's earthquake resilience. Older buildings (pre-1976) may not meet "
             "current seismic standards. Review EQC claim history via LIM.",
+            source=_src("geonet_earthquakes"),
         ).to_dict())
     elif quake_count >= 2 and largest_quake and largest_quake >= 5.0:
         result["hazards"].append(Insight(
@@ -1688,6 +1734,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"M{largest_quake:.1f} earthquake recorded within 30km in the last 10 years.",
             "Ask about any earthquake damage history. Check for cosmetic damage (cracks in plaster, "
             "gaps in window frames) that may indicate structural movement.",
+            source=_src("geonet_earthquakes"),
         ).to_dict())
 
     # ── Environment Rules ─────────────────────────────────────────────────────
@@ -1909,6 +1956,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "info",
                 f"Only {transit} transit stop{'s' if transit != 1 else ''} within 400m. car-dependent location.",
                 "Factor in vehicle running costs. Check bus frequency before committing if car-free.",
+                source=_src("gtfs_transit"),
             ).to_dict())
         elif transit >= 10 and (peak_trips is None or peak_trips >= 6):
             peak_str = f" Peak service: {int(peak_trips)} trips/hour." if peak_trips is not None else ""
@@ -1916,6 +1964,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ok",
                 f"{transit} public transport stops within 400m. excellent transit access.{peak_str}",
                 "",
+                source=_src("gtfs_transit"),
             ).to_dict())
         elif transit >= 5 and peak_trips is not None and peak_trips <= 3:
             # Many stops, sparse services. the count-only rule reads "excellent"
@@ -1925,6 +1974,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"{transit} stops within 400m, but peak service at the busiest stop runs only {peak_trips:.0f} trips/hour.",
                 "Stops aren't services. Check the actual routes on your region's journey planner (AT/Metlink/ECan) "
                 "against your commute before treating this as a 'good transit' location.",
+                source=_src("gtfs_transit"),
             ).to_dict())
 
     train_dist = live.get("nearest_train_distance_m")
@@ -1939,6 +1989,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ok",
                 f"Train station ({train_name}) is {int(train_dist)}m. strong commuter connectivity.",
                 "",
+                source=_src("gtfs_transit"),
             ).to_dict())
 
     # 2.19. Healthcare desert. Both GP and pharmacy ≥2km is a real daily-life
@@ -1965,6 +2016,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Healthcare 20+ minutes' walk away. nearest GP {int(_gp_dist_m)}m, nearest pharmacy {int(_ph_dist_m)}m.",
             "Daily medication users, elderly, and car-free households should plan for pharmacy delivery services "
             "and confirm GP enrolment is open at your nearest practice (some are capped).",
+            source=_src("osm_amenities"),
         ).to_dict())
 
     # ── Market Rules ──────────────────────────────────────────────────────────
@@ -2000,12 +2052,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     "ok",
                     f"Indicative gross yield: {yield_pct}%. above NZ metro average (~3.5–4%).",
                     "",
+                    source=_src("tenancy_bonds"),
                 ).to_dict())
             elif yield_pct < 3:
                 result["market"].append(Insight(
                     "info",
                     f"Indicative gross yield: {yield_pct}%. below typical NZ metro averages. Elevated price-to-rent ratio.",
                     "",
+                    source=_src("tenancy_bonds"),
                 ).to_dict())
 
         if yoy_pct is not None and yoy_pct >= 5:
@@ -2013,6 +2067,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "info",
                 f"Rents rising {yoy_pct:+.1f}% year-on-year. above general inflation.",
                 "Buyers: rising rents support yield. Renters: factor likely increase on renewal.",
+                source=_src("tenancy_bonds"),
             ).to_dict())
 
         if cagr_5yr is not None and cagr_5yr >= 4:
@@ -2020,6 +2075,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "info",
                 f"{cagr_5yr:.1f}% annualised rental growth over 5 years. ahead of CPI.",
                 "",
+                source=_src("tenancy_bonds"),
             ).to_dict())
 
         # 2.13. Supply relief. When yoy_pct is rising AND there's significant
@@ -2037,6 +2093,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"Rents rising {yoy_pct:+.1f}% YoY, but {_consents_count_i} resource consents granted within 500m in 2 years. significant new supply pipeline.",
                 "Renters: expect rent pressure to ease as units land. useful leverage at your next renewal. "
                 "Buyers: short-term construction disruption, medium-term amenity uplift; weigh the timing.",
+                source=_src("tenancy_bonds"),
             ).to_dict())
 
     # ── Planning Rules ────────────────────────────────────────────────────────
@@ -2046,6 +2103,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             "This building is on the MBIE earthquake-prone register. Seismic work has a statutory deadline.",
             "Request EPB assessment from vendor. Calculate remaining deadline (typically 25yr from notice).",
+            source=_src("mbie_epb"),
         ).to_dict())
 
     if planning.get("is_contaminated"):
@@ -2053,6 +2111,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             "Property appears on District Plan contaminated land schedule.",
             "Commission geotechnical/environmental report before purchase. May restrict land-use changes.",
+            source=_src("council_slur"),
         ).to_dict())
 
     if planning.get("is_heritage_listed"):
@@ -2060,6 +2119,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             "Heritage-listed. external alterations and demolition require resource consent.",
             "Review the District Plan schedule entry for protected features.",
+            source=_src("heritage_nz"),
         ).to_dict())
 
     trans_dist = planning.get("transmission_distance_m") or planning.get("transmission_line_distance_m")
@@ -2073,6 +2133,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"High-voltage transmission line {int(trans_dist)}m away. easement may restrict development.",
             "Confirm easement in title. Some lenders restrict LVR on properties near lines.",
+            source=_src("transpower"),
         ).to_dict())
 
     consents = planning.get("resource_consents_500m_2yr")
@@ -2086,6 +2147,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"{consents} resource consents granted within 500m in 2 years. active development area.",
             "Check WCC consent portal for project types. Nearby construction may affect short-term liveability.",
+            source=_src("council_resource_consents"),
         ).to_dict())
 
     return result
