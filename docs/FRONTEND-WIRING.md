@@ -34,6 +34,20 @@ These run client-side because the trigger depends on user input from `useRentInp
 
 The buyer rule uses CV as a sanity ceiling because no suburb-median-sale-price comparator is yet wired into the report. CV lags the market by 1-3 years; a proper REINZ/QV comparator is a future product step.
 
+### Property details chip (typology-aware median)
+
+A compact "About this place" chip at the top of every property report drives the typology (bedrooms, bathrooms, dwelling type, finish tier) the report uses for rent / yield / Critical-finding comparisons. Sticky top-right on `lg+`, inline-and-scroll on mobile so it never collides with FloatingReportButton, ScrollPrompt, SignupNudge or AnalyticsConsent. Dismissible via × — when dismissed a small "Edit details" pill appears in its place; dismissal does not persist across sessions.
+
+| Layer | File | Notes |
+|---|---|---|
+| Persisted store | `frontend/src/stores/propertyDetailsStore.ts` | `dwellingType, bedrooms, bathrooms, finishTier, hasParking`. Persists across sessions and across addresses (most users shop similar typologies). `chipDismissed` is intentionally NOT persisted. `hydrateDefaults()` only fills unset values so user choices stick. |
+| Typology median hook | `frontend/src/hooks/useTypologyMedian.ts` | Picks the (dwelling, beds) row from `report.market.rental_overview` with fallback chain: exact → dwelling-only → beds-only → SA2-wide. Returns `{median, lq, uq, bonds, kind, thin}` so callers can soften copy when bonds < 10. `defaultBedroomsForSA2()` seeds the chip with the most-bonded bed count for the detected dwelling. |
+| Chip UI | `frontend/src/components/property/PropertyDetailsChip.tsx` | Pill row with click-to-edit dropdowns. Auto-saves to `/api/v1/budget-inputs` (debounced 800ms) when bedrooms AND bathrooms are both set, so the descriptors enrich the same upserted row that PriceAdvisorCard / RentComparisonFlow / BuyerBudgetCalculator hit. |
+| Median consumers | `KeyFindings.tsx`, `PropertyReport.tsx`, `KnowYourRights.tsx` (renter bond max), `InvestmentMetrics.tsx` (buyer gross yield), `PropertySummaryCard.tsx` (headline caption), `FindingCard.tsx` (renter Critical rule via `inputs.typologyMedian`) | All read `useTypologyMedian` and fall back to `report.market.rent_assessment.median` (the SA2-wide value) when no typology has been chosen. |
+| Sub-flow integration | `RentComparisonFlow.tsx`, `PriceAdvisorCard.tsx` | Read shared store first, then their local fallback. Mirror writes back to the shared store so editing typology in either place updates the chip and the median across the report. Studio in RentComparisonFlow maps to '1' bed when mirrored (MBIE bonds have no studio category). |
+
+`MarketData.rental_overview` is now a typed field (per-typology rows from MBIE bond data) rather than discarded by `transformReport()` — the chip and `useTypologyMedian` need it to compute typology-specific medians.
+
 ## Report Fields → Components
 <!-- UPDATE: When adding a report field, add the row. When adding a component, add its fields. -->
 

@@ -35,10 +35,12 @@ import { SignupNudge } from './SignupNudge';
 import { SocialProof } from './SocialProof';
 import { EmailSummaryCapture } from './EmailSummaryCapture';
 import { generateFindings } from './FindingCard';
+import { PropertyDetailsChip } from './PropertyDetailsChip';
 import { trackVisit, shouldShowComparisonUpsell, markVisitedEver } from '@/hooks/useVisitTracker';
 import { usePersonaStore } from '@/stores/personaStore';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
+import { useTypologyMedian } from '@/hooks/useTypologyMedian';
 import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
@@ -62,6 +64,7 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   const persona = usePersonaStore((s) => s.persona);
   const weeklyRent = useRentInputStore((s) => s.weeklyRent);
   const askingPrice = useBuyerInputStore((s) => s.askingPrice);
+  const typologyMedian = useTypologyMedian(report?.market?.rental_overview ?? []).median;
   const questions = getQuestionsForPersona(persona);
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const canDownload = useDownloadGateStore((s) => s.canDownload);
@@ -110,8 +113,10 @@ export function PropertyReport({ addressId }: { addressId: number }) {
 
   // Hooks must be called unconditionally (before any early returns)
   const findings = useMemo(
-    () => report ? generateFindings(report, persona, { weeklyRent, askingPrice }) : [],
-    [report, persona, weeklyRent, askingPrice],
+    () => report
+      ? generateFindings(report, persona, { weeklyRent, askingPrice, typologyMedian })
+      : [],
+    [report, persona, weeklyRent, askingPrice, typologyMedian],
   );
   const riskCount = useMemo(() => findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length, [findings]);
 
@@ -172,6 +177,12 @@ export function PropertyReport({ addressId }: { addressId: number }) {
         <PersonaToggle />
 
         {/* Summary Card + Save Button */}
+        {/* Property details chip. compact bedrooms/bathrooms/dwelling/finish
+            picker. Sticky top-right on lg+, inline (above the summary) on
+            mobile so it never blocks the bottom edge already booked by
+            FloatingReportButton + ScrollPrompt + SignupNudge. Drives
+            useTypologyMedian throughout the report. */}
+        <PropertyDetailsChip report={report} />
         <PropertySummaryCard report={report} liveRates={liveRates} ratesLoading={ratesLoading} />
         <div className="flex items-center justify-between -mt-2">
           <SavePropertyButton

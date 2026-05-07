@@ -2,6 +2,7 @@
 
 import { Scale, Shield, Wifi, Wrench, DollarSign, Home } from 'lucide-react';
 import type { PropertyReport } from '@/lib/types';
+import { useTypologyMedian } from '@/hooks/useTypologyMedian';
 
 interface Props {
   report: PropertyReport;
@@ -24,7 +25,12 @@ interface RightItem {
 export function KnowYourRights({ report, userRent }: Props) {
   const hazards = report.hazards;
   const market = report.market;
-  const medianRent = market?.rent_assessment?.median;
+  // Prefer the typology-aware median (driven by the chip's bedrooms /
+  // dwelling) so bond max reflects rents for the kind of place the user
+  // is actually renting. Falls back to the SA2-wide median when no
+  // typology has been chosen.
+  const typologyMedian = useTypologyMedian(market?.rental_overview ?? []).median;
+  const medianRent = typologyMedian ?? market?.rent_assessment?.median;
   // Prefer the user's own rent (from sidebar input) over the area median so the bond max reflects what they're actually paying.
   const rentForBond = (userRent && userRent > 0) ? userRent : medianRent;
   const bondSource: 'user' | 'median' | null = (userRent && userRent > 0)

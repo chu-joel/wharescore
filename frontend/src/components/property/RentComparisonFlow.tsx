@@ -8,6 +8,7 @@ import { formatRent } from '@/lib/format';
 import { apiFetch } from '@/lib/api';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
+import { usePropertyDetailsStore } from '@/stores/propertyDetailsStore';
 import type { MarketData, PropertyDetection, RentAssessment } from '@/lib/types';
 
 interface RentComparisonFlowProps {
@@ -28,11 +29,20 @@ const DWELLING_TYPES: { value: DwellingType; description: string }[] = [
 const BEDROOM_OPTIONS: Bedrooms[] = ['Studio', '1', '2', '3', '4', '5+'];
 
 export function RentComparisonFlow({ addressId, market, detection }: RentComparisonFlowProps) {
+  // Seed local state from the shared property-details chip first so a user
+  // who already picked typology at the top of the report doesn't have to
+  // pick it again here. Falls back to property_detection then null.
+  const sharedDwelling = usePropertyDetailsStore((s) => s.dwellingType);
+  const sharedBedrooms = usePropertyDetailsStore((s) => s.bedrooms);
+  const setSharedDwelling = usePropertyDetailsStore((s) => s.setDwellingType);
+  const setSharedBedrooms = usePropertyDetailsStore((s) => s.setBedrooms);
   const [dwellingType, setDwellingType] = useState<DwellingType | null>(
-    (detection?.detected_type as DwellingType) ?? null
+    (sharedDwelling as DwellingType) ?? (detection?.detected_type as DwellingType) ?? null
   );
   const [bedrooms, setBedrooms] = useState<Bedrooms | null>(
-    detection?.detected_bedrooms ? (String(detection.detected_bedrooms) as Bedrooms) : null
+    sharedBedrooms ?? (
+      detection?.detected_bedrooms ? (String(detection.detected_bedrooms) as Bedrooms) : null
+    )
   );
   const [rentInput, setRentInput] = useState('');
   const [assessment, setAssessment] = useState<RentAssessment | null>(market.rent_assessment);
@@ -75,12 +85,29 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
   const setStoreRent = useRentInputStore((s) => s.setWeeklyRent);
 
   useEffect(() => {
-    if (dwellingType) setStoreDwelling(dwellingType);
-  }, [dwellingType, setStoreDwelling]);
+    if (dwellingType) {
+      setStoreDwelling(dwellingType);
+      // Mirror to the shared property-details store so the chip and any
+      // other typology-aware components (KeyFindings, InvestmentMetrics,
+      // KnowYourRights, PropertySummaryCard) update in lockstep.
+      if (dwellingType === 'House' || dwellingType === 'Apartment' || dwellingType === 'Flat' || dwellingType === 'Room') {
+        setSharedDwelling(dwellingType);
+      }
+    }
+  }, [dwellingType, setStoreDwelling, setSharedDwelling]);
 
   useEffect(() => {
-    if (bedrooms) setStoreBedrooms(bedrooms);
-  }, [bedrooms, setStoreBedrooms]);
+    if (bedrooms) {
+      setStoreBedrooms(bedrooms);
+      // Mirror to shared store. RentComparisonFlow has 'Studio' which
+      // maps to 1-bed in MBIE bonds; mirror Studio as 1 so the typology
+      // hook can find a matching row.
+      const sharedValue = bedrooms === 'Studio' ? '1' : bedrooms;
+      if (sharedValue === '1' || sharedValue === '2' || sharedValue === '3' || sharedValue === '4' || sharedValue === '5+') {
+        setSharedBedrooms(sharedValue);
+      }
+    }
+  }, [bedrooms, setStoreBedrooms, setSharedBedrooms]);
 
   const updateBudgetRenter = useBudgetStore((s) => s.updateRenter);
 

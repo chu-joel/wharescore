@@ -171,8 +171,23 @@ export interface PropertySummary {
 // --- Market ---
 export interface MarketData {
   rent_assessment: RentAssessment | null;
+  /** Full per-typology breakdown from MBIE bond data, keyed by
+   *  (dwelling_type, beds). Used by useTypologyMedian to compute a
+   *  typology-aware median when the user picks bedrooms / dwelling in the
+   *  PropertyDetailsChip. The rent_assessment field above is the SA2-wide
+   *  fallback; this list lets components drill into the specific row. */
+  rental_overview: RentalOverviewRow[];
   trend: TrendData | null;
   market_heat: 'cold' | 'cool' | 'neutral' | 'warm' | 'hot';
+}
+
+export interface RentalOverviewRow {
+  dwelling_type: string | null;
+  beds: string | null;
+  median: number | null;
+  lq: number | null;
+  uq: number | null;
+  bonds: number | null;
 }
 
 export interface RentAssessment {

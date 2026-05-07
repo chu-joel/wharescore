@@ -7,6 +7,7 @@ import type { PropertyReport } from '@/lib/types';
 import type { Persona } from '@/stores/personaStore';
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
+import { useTypologyMedian } from '@/hooks/useTypologyMedian';
 
 interface KeyFindingsProps {
   report: PropertyReport;
@@ -43,7 +44,12 @@ function asFrontendFinding(
 export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
   const weeklyRent = useRentInputStore((s) => s.weeklyRent);
   const askingPrice = useBuyerInputStore((s) => s.askingPrice);
-  const allFindings = generateFindings(report, persona, { weeklyRent, askingPrice });
+  const typologyMedian = useTypologyMedian(report.market?.rental_overview ?? []).median;
+  const allFindings = generateFindings(report, persona, {
+    weeklyRent,
+    askingPrice,
+    typologyMedian,
+  });
 
   if (allFindings.length === 0) return (
     <div className="space-y-3">

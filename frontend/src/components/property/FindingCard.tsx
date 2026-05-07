@@ -134,6 +134,9 @@ export interface MarketInputs {
   weeklyRent?: number | null;
   /** Asking / agreed sale price the buyer is considering, from useBuyerInputStore. */
   askingPrice?: number | null;
+  /** Typology-aware median rent from useTypologyMedian. When omitted the
+   *  rule falls back to the SA2-wide rent_assessment median. */
+  typologyMedian?: number | null;
 }
 
 export function generateFindings(report: {
@@ -906,12 +909,15 @@ export function generateFindings(report: {
     }
   }
 
-  // --- Market: rent vs SA2 typology median (renter persona) ---
-  // Fires only when the renter has entered a weekly rent. Compares to
-  // market.rent_assessment.median which is already in the report and reflects
-  // the SA2 median for the chosen dwelling type and bedroom count.
+  // --- Market: rent vs typology-aware median (renter persona) ---
+  // Fires when the renter has entered a weekly rent. Prefers the typology
+  // median computed by useTypologyMedian (caller passes it in via
+  // `inputs.typologyMedian`) so the comparison reflects the user's chosen
+  // bedrooms / dwelling. Falls back to the SA2-wide rent_assessment median
+  // when no typology median is supplied (legacy callers / ScrollPrompt).
   const userRent = inputs?.weeklyRent ?? null;
-  const medianRent = report.market?.rent_assessment?.median ?? null;
+  const medianRent =
+    inputs?.typologyMedian ?? report.market?.rent_assessment?.median ?? null;
   if (userRent && userRent > 0 && medianRent && medianRent > 0) {
     const diff = userRent - medianRent;
     if (diff >= 50) {

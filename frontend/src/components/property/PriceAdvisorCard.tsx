@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PriceBandGauge } from './PriceBandGauge';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { useBudgetStore } from '@/stores/budgetStore';
+import { usePropertyDetailsStore } from '@/stores/propertyDetailsStore';
 import { apiFetch } from '@/lib/api';
 import { formatCurrency } from '@/lib/format';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
@@ -90,15 +91,43 @@ const FREE_ADJUSTMENT_LIMIT = 2;
 const FREE_STEP_LIMIT = 2;
 
 export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
+  // The buyer input store keeps PriceAdvisor-specific values (asking price,
+  // parking) while the shared property-details chip drives bedrooms /
+  // bathrooms / finish across the report. Read shared values first so a
+  // user who set those at the top doesn't have to set them again here.
   const askingPrice = useBuyerInputStore((s) => s.askingPrice);
-  const bedrooms = useBuyerInputStore((s) => s.bedrooms) as Bedrooms | null;
-  const finishTier = useBuyerInputStore((s) => s.finishTier) as FinishTier | null;
-  const bathroomCount = useBuyerInputStore((s) => s.bathrooms) as Bathrooms | null;
+  const sharedBedrooms = usePropertyDetailsStore((s) => s.bedrooms) as Bedrooms | null;
+  const sharedFinish = usePropertyDetailsStore((s) => s.finishTier) as FinishTier | null;
+  const sharedBaths = usePropertyDetailsStore((s) => s.bathrooms) as Bathrooms | null;
+  const buyerBedrooms = useBuyerInputStore((s) => s.bedrooms) as Bedrooms | null;
+  const buyerFinish = useBuyerInputStore((s) => s.finishTier) as FinishTier | null;
+  const buyerBaths = useBuyerInputStore((s) => s.bathrooms) as Bathrooms | null;
+  const bedrooms = sharedBedrooms ?? buyerBedrooms;
+  const finishTier = sharedFinish ?? buyerFinish;
+  const bathroomCount = sharedBaths ?? buyerBaths;
   const hasParking = useBuyerInputStore((s) => s.hasParking);
   const setAskingPrice = useBuyerInputStore((s) => s.setAskingPrice);
-  const setBedrooms = useBuyerInputStore((s) => s.setBedrooms);
-  const setFinishTier = useBuyerInputStore((s) => s.setFinishTier);
-  const setBathroomCount = useBuyerInputStore((s) => s.setBathrooms);
+  const setBuyerBedrooms = useBuyerInputStore((s) => s.setBedrooms);
+  const setBuyerFinish = useBuyerInputStore((s) => s.setFinishTier);
+  const setBuyerBathrooms = useBuyerInputStore((s) => s.setBathrooms);
+  const setSharedBedrooms = usePropertyDetailsStore((s) => s.setBedrooms);
+  const setSharedFinish = usePropertyDetailsStore((s) => s.setFinishTier);
+  const setSharedBathrooms = usePropertyDetailsStore((s) => s.setBathrooms);
+  // Fan-out setters write to BOTH stores so PriceAdvisorCard internal
+  // state stays in sync with the chip.
+  const setBedrooms = (v: Bedrooms | null) => {
+    setBuyerBedrooms(v);
+    if (v) setSharedBedrooms(v);
+  };
+  const setFinishTier = (v: FinishTier | null) => {
+    setBuyerFinish(v);
+    if (v) setSharedFinish(v);
+  };
+  const setBathroomCount = (v: Bathrooms | null) => {
+    setBuyerBathrooms(v);
+    // Local Bathrooms ('1' | '2' | '3' | '4+') matches the shared store.
+    if (v) setSharedBathrooms(v as '1' | '2' | '3' | '4+');
+  };
   const setHasParking = useBuyerInputStore((s) => s.setHasParking);
 
   const updateBuyer = useBudgetStore((s) => s.updateBuyer);

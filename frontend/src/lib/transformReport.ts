@@ -394,8 +394,22 @@ function transformMarket(raw: any): MarketData {
     else if (yoy <= -1) market_heat = 'cool';
   }
 
+  // Pass the raw per-typology rows through so useTypologyMedian can pick
+  // the row matching the user's chosen dwelling/bedrooms in the chip.
+  const rental_overview = Array.isArray(raw.rental_overview)
+    ? raw.rental_overview.map((r: any) => ({
+        dwelling_type: r.dwelling_type ?? null,
+        beds: r.beds ?? null,
+        median: typeof r.median === 'number' ? r.median : null,
+        lq: typeof r.lq === 'number' ? r.lq : null,
+        uq: typeof r.uq === 'number' ? r.uq : null,
+        bonds: typeof r.bonds === 'number' ? r.bonds : null,
+      }))
+    : [];
+
   return {
     rent_assessment: rentAssessment,
+    rental_overview,
     trend,
     market_heat,
   };

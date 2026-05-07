@@ -3,6 +3,7 @@
 import { TrendingUp } from 'lucide-react';
 import { ContextBadge } from '@/components/common/ContextBadge';
 import { formatCurrency, effectivePerUnitCv } from '@/lib/format';
+import { useTypologyMedian } from '@/hooks/useTypologyMedian';
 import type { PropertyReport } from '@/lib/types';
 
 interface InvestmentMetricsProps {
@@ -27,9 +28,14 @@ export function InvestmentMetrics({ report }: InvestmentMetricsProps) {
     unitCount: report.property_detection?.unit_count,
   });
 
-  // Gross yield
-  if (market.rent_assessment?.median && effectiveCv) {
-    const annualRent = market.rent_assessment.median * 52;
+  // Gross yield. Prefer the typology-aware median (chip-driven) so the yield
+  // reflects rents for the user's chosen dwelling type / bedrooms rather
+  // than the SA2-wide blend. Falls back to the wide median when no chip
+  // selection is set.
+  const typologyMedian = useTypologyMedian(market?.rental_overview ?? []).median;
+  const yieldMedian = typologyMedian ?? market.rent_assessment?.median;
+  if (yieldMedian && effectiveCv) {
+    const annualRent = yieldMedian * 52;
     const grossYield = (annualRent / effectiveCv) * 100;
     if (grossYield >= 0.5 && grossYield <= 20) {
       const sentiment = grossYield >= 5 ? 'positive' : grossYield >= 3.5 ? 'neutral' : 'negative';

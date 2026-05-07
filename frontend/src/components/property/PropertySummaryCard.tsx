@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import type { PropertyReport } from '@/lib/types';
 import type { LiveRates } from '@/hooks/usePropertyRates';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useTypologyMedian } from '@/hooks/useTypologyMedian';
 import { EnterRentButton } from './EnterRentButton';
 import { EnterPriceButton } from './EnterPriceButton';
 import { AddToCompareButton } from '@/components/compare/AddToCompareButton';
@@ -69,13 +70,22 @@ export function PropertySummaryCard({
   const { status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === 'authenticated';
 
+  // Typology-aware median rent (chip-driven). Reads the user's chosen
+  // dwelling/bedrooms when set, falls through to the SA2-wide median
+  // otherwise. Drives the renter headline + buyer yield calc below.
+  const typologyMedianResult = useTypologyMedian(market?.rental_overview ?? []);
+  const headlineMedian = typologyMedianResult.median ?? market.rent_assessment?.median ?? null;
+
   // Persona-specific headline metric
   const personaHeadline = (() => {
-    if (persona === 'renter' && market.rent_assessment?.median) {
+    if (persona === 'renter' && headlineMedian) {
       // "For this area" was ambiguous. users asked "which area?". Name
       // the suburb when we have it so the median is grounded.
       const suburb = address.suburb || address.sa2_name || 'this area';
-      return `Median rent: $${market.rent_assessment.median}/wk in ${suburb}`;
+      const isTypology = typologyMedianResult.kind === 'exact';
+      return isTypology
+        ? `Median rent for your typology: $${Math.round(headlineMedian)}/wk in ${suburb}`
+        : `Median rent: $${Math.round(headlineMedian)}/wk in ${suburb}`;
     }
     if (persona === 'buyer') {
       const parts: string[] = [];
@@ -93,8 +103,8 @@ export function PropertySummaryCard({
       // Only show yield when we actually have a single-unit CV to divide
       // into. For building-total CVs we've already hidden/estimated the
       // number above. a "0.0% yield" line below it looks like real data.
-      if (market.rent_assessment?.median && displayCv && !looksBuildingLevel) {
-        const annualRent = market.rent_assessment.median * 52;
+      if (headlineMedian && displayCv && !looksBuildingLevel) {
+        const annualRent = headlineMedian * 52;
         const grossYield = (annualRent / displayCv) * 100;
         if (grossYield >= 0.5 && grossYield <= 20) {
           parts.push(`Est. yield: ${grossYield.toFixed(1)}%`);
