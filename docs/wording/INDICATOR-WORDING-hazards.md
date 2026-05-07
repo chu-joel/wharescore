@@ -347,7 +347,7 @@ Conventions:
 - Coverage: Coastal cities except Wellington, see WIRING-TRACES § Council-specific hazard data (Tsunami column).
 - Common misreading: Same as WCC ranking, "Low" still means inside a zone.
 - What it does NOT tell you: Scenario or return period, see paired fields.
-- source_key status: UNVERIFIED, `_src("council_tsunami")` Insights at `report_html.py:778,785` fire on `tsunami_zone_class`, not on `council_tsunami_ranking`. No Insight rule explicitly tied to this field located.
+- source_key status: present, fallback Insight added 2026-05-07 at `report_html.py:810-829`. Fires on `council_tsunami_ranking` ("High"/"Medium") when `tsunami_zone_class` is absent, so coastal properties in regions with only the per-council `tsunami_hazard` table (Auckland, Tauranga, etc.) now get a tsunami finding. Source: `_src("council_tsunami")`.
 - User-care severity: Critical, Regional council tsunami ranking carries the same life-safety weight as WCC.
 
 | Surface | Renter | Buyer | Pro |

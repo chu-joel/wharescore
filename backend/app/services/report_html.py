@@ -788,6 +788,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
         ).to_dict())
 
     tsunami = hazards.get("tsunami_zone_class")
+    council_tsu = hazards.get("council_tsunami_ranking")
     if tsunami is not None:
         try:
             tz = int(tsunami)
@@ -804,6 +805,25 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             result["hazards"].append(Insight(
                 "info",
                 f"Tsunami Zone {tz}. low-to-moderate wave inundation risk from distant events.",
+                "",
+                source=_src("council_tsunami"),
+            ).to_dict())
+    elif council_tsu in ("High", "Medium"):
+        # tsunami_zone_class is bulk-loaded for Wellington and Christchurch only.
+        # Coastal properties in other regions (Auckland, Tauranga, etc.) carry
+        # council_tsunami_ranking from the per-council tsunami_hazard table.
+        # Without this branch they get no tsunami finding at all.
+        if council_tsu == "High":
+            result["hazards"].append(Insight(
+                "warn",
+                "Inside a council-mapped High tsunami evacuation zone.",
+                "Identify your inland evacuation route. Insurance and resale impact varies by region.",
+                source=_src("council_tsunami"),
+            ).to_dict())
+        else:
+            result["hazards"].append(Insight(
+                "info",
+                "Inside a council-mapped Medium tsunami evacuation zone.",
                 "",
                 source=_src("council_tsunami"),
             ).to_dict())
