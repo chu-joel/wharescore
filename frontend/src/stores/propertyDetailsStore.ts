@@ -30,6 +30,10 @@ interface PropertyDetailsState {
   bathrooms: Bathrooms | null;
   finishTier: FinishTier | null;
   hasParking: boolean | null;
+  /** Address the current values were set for. resetForAddress() compares
+   *  against this so navigating to a new property clears per-property fields
+   *  rather than carrying over a guess from the last listing. */
+  lastAddressId: number | null;
   /** Whether the user has explicitly dismissed the chip on this property report. */
   chipDismissed: boolean;
   setDwellingType: (v: DwellingType | null) => void;
@@ -45,6 +49,11 @@ interface PropertyDetailsState {
     bathrooms?: Bathrooms | null;
     finishTier?: FinishTier | null;
   }) => void;
+  /** Wipe the per-property fields when the user navigates to a new
+   *  address. Called by PropertyDetailsChip when it sees a different
+   *  address_id from lastAddressId. Resets the chip's dismissal too so
+   *  the user re-discovers the affordance on each new listing. */
+  resetForAddress: (addressId: number) => void;
 }
 
 export const usePropertyDetailsStore = create<PropertyDetailsState>()(
@@ -55,6 +64,7 @@ export const usePropertyDetailsStore = create<PropertyDetailsState>()(
       bathrooms: null,
       finishTier: null,
       hasParking: null,
+      lastAddressId: null,
       chipDismissed: false,
       setDwellingType: (dwellingType) => set({ dwellingType }),
       setBedrooms: (bedrooms) => set({ bedrooms }),
@@ -62,6 +72,15 @@ export const usePropertyDetailsStore = create<PropertyDetailsState>()(
       setFinishTier: (finishTier) => set({ finishTier }),
       setHasParking: (hasParking) => set({ hasParking }),
       setChipDismissed: (chipDismissed) => set({ chipDismissed }),
+      resetForAddress: (addressId) => set({
+        dwellingType: null,
+        bedrooms: null,
+        bathrooms: null,
+        finishTier: null,
+        hasParking: null,
+        chipDismissed: false,
+        lastAddressId: addressId,
+      }),
       hydrateDefaults: (defaults) => {
         const s = get();
         const next: Partial<PropertyDetailsState> = {};
@@ -76,12 +95,16 @@ export const usePropertyDetailsStore = create<PropertyDetailsState>()(
       name: 'wharescore-property-details',
       // Don't persist the dismissal flag — chipDismissed should reset on a
       // fresh session so users discover the chip again on a new property.
+      // lastAddressId IS persisted so a refresh on the same property keeps
+      // the user's typology choices, while navigating to a different
+      // address triggers resetForAddress().
       partialize: (s) => ({
         dwellingType: s.dwellingType,
         bedrooms: s.bedrooms,
         bathrooms: s.bathrooms,
         finishTier: s.finishTier,
         hasParking: s.hasParking,
+        lastAddressId: s.lastAddressId,
       }),
     },
   ),

@@ -72,6 +72,8 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
   const chipDismissed = usePropertyDetailsStore((s) => s.chipDismissed);
   const setChipDismissed = usePropertyDetailsStore((s) => s.setChipDismissed);
   const hydrateDefaults = usePropertyDetailsStore((s) => s.hydrateDefaults);
+  const lastAddressId = usePropertyDetailsStore((s) => s.lastAddressId);
+  const resetForAddress = usePropertyDetailsStore((s) => s.resetForAddress);
   const [openField, setOpenField] = useState<null | 'dwelling' | 'beds' | 'baths' | 'finish'>(null);
 
   const persona = usePersonaStore((s) => s.persona);
@@ -121,14 +123,18 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
     return () => clearTimeout(timer);
   }, [persona, addressId, dwellingType, bedrooms, bathrooms, finishTier]);
 
-  // First-load default seeding. We seed dwellingType + finishTier from the
-  // property's detected type and a sensible default ('modern'), so those
-  // pills don't shout at the user. Bedrooms + bathrooms are intentionally
-  // NOT seeded — they pulse red until the user picks them so the rent
-  // comparison and Critical Renter rule fire on real user intent rather
-  // than a guess. hydrateDefaults() only fills unset fields, so a user
-  // returning from another property keeps their previous choices.
+  // Reset per-property fields when the user navigates to a different
+  // address. Persistence still keeps choices for the SAME property across
+  // refreshes (lastAddressId == addressId), but a new listing should not
+  // inherit the previous property's typology. After reset we re-seed
+  // dwellingType from property_detection and finishTier to 'modern' so
+  // those pills start calm; bedrooms + bathrooms remain unset so they
+  // pulse red until the user picks them.
   useEffect(() => {
+    const isNewAddress = lastAddressId !== addressId;
+    if (isNewAddress) {
+      resetForAddress(addressId);
+    }
     const detected = (
       (report as unknown as { property_detection?: { detected_type?: string } })
         .property_detection?.detected_type ?? null
@@ -139,10 +145,10 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
       dwellingType: sensibleDwelling,
       finishTier: 'modern',
     });
-    // Intentionally only seed on initial mount — re-running on store
+    // Intentionally only run on address change — re-running on store
     // updates would clobber user edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addressId]);
 
   // Closing one dropdown opens nothing. Click-outside is wired up via a
   // backdrop layer below.
@@ -242,14 +248,34 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
         />
       </div>
 
-      {/* Median caption — explains why these pills matter. Muted, single line. */}
-      {median.median != null && (
+      {/* Caption — what these pills resolve to. For renters that's the
+          typology-aware median rent; for buyers we surface the property's
+          CV (a sale-side comparator doesn't yet exist in the report) so
+          the chip stays relevant when the user is shopping to buy. */}
+      {persona === 'renter' && median.median != null && (
         <div className="px-2.5 pb-2 text-[10.5px] leading-snug text-muted-foreground border-t border-border/40 pt-1.5">
           Median rent ({KIND_LABEL[median.kind] || 'this area'}): <span className="font-semibold text-foreground tabular-nums">${Math.round(median.median)}/wk</span>
           {median.thin && (
             <span className="ml-1 italic opacity-70">· thin data ({median.bonds} bonds)</span>
           )}
         </div>
+      )}
+      {persona === 'buyer' && (
+        (() => {
+          const cv = report.property?.capital_value ?? null;
+          const isMulti = !!(report as unknown as { property_detection?: { is_multi_unit?: boolean; unit_count?: number } }).property_detection?.is_multi_unit;
+          const units = (report as unknown as { property_detection?: { unit_count?: number } }).property_detection?.unit_count ?? 1;
+          const perUnit = isMulti && cv && units > 1 ? Math.round(cv / units) : null;
+          if (!cv) return null;
+          return (
+            <div className="px-2.5 pb-2 text-[10.5px] leading-snug text-muted-foreground border-t border-border/40 pt-1.5">
+              Capital value: <span className="font-semibold text-foreground tabular-nums">${(cv).toLocaleString()}</span>
+              {perUnit && (
+                <span className="ml-1 opacity-70">· ~${perUnit.toLocaleString()}/unit</span>
+              )}
+            </div>
+          );
+        })()
       )}
 
       {/* Active dropdown — single popover under the pill row. Click-outside

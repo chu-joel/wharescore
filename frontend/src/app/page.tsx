@@ -42,6 +42,18 @@ export default function Home() {
 
   const hasSelection = !!selectedAddress || !!selectedSuburb;
 
+  // Snap the mobile drawer to full + reset scroll EVERY time the user
+  // picks a different property, not just when the boolean transitions
+  // from no-selection → selected. Without this the drawer stays at the
+  // previous snap position when clicking a second pin (because
+  // hasSelection is already true).
+  useEffect(() => {
+    if (selectedAddress?.addressId) {
+      window.dispatchEvent(new Event('drawer:snap-full'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddress?.addressId]);
+
   // Sync URL with selected property.
   //
   // CRITICAL: this effect must NOT strip the ?address param on the
