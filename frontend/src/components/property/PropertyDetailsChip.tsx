@@ -70,10 +70,47 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
   const bedrooms = usePropertyDetailsStore((s) => s.bedrooms);
   const bathrooms = usePropertyDetailsStore((s) => s.bathrooms);
   const finishTier = usePropertyDetailsStore((s) => s.finishTier);
-  const setDwellingType = usePropertyDetailsStore((s) => s.setDwellingType);
-  const setBedrooms = usePropertyDetailsStore((s) => s.setBedrooms);
-  const setBathrooms = usePropertyDetailsStore((s) => s.setBathrooms);
-  const setFinishTier = usePropertyDetailsStore((s) => s.setFinishTier);
+  const setSharedDwellingType = usePropertyDetailsStore((s) => s.setDwellingType);
+  const setSharedBedrooms = usePropertyDetailsStore((s) => s.setBedrooms);
+  const setSharedBathrooms = usePropertyDetailsStore((s) => s.setBathrooms);
+  const setSharedFinishTier = usePropertyDetailsStore((s) => s.setFinishTier);
+  // Per-persona store setters. The chip fans every typology change out to
+  // the shared store AND both per-persona stores so RentAdvisorCard
+  // (reads useRentInputStore) and PriceAdvisorCard (reads
+  // useBuyerInputStore) both see the value regardless of which persona
+  // is currently active. Toggling persona never wipes anything.
+  const setRentStoreDwelling = useRentInputStore((s) => s.setDwellingType);
+  const setRentStoreBedrooms = useRentInputStore((s) => s.setBedrooms);
+  const setRentStoreBathrooms = useRentInputStore((s) => s.setBathrooms);
+  const setRentStoreFinish = useRentInputStore((s) => s.setFinishTier);
+  const setBuyerStoreBedrooms = useBuyerInputStore((s) => s.setBedrooms);
+  const setBuyerStoreBathrooms = useBuyerInputStore((s) => s.setBathrooms);
+  const setBuyerStoreFinish = useBuyerInputStore((s) => s.setFinishTier);
+  const setDwellingType = (v: DwellingType | null) => {
+    setSharedDwellingType(v);
+    if (v) setRentStoreDwelling(v);
+  };
+  const setBedrooms = (v: Bedrooms | null) => {
+    setSharedBedrooms(v);
+    if (v) {
+      setRentStoreBedrooms(v);
+      setBuyerStoreBedrooms(v);
+    }
+  };
+  const setBathrooms = (v: Bathrooms | null) => {
+    setSharedBathrooms(v);
+    if (v) {
+      setRentStoreBathrooms(v);
+      setBuyerStoreBathrooms(v);
+    }
+  };
+  const setFinishTier = (v: FinishTier | null) => {
+    setSharedFinishTier(v);
+    if (v) {
+      setRentStoreFinish(v);
+      setBuyerStoreFinish(v);
+    }
+  };
   const chipDismissed = usePropertyDetailsStore((s) => s.chipDismissed);
   const setChipDismissed = usePropertyDetailsStore((s) => s.setChipDismissed);
   const hydrateDefaults = usePropertyDetailsStore((s) => s.hydrateDefaults);
@@ -177,6 +214,33 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
     }, 800);
     return () => clearTimeout(timer);
   }, [persona, addressId, dwellingType, bedrooms, bathrooms, finishTier]);
+
+  // Mirror shared store values into both per-persona stores whenever
+  // they change (including on first mount from persisted state). Without
+  // this, a user who lands on a property where dwelling/bedrooms/etc.
+  // were filled in a previous session sees an empty RentAdvisorCard or
+  // PriceAdvisorCard until they touch the chip.
+  useEffect(() => {
+    if (dwellingType) setRentStoreDwelling(dwellingType);
+  }, [dwellingType, setRentStoreDwelling]);
+  useEffect(() => {
+    if (bedrooms) {
+      setRentStoreBedrooms(bedrooms);
+      setBuyerStoreBedrooms(bedrooms);
+    }
+  }, [bedrooms, setRentStoreBedrooms, setBuyerStoreBedrooms]);
+  useEffect(() => {
+    if (bathrooms) {
+      setRentStoreBathrooms(bathrooms);
+      setBuyerStoreBathrooms(bathrooms);
+    }
+  }, [bathrooms, setRentStoreBathrooms, setBuyerStoreBathrooms]);
+  useEffect(() => {
+    if (finishTier) {
+      setRentStoreFinish(finishTier);
+      setBuyerStoreFinish(finishTier);
+    }
+  }, [finishTier, setRentStoreFinish, setBuyerStoreFinish]);
 
   // Reset per-property fields when the user navigates to a different
   // address. Persistence still keeps choices for the SAME property across
