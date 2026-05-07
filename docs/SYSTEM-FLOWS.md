@@ -219,17 +219,17 @@ Admin page load → AdminAuthGate checks session
 |------|-------|---------|-------------|--------|-------------|
 | free | $0 | 0 | — | — | — |
 | quick (free) | $0 | Free with sign-in | Quick (~8 sections) | Unlimited | No payment |
-| full_single | $9.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
-| pro | $140/mo | Unlimited | Full | 10/day, 30 per rolling 30 days | Subscription |
-| pro_extra | $4.99 | 1 report | Full | No expiry | One-time (Pro users over limit) |
+| full_single | $2.99 | 1 report | Full (25+ sections) | No expiry | One-time payment |
+| pro | $50/mo | Unlimited | Full | 10/day, 30 per rolling 30 days | Subscription |
+| pro_extra | $2.99 | 1 report | Full | No expiry | One-time (Pro users over limit) |
 | promo | Free | 1 per redemption | Full | Per-code max | Via redeem-promo |
-| upgrade | $9.99 ($4.99 Pro) | — | Quick→Full | Per-snapshot | One-time payment |
+| upgrade | $2.99 | — | Quick→Full | Per-snapshot | One-time payment |
 
 ### Report tiers
 - **Quick Report** (free, sign-in required): Score, AI bottom line, RAG grid, 3 key findings, rent/price band, hazard summary, schools, neighbourhood highlights, top actions. Single-column, no sidebar. Shareable hosted link + printable PDF.
-- **Full Report** ($9.99): All 25+ sections with full detail, interactive sidebar, rent/price methodology, hazard intelligence timeline, terrain analysis, neighbourhood deep-dive.
+- **Full Report** ($2.99): All 25+ sections with full detail, interactive sidebar, rent/price methodology, hazard intelligence timeline, terrain analysis, neighbourhood deep-dive.
 - Same snapshot data — tier controls frontend rendering only. Stored as `report_tier` column on `report_snapshots`.
-- Upgrade: `POST /report/{token}/upgrade` — first tries to use an existing credit, then falls back to Stripe checkout for $9.99. On success (either path), `report_tier` updated to `'full'`, `expires_at` cleared, and report-ready email sent to user via `send_report_ready_email()`.
+- Upgrade: `POST /report/{token}/upgrade` — first tries to use an existing credit, then falls back to Stripe checkout for $2.99. On success (either path), `report_tier` updated to `'full'`, `expires_at` cleared, and report-ready email sent to user via `send_report_ready_email()`.
 
 ### Authenticated purchase flow
 ```
@@ -292,7 +292,7 @@ Hardcoded in `account.py` `_PROMO_CODES` dict:
 - `WHARESCOREJOEL`: 1 Full report credit, 999 max uses per user
 - `WHARESCOREPONY`: 1 Quick report credit, 10 max uses per user
 
-### Report export flow (tiered: Quick free, Full $9.99)
+### Report export flow (tiered: Quick free, Full $2.99)
 ```
 User clicks Generate Report → usePdfExport.startExport(preferredTier?)
   → Callers originating from a paid CTA (ReportCTABanner, ReportUpsell,
@@ -303,7 +303,7 @@ User clicks Generate Report → usePdfExport.startExport(preferredTier?)
   → Pro user? → ReportConfirmModal(tier=full) → generate
   → Signed-in with credits? → ReportConfirmModal (choose Quick free or Full with credit)
   → Signed-in without credits? → ReportConfirmModal (Quick free only; Full → UpgradeModal)
-  → Not signed in? → UpgradeModal (sign-in prompt + $9.99 Full purchase)
+  → Not signed in? → UpgradeModal (sign-in prompt + $2.99 Full purchase)
   → ReportConfirmModal: user fills dwelling type, bedrooms, etc.
   → User clicks Generate → _doExport(addr, token, tier) fires
   → Persistent toast.loading("Generating your report...") — stays visible until complete/error
@@ -327,7 +327,7 @@ Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expir
 - **Stripe promotion codes** — all checkout sessions have `allow_promotion_codes=True`. Coupons (e.g. WHARE20 = 20% off) created in Stripe dashboard, users enter at checkout.
 - **Admin credits** — `POST /admin/users/{id}/credits` gives free report credits directly. No in-app promo code UI (removed) — admin handles this via the dashboard.
 
-**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + persistent generating toast + success toast opens new tab), `UpgradeModal.tsx` (purchase UI — Full $9.99/$4.99 Pro + Pro plan, max-h-[85vh] on mobile, no Quick card, no in-app promo code, all text min 12px), `PremiumGate.tsx` (blur overlay — max-h-24 collapsed, "Tap to unlock in full report"), `services/email.py` (send_report_ready_email). Toasts: `position="top-center"` (providers.tsx) to avoid floating button overlap.
+**Key files:** `routers/payments.py` (Stripe sessions), `routers/webhooks.py` (payment webhooks), `routers/account.py` (credits, promo, saved-reports), `services/credit_check.py` (require_paid_user — Quick=free, Full=credits), `stores/downloadGateStore.ts` (frontend credit state), `stores/pdfExportStore.ts` (export flow + persistent generating toast + success toast opens new tab), `UpgradeModal.tsx` (purchase UI — Full $2.99 + Pro $50/mo, max-h-[85vh] on mobile, no Quick card, no in-app promo code, all text min 12px), `PremiumGate.tsx` (blur overlay — max-h-24 collapsed, "Tap to unlock in full report"), `services/email.py` (send_report_ready_email). Toasts: `position="top-center"` (providers.tsx) to avoid floating button overlap.
 
 ---
 
@@ -435,7 +435,7 @@ Anonymous users who land on a property report see two CTAs, not one:
   the same property page, `PropertyReport.tsx` detects the param and kicks
   `startExport('quick')` automatically. The user ends up on the hosted Quick
   report with a saved account — no forgotten link, no dead traffic.
-- **Secondary** — "Or buy the Full Report — $9.99" → `pdf.startExport('full')`
+- **Secondary** — "Or buy the Full Report — $2.99" → `pdf.startExport('full')`
   → `UpgradeModal` → Stripe guest-checkout (no account required). After
   payment, `payment-success/page.tsx` detects `useSession() === 'unauthenticated'`
   and surfaces a "Claim this report — create a free account" prompt. The

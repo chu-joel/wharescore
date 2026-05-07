@@ -23,7 +23,7 @@ export function QuickUpgradeBanner({ token }: Props) {
   const [error, setError] = useState<string | null>(null);
   const { getToken } = useAuthToken();
   const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
-  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPrice = '$2.99';
 
   const handleUpgrade = async () => {
     setLoading(true);

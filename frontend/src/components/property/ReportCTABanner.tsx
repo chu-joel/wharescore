@@ -50,7 +50,7 @@ function getSubheadline(persona: 'buyer' | 'renter', price: string, capitalValue
 export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRent }: ReportCTABannerProps) {
   const persona = usePersonaStore((s) => s.persona);
   const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
-  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPrice = '$2.99';
   const pdf = usePdfExport(addressId, persona);
   const contents = persona === 'renter' ? RENTER_CONTENTS : BUYER_CONTENTS;
   const { status: sessionStatus } = useSession();
@@ -84,7 +84,7 @@ export function ReportCTABanner({ addressId, suburbName, capitalValue, medianRen
           Full Report sits underneath as a deliberate secondary link for
           buyers who already know they want it. Signed-in users see a
           single primary button. the ReportConfirmModal lets them pick
-          Quick (free) vs Full ($9.99) after they click. */}
+          Quick (free) vs Full ($2.99) after they click. */}
       {isAuthenticated ? (
         <Button className="w-full font-semibold" size="lg" onClick={() => pdf.startExport('full')} disabled={pdf.isGenerating}>
           {pdf.isGenerating ? (

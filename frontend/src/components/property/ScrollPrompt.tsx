@@ -72,7 +72,7 @@ export function ScrollPrompt({ report }: ScrollPromptProps) {
 
   if (!visible || dismissed || allowed) return null;
 
-  const variant = getPromptVariant(report, isPro ? '$4.99' : '$9.99');
+  const variant = getPromptVariant(report, '$2.99');
 
   return (
     <div className="fixed bottom-[4.5rem] right-4 left-4 z-[9990] animate-in slide-in-from-bottom-4 duration-500 sm:left-auto sm:max-w-sm">

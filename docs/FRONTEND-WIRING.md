@@ -391,7 +391,7 @@ Default limit across all endpoints without explicit override: **240/minute per I
 | GET | `/property/{id}/export/pdf/status/{job}` | No | 120/min | Poll job status | pdf_jobs (Redis) |
 | GET | `/property/{id}/export/pdf/download/{job}` | No | 20/min | Download HTML report | pdf_jobs (Redis) |
 | GET | `/report/{token}` | No | 30/min | Hosted report snapshot (includes report_tier) | report_snapshots |
-| POST | `/report/{token}/upgrade` | Optional | 10/min | Upgrade Quick→Full. Uses credit first (returns `{upgraded:true}`), else Stripe checkout ($9.99/$4.99 Pro). Quick response data is server-side stripped — full data only returned for tier='full'. | report_snapshots, report_credits, Stripe |
+| POST | `/report/{token}/upgrade` | Optional | 10/min | Upgrade Quick→Full. Uses credit first (returns `{upgraded:true}`), else Stripe checkout ($2.99). Quick response data is server-side stripped — full data only returned for tier='full'. | report_snapshots, report_credits, Stripe |
 | GET | `/search/address` | No | 60/min | Address autocomplete (3-tier) | addresses (tsvector + trigram) |
 | GET | `/search/suburb` | No | 30/min | Suburb search | sa2_boundaries |
 | GET | `/suburb/{sa2_code}` | No | 20/min | Suburb profile | area_profiles, sa2_boundaries |
@@ -404,8 +404,8 @@ Default limit across all endpoints without explicit override: **240/minute per I
 | POST | `/account/email-summary` | Yes | — | Queue email summary | users, addresses |
 | POST | `/account/manage-subscription` | Yes | — | Stripe portal URL | report_credits, Stripe API |
 | POST | `/account/redeem-promo` | Yes | 15/min | Redeem promo code (returns report_tier: quick\|full) | promo_redemptions, report_credits |
-| POST | `/checkout/session` | Yes | 15/min | Stripe checkout (auth). Plans: full_single ($9.99), pro_extra ($4.99 Pro over-limit), pro ($140/mo). Promotion codes enabled. Verifies stored Stripe customer ID exists (handles test→live switch). | Stripe API |
-| POST | `/checkout/guest-session` | No | 5/min | Stripe checkout (guest). Plan: full_single ($9.99) | guest_purchases, Stripe API |
+| POST | `/checkout/session` | Yes | 15/min | Stripe checkout (auth). Plans: full_single ($2.99), pro_extra ($2.99 Pro over-limit, falls back to FULL_SINGLE), pro ($50/mo). Promotion codes enabled. Verifies stored Stripe customer ID exists (handles test→live switch). | Stripe API |
+| POST | `/checkout/guest-session` | No | 5/min | Stripe checkout (guest). Plan: full_single ($2.99) | guest_purchases, Stripe API |
 | GET | `/checkout/guest-token` | No | 5/min | Exchange session for download token | guest_purchases, Redis |
 | POST | `/webhooks/stripe` | Sig | 60/min | Stripe events | report_credits, users, guest_purchases |
 | PATCH | `/account/profile` | JWT | 10/hour | Update the current user's `display_name` (1-60 chars, internal whitespace collapsed, surrounding trimmed). Returns `{display_name}`. Used by the Edit name control on `/account`. | users |

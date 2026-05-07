@@ -581,7 +581,7 @@ export default function AccountPage() {
                             )}
                             {(credits?.fullCredits ?? 0) > 0 || credits?.plan === 'pro'
                               ? 'Upgrade (use credit)'
-                              : 'Upgrade $9.99'}
+                              : 'Upgrade $2.99'}
                           </button>
                         </div>
                       );

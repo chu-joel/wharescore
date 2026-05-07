@@ -27,7 +27,7 @@ interface ReportConfirmState {
   onConfirm: ((tier: 'quick' | 'full') => void) | null;
   /**
    * Open the modal. Pass `initialTier` to preselect Quick or Full .
-   * important so clicking "Get Full Report. $9.99" doesn't land users on the Free tier.
+   * important so clicking "Get Full Report. $2.99" doesn't land users on the Free tier.
    */
   show: (
     addressId: number,
@@ -536,7 +536,7 @@ export function ReportConfirmModal() {
   const credits = useDownloadGateStore((s) => s.credits);
   const isPro = credits?.plan === 'pro';
   const hasFullCredits = (credits?.fullCredits ?? 0) > 0 || isPro;
-  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPrice = '$2.99';
 
   // Get address from cached report data
   const cachedReport = addressId

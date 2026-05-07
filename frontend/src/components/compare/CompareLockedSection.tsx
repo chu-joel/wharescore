@@ -120,7 +120,7 @@ export function CompareLockedSection({
 
       <div className="pt-2 border-t border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          $9.99 single, or unlimited with Pro. Reports persist forever and
+          $2.99 single, or unlimited with Pro. Reports persist forever and
           appear in your account.
         </p>
         <div

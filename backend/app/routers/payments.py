@@ -49,7 +49,7 @@ async def create_checkout_session(
     # Get or create Stripe customer for this user
     customer_id = await _get_or_create_customer(user_id)
 
-    # Map plan to Stripe price. Pro users get discounted extras ($4.99)
+    # Map plan to Stripe price. Pro overage extras priced same as full_single ($2.99) — falls back to FULL_SINGLE if PRO_EXTRA not set
     price_map = {
         "full_single": settings.STRIPE_PRICE_FULL_SINGLE,
         "pro": settings.STRIPE_PRICE_PRO,
@@ -144,7 +144,7 @@ async def create_guest_checkout_session(request: Request, body: GuestCheckoutReq
     if not settings.STRIPE_SECRET_KEY:
         raise HTTPException(500, "Stripe not configured")
 
-    guest_tier = "full"  # Guests always get full reports ($9.99)
+    guest_tier = "full"  # Guests always get full reports ($2.99)
     price_id = settings.STRIPE_PRICE_FULL_SINGLE
     if not price_id:
         raise HTTPException(500, "Stripe price not configured for report")

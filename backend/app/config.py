@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PRICE_QUICK_SINGLE: str = ""  # DEPRECATED. Quick Reports are now free with sign-in
-    STRIPE_PRICE_FULL_SINGLE: str = ""  # price_xxx for $9.99 Full Report (non-Pro users)
-    STRIPE_PRICE_PRO: str = ""          # price_xxx for $140/mo Pro (30 Full reports/month)
-    STRIPE_PRICE_UPGRADE: str = ""      # price_xxx for $9.99 Quick→Full upgrade (same as full_single)
-    STRIPE_PRICE_PRO_EXTRA: str = ""    # price_xxx for $4.99 extra Full Report (Pro users over limit)
+    STRIPE_PRICE_FULL_SINGLE: str = ""  # price_xxx for $2.99 Full Report (non-Pro users)
+    STRIPE_PRICE_PRO: str = ""          # price_xxx for $50/mo Pro (30 Full reports/month)
+    STRIPE_PRICE_UPGRADE: str = ""      # price_xxx for $2.99 Quick→Full upgrade (same as full_single)
+    STRIPE_PRICE_PRO_EXTRA: str = ""    # price_xxx for $2.99 extra Full Report (Pro users over limit) — same as STRIPE_PRICE_FULL_SINGLE
 
     FRONTEND_URL: str = "http://localhost:3000"
 

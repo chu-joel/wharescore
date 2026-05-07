@@ -49,7 +49,7 @@ export function HostedQuickReport({ snapshot, token }: HostedQuickReportProps) {
   const bin = hasScores ? getRatingBin(report.scores.overall) : null;
   const persona = snapshot.meta.persona;
   const isPro = useDownloadGateStore((s) => s.credits?.plan === 'pro');
-  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPrice = '$2.99';
   const generatedDate = new Date(snapshot.meta.generated_at).toLocaleDateString('en-NZ', {
     day: 'numeric', month: 'long', year: 'numeric',
   });

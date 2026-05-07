@@ -179,7 +179,7 @@ PAGES = [
 # ---------- Prompt templates ------------------------------------------------
 UX_PROMPT = """You are a senior UX designer and conversion rate optimiser auditing WhareScore,
 a New Zealand property intelligence web app. Renters and home buyers search an address and
-get a risk score + detailed report. Free tier shows basics; paid tier ($9.99) unlocks full analysis.
+get a risk score + detailed report. Free tier shows basics; paid tier ($2.99) unlocks full analysis.
 
 PAGE PURPOSE: {context}
 

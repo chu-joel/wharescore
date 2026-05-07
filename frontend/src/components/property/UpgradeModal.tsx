@@ -206,10 +206,10 @@ function getHeadline(
   // Credit/limit states take priority
   if (credits?.plan === 'pro') {
     if (credits.dailyLimit && credits.downloadsToday >= credits.dailyLimit) {
-      return `You've downloaded ${credits.dailyLimit} reports today. Get extras for $4.99 each.`;
+      return `You've downloaded ${credits.dailyLimit} reports today. Get extras for $2.99 each.`;
     }
     if (credits.monthlyLimit && credits.downloadsThisMonth >= credits.monthlyLimit) {
-      return `You've used all ${credits.monthlyLimit} reports. Get extras for $4.99 each.`;
+      return `You've used all ${credits.monthlyLimit} reports. Get extras for $2.99 each.`;
     }
   }
   if (credits?.creditsRemaining !== null && credits?.creditsRemaining !== undefined && credits.creditsRemaining <= 0 && credits.plan !== 'free' && credits.plan !== 'pro') {
@@ -269,7 +269,7 @@ export function UpgradeModal() {
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const isPro = credits?.plan === 'pro';
-  const fullPrice = isPro ? '$4.99' : '$9.99';
+  const fullPrice = '$2.99';
   const fullPlan = isPro ? 'pro_extra' : 'full_single';
   const { getToken } = useAuthToken();
   const [loading, setLoading] = useState<string | null>(null);
@@ -505,7 +505,7 @@ export function UpgradeModal() {
             {loading === 'pro' ? (
               <Loader2 className="h-5 w-5 animate-spin text-piq-primary" />
             ) : (
-              <span className="text-base sm:text-lg font-bold text-piq-primary">$140/mo</span>
+              <span className="text-base sm:text-lg font-bold text-piq-primary">$50/mo</span>
             )}
           </button>
         </div>

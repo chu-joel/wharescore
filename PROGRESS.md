@@ -1,8 +1,27 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-04-29 (Property comparison — Phase A: stage 2 anonymously, view side-by-side scoreboard + Risk + Market sections at /compare)
+**Last Updated:** 2026-05-07 (Pricing dropped: Full Report $9.99→$2.99, Pro $140/mo→$50/mo, Pro per-report discount removed)
 
-## Latest session (2026-04-29) — Property Comparison Phase A
+## Latest session (2026-05-07) — Pricing reset
+
+**Why:** ~zero conversions at $9.99/$140. Goal switched to break-even / volume; price drop chosen over enabling ads.
+
+**Changed:**
+- All user-facing prices: $9.99 → $2.99 (Full Report), $140/mo → $50/mo (Pro). Pro per-report discount ($4.99) removed — single price for everyone, since $2.99 base makes the discount nonsensical (Pro overage now also $2.99, falls back to FULL_SINGLE price ID via existing `pro_extra` map in `routers/payments.py:56`).
+- Components touched: `UpgradeModal.tsx`, `ScrollPrompt.tsx`, `ReportConfirmModal.tsx`, `ReportCTABanner.tsx`, `QuickUpgradeBanner.tsx`, `HostedQuickReport.tsx`, `CompareLockedSection.tsx`, `app/about/page.tsx`, `app/help/page.tsx`, `app/account/page.tsx`. The `isPro ? '$4.99' : '$X'` ternaries collapsed to single `'$2.99'`.
+- Backend: `config.py` + `routers/payments.py` comments updated. `backend/.env` had stale var names (`STRIPE_PRICE_SINGLE`, `STRIPE_PRICE_PACK3`) — renamed to match `config.py` (`STRIPE_PRICE_FULL_SINGLE`, `STRIPE_PRICE_UPGRADE`) and pointed at new price IDs.
+- Stripe price IDs: `STRIPE_PRICE_FULL_SINGLE` = `STRIPE_PRICE_UPGRADE` = `price_1TG9PbLl7wTwyuxMtnUf4sKI`; `STRIPE_PRICE_PRO` = `price_1TG8UcLl7wTwyuxMXahOIbtt`. GH Actions secrets updated by user. Same Stripe account as before (despite different ID suffix).
+- Docs: `SYSTEM-FLOWS.md` § Payment-credit-system plans table + Report tiers + report export flow updated. Memory `project_pricing_tiers.md` rewritten.
+
+**Open:**
+- `STRIPE_PRICE_PRO_EXTRA` env var — not changed; safe because `routers/payments.py:56` falls back to `STRIPE_PRICE_FULL_SINGLE` if PRO_EXTRA is empty. Can be deleted entirely or set to same price ID as FULL_SINGLE.
+- Hardcoded `'$2.99'` / `'$50'` strings still scattered across ~10 components — ripe for centralisation if pricing changes again.
+- Push to `main` to redeploy with new GH secrets — env vars only inject at deploy time.
+
+---
+
+## Previous session (2026-04-29) — Property Comparison Phase A
+
 
 **Scope:** Anonymous-only side-by-side comparison of 2 properties. Site-wide tray, scoreboard + Risk + Market sections, tri-state diff (present/negativeKnown/unknown). No backend persistence yet (Phase B). See plan file: `C:\Users\joelt\.claude\plans\harmonic-cuddling-bachman.md`.
 
