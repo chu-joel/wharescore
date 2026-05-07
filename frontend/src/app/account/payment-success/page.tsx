@@ -248,23 +248,27 @@ export default function PaymentSuccessPage() {
               <p className="text-xs text-muted-foreground mb-2">
                 Your payment was received but is still processing. Your credit will be available within a few minutes.
               </p>
+            ) : !addressId && plan && plan !== 'pro' ? (
+              <p className="text-sm text-muted-foreground mb-2">
+                Your credit is ready. Search any NZ address and click Generate Full Report to use it.
+              </p>
             ) : (
               <p className="text-sm text-muted-foreground mb-2">
                 We&apos;ll email you a link to your report when it&apos;s ready. You can also find it in My Reports.
               </p>
             )}
             <a
-              href="/account"
+              href={!addressId && plan && plan !== 'pending' && plan !== 'pro' ? '/' : '/account'}
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
             >
-              Go to My Reports
+              {!addressId && plan && plan !== 'pending' && plan !== 'pro' ? 'Pick a property' : 'Go to My Reports'}
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href="/"
+              href={!addressId && plan && plan !== 'pending' && plan !== 'pro' ? '/account' : '/'}
               className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background font-medium hover:bg-muted transition-colors text-sm"
             >
-              Browse more properties
+              {!addressId && plan && plan !== 'pending' && plan !== 'pro' ? 'View My Reports' : 'Browse more properties'}
             </a>
           </div>
         )}
