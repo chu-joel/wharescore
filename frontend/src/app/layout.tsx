@@ -6,6 +6,7 @@ import { FeedbackFAB } from "@/components/feedback/FeedbackFAB";
 import { AnalyticsConsent } from "@/components/common/AnalyticsConsent";
 import { AuthSync } from "@/components/common/AuthSync";
 import { CompareTray } from "@/components/compare/CompareTray";
+import { PublicBanner } from "@/components/common/PublicBanner";
 import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({
@@ -153,6 +154,7 @@ export default function RootLayout({
         <SessionProvider>
           <Providers>
             <AuthSync />
+            <PublicBanner />
             {children}
             <CompareTray />
             <FeedbackFAB />

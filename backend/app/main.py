@@ -169,3 +169,6 @@ app.include_router(auth_otp.router)
 
 from .routers import extension
 app.include_router(extension.router, prefix="/api/v1")
+
+from .routers import content
+app.include_router(content.router, prefix="/api/v1")

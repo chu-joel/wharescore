@@ -72,6 +72,8 @@ The buyer rule uses CV as a sanity ceiling because no suburb-median-sale-price c
 
 **Map hover cleanup** — `MapContainer` wires `onMouseLeave` AND `onPointerLeave` to the outer `<div>` wrapper (not just the `<Map>` canvas). react-map-gl's internal onMouseLeave only fires when the mouse exits the canvas element; moving to a sibling overlay (legend, style picker, report pane) wouldn't clear `hoverInfo` reliably. The wrapper-level handler belt-and-braces it so the tooltip disappears whenever the pointer leaves the map region.
 
+**Public banner** (`components/common/PublicBanner.tsx`, mounted in `app/layout.tsx`) — site-wide announcement bar above all pages. Polls `GET /api/v1/public/banner` via `usePublicBanner` hook (60s staleTime). Renders only when an active banner exists in `admin_content` (managed at `/admin/content` via `ContentPanel.tsx` → `Save Banner`/`Clear`). Three styles via `type` (info/warning/success). Per-visitor dismissal stored in `localStorage` under `ws-banner-dismissed:{hash(text)}` so editing the text re-shows the banner for everyone, but the same text isn't shown twice.
+
 **Onboarding tour** (`components/common/OnboardingTour.tsx`, mounted in `app/page.tsx`) — 5-step spotlight tour for first-visit users. Targets existing components via `data-tour` attributes:
 - `map-layers` → `MapLayerChipBar` wrapper
 - `map` → `MapContainer` outer div
@@ -413,6 +415,7 @@ Default limit across all endpoints without explicit override: **240/minute per I
 | GET | `/rent-reports/{id}` | No | 40/min | Building rent data (3+ reports) | rent_reports |
 | POST | `/budget-inputs` | No | 3/hr | Save budget calculator data | user_budget_inputs |
 | POST | `/email-signups` | No | 3/hr | Region availability signup | email_signups |
+| GET | `/public/banner` | No | 120/min | Active announcement banner (`{text, type}` or `null`). Reads from `admin_content` where `key='banner'` and `active=true`. 60s Redis cache (key `public:banner`), busted on admin update. | admin_content |
 | POST | `/auth/send-code` | No | 5/min, 10/hr | Send 6-digit OTP to email via Brevo | Redis (otp:{email}, 5 min TTL) |
 | POST | `/auth/verify-code` | No | 10/min | Verify OTP code, return user info for NextAuth | Redis (otp:{email}) |
 | POST | `/feedback` | No | 5/hr | Submit feedback | feedback |

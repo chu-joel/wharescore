@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Save } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, X } from 'lucide-react';
 
 interface BannerConfig {
   text: string;
@@ -113,7 +113,24 @@ export function ContentPanel() {
               )}
               Save Banner
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground hover:text-destructive"
+              disabled={updateContent.isPending}
+              onClick={() => {
+                const cleared = { text: '', type: 'info' as const, active: false };
+                setBanner(cleared);
+                updateContent.mutate({ key: 'banner', body: cleared });
+              }}
+            >
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Shows site-wide above the page. Toggle Inactive to hide without losing the text, or Clear to wipe it. Visitors can dismiss it themselves; changing the text re-shows it for everyone.
+          </p>
         </Card>
       </section>
 

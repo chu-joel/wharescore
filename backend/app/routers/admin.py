@@ -1524,6 +1524,12 @@ async def admin_content_update(
             [key, orjson.dumps(body).decode()],
         )
         await conn.commit()
+
+    if key == "banner":
+        rc = _redis()
+        if rc is not None:
+            await rc.delete("public:banner")
+
     return {"status": "updated"}
 
 
