@@ -5,6 +5,8 @@ import { FindingCard, generateFindings, type Finding } from './FindingCard';
 import { BlurredFindingCards } from './BlurredFindingCards';
 import type { PropertyReport } from '@/lib/types';
 import type { Persona } from '@/stores/personaStore';
+import { useRentInputStore } from '@/stores/rentInputStore';
+import { useBuyerInputStore } from '@/stores/buyerInputStore';
 
 interface KeyFindingsProps {
   report: PropertyReport;
@@ -39,7 +41,9 @@ function asFrontendFinding(
 }
 
 export function KeyFindings({ report, maxFree = 5, persona, addressId }: KeyFindingsProps) {
-  const allFindings = generateFindings(report, persona);
+  const weeklyRent = useRentInputStore((s) => s.weeklyRent);
+  const askingPrice = useBuyerInputStore((s) => s.askingPrice);
+  const allFindings = generateFindings(report, persona, { weeklyRent, askingPrice });
 
   if (allFindings.length === 0) return (
     <div className="space-y-3">

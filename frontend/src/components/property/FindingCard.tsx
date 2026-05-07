@@ -129,16 +129,24 @@ export function FindingCard({ finding, index }: { finding: Finding; index?: numb
  * Each finding has a plain English headline + interpretation.
  * Optionally accepts a persona to reorder findings by relevance.
  */
+export interface MarketInputs {
+  /** Weekly rent the renter is paying or considering, from useRentInputStore. */
+  weeklyRent?: number | null;
+  /** Asking / agreed sale price the buyer is considering, from useBuyerInputStore. */
+  askingPrice?: number | null;
+}
+
 export function generateFindings(report: {
   property?: import('@/lib/types').PropertyInfo;
   hazards: import('@/lib/types').HazardData;
   environment: import('@/lib/types').EnvironmentData;
   liveability: import('@/lib/types').LiveabilityData;
   planning: import('@/lib/types').PlanningData;
+  market?: import('@/lib/types').MarketData;
   scores: import('@/lib/types').CompositeScore;
   terrain?: import('@/lib/types').PropertyReport['terrain'];
   event_history?: import('@/lib/types').PropertyReport['event_history'];
-}, persona?: 'renter' | 'buyer'): Finding[] {
+}, persona?: 'renter' | 'buyer', inputs?: MarketInputs): Finding[] {
   const findings: Finding[] = [];
   const prop = report.property;
   const h = report.hazards;
@@ -898,14 +906,86 @@ export function generateFindings(report: {
     }
   }
 
+  // --- Market: rent vs SA2 typology median (renter persona) ---
+  // Fires only when the renter has entered a weekly rent. Compares to
+  // market.rent_assessment.median which is already in the report and reflects
+  // the SA2 median for the chosen dwelling type and bedroom count.
+  const userRent = inputs?.weeklyRent ?? null;
+  const medianRent = report.market?.rent_assessment?.median ?? null;
+  if (userRent && userRent > 0 && medianRent && medianRent > 0) {
+    const diff = userRent - medianRent;
+    if (diff >= 50) {
+      findings.push({
+        severity: 'critical',
+        headline: `Rent is $${Math.round(diff)}/wk above the local median`,
+        interpretation: `You're paying $${userRent}/wk; the SA2 median for this typology is $${Math.round(medianRent)}/wk. Annualised, that's about $${Math.round(diff * 52).toLocaleString()} more than typical.`,
+        category: 'Market',
+        source: 'MBIE Tenancy Services bond data',
+      });
+    } else if (diff >= 20) {
+      findings.push({
+        severity: 'warning',
+        headline: `Rent is $${Math.round(diff)}/wk above the local median`,
+        interpretation: `You're paying $${userRent}/wk; the SA2 median for this typology is $${Math.round(medianRent)}/wk.`,
+        category: 'Market',
+        source: 'MBIE Tenancy Services bond data',
+      });
+    } else if (diff <= -20) {
+      findings.push({
+        severity: 'positive',
+        headline: `Rent is $${Math.round(-diff)}/wk below the local median`,
+        interpretation: `You're paying $${userRent}/wk; the SA2 median for this typology is $${Math.round(medianRent)}/wk.`,
+        category: 'Market',
+        source: 'MBIE Tenancy Services bond data',
+      });
+    }
+  }
+
+  // --- Market: asking price vs council CV (buyer persona) ---
+  // Fires only when the buyer has entered an asking price. CV (capital value)
+  // is the council's rating valuation, set on a 3-yearly cycle, so it lags
+  // the market. We use it as a sanity-check ceiling rather than a fair-value
+  // estimate. A sale-comparator endpoint would be the proper Critical-Buyer
+  // signal but is not yet wired (see docs/wording/INDICATOR-WORDING-market.md).
+  const askingPrice = inputs?.askingPrice ?? null;
+  const cv = prop?.capital_value ?? null;
+  if (askingPrice && askingPrice > 0 && cv && cv > 0) {
+    const overPct = ((askingPrice - cv) / cv) * 100;
+    if (overPct >= 30) {
+      findings.push({
+        severity: 'critical',
+        headline: `Asking price is ${Math.round(overPct)}% above CV`,
+        interpretation: `Asking $${askingPrice.toLocaleString()} against a $${cv.toLocaleString()} capital value. CV lags the market by 1-3 years, so some premium is normal, but 30%+ over CV warrants comparable-sales evidence before going unconditional.`,
+        category: 'Market',
+        source: 'Council rating valuations',
+      });
+    } else if (overPct >= 15) {
+      findings.push({
+        severity: 'warning',
+        headline: `Asking price is ${Math.round(overPct)}% above CV`,
+        interpretation: `Asking $${askingPrice.toLocaleString()} against a $${cv.toLocaleString()} capital value. Worth checking recent comparable sales in the suburb before assuming the premium is justified.`,
+        category: 'Market',
+        source: 'Council rating valuations',
+      });
+    } else if (overPct <= -10) {
+      findings.push({
+        severity: 'positive',
+        headline: `Asking price is ${Math.round(-overPct)}% below CV`,
+        interpretation: `Asking $${askingPrice.toLocaleString()} against a $${cv.toLocaleString()} capital value. CV is a lagging benchmark, but a meaningful discount to it is unusual.`,
+        category: 'Market',
+        source: 'Council rating valuations',
+      });
+    }
+  }
+
   // Sort: critical first, then warning, then info, then positive
   const severityOrder = { critical: 0, warning: 1, info: 2, positive: 3 };
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
   // Persona-aware reordering: boost relevant categories to the top within same severity
   if (persona) {
-    const renterCategories = ['Hazards', 'Liveability', 'Environment'];
-    const buyerCategories = ['Hazards', 'Planning', 'Liveability'];
+    const renterCategories = ['Market', 'Hazards', 'Liveability', 'Environment'];
+    const buyerCategories = ['Market', 'Hazards', 'Planning', 'Liveability'];
     const priorityCategories = persona === 'renter' ? renterCategories : buyerCategories;
 
     findings.sort((a, b) => {

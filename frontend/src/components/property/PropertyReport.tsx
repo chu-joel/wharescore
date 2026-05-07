@@ -37,6 +37,8 @@ import { EmailSummaryCapture } from './EmailSummaryCapture';
 import { generateFindings } from './FindingCard';
 import { trackVisit, shouldShowComparisonUpsell, markVisitedEver } from '@/hooks/useVisitTracker';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useRentInputStore } from '@/stores/rentInputStore';
+import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { getQuestionsForPersona } from '@/lib/reportSections';
 import { useSearchStore } from '@/stores/searchStore';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
@@ -58,6 +60,8 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   const clearSelection = useSearchStore((s) => s.clearSelection);
   const router = useRouter();
   const persona = usePersonaStore((s) => s.persona);
+  const weeklyRent = useRentInputStore((s) => s.weeklyRent);
+  const askingPrice = useBuyerInputStore((s) => s.askingPrice);
   const questions = getQuestionsForPersona(persona);
   const setShowUpgradeModal = useDownloadGateStore((s) => s.setShowUpgradeModal);
   const canDownload = useDownloadGateStore((s) => s.canDownload);
@@ -105,7 +109,10 @@ export function PropertyReport({ addressId }: { addressId: number }) {
   };
 
   // Hooks must be called unconditionally (before any early returns)
-  const findings = useMemo(() => report ? generateFindings(report, persona) : [], [report, persona]);
+  const findings = useMemo(
+    () => report ? generateFindings(report, persona, { weeklyRent, askingPrice }) : [],
+    [report, persona, weeklyRent, askingPrice],
+  );
   const riskCount = useMemo(() => findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').length, [findings]);
 
   if (isLoading) {

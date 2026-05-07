@@ -21,6 +21,19 @@ Findings and insights carry an optional `source` field that renders a "Source: {
 
 **Coverage:** 75 of 105 `Insight(...)` call sites annotated. Hazards / planning / market / liveability / environment / transport all carry source attribution on their wired Insights. Remaining 30 are rules whose data sources don't yet have a SOURCE_CATALOG entry (e.g. `branz_wind`, `scion_wildfire`, `linz_8m_dem`, `mfe_coastal_inundation`, `airport_noise_overlay`) — add the key to SOURCE_CATALOG and the source kwarg in one edit per site.
 
+### Client-side market findings (depend on user input)
+
+`generateFindings()` in `FindingCard.tsx` accepts an optional `inputs: { weeklyRent?: number, askingPrice?: number }` argument. When present, two market rules fire:
+
+| Rule | Persona | Trigger | Severity | Source |
+|---|---|---|---|---|
+| Rent above local median | renter | `userRent - market.rent_assessment.median` is `>= $50/wk` / `>= $20/wk` / `<= -$20/wk` | critical / warning / positive | MBIE Tenancy Services bond data |
+| Asking price above CV | buyer | `(askingPrice - capital_value) / capital_value` is `>= 30%` / `>= 15%` / `<= -10%` | critical / warning / positive | Council rating valuations |
+
+These run client-side because the trigger depends on user input from `useRentInputStore.weeklyRent` and `useBuyerInputStore.askingPrice`. Call sites that pass inputs: `KeyFindings.tsx`, `PropertyReport.tsx`. `ScrollPrompt.tsx` does not pass inputs (it scores hazard/liveability counts only) — both rules are silently inert there.
+
+The buyer rule uses CV as a sanity ceiling because no suburb-median-sale-price comparator is yet wired into the report. CV lags the market by 1-3 years; a proper REINZ/QV comparator is a future product step.
+
 ## Report Fields → Components
 <!-- UPDATE: When adding a report field, add the row. When adding a component, add its fields. -->
 

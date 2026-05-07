@@ -35,16 +35,16 @@ Conventions:
 - **Em-dashes removed from every wording cell.** Surface-label column headers (`On-screen, label`, `Hosted Full, narrative + tech`) preserved as structural identifiers; every other em-dash inside Renter / Buyer / Pro cells replaced with comma, full stop, colon or parens. Reason: house tone rule (no em-dashes); sentence breaks read better on small-screen narrative slots.
 - **Placeholder normalised.** Bare em-dash placeholders normalised: `(em-dash) (out of scope: ...)` becomes `(out of scope: ...)`; `(em-dash) (no on-screen finding wired today)` and `(em-dash) (out of scope: no finding rule)` both become `(no rule)`. Reason: drops a redundant em-dash and shortens the placeholder.
 - **Severity line added to every Meaning block.** 25 indicators now carry a `User-care severity:` bullet calibrated to the spec's Critical / Notable / Context / Background tiers. Reason: lets downstream finding-rule work see at a glance which indicators deserve a Critical rule and which never should.
-- **No Critical wording added to any cell, because no Critical finding rule exists yet for Market.** The spec's Critical-Renter ("paying ~$X/wk above the local median") and Critical-Buyer ("X% above suburb median") templates would naturally attach to `rental_overview.median` and (for buyers) a not-yet-wired suburb-median-sale-price comparator. The matrix has no rule for either today, so wording was left at Notable. Flagged in gap list.
+- **Critical-tier finding rules wired 2026-05-07.** Renter rule: `userRent - market.rent_assessment.median >= $50/wk` fires Critical; `>= $20/wk` fires Warning; `<= -$20/wk` fires Positive. Source: MBIE Tenancy Services bond data. Buyer rule: `(askingPrice - capital_value) / capital_value >= 30%` fires Critical; `>= 15%` fires Warning; `<= -10%` fires Positive. Source: Council rating valuations. Both live in `frontend/src/components/property/FindingCard.tsx generateFindings()` (client-side because they depend on user input from `useRentInputStore` / `useBuyerInputStore`). The buyer rule uses CV as a sanity ceiling (it lags 1-3 years); a proper suburb-median-sale-price comparator is still a future product step.
 - **Renter on-screen finding for `rental_overview.yoy_pct` lightly expanded** to nudge "compare 3-5 alternatives before re-signing", consistent with the Critical-Renter template's negotiation framing without claiming the user is over-paying.
 - **No fear words used.** Re-checked for "warning", "caution", "danger", "alarming", "catastrophic", "deadly" and exclamation marks; none present (none were before either, but verified post-edit).
 - **NZ English preserved.** "neighbourhood", "quietness", "negotiation"; "$" left as the universal weekly-rent prefix readers expect.
 - **No new findings invented.** Every cell that previously said "no rule wired" still says `(no rule)`. The matrix is the source of truth on which indicators have Insights wired in `report_html.py`.
 
-### Critical-tier indicators that lack a finding rule (call-out to coordination)
+### Critical-tier finding rules (wired 2026-05-07)
 
-- `rental_overview.median`: Critical-Renter wording would fire when a user-entered rent sits >10% above the SA2 median; today only the yield-Insight at `report_html.py:1989-1999` reads this field, which is a buyer signal not a renter one. Adding a `RentComparisonFlow`-driven over-LQ/over-median Insight would unlock the Critical-Renter template.
-- Buyer-side "asking price vs suburb median": Critical wording has no source field at all in the Market category today. Would require a new SQL field (suburb median sale price from REINZ/QV) before any finding rule could exist.
+- `rental_overview.median` and `market.rent_assessment.median`: Critical-Renter rule fires when `userRent - median >= $50/wk` (Critical), `>= $20/wk` (Warning), `<= -$20/wk` (Positive). Implemented in `frontend/src/components/property/FindingCard.tsx generateFindings()`, reads `useRentInputStore.weeklyRent`. Source attribution: MBIE Tenancy Services bond data.
+- `property.capital_value` (buyer): Critical-Buyer rule fires when `(askingPrice - cv) / cv >= 30%` (Critical), `>= 15%` (Warning), `<= -10%` (Positive). Reads `useBuyerInputStore.askingPrice`. Source: Council rating valuations. Note: CV lags the market by 1-3 years, so this is a sanity ceiling rather than a fair-value estimate. A proper suburb-median-sale-price comparator (REINZ/QV) is still a future feature.
 
 ---
 
@@ -170,7 +170,7 @@ Conventions:
 - Common misreading: Treating median bond rent as today's asking rent; bonds lodge weeks-to-months after the lease starts, so the median lags the active market.
 - What it does NOT tell you: Asking-rent distribution, condition, fixed term vs periodic, or whether utilities are included.
 - source_key status: TODO (no `mbie_tenancy_bonds` entry in `SOURCE_CATALOG`).
-- User-care severity: Notable for renters and buyers (anchors rent fairness and yield), but no Critical finding rule is wired today; should escalate to Critical-Renter when a user's entered rent sits >10% above the SA2 median.
+- User-care severity: Notable for renters and buyers (anchors rent fairness and yield). The Critical-Renter rule wired 2026-05-07 escalates to Critical when the user's entered rent sits >=$50/wk above the SA2 median (`generateFindings()` in `FindingCard.tsx`).
 
 | Surface | Renter | Buyer | Pro |
 |---|---|---|---|
