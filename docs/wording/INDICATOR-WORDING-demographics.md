@@ -1150,7 +1150,7 @@ Category-wide notes (apply to every indicator below unless overridden):
 - Coverage: National in principle (any SA2/area_unit with `crime` rows). Match is by ILIKE on `sa2_name` OR address suburb (`snapshot_generator.py:329`); coverage gaps possible where neither name string matches `area_unit`.
 - Common misreading: Equating reported-crime trend with risk to a specific address (it's an area-level tally with police-recording bias).
 - What it does NOT tell you: Property-specific risk; unreported crime; severity mix; offence type breakdown.
-- source_key status: `nz_police_crime` (used by Insights in `report_html.py:1869, 1877`; the snapshot field itself does not currently drive an Insight; the source_key applies to the underlying authority).
+- source_key status: `nz_police_crime` (used by Insights in `report_html.py:1916, 1924`; the snapshot field itself does not currently drive an Insight; the source_key applies to the underlying authority).
 - User-care severity: Notable, area-level victimisation trend that informs perception but is not address-specific and does not on its own carry a finding rule.
 
 NOTE: This row is tagged Demographics in `_INVENTORY.md` but is conceptually a crime/safety indicator. It is included here for completeness against the inventory; deeper wording will live with the Crime/Liveability category if reclassified.

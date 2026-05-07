@@ -96,7 +96,7 @@
 | climate_projections | 2.6M | 61 climate variables per grid cell | NIWA | `get_property_report()` → environment.climate_* |
 | property_titles | 2.4M | title_no, estate_description, geom | LINZ Titles | `get_property_report()` → property.title_* |
 | council_valuations | 1.7M | capital_value, land_value, improvements_value, geom | 40+ council DataSources | `get_property_report()` → property.capital_value (base, before live API override) |
-| bonds_detailed | 1.2M | sa2_code, dwelling_type, bedrooms, median_rent, quarter_end | MBIE Tenancy Bonds | Market endpoint, rent advisor, snapshot rent_baselines |
+| bonds_detailed | 1.2M | sa2_code, dwelling_type, bedrooms, median_rent, quarter_end | MBIE Tenancy Bonds quarterly CSVs at `data/bonds/`, imported by `scripts/load_bonds_detailed.py` (one-off, no `data_loader.py` entry — MBIE publishes quarterly files, not a refreshable feed). Re-run when a new quarter is released. | Market endpoint, rent advisor, snapshot rent_baselines, `mv_rental_market` (migration 0047) |
 | crime | 1.2M | year_month, meshblock, anzsoc_*, victimisations | NZ Police | `get_property_report()` → liveability.crime_*, crime-trend |
 | crashes | 904K | crash_year, crash_severity, geom | Waka Kotahi CAS | `get_property_report()` → liveability.crashes_300m |
 | slope_failure | 470K | lskey, severity, source_council, geom | GWRC + ~6 council DataSources | `get_property_report()` → hazards.council_slope_severity (all cities) + hazards.gwrc_slope_severity (Wellington) |

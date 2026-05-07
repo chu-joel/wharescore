@@ -16,7 +16,7 @@ Conventions:
   - **mv_rental_trends location verified.** `CREATE MATERIALIZED VIEW mv_rental_trends` exists at `sql/06-materialized-views.sql:93` (audit said line 92, off by 1 because line 92 is the `DROP MATERIALIZED VIEW IF EXISTS` line). Updated trends.dwelling_type Table reference to `:93`. Other trends references (`yoy_pct` 110-112, `cagr_3yr` 114-116, `cagr_5yr` 118-120, `cagr_10yr` 122-124) re-verified against the file and left intact; yoy_pct band tightened from `:110` to `:110-112`.
   - **bonds_detailed table source located.** Created via `scripts/load_bonds_detailed.py:28` (loader script CREATE, not a backend migration). Wording for `rent_history (snapshot)` now cites this path.
   - **rbnz_housing table source located.** Created via `scripts/load_rbnz_housing.py:28`. Wording for `hpi_data (snapshot)` now cites this path. `snapshot_generator.py:307` reference in gap list corrected to `:308`.
-  - **SA2 code / SA2 name DK consistency.** Both rows now carry the `(loader name UNKNOWN, not present in data_loader.py DataSource registry)` parenthetical that the other 23 indicators use.
+  - **SA2 code / SA2 name DK consistency.** Both rows now carry the `(loader: scripts/load_bonds_detailed.py)` parenthetical that the other 23 indicators use.
   - **comparisons.city query path widened** from `0054_flood_nearest_m.sql:1001-1009` to `:1001-1012` to include the `WHERE tc.ta_name = v_ta_name` join clause at line 1011.
   - **`_INVENTORY.md:256` reference removed.** That line is in the liveability section; the pointer was bogus. Replaced with "per `_INVENTORY.md` Market section".
   - **Inventory category-count fixed.** Header now says 25 (rows-under-Market total). Audit flagged the `_INVENTORY.md:30` "Market | 26" cell as inventory bookkeeping noise, wording-file count is now the source of truth.
@@ -52,7 +52,7 @@ Conventions:
 - What it measures: Statistical Area 2 code (Stats NZ 2023) used as the join key for rental, comparator and demographic data.
 - Source authority: Stats NZ Statistical Standard for Geographic Areas (SA2 2023).
 - Dataset / endpoint: SA2 boundaries loaded from Stats NZ; populated as `v_sa2_code` in the SQL via address point-in-polygon against `sa2_2023`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN, not present in `data_loader.py` DataSource registry; MBIE bond lodgement file uses SA2 as `location_id`).
+- DataSource key(s): `tenancy_bonds` (one-off CSV importer at `scripts/load_bonds_detailed.py`, no `data_loader.py` entry; MBIE Tenancy Services CSV uses SA2 as `location_id`).
 - Table(s): `mv_rental_market`, joined back to `sa2_2023`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1019).
 - Rendered by:, (not displayed; used as a join key in `HostedRentAdvisor.tsx`).
@@ -79,7 +79,7 @@ Conventions:
 - What it measures: Human-readable name of the Statistical Area 2 the address falls inside.
 - Source authority: Stats NZ Statistical Standard for Geographic Areas (SA2 2023).
 - Dataset / endpoint: `sa2_2023.sa2_name`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN, not present in `data_loader.py` DataSource registry; joined to SA2 boundaries).
+- DataSource key(s): `tenancy_bonds` (one-off CSV importer at `scripts/load_bonds_detailed.py`, no `data_loader.py` entry; joined to SA2 boundaries).
 - Table(s): `mv_rental_market`, `sa2_2023`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1020).
 - Rendered by: `HostedRentAdvisor.tsx` (header text), `HostedRentHistory.tsx` (chart title context).
@@ -106,7 +106,7 @@ Conventions:
 - What it measures: Dwelling-type bucket of a row in the SA2 rental overview (House, Flat, Apartment, ALL).
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.dwelling_type`, materialised in `mv_rental_market`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN, not present in `data_loader.py` DataSource registry; bond data is ingested outside that registry).
+- DataSource key(s): `tenancy_bonds` (one-off CSV importer at `scripts/load_bonds_detailed.py`, no `data_loader.py` entry, by design — MBIE publishes quarterly CSVs, not a refreshable feed).
 - Table(s): `bonds_detailed` → `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" lateral on `mv_rental_market` (0054_flood_nearest_m.sql:1029).
 - Rendered by: `HostedRentAdvisor.tsx` (per-type rows in the rent grid).
@@ -133,7 +133,7 @@ Conventions:
 - What it measures: Bedroom count bucket of a row in the SA2 rental overview (1, 2, 3, 4, 5+, ALL).
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.number_of_beds` → `mv_rental_market`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN, not in `data_loader.py` registry).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1030).
 - Rendered by: `MarketSection.tsx` (per-bed rent grid via `RentComparisonFlow`); `HostedRentAdvisor.tsx`.
@@ -160,7 +160,7 @@ Conventions:
 - What it measures: Median weekly rent (NZD/week) for the dwelling type and bed count in this SA2, latest available quarter.
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.median_rent` → `mv_rental_market.median_rent` (per-SA2 latest quarter, see migration 0047).
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN, not in `data_loader.py` registry).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1031).
 - Rendered by: `MarketSection.tsx:109` (rent comparison flow); `HostedRentAdvisor.tsx`. Drives Insights at `report_html.py:1989-1993` (yield ≥5% branch) and `1996-1999` (yield <3% branch).
@@ -187,7 +187,7 @@ Conventions:
 - What it measures: 25th-percentile weekly rent (NZD/week) for the SA2 × dwelling × beds slice.
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.lower_quartile_rent` → `mv_rental_market`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1032).
 - Rendered by: `MarketSection.tsx` rent grid; `HostedRentAdvisor.tsx`.
@@ -214,7 +214,7 @@ Conventions:
 - What it measures: 75th-percentile weekly rent (NZD/week) for the SA2 × dwelling × beds slice.
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.upper_quartile_rent` → `mv_rental_market`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1033).
 - Rendered by: `MarketSection.tsx`; `HostedRentAdvisor.tsx`.
@@ -241,7 +241,7 @@ Conventions:
 - What it measures: Total bonds lodged for that SA2 × dwelling × beds combination in the latest available quarter (sample-size signal).
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.total_bonds` → `mv_rental_market.total_bonds`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1034).
 - Rendered by: `HostedRentAdvisor.tsx`. Drives Insight at `report_html.py:2029` ("supply relief" combined with consents).
@@ -268,7 +268,7 @@ Conventions:
 - What it measures: Year-on-year change in median weekly rent (%), latest quarter vs the same quarter one year earlier, for this SA2 × dwelling × beds.
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `mv_rental_market.yoy_pct`, derived in migration 0047 by joining current and 1-year-prior rows from `bonds_detailed`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_market`.
 - Query path: `get_property_report()` step "MARKET" (0054_flood_nearest_m.sql:1035).
 - Rendered by: `HostedRentAdvisor.tsx`. Drives Insight at `report_html.py:2006` ("Rents rising X% year-on-year") and the supply-relief Insight at 2029.
@@ -295,7 +295,7 @@ Conventions:
 - What it measures: Dwelling-type bucket (House, Flat, Apartment, ALL) of a row in the rental trends series.
 - Source authority: MBIE Tenancy Services Bond Lodgement.
 - Dataset / endpoint: `bonds_detailed.dwelling_type` → `mv_rental_trends.dwelling_type`.
-- DataSource key(s): `tenancy_bonds` (loader name UNKNOWN).
+- DataSource key(s): `tenancy_bonds` (loader: `scripts/load_bonds_detailed.py`, one-off CSV import).
 - Table(s): `mv_rental_trends` (defined in `sql/06-materialized-views.sql:93`).
 - Query path: `get_property_report()` step "MARKET" lateral on `mv_rental_trends` (0054_flood_nearest_m.sql:1043).
 - Rendered by: `HostedRentHistory.tsx` (series picker / label).

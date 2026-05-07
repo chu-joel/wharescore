@@ -366,7 +366,7 @@ Note: `school_zones` is cross-tagged Transport/Liveability and counted under bot
 | business_demography.employee_growth_pct | Demographics | snapshot_generator.py:945 | — | — | — | HostedDemographics.tsx:174 | HostedDemographics.tsx:174 | stats_business_demography | business_demography |
 | business_demography.business_count_2024 | Demographics | snapshot_generator.py:945 | — | — | — | HostedDemographics.tsx:170 | HostedDemographics.tsx:170 | stats_business_demography | business_demography |
 | business_demography.business_growth_pct | Demographics | snapshot_generator.py:945 | — | — | — | HostedDemographics.tsx:62 | HostedDemographics.tsx | stats_business_demography | business_demography |
-| crime_trend (snapshot) | Demographics | snapshot_generator.py:930 | — | — | — | — | HostedNeighbourhoodStats.tsx | police_crime_history | mv_crime_density_history |
+| crime_trend (snapshot) | Demographics | snapshot_generator.py:315 (query), :930 (emit) | — | — | — | CrimeTrendSparkline.tsx (on-screen via QuestionContent.tsx:261,264) | — (not rendered in any Hosted* component) | — (no DataSource registered; loaded directly into `crime` table — population path TBD) | crime |
 
 ---
 

@@ -440,23 +440,23 @@ Conventions:
 - DataSource key(s): `niwa_climate_projections`.
 - Table(s): `climate_projections` (column `PR_value_change`).
 - Query path: `0054_flood_nearest_m.sql:539` `AVG(PR_value_change)` for the same grid cell as #14.
-- Rendered by: `report_html.py:2228-2243` (composed into flood_minor recommendation); `frontend/src/components/property/sections/RiskHazardsSection.tsx:127` `<ClimateForecastCard>` (uses `precip_change_pct`); `frontend/src/components/report/HostedNeighbourhoodStats.tsx:95` (`const climatePrecip = env.climate_precip_change_pct`).
-- Threshold / classification logic: Bidirectional. `report_html.py:2228` triggers a "rising rainfall" narrative when projected change ≥ +5 %; `:2234` triggers a "drying" narrative when ≤ -5 %; otherwise the climate line is skipped entirely (no zero-narrative fallback). Both narratives are composed inside the flood_minor recommendation, not a standalone Insight.
+- Rendered by: `report_html.py:2289-2305` (composed into flood_minor recommendation; rising branch :2290-2295, drying branch :2296-2301, skip-on-small-change :2302-2305); `frontend/src/components/property/sections/RiskHazardsSection.tsx:127` `<ClimateForecastCard>` (uses `precip_change_pct`); `frontend/src/components/report/HostedNeighbourhoodStats.tsx:95` (`const climatePrecip = env.climate_precip_change_pct`).
+- Threshold / classification logic: Bidirectional. `report_html.py:2290` triggers a "rising rainfall" narrative when projected change ≥ +5 %; `:2296` triggers a "drying" narrative when ≤ -5 %; otherwise the climate line is skipped entirely (no zero-narrative fallback). Both narratives are composed inside the flood_minor recommendation, not a standalone Insight.
 - Score contribution: N/A (not directly scored; complementary signal to `climate`).
 - Coverage: National.
 - Common misreading: A "5 % wetter" annual figure hides much larger swings between dry summers and heavier rainfall events. Annual mean change does not equal extreme-rainfall change. Equally, a "drying" projection does not mean fewer extreme storms; extreme-rainfall intensity can rise even when the annual mean falls.
 - What it does NOT tell you: Change in rainfall intensity (RX1day), drought frequency, snow vs rain split.
-- source_key status: TODO. `report_html.py:2228-2243` composes narrative into a flood_minor recommendation, not a standalone Insight, so no `_src(...)` is attached by design. If a dedicated climate-precip Insight is added later, attach `_src("niwa_climate")`.
+- source_key status: TODO. `report_html.py:2289-2305` composes narrative into a flood_minor recommendation, not a standalone Insight, so no `_src(...)` is attached by design. If a dedicated climate-precip Insight is added later, attach `_src("niwa_climate")`.
 - User-care severity: Notable. Shapes guttering, soakaways and stormwater spec; matters more for buyers planning renovations.
 
 | Surface | Renter | Buyer | Pro |
 |---|---|---|---|
 | On-screen, label | Future rainfall change | Annual rainfall change 2041-60 | Annual ΔP 2041-60 (%, SSP2-4.5) |
-| On-screen, finding | About 4 % wetter on average by the 2050s, but the annual figure hides bigger one-off storms. | +4 % annual rainfall by 2041-60 (SSP2-4.5); design storm intensities rise faster than the mean either way. | NIWA/MfE VCSN ensemble mean ΔP 2041-60 = +4 % (annual); does not represent RX1day intensities. Narrative branches at ±5 % per `report_html.py:2228-2243`. |
+| On-screen, finding | This area is projected to get about {pct}% {wetter\|drier} on average by the 2050s, but the annual figure hides bigger one-off storms. | Annual rainfall {rising\|falling} {pct}% by 2041-60 (SSP2-4.5); design-storm intensities rise either way. | NIWA/MfE VCSN ensemble mean ΔP 2041-60 = {±pct}% (annual); does not represent RX1day intensities. Narrative branches at ±5 % per `report_html.py:2289-2305`. |
 | Hosted Quick, label | (out of scope: not in HostedQuickReport) | (out of scope) | (out of scope) |
 | Hosted Quick, narrative | (no rule) | (no rule) | (no rule) |
 | Hosted Full, label | Wetter or drier by 2050s? | Annual rainfall change 2041-60 | Annual ΔP 2041-60 (%, SSP2-4.5) |
-| Hosted Full, narrative + tech | About 4 % wetter on average by the 2050s, but storms are projected to dump more in one go, which matters for guttering and drains. | Annual mean +4 %, but extreme-event rainfall intensities rise faster either way; guttering, soakaways and retaining-wall drainage worth derisking. | NIWA/MfE VCSN downscaled CMIP6 SSP2-4.5 multi-model mean annual precipitation change 2041-60 vs 1986-2005 baseline; ANNUAL aggregation, no extreme-rainfall metric. Northern/eastern cells trend dry, southern/western trend wet; narrative branches at ±5 % per `report_html.py:2228-2243`. |
+| Hosted Full, narrative + tech | About {pct}% {wetter\|drier} on average by the 2050s; either way, storms are projected to dump more in one go, which matters for guttering and drains. | Annual mean {±pct}%; extreme-event rainfall intensities can rise even when the annual mean falls, so guttering, soakaways and retaining-wall drainage are worth derisking either direction. | NIWA/MfE VCSN downscaled CMIP6 SSP2-4.5 multi-model mean annual precipitation change 2041-60 vs 1986-2005 baseline; ANNUAL aggregation, no extreme-rainfall metric. Northern/eastern cells trend dry, southern/western trend wet; narrative branches at ±5 % per `report_html.py:2289-2305` (rising :2290, drying :2296, skip otherwise). |
 
 ---
 
