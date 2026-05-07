@@ -11,7 +11,7 @@
 // persisted; users see the full chip again on a fresh session.
 
 import { useEffect, useState } from 'react';
-import { ChevronDown, X, Pencil, Bed, Bath, Building2, Sparkles } from 'lucide-react';
+import { ChevronDown, X, Pencil, Bed, Bath, Building2, Sparkles, DollarSign } from 'lucide-react';
 import {
   usePropertyDetailsStore,
   DWELLING_TYPES,
@@ -29,6 +29,8 @@ import {
   type MedianMatchKind,
 } from '@/hooks/useTypologyMedian';
 import { usePersonaStore } from '@/stores/personaStore';
+import { useRentInputStore } from '@/stores/rentInputStore';
+import { useBuyerInputStore } from '@/stores/buyerInputStore';
 import { apiFetch } from '@/lib/api';
 import type { PropertyReport } from '@/lib/types';
 
@@ -77,6 +79,10 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
   const [openField, setOpenField] = useState<null | 'dwelling' | 'beds' | 'baths' | 'finish'>(null);
 
   const persona = usePersonaStore((s) => s.persona);
+  const weeklyRent = useRentInputStore((s) => s.weeklyRent);
+  const setWeeklyRent = useRentInputStore((s) => s.setWeeklyRent);
+  const askingPrice = useBuyerInputStore((s) => s.askingPrice);
+  const setAskingPrice = useBuyerInputStore((s) => s.setAskingPrice);
   const addressId = report.address.address_id;
   const rentalOverview = getRentalOverview(report);
   const median = useTypologyMedian(rentalOverview as Parameters<typeof useTypologyMedian>[0]);
@@ -248,6 +254,25 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
         />
       </div>
 
+      {/* User's rent / asking price input. Lives in the chip so the user
+          doesn't need to open an accordion to enter the one number that
+          drives the Critical-tier finding rule (see FindingCard.tsx).
+          Renter shows weekly rent; buyer shows asking price. Pulses red
+          until set. */}
+      <div className="px-2.5 pb-1.5">
+        {persona === 'renter' ? (
+          <RentInput
+            value={weeklyRent}
+            onChange={setWeeklyRent}
+          />
+        ) : (
+          <AskingPriceInput
+            value={askingPrice}
+            onChange={setAskingPrice}
+          />
+        )}
+      </div>
+
       {/* Caption — what these pills resolve to. For renters that's the
           typology-aware median rent; for buyers we surface the property's
           CV (a sale-side comparator doesn't yet exist in the report) so
@@ -360,6 +385,71 @@ function PillButton({ icon, label, open, attention, onToggle }: PillButtonProps)
       <span>{label}</span>
       <ChevronDown className={`h-2.5 w-2.5 transition-transform ${open ? 'rotate-180 text-piq-primary' : attention ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground/70'}`} />
     </button>
+  );
+}
+
+interface RentInputProps {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}
+function RentInput({ value, onChange }: RentInputProps) {
+  const empty = value == null || value <= 0;
+  return (
+    <label
+      className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums transition-colors min-h-[24px] ${
+        empty
+          ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 ring-2 ring-red-500/30 ring-offset-1 ring-offset-card animate-pulse'
+          : 'border-piq-primary bg-piq-primary/5 text-piq-primary'
+      }`}
+    >
+      <DollarSign className={`h-2.5 w-2.5 ${empty ? 'text-red-600 dark:text-red-400' : 'text-piq-primary/80'}`} />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value ?? ''}
+        onChange={(e) => {
+          const raw = e.target.value.replace(/\D/g, '');
+          onChange(raw ? parseInt(raw, 10) : null);
+        }}
+        placeholder="Your rent"
+        aria-label="Your weekly rent"
+        className="bg-transparent outline-none border-none w-20 text-[11px] font-bold placeholder:text-red-500/70 dark:placeholder:text-red-300/70"
+      />
+      <span className={`text-[10px] font-normal ${empty ? 'text-red-500/80' : 'text-piq-primary/70'}`}>/wk</span>
+    </label>
+  );
+}
+
+interface AskingPriceInputProps {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}
+function AskingPriceInput({ value, onChange }: AskingPriceInputProps) {
+  const empty = value == null || value <= 0;
+  // Format display value with thousands separators while editing.
+  const display = value != null && value > 0 ? value.toLocaleString() : '';
+  return (
+    <label
+      className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums transition-colors min-h-[24px] ${
+        empty
+          ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 ring-2 ring-red-500/30 ring-offset-1 ring-offset-card animate-pulse'
+          : 'border-piq-primary bg-piq-primary/5 text-piq-primary'
+      }`}
+    >
+      <DollarSign className={`h-2.5 w-2.5 ${empty ? 'text-red-600 dark:text-red-400' : 'text-piq-primary/80'}`} />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={display}
+        onChange={(e) => {
+          const raw = e.target.value.replace(/\D/g, '');
+          onChange(raw ? parseInt(raw, 10) : null);
+        }}
+        placeholder="Asking price"
+        aria-label="Asking price"
+        className="bg-transparent outline-none border-none w-24 text-[11px] font-bold placeholder:text-red-500/70 dark:placeholder:text-red-300/70"
+      />
+    </label>
   );
 }
 
