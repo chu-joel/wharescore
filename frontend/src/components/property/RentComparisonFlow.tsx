@@ -44,7 +44,24 @@ export function RentComparisonFlow({ addressId, market, detection }: RentCompari
       detection?.detected_bedrooms ? (String(detection.detected_bedrooms) as Bedrooms) : null
     )
   );
-  const [rentInput, setRentInput] = useState('');
+  // Seed the local rent input from useRentInputStore so values entered in
+  // the PropertyDetailsChip flow into this card on first mount and the
+  // auto-fetch below picks them up.
+  const storeWeeklyRent = useRentInputStore((s) => s.weeklyRent);
+  const [rentInput, setRentInput] = useState(
+    storeWeeklyRent && storeWeeklyRent > 0 ? String(storeWeeklyRent) : '',
+  );
+  // Mirror updates from the chip into the local state so the auto-fetch
+  // re-runs without the user having to re-type their rent here.
+  useEffect(() => {
+    if (storeWeeklyRent && storeWeeklyRent > 0 && String(storeWeeklyRent) !== rentInput) {
+      setRentInput(String(storeWeeklyRent));
+    }
+    // Intentionally only mirror store→local; local edits flow into the
+    // store via setStoreRent below. Including rentInput in deps would
+    // ping-pong.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeWeeklyRent]);
   const [assessment, setAssessment] = useState<RentAssessment | null>(market.rent_assessment);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

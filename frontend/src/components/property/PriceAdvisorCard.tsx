@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { AlertTriangle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PriceBandGauge } from './PriceBandGauge';
@@ -157,6 +157,20 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
     return () => window.removeEventListener('wharescore:highlight-price-inputs', onPing);
   }, []);
 
+  // Fired by PropertyDetailsChip when it has a complete set of inputs
+  // (asking price + bedrooms + bathrooms + dwelling + finish). Runs the
+  // price advisor and renders the estimate without the user having to
+  // hit the Analyse button. handleAnalyse is captured by ref so its
+  // current closure is invoked when the event fires.
+  const handleAnalyseRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const onRun = () => {
+      handleAnalyseRef.current();
+    };
+    window.addEventListener('wharescore:run-price-advisor', onRun);
+    return () => window.removeEventListener('wharescore:run-price-advisor', onRun);
+  }, []);
+
   const selectedTierInfo = FINISH_TIERS.find((t) => t.value === finishTier);
 
   const handleAnalyse = useCallback(async () => {
@@ -210,6 +224,12 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
       setLoading(false);
     }
   }, [addressId, askingPrice, bedrooms, finishTier, bathroomCount, hasParking]);
+
+  // Keep the run-price-advisor event listener pointing at the freshest
+  // handleAnalyse closure as inputs change across the report.
+  useEffect(() => {
+    handleAnalyseRef.current = handleAnalyse;
+  }, [handleAnalyse]);
 
   const vc = result?.asking_verdict ? ASKING_VERDICT_CONFIG[result.asking_verdict] : null;
 

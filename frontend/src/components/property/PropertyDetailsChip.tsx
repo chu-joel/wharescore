@@ -129,12 +129,21 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
       if (trigger && !isOpen) trigger.click();
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       window.setTimeout(() => {
+        // Pulse the inputs so the user sees what just got filled in.
         window.dispatchEvent(new CustomEvent(
           persona === 'renter'
             ? 'wharescore:highlight-rent-inputs'
             : 'wharescore:highlight-price-inputs',
         ));
-      }, 450);
+        // Trigger the actual estimate. Renter side already auto-fetches
+        // on dwelling/bedrooms/rent changes inside RentComparisonFlow's
+        // own useEffect (see RentComparisonFlow.tsx:138-164). Buyer side
+        // is button-driven, so we dispatch a run event that
+        // PriceAdvisorCard listens for and turns into handleAnalyse().
+        if (persona === 'buyer') {
+          window.dispatchEvent(new CustomEvent('wharescore:run-price-advisor'));
+        }
+      }, 500);
     }, 500);
     return () => window.clearTimeout(timer);
   }, [persona, addressId, dwellingType, bedrooms, bathrooms, finishTier, weeklyRent, askingPrice]);
