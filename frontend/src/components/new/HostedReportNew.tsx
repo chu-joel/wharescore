@@ -14,7 +14,8 @@ import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrain } from '@/components/report/HostedTerrain';
 // HostedDemographics + HostedClimate ported below as *New
-import { HostedCoastalTimeline, MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
+import { MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
+import { HostedCoastalTimelineNew } from '@/components/new/sections/HostedCoastalTimelineNew';
 
 // Ported — new design system
 import { HostedExecutiveSummaryNew } from '@/components/new/sections/HostedExecutiveSummaryNew';
@@ -227,7 +228,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
                     && new URLSearchParams(window.location.search).get('mockCoastal') === '1';
                   const coastal = useMock ? MOCK_COASTAL_SEVERE : snapshot.coastal;
                   if (!coastal || coastal.tier === 'not_applicable') return null;
-                  return <Section><HostedCoastalTimeline coastal={coastal} persona={persona} /></Section>;
+                  return <Section><HostedCoastalTimelineNew coastal={coastal} persona={persona} /></Section>;
                 })()}
 
                 <Section><HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} /></Section>

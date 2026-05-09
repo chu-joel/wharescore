@@ -231,9 +231,9 @@ When porting an individual hosted sub-component to the new design, place the new
 
 Ported (`components/new/sections/`): `HostedAtAGlanceNew`, `HostedAISummaryNew`, `HostedRecommendationsNew`, `HostedNextStepsNew`, `HostedSchoolZonesNew`, `HostedSchoolsNew`, `HostedNearbyHighlightsNew`, `HostedInfrastructureNew`, `HostedRoadNoiseNew`, `HostedHPIChartNew`, `HostedRentHistoryNew`, `HostedHealthyHomesNew`, `HostedOutdoorRecNew`, `HostedMethodologyNew`, `HostedRentAdvisorNew`, `HostedPriceAdvisorNew`.
 
-Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`.
+Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew`, `HostedCoastalTimelineNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`.
 
-Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedTerrain` (501 lines), `HostedNeighbourhoodStats` (715 lines), `HostedAreaFeed` (582 lines), `HostedHazardAdvice` (992 lines), `HostedCoastalTimeline` (288 lines). Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
+Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedTerrain` (501 lines), `HostedNeighbourhoodStats` (715 lines), `HostedAreaFeed` (582 lines), `HostedHazardAdvice` (992 lines). Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
