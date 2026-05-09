@@ -205,6 +205,16 @@ All steps use manual `advance: 'next-button'` — nothing auto-advances on a tim
 
 **Layout:** Two tabs — "Your Property" (default, Building2 icon) and "The Area" (MapPin icon). Pill-style tab bar (rounded, bg-muted/60, `min-h-[44px]` touch targets). Cover + score strip + orientation text + coverage badge above tabs. Methodology + disclaimer below tabs. Sidebar stays fixed across both (inputs use `text-base` to prevent iOS zoom). Tab navigation footer at bottom of each tab ("Continue to The Area" / "Back to Your Property"). URL hash sync (`#property` / `#area`). Print CSS shows both tabs with section headers ("Part 1: Your Property" / "Part 2: The Area") and page breaks. Header: Share button shows "Copied!" feedback + label on desktop; Print button (was "Save PDF"). Share/Print buttons are 44×44 min with `aria-label` so screen readers can identify them on mobile. Quick report (HostedQuickReport.tsx) has no tabs, same share/print buttons. Coverage badge shows `"{N} sources checked"` from `report.coverage.available` on BOTH tiers (Full + Quick). H1 address is visible at all breakpoints (no `hidden sm:block`). ReportSidebar takes an `instanceId` prop so the mobile inline copy and desktop floating copy don't share input IDs.
 
+### Hosted report — new UI (`/new/report/{token}`, shell: `HostedReportShell.tsx`)
+
+Parallel hosted report at `frontend/src/app/new/report/[token]/page.tsx` wraps the same classic `HostedReport` / `HostedQuickReport` body components inside `HostedReportShell` which provides:
+- New sticky header (back-link to `/new`, Share, Print) using `.ws-btn` primitives.
+- New cover block (variant pill, full-address H1, SA2/TA caption, score pill in rating-bin colour, property-type / valuation / floor-area / coverage / elevation pills, "Generated {date}" footer).
+
+The classic body's own sticky header and cover are suppressed by scoped CSS in `tokens-new.css` (`.ws-new [data-ws-new-wrapper="hosted-body"] header.sticky` and `.pt-10.pb-8.text-center { display: none }`). Everything below — tabs, score strip, all `Hosted*` sub-components, advisors, recommendations, AI summary, methodology — continues to render through the classic components and is reskinned by the existing scoped Tailwind remap.
+
+When porting an individual hosted sub-component to the new design, place the new file at `frontend/src/components/new/sections/Hosted{Name}New.tsx` and swap the import in `HostedReport.tsx` / `HostedQuickReport.tsx` behind a `usePathname().startsWith('/new')` check, OR fork the parent into `HostedReportNew.tsx` once enough sections are ported.
+
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
 | `report.scores.categories` | HostedAtAGlance | Yes. Pills are split into two groups with different vocabularies: Risk group (Hazard Risk, Insurance, Crime, Noise) uses `OK / Watch / Risk`; Lifestyle group (Schools, Neighbourhood, Transport, Rent) uses `Great / Limited / Sparse`. Lifestyle pills must NOT use hazard wording — schools/transport are amenity signals, not risks. |

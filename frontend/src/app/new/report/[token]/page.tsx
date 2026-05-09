@@ -6,7 +6,7 @@ import { useReportSnapshot } from '@/hooks/useReportSnapshot';
 import { ErrorState } from '@/components/common/ErrorState';
 import { HostedReport } from '@/components/report/HostedReport';
 import { HostedQuickReport } from '@/components/report/HostedQuickReport';
-import { AppHeaderNew } from '@/components/new/AppHeaderNew';
+import { HostedReportShell } from '@/components/new/HostedReportShell';
 
 export default function NewHostedReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -14,38 +14,30 @@ export default function NewHostedReportPage({ params }: { params: Promise<{ toke
 
   if (isLoading) {
     return (
-      <>
-        <AppHeaderNew />
-        <div style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 56px)' }}>
-          <div style={{ textAlign: 'center', display: 'grid', gap: 8, color: 'var(--ws-ink-mute)' }}>
-            <Loader2 className="animate-spin" style={{ margin: '0 auto', color: 'var(--ws-piq)' }} />
-            <span style={{ fontSize: 13 }}>Loading your report&hellip;</span>
-          </div>
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 56px)' }}>
+        <div style={{ textAlign: 'center', display: 'grid', gap: 8, color: 'var(--ws-ink-mute)' }}>
+          <Loader2 className="animate-spin" style={{ margin: '0 auto', color: 'var(--ws-piq)' }} />
+          <span style={{ fontSize: 13 }}>Loading your report&hellip;</span>
         </div>
-      </>
+      </div>
     );
   }
 
   if (error || !snapshot) {
     return (
-      <>
-        <AppHeaderNew />
-        <div style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 56px)', padding: 24 }}>
-          <ErrorState variant="not-found" message="This report link may have expired or is invalid." />
-        </div>
-      </>
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: 'calc(100vh - 56px)', padding: 24 }}>
+        <ErrorState variant="not-found" message="This report link may have expired or is invalid." />
+      </div>
     );
   }
 
+  const variant = snapshot.report_tier === 'quick' ? 'quick' : 'full';
+
   return (
-    <>
-      <AppHeaderNew />
-      <div data-ws-new-wrapper="hosted">
-        {snapshot.report_tier === 'quick'
-          ? <HostedQuickReport snapshot={snapshot} token={token} />
-          : <HostedReport snapshot={snapshot} token={token} />
-        }
-      </div>
-    </>
+    <HostedReportShell snapshot={snapshot} token={token} variant={variant}>
+      {variant === 'quick'
+        ? <HostedQuickReport snapshot={snapshot} token={token} />
+        : <HostedReport snapshot={snapshot} token={token} />}
+    </HostedReportShell>
   );
 }

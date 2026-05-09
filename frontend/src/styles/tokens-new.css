@@ -351,6 +351,25 @@
 }
 
 /* ----------------------------------------------------------------
+ * HOSTED REPORT — hide the classic sticky header + cover when wrapped
+ * in [data-ws-new-wrapper="hosted-body"], because HostedReportShell
+ * already renders a new sticky header and a new cover. The classic
+ * components below render the body sections only.
+ * --------------------------------------------------------------- */
+.ws-new [data-ws-new-wrapper="hosted-body"] > .min-h-screen > header.sticky,
+.ws-new [data-ws-new-wrapper="hosted-body"] > div > header.sticky {
+  display: none !important;
+}
+/* Hide the classic cover block — first .text-center direct child of the
+   inner container. The classic cover starts with `pt-10 pb-8 text-center`. */
+.ws-new [data-ws-new-wrapper="hosted-body"] .pt-10.pb-8.text-center {
+  display: none !important;
+}
+/* Drop top padding once classic cover is hidden so the body flows
+   directly under the new cover. */
+.ws-new [data-ws-new-wrapper="hosted-body"] .min-h-screen { padding-top: 0 !important; }
+
+/* ----------------------------------------------------------------
  * TAILWIND SEVERITY-COLOUR OVERRIDES (scoped to .ws-new).
  * The classic FindingCard, advisors, and friends use direct Tailwind
  * colour utilities (red-500, amber-600, green-600, blue-500). Remap
