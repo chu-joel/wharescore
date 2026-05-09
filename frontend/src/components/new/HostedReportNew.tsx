@@ -9,16 +9,17 @@ import { ReportSidebar } from '@/components/report/ReportSidebar';
 import { HostedReportProvider } from '@/components/report/HostedReportContext';
 
 // Classic — not yet ported (heavy / niche)
-import { HostedExecutiveSummary } from '@/components/report/HostedExecutiveSummary';
 import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoodStats';
 import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrain } from '@/components/report/HostedTerrain';
 import { HostedDemographics } from '@/components/report/HostedDemographics';
-import { HostedClimate } from '@/components/report/HostedClimate';
+// HostedClimate ported below as HostedClimateNew
 import { HostedCoastalTimeline, MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
 
 // Ported — new design system
+import { HostedExecutiveSummaryNew } from '@/components/new/sections/HostedExecutiveSummaryNew';
+import { HostedClimateNew } from '@/components/new/sections/HostedClimateNew';
 import { HostedAtAGlanceNew } from '@/components/new/sections/HostedAtAGlanceNew';
 import { HostedAISummaryNew } from '@/components/new/sections/HostedAISummaryNew';
 import { HostedRentAdvisorNew } from '@/components/new/sections/HostedRentAdvisorNew';
@@ -150,7 +151,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
               <PrintHeader title="Part 1: Your Property" Icon={Building2} />
               <div style={{ paddingTop: 24 }}>
                 <Section><HostedAtAGlanceNew report={report} /></Section>
-                <Section><HostedExecutiveSummary report={report} snapshot={snapshot} persona={persona} rentBand={rentBand} storeBedrooms={store.bedrooms} /></Section>
+                <Section><HostedExecutiveSummaryNew report={report} snapshot={snapshot} persona={persona} rentBand={rentBand} storeBedrooms={store.bedrooms} /></Section>
                 <Section><HostedAISummaryNew snapshot={snapshot} /></Section>
                 {hasScores && report.scores.categories && (
                   <Section><CategoryRadar categories={report.scores.categories} /></Section>
@@ -242,7 +243,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
               <PrintHeader title="Part 2: The Area" Icon={MapPin} pageBreak />
               <div style={{ paddingTop: 24 }}>
                 <Section><HostedDemographics snapshot={snapshot} isFull={true} /></Section>
-                <Section><HostedClimate snapshot={snapshot} /></Section>
+                <Section><HostedClimateNew snapshot={snapshot} /></Section>
                 <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
                 <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
                 <Section><HostedSchoolsNew rawReport={snapshot.report} /></Section>

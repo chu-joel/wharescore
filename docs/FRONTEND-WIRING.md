@@ -231,7 +231,9 @@ When porting an individual hosted sub-component to the new design, place the new
 
 Ported (`components/new/sections/`): `HostedAtAGlanceNew`, `HostedAISummaryNew`, `HostedRecommendationsNew`, `HostedNextStepsNew`, `HostedSchoolZonesNew`, `HostedSchoolsNew`, `HostedNearbyHighlightsNew`, `HostedInfrastructureNew`, `HostedRoadNoiseNew`, `HostedHPIChartNew`, `HostedRentHistoryNew`, `HostedHealthyHomesNew`, `HostedOutdoorRecNew`, `HostedMethodologyNew`, `HostedRentAdvisorNew`, `HostedPriceAdvisorNew`.
 
-Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedExecutiveSummary`, `HostedDemographics`, `HostedClimate`, `HostedTerrain`, `HostedNeighbourhoodStats`, `HostedAreaFeed`, `HostedHazardAdvice`, `HostedCoastalTimeline`. Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
+Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew` — replace classic `HostedExecutiveSummary` and `HostedClimate` in `HostedReportNew`.
+
+Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedDemographics`, `HostedTerrain`, `HostedNeighbourhoodStats`, `HostedAreaFeed`, `HostedHazardAdvice`, `HostedCoastalTimeline`. Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
