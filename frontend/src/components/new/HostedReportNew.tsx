@@ -12,7 +12,7 @@ import { HostedReportProvider } from '@/components/report/HostedReportContext';
 import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoodStats';
 import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
-import { HostedTerrain } from '@/components/report/HostedTerrain';
+import { HostedTerrainNew } from '@/components/new/sections/HostedTerrainNew';
 // HostedDemographics + HostedClimate ported below as *New
 import { MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
 import { HostedCoastalTimelineNew } from '@/components/new/sections/HostedCoastalTimelineNew';
@@ -249,7 +249,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
                 <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
                 <Section><HostedSchoolsNew rawReport={snapshot.report} /></Section>
                 <Section><HostedRoadNoiseNew snapshot={snapshot} /></Section>
-                <Section><HostedTerrain snapshot={snapshot} /></Section>
+                <Section><HostedTerrainNew snapshot={snapshot} /></Section>
                 <Section><HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} /></Section>
                 <Section><HostedOutdoorRecNew snapshot={snapshot} /></Section>
                 <Section><HostedInfrastructureNew rawReport={snapshot.report} /></Section>
