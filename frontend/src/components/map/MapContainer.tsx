@@ -7,7 +7,6 @@ import Map, {
   Marker,
   Popup,
   AttributionControl,
-  NavigationControl,
   ScaleControl,
 } from 'react-map-gl/maplibre';
 import type { MapRef, MapLayerMouseEvent } from 'react-map-gl/maplibre';
@@ -697,11 +696,9 @@ export function MapContainer() {
       >
         <AttributionControl compact position="bottom-right" />
         <ScaleControl position="bottom-left" maxWidth={120} unit="metric" />
-        {/* Zoom +/- + compass. Visible always (users want them) and
-            reused by the OnboardingTour's demo-map-navigation step,
-            which ripples over these buttons so the user learns what
-            they do by watching the tour use them. */}
-        <NavigationControl position="top-right" showCompass={false} visualizePitch={false} />
+        {/* Zoom +/- live in MapControls.tsx (custom lucide buttons).
+            MapLibre's NavigationControl was removed to avoid a duplicate
+            zoom UI. */}
 
         {/* Distance ring around selected property. 500m dashed circle */}
         {selectedAddress && pinVisible && (

@@ -545,25 +545,24 @@ export function OnboardingTour() {
       };
       const timers: ReturnType<typeof setTimeout>[] = [];
 
-      // Use the map's native NavigationControl (the +/- buttons in
-      // the top-right corner) so the tour teaches by pointing at
-      // the real UI. Ripple over each button, then trigger the
-      // actual zoom via flyTo. MapLibre's class names for these
-      // buttons are stable: .maplibregl-ctrl-zoom-in / -out.
+      // Tour points at the custom +/- buttons in MapControls.tsx
+      // (lucide icons, aria-labelled "Zoom in" / "Zoom out") so it
+      // teaches by ripping over the real UI, then triggers the actual
+      // zoom via flyTo.
       //
       //   0.5s  ripple on zoom-in, actually zoom in
       //   2.0s  ripple on zoom-out, actually zoom back
       //   3.5s  small pan nudge (~250m) to hint "drag also works"
       //   4.7s  tap ripple in the middle of map to hint "click a property"
       timers.push(setTimeout(() => {
-        tapOnEl('.maplibregl-ctrl-zoom-in');
+        tapOnEl('[aria-label="Zoom in"]');
       }, 500));
       timers.push(setTimeout(() => {
         fly(v.longitude, v.zoom + 1.5, 800);
       }, 750));
 
       timers.push(setTimeout(() => {
-        tapOnEl('.maplibregl-ctrl-zoom-out');
+        tapOnEl('[aria-label="Zoom out"]');
       }, 2000));
       timers.push(setTimeout(() => {
         fly(v.longitude, v.zoom, 800);
