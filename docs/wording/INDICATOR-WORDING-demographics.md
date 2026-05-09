@@ -2,6 +2,18 @@
 
 Per-indicator Meaning blocks and wording matrix (6 surfaces x 3 personas) for every Demographics row in `docs/wording/_INVENTORY.md` (lines 317-366). Verified against `backend/app/services/snapshot_generator.py`, `backend/app/services/data_loader.py`, and `frontend/src/components/report/HostedDemographics.tsx`.
 
+## Editorial decision: no findings on demographic mix (settled 2026-05-09)
+
+Every demographic indicator surfaces as `(no rule)` in the On-screen finding row. This is intentional, not a gap. Three reasons:
+
+1. **Pure mix is neutral.** "27% of households are couples without children" or "median age 42" doesn't sort into critical / warning / positive without imposing a value judgement. The report renders these as descriptive context (HostedDemographics.tsx) and stops there.
+2. **Reputational risk.** Generating findings off ethnicity / age cohort / birthplace is a landmine. Get it slightly wrong and the report reads as judging a community.
+3. **Decision-relevant signals already live elsewhere.** Deprivation index and crime trend (the demographic-adjacent signals that genuinely matter for a renter / buyer decision) sit under liveability and have wired finding rules there. Income context lives under market.
+
+The only Notable-tier indicator in this file is `crime_trend` — kept because police-recorded victimisations are a real lived-experience signal, not a demographic descriptor.
+
+If a future product call surfaces a specific demographic-driven finding worth wiring (e.g. rapid demographic churn flagging gentrification risk to a renter), document the rationale and source attribution before adding the rule. Don't sneak findings in via the demographics file.
+
 
 ## Changes in this pass
 

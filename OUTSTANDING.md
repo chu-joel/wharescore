@@ -38,11 +38,11 @@ Closed by adding 11 SOURCE_CATALOG keys (`branz_wind`, `scion_wildfire`, `mfe_co
 
 ## C. Editorial decisions to confirm
 
-### C1. Demographics finding rules
+### C1. Demographics finding rules — SETTLED 2026-05-09 (no rules, by design)
 
-**Source:** `docs/wording/INDICATOR-WORDING-demographics.md`. All 44 demographic indicators sit at `(no rule)`. The editorial pass concluded this is intentional — demographic mix shouldn't drive findings; the meaningful signals (deprivation index, crime trend) live under liveability where they belong.
+**Source:** `docs/wording/INDICATOR-WORDING-demographics.md`. All 44 demographic indicators sit at `(no rule)` and that is intentional, not a gap. Pure demographic mix is neutral context, not a finding; reputational risk on ethnicity / age / birthplace; decision-relevant signals (deprivation, crime, income) already live under liveability and market with their own wired rules.
 
-**To close:** confirm intent (close as won't-do) or push back with examples of demographics-driven findings worth wiring. **Decision needed:** confirm intentional?
+The decision rationale is documented at the top of the demographics wording file. If a future product call surfaces a specific demographic-driven finding worth wiring, document the rationale and source attribution before adding the rule.
 
 ---
 
@@ -86,7 +86,7 @@ Closed by adding 11 SOURCE_CATALOG keys (`branz_wind`, `scion_wildfire`, `mfe_co
 ## Recommended order
 
 1. ~~**A** (source attribution)~~ — ✅ closed 2026-05-09.
-2. **C1** (demographics) — confirm intent, close. 5 min decision.
+2. ~~**C1** (demographics)~~ — ✅ settled 2026-05-09 (no rules, by design).
 3. **D1** (3-mount architecture) — when next refactoring `/property/[id]`, fold this in. Don't do as standalone; do alongside any other layout change.
 4. **D2** (chip tests) — when next touching the chip or the typology median.
 5. **B1** (REINZ/QV) — needs data-source decision before it's actionable. Treat as roadmap.
