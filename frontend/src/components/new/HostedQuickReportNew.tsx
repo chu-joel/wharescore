@@ -24,6 +24,7 @@ import { HostedReportProvider } from '@/components/report/HostedReportContext';
 import { CategoryScoreboardNew } from '@/components/new/sections/CategoryScoreboardNew';
 import { KeyFindingsNew } from '@/components/new/sections/KeyFindingsNew';
 import { Card, CardHead } from '@/components/new/ui/primitives';
+import { QuickReportTOCNew, type TOCItem } from '@/components/new/sections/QuickReportTOCNew';
 
 interface Props {
   snapshot: ReportSnapshot;
@@ -70,18 +71,67 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
   // AI bottom line
   const ai = snapshot.ai_insights as { bottom_line?: string; key_takeaways?: string[] } | null;
 
+  // TOC items — free sections come first (with anchor ids), then locked rows
+  // for Full-only sections that the Quick reader is missing. Locked rows
+  // scroll-anchor to #upgrade-banner.
+  const tocItems: TOCItem[] = [
+    ...(hasScores && report.scores.categories ? [{ id: 'sec-score', label: 'Risk score' }] : []),
+    ...(ai?.bottom_line ? [{ id: 'sec-bottom-line', label: 'Bottom line' }] : []),
+    { id: 'sec-at-a-glance', label: 'At a glance' },
+    { id: 'sec-findings', label: 'Key findings' },
+    { id: 'sec-verdict', label: persona === 'renter' ? 'Renter verdict' : 'Buyer verdict' },
+    ...(persona === 'renter' ? [
+      { id: 'sec-mould', label: 'Mould & dampness' },
+      { id: 'sec-landlord', label: 'Landlord checklist' },
+      { id: 'sec-rights', label: 'Know your rights' },
+    ] : []),
+    { id: 'sec-hazards', label: 'Hazards summary' },
+    { id: 'sec-school-zones', label: 'School zones' },
+    { id: 'sec-nearby', label: 'Nearby highlights' },
+    { id: 'sec-demographics', label: 'Who lives here' },
+    { id: 'sec-actions', label: 'Next steps' },
+    // Locked Full-only rows
+    { id: '', label: 'Executive summary', locked: true },
+    { id: '', label: 'Full AI analysis', locked: true },
+    ...(persona === 'buyer' ? [
+      { id: '', label: 'Price advisor', locked: true },
+      { id: '', label: 'House price index trend', locked: true },
+    ] : [
+      { id: '', label: 'Rent advisor', locked: true },
+      { id: '', label: 'Healthy Homes check', locked: true },
+      { id: '', label: 'Rent history', locked: true },
+    ]),
+    { id: '', label: 'Hazard intelligence feed', locked: true },
+    { id: '', label: 'Hazard preparedness advice', locked: true },
+    { id: '', label: 'Coastal exposure timeline', locked: true },
+    { id: '', label: 'Climate projection', locked: true },
+    { id: '', label: 'Terrain & walkability', locked: true },
+    { id: '', label: 'Neighbourhood snapshot', locked: true },
+    { id: '', label: 'Schools (full directory)', locked: true },
+    { id: '', label: 'Road noise', locked: true },
+    { id: '', label: 'Outdoor recreation', locked: true },
+    { id: '', label: 'Infrastructure pipeline', locked: true },
+    { id: '', label: 'Priority actions', locked: true },
+    { id: '', label: 'More about this property', locked: true },
+    { id: '', label: 'Methodology', locked: true },
+  ];
+
   return (
     <HostedReportProvider snapshot={snapshot}>
       <div style={{ background: 'var(--ws-bg)', overflowX: 'hidden' }}>
-        <div style={{ maxWidth: '42rem', margin: '0 auto', padding: '0 16px' }}>
+        <div className="ws-toc-page">
+
+          <QuickReportTOCNew items={tocItems} />
+
+          <main style={{ minWidth: 0 }}>
 
           {hasScores && report.scores.categories && (
-            <Section><CategoryScoreboardNew report={report} /></Section>
+            <Section id="sec-score"><CategoryScoreboardNew report={report} /></Section>
           )}
 
           {/* Bottom line */}
           {ai?.bottom_line && (
-            <Section>
+            <Section id="sec-bottom-line">
               <Card>
                 <CardHead title="The bottom line" meta="AI summary" />
                 <div className="ws-card-body" style={{ display: 'grid', gap: 10 }}>
@@ -106,25 +156,25 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
             </Section>
           )}
 
-          <Section><HostedAtAGlanceNew report={report} /></Section>
-          <Section><KeyFindingsNew report={report} persona={persona} maxFree={3} /></Section>
-          <Section>
+          <Section id="sec-at-a-glance"><HostedAtAGlanceNew report={report} /></Section>
+          <Section id="sec-findings"><KeyFindingsNew report={report} persona={persona} maxFree={3} /></Section>
+          <Section id="sec-verdict">
             <QuickVerdict snapshot={snapshot} persona={persona} rentBand={rentBand} userRent={store.weeklyRent} />
           </Section>
 
           {persona === 'renter' && (
             <>
-              <Section><MouldDampnessRisk report={report} /></Section>
-              <Section><LandlordChecklist report={report} /></Section>
-              <Section><KnowYourRights report={report} userRent={store.weeklyRent} /></Section>
+              <Section id="sec-mould"><MouldDampnessRisk report={report} /></Section>
+              <Section id="sec-landlord"><LandlordChecklist report={report} /></Section>
+              <Section id="sec-rights"><KnowYourRights report={report} userRent={store.weeklyRent} /></Section>
             </>
           )}
 
-          <Section><QuickHazardSummary report={report} snapshot={snapshot} /></Section>
-          <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
-          <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
-          <Section><HostedDemographicsNew snapshot={snapshot} isFull={false} /></Section>
-          <Section><QuickActions snapshot={snapshot} persona={persona} /></Section>
+          <Section id="sec-hazards"><QuickHazardSummary report={report} snapshot={snapshot} /></Section>
+          <Section id="sec-school-zones"><HostedSchoolZonesNew snapshot={snapshot} /></Section>
+          <Section id="sec-nearby"><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
+          <Section id="sec-demographics"><HostedDemographicsNew snapshot={snapshot} isFull={false} /></Section>
+          <Section id="sec-actions"><QuickActions snapshot={snapshot} persona={persona} /></Section>
 
           {/* Expiry warning */}
           {(() => {
@@ -204,12 +254,13 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
             </p>
           </div>
 
+          </main>
         </div>
       </div>
     </HostedReportProvider>
   );
 }
 
-function Section({ children }: { children: React.ReactNode }) {
-  return <div style={{ paddingBottom: 24 }}>{children}</div>;
+function Section({ id, children }: { id?: string; children: React.ReactNode }) {
+  return <div id={id} style={{ paddingBottom: 24, scrollMarginTop: 80 }}>{children}</div>;
 }

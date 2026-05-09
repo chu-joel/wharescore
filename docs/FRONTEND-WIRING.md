@@ -247,6 +247,10 @@ Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `Hos
 
 All hosted sub-components are now ported to the new design system. Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) remain classic and inherit new tokens via the `.ws-new` scope.
 
+#### Update 2026-05-10 — Quick report TOC sidebar
+
+`HostedQuickReportNew` now renders a sticky left TOC (`QuickReportTOCNew`, in `components/new/sections/`) listing every section in the report. The 8 visible (free-tier) rows scroll-anchor to `#sec-*` ids on each `<Section>`; the ~16 Full-only rows render as locked (lock icon, dimmed) and clicking scrolls to `#upgrade-banner`. Layout uses the `.ws-toc-page` 2-col grid (220 px nav + content) defined in `tokens-new.css`; the TOC collapses below 1080 px. When adding a new free-tier section to `HostedQuickReportNew`, add an entry to the `tocItems` array AND set the matching `id="sec-..."` on the `<Section>`. Locked-row labels are hard-coded in the same array — adjust them when the Full report's section list changes.
+
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
 | `report.scores.categories` | HostedAtAGlance | Yes. Pills are split into two groups with different vocabularies: Risk group (Hazard Risk, Insurance, Crime, Noise) uses `OK / Watch / Risk`; Lifestyle group (Schools, Neighbourhood, Transport, Rent) uses `Great / Limited / Sparse`. Lifestyle pills must NOT use hazard wording — schools/transport are amenity signals, not risks. |
