@@ -4,6 +4,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RentBandGauge } from './RentBandGauge';
+
+// Module-scoped guard so only one of the 3 mounted RentAdvisorCard
+// instances (one per breakpoint, all in DOM) actually fires
+// handleAnalyse when a wharescore:run-rent-advisor event lands.
+let rentAdvisorRunInFlight = false;
 import { useRentInputStore } from '@/stores/rentInputStore';
 import { apiFetch } from '@/lib/api';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
@@ -187,7 +192,19 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
     handleAnalyseRef.current = () => { handleAnalyse(); };
   }, [handleAnalyse]);
   useEffect(() => {
-    const onRun = () => { handleAnalyseRef.current(); };
+    const onRun = () => {
+      // /property/[id]/page.tsx mounts 3 PropertyReport instances (one
+      // per breakpoint, all in DOM). All 3 RentAdvisorCard listeners
+      // would otherwise fire 3 identical /rent-advisor POSTs per event.
+      // Module-scoped lastRunKey dedupes so only the first listener
+      // fires; the next event resets it via reset-on-event detail.
+      if (rentAdvisorRunInFlight) return;
+      rentAdvisorRunInFlight = true;
+      // Allow re-fire on the next event tick (after all 3 listeners
+      // have seen this one) by clearing on next macrotask.
+      window.setTimeout(() => { rentAdvisorRunInFlight = false; }, 0);
+      handleAnalyseRef.current();
+    };
     window.addEventListener('wharescore:run-rent-advisor', onRun);
     return () => window.removeEventListener('wharescore:run-rent-advisor', onRun);
   }, []);

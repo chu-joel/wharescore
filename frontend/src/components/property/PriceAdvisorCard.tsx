@@ -2,6 +2,10 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AlertTriangle, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+
+// Module-scoped guard so only one of the 3 mounted PriceAdvisorCard
+// instances fires handleAnalyse per wharescore:run-price-advisor event.
+let priceAdvisorRunInFlight = false;
 import { Button } from '@/components/ui/button';
 import { PriceBandGauge } from './PriceBandGauge';
 import { useBuyerInputStore } from '@/stores/buyerInputStore';
@@ -165,6 +169,13 @@ export function PriceAdvisorCard({ addressId }: PriceAdvisorCardProps) {
   const handleAnalyseRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onRun = () => {
+      // /property/[id]/page.tsx mounts 3 PropertyReport instances (one
+      // per breakpoint). All 3 PriceAdvisorCard listeners would otherwise
+      // fire 3 identical /price-advisor POSTs per event. Module-scoped
+      // dedupe so only the first listener for this event tick fires.
+      if (priceAdvisorRunInFlight) return;
+      priceAdvisorRunInFlight = true;
+      window.setTimeout(() => { priceAdvisorRunInFlight = false; }, 0);
       handleAnalyseRef.current();
     };
     window.addEventListener('wharescore:run-price-advisor', onRun);
