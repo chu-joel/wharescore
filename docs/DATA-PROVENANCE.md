@@ -308,6 +308,17 @@ Findings render a "Source: {authority}" caption from these keys via `Insight(sou
 | `transpower` | Transpower transmission network | Planning: transmission line Insights |
 | `wcc_corrosion` | Wellington City Council corrosion zones | Environment: marine corrosion Insights |
 | `wcc_rail_vibration` | Wellington City Council rail vibration overlay | Environment: rail vibration Insights |
+| `wcc_solar` | Wellington City Council solar radiation modelling | Environment: solar exposure Insights |
+| `branz_wind` | BRANZ wind zone classifications (NZS 3604) | Hazards: wind zone Insights |
+| `scion_wildfire` | Scion fire research / Fire and Emergency NZ | Hazards: wildfire risk Insights |
+| `mfe_coastal_inundation` | Ministry for the Environment coastal inundation projections | Hazards: coastal inundation Insights |
+| `linz_8m_dem` | LINZ 8m Digital Elevation Model (computed by WhareScore) | Terrain Insights (depression, slope, aspect, wind exposure, coastal elevation) |
+| `airport_noise_overlay` | Council airport noise contour overlay | Hazards: aircraft noise Insights |
+| `council_overland_flow` | Council overland flow path mapping | Hazards: overland flow Insights |
+| `council_geotech` | Council geotechnical reports register | Hazards: geotech Insights |
+| `council_landslide` | Council landslide event register | Hazards: landslide Insights not on `gns_landslides` |
+| `council_hazard_register` | Council natural hazards register | Hazards: compound seismic / coastal / slope Insights |
+| `council_parks` | Council parks and reserves register | Liveability: park / reserve proximity Insights |
 | `srtm` | NASA/USGS SRTM 30m DEM (computed by WhareScore) | Hazards / terrain: DEM-derived Insights |
 | `tenancy_bonds` | MBIE Tenancy Services bond data | Market: rent / yield Insights |
 | `reinz_hpi_national` | REINZ House Price Index (national) | Market: HPI Insights (national) |

@@ -19,7 +19,7 @@ Findings and insights carry an optional `source` field that renders a "Source: {
 | On-screen free tier | `frontend/src/components/property/KeyFindings.tsx` (`asFrontendFinding`) | Reads `ranked.source.authority`/`.url` | Falls back to `'WhareScore data'` when snapshot predates the field. |
 | Hosted (Jinja, legacy) | `backend/app/templates/report/property_report.html` (4 insight loops) | `{% if i.source %}` | Only renders when present — old snapshots pass-through safely. |
 
-**Coverage:** 75 of 105 `Insight(...)` call sites annotated. Hazards / planning / market / liveability / environment / transport all carry source attribution on their wired Insights. Remaining 30 are rules whose data sources don't yet have a SOURCE_CATALOG entry (e.g. `branz_wind`, `scion_wildfire`, `linz_8m_dem`, `mfe_coastal_inundation`, `airport_noise_overlay`) — add the key to SOURCE_CATALOG and the source kwarg in one edit per site.
+**Coverage:** 106 of 106 `Insight(...)` call sites annotated. Every Insight in `report_html.py` now carries `source=_src(...)` attribution. The 12 catalog keys added in the May 2026 closure pass (`branz_wind`, `scion_wildfire`, `mfe_coastal_inundation`, `linz_8m_dem`, `airport_noise_overlay`, `council_overland_flow`, `council_geotech`, `council_landslide`, `council_hazard_register`, `council_parks`, `wcc_solar`, plus the earlier `te_waihanga` etc.) closed the remaining gaps.
 
 ### Client-side market findings (depend on user input)
 

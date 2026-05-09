@@ -6,28 +6,13 @@
 
 ---
 
-## A. Source-attribution gaps (mechanical, ~30 min)
+## A. Source-attribution gaps — CLOSED 2026-05-09
 
 **Source:** the wording-doc audit (`docs/wording/_AUDIT-SUMMARY.md` + per-category files), inline `source_key status: TODO` markers across `docs/wording/INDICATOR-WORDING-*.md`.
 
-**State:** 77 of 106 `Insight(...)` call sites in `backend/app/services/report_html.py` carry `source=_src(...)` after the May 2026 attribution pass. The remaining 29 are blocked on missing `SOURCE_CATALOG` entries — their data sources don't have a key yet.
+**State:** ✅ **106 of 106** `Insight(...)` call sites in `backend/app/services/report_html.py` now carry `source=_src(...)`. Every finding rendered to a user is attributable to a named authority.
 
-**To close:** add the keys, then attach `source=_src("...")` to the matching Insight.
-
-| Key to add | Authority (rendered) | Insights / fields it would attribute | Notes |
-|---|---|---|---|
-| `branz_wind` | BRANZ wind zone classifications | `hazards.wind_zone` Insight | NZS 3604-derived zones |
-| `scion_wildfire` | Scion / NZ Fire Service wildfire risk | `hazards.wildfire_*` Insights | |
-| `mfe_coastal_inundation` | Ministry for the Environment coastal inundation projections | `hazards.coastal_inundation_*` Insights | |
-| `linz_8m_dem` | LINZ 8m Digital Elevation Model | terrain Insights (depression / slope / aspect / wind exposure) | Distinct from existing `srtm` (30m DEM) |
-| `airport_noise_overlay` | NZTA / council airport noise overlays | `hazards.aircraft_noise_*` Insight | 6 airports |
-| `council_overland_flow` | Council overland flow path mapping | `hazards.overland_flow_within_50m` Insight | |
-| `council_geotech` | Council geotechnical reports register | `hazards.geotech_*` Insights | Auckland-only currently |
-| `council_landslide` | Council landslide event register | landslide Insights not on `gns_landslides` | Adjacent to existing `gns_landslides` |
-| `council_hazard_register` | Generic council hazard register | various council-loaded hazards without a more specific source | |
-| `council_parks` | Council parks / open space register | `liveability.park_*` Insights | Currently using `osm_amenities` as a placeholder |
-
-**Recommendation:** good `/schedule` candidate. ~30 minutes of grunt work to add 10-ish keys + attach `source=_src(...)` to the corresponding Insight call sites.
+Closed by adding 11 SOURCE_CATALOG keys (`branz_wind`, `scion_wildfire`, `mfe_coastal_inundation`, `linz_8m_dem`, `airport_noise_overlay`, `council_overland_flow`, `council_geotech`, `council_landslide`, `council_hazard_register`, `council_parks`, `wcc_solar`) and attaching `source=_src(...)` to the matching Insight call sites. See `docs/DATA-PROVENANCE.md` § SOURCE_CATALOG attribution keys for the full rendered authority strings.
 
 ---
 
@@ -100,7 +85,7 @@
 
 ## Recommended order
 
-1. **A** (source attribution) — schedule. 30 min, mechanical, big visible win for transparency.
+1. ~~**A** (source attribution)~~ — ✅ closed 2026-05-09.
 2. **C1** (demographics) — confirm intent, close. 5 min decision.
 3. **D1** (3-mount architecture) — when next refactoring `/property/[id]`, fold this in. Don't do as standalone; do alongside any other layout change.
 4. **D2** (chip tests) — when next touching the chip or the typology median.

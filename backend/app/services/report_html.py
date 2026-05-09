@@ -685,6 +685,17 @@ SOURCE_CATALOG: dict[str, dict[str, str]] = {
     "te_waihanga": {"authority": "Te Waihanga / NZ Infrastructure Commission pipeline", "url": "https://infracom.govt.nz/projects/pipeline/"},
     "wcc_corrosion": {"authority": "Wellington City Council corrosion zones", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
     "wcc_rail_vibration": {"authority": "Wellington City Council rail vibration overlay", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
+    "wcc_solar": {"authority": "Wellington City Council solar radiation modelling", "url": "https://wellington.govt.nz/property-rates-and-building/district-plan"},
+    "branz_wind": {"authority": "BRANZ wind zone classifications (NZS 3604)", "url": "https://www.branz.co.nz/"},
+    "scion_wildfire": {"authority": "Scion fire research / Fire and Emergency NZ", "url": "https://www.fireandemergency.nz/"},
+    "mfe_coastal_inundation": {"authority": "Ministry for the Environment coastal inundation projections", "url": "https://environment.govt.nz/publications/preparing-for-coastal-change/"},
+    "linz_8m_dem": {"authority": "LINZ 8m Digital Elevation Model (computed by WhareScore)", "url": "https://data.linz.govt.nz/layer/51768-nz-8m-digital-elevation-model-2012/"},
+    "airport_noise_overlay": {"authority": "Council airport noise contour overlay", "url": "https://www.lawa.org.nz/"},
+    "council_overland_flow": {"authority": "Council overland flow path mapping", "url": "https://www.lawa.org.nz/"},
+    "council_geotech": {"authority": "Council geotechnical reports register", "url": "https://www.lawa.org.nz/"},
+    "council_landslide": {"authority": "Council landslide event register", "url": "https://www.lawa.org.nz/"},
+    "council_hazard_register": {"authority": "Council natural hazards register", "url": "https://www.lawa.org.nz/"},
+    "council_parks": {"authority": "Council parks and reserves register", "url": "https://www.lawa.org.nz/"},
     "transpower": {"authority": "Transpower transmission network", "url": "https://www.transpower.co.nz/"},
     "srtm": {"authority": "NASA/USGS SRTM 30m DEM (computed by WhareScore)", "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm"},
     # Market
@@ -868,6 +879,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"Extreme wind zone ({wind}). one of NZ's most exposed classifications.",
             "Confirm roof fastening meets NZS 3604 for wind zone. Expect higher heating bills.",
+            source=_src("branz_wind"),
         ).to_dict())
 
     epb_count = hazards.get("epb_count_300m")
@@ -933,6 +945,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "warn",
             f"{wildfire_days:.0f} Very High/Extreme fire danger days/yr. above national median.",
             "Review home and contents insurance for wildfire. Clear vegetation buffers.",
+            source=_src("scion_wildfire"),
         ).to_dict())
 
     # GNS Landslide Database (NZLD). historical landslide events
@@ -971,6 +984,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Commission geotechnical assessment ($2,000-5,000). Check retaining walls, drainage, "
             "and any signs of historic ground movement (cracked paths, leaning fences, bowing walls). "
             "Ask neighbours about slip history. Review EQC claim history via LIM.",
+            source=_src("council_landslide"),
         ).to_dict())
     elif "high" in slope_failure:
         result["hazards"].append(Insight(
@@ -979,6 +993,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "and heavy rainfall events.",
             "During building inspection, specifically check retaining walls, subfloor drainage, and "
             "any evidence of ground movement. Request LIM for landslide/slip history on the property.",
+            source=_src("council_landslide"),
         ).to_dict())
     elif "medium" in slope_failure:
         result["hazards"].append(Insight(
@@ -986,6 +1001,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Medium landslide susceptibility. moderate slope failure risk that increases during "
             "heavy rainfall and seismic events.",
             "Ask about drainage and retaining wall maintenance during inspection.",
+            source=_src("council_landslide"),
         ).to_dict())
 
     # ── Compound Hazard Rules (Section 2. combinations the data supports) ───
@@ -1007,6 +1023,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "A single significant earthquake can trigger both ground-failure modes.",
             "Combined geotechnical + slope-stability assessment costs $5,000–$8,000, not the usual $2,000–$3,000. "
             "Get this BEFORE going unconditional, not after.",
+            source=_src("council_hazard_register"),
         ).to_dict())
 
     # 2.3. Tsunami evacuation feasibility. Mapped tsunami zone is one signal;
@@ -1035,6 +1052,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Walk the evacuation route to high ground (≥15m elevation) BEFORE you sign. at average walking pace, "
             "every 100m of horizontal distance is roughly a minute lost from your evacuation budget. "
             "Long or strong shaking = move immediately, don't wait for the official alert.",
+            source=_src("council_hazard_register"),
         ).to_dict())
 
     # 2.10. Saturated slope. A slope-prone site is materially more dangerous when
@@ -1068,6 +1086,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "Geotech assessment should specifically cover subfloor drainage, cut-slope retaining walls, "
             "and any geotextile treatments. ask the builder's report to document them. "
             "Recent NZ events (Auckland 2023, Cyclone Gabrielle) hit slopes like this hardest.",
+            source=_src("council_landslide"),
         ).to_dict())
 
     # ── Section 4 Gap Findings. silent fields now surfaced ────────────────
@@ -1107,6 +1126,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     f"Recent {_trig_plain} landslide{_name_str} {int(_ln_dist)}m away{_year_str}.{_damage_str}",
                     "A major slip nearby within the last decade is strong evidence that the slope here is active. "
                     "Geotechnical assessment should specifically reference this event and check whether the cause has been mitigated.",
+                    source=_src("council_landslide"),
                 ).to_dict())
             elif _is_recent or _is_major:
                 result["hazards"].append(Insight(
@@ -1114,6 +1134,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     f"{_trig_plain.capitalize()} landslide{_name_str} {int(_ln_dist)}m away{_year_str}.{_damage_str}",
                     "Ask the builder's report to check for signs of ground movement on this property. "
                     "cracked paths, leaning retaining walls, doors that don't close properly.",
+                    source=_src("council_landslide"),
                 ).to_dict())
 
     # §4-b. Legacy industrial area. Count ≥10 contaminated sites within 2km
@@ -1130,6 +1151,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"{_contam_count_2km_i} historically contaminated sites within 2km. this is a legacy industrial or commercial area.",
             "Even if your site is clean, the national NES-CS rules on soil disturbance apply to any earthworks "
             "(vegetable gardens, trenching, foundation work). A Preliminary Site Investigation may be required.",
+            source=_src("council_slur"),
         ).to_dict())
 
     # §4-c. Height zoning permits significant intensification. ≥18m = ~6 storeys,
@@ -1147,6 +1169,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Zoning permits buildings up to {_max_h_f:.0f}m ({_storeys} storeys) on this site and on neighbouring sites.",
             "Over a 5-10 year hold, neighbour redevelopment can materially change outlook, sun access, and privacy. "
             "Check the district/unitary plan overlays. heritage or character precinct protection will push the realistic limit lower.",
+            source=_src("council_zones"),
         ).to_dict())
 
     # §4-d. GWRC-flagged erosion-prone land. When true, the slope is categorised
@@ -1175,6 +1198,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "This isn't today's flood risk. it's the projected reach of storm-surge flooding by mid-century under "
             "worst-case sea-level rise. Insurers are progressively tightening cover in mapped zones; ask your insurer "
             "about their coastal hazard policy before going unconditional.",
+            source=_src("mfe_coastal_inundation"),
         ).to_dict())
 
     # §2.15. Site-value signal. When improvements are a very small share of CV,
@@ -1357,12 +1381,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ok",
                 f"Good solar exposure: {solar_kwh:.0f} kWh/m²/yr. above average. Solar panels viable.",
                 "",
+                source=_src("wcc_solar"),
             ).to_dict())
         elif solar_kwh < 800:
             result["environment"].append(Insight(
                 "info",
                 f"Low solar exposure: {solar_kwh:.0f} kWh/m²/yr. expect higher heating costs and less natural light in winter.",
                 "Check north-facing window area. Passive solar design matters more in low-sun locations.",
+                source=_src("wcc_solar"),
             ).to_dict())
 
     # Metlink mode breakdown
@@ -1401,6 +1427,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Aircraft noise overlay: **{aircraft_noise}**{dba_str}.",
             "Check noise levels during peak flight times. This may affect outdoor amenity and sleep quality. "
             "Double glazing is recommended for bedrooms facing the flight path.",
+            source=_src("airport_noise_overlay"),
         ).to_dict())
 
     # Council landslide susceptibility (Auckland etc.)
@@ -1430,6 +1457,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             f"{geotech_count} geotechnical reports filed within 500m. this area has known ground issues.{hazard_str}",
             "Request copies of relevant geotech reports from the council. Previous investigations can save you thousands.",
+            source=_src("council_geotech"),
         ).to_dict())
 
     # Overland flow path proximity
@@ -1438,6 +1466,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "info",
             "Overland flow path within 50m. surface water may flow through or near this property during heavy rain.",
             "Check ground levels, drainage, and whether the building floor is raised above surrounding grade.",
+            source=_src("council_overland_flow"),
         ).to_dict())
 
     # Council coastal erosion
@@ -1488,12 +1517,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     "warn",
                     f"Property is only {cm:.0f}cm above mean high water springs. very low coastal elevation.",
                     "High risk of coastal inundation during storm surges. Check insurance and future sea level rise projections.",
+                    source=_src("linz_8m_dem"),
                 ).to_dict())
             elif cm <= 150:
                 result["hazards"].append(Insight(
                     "info",
                     f"Coastal elevation: {cm:.0f}cm above mean high water springs.",
                     "Some exposure to coastal flooding during extreme events. Review with sea level rise scenarios.",
+                    source=_src("linz_8m_dem"),
                 ).to_dict())
         except (TypeError, ValueError):
             pass
@@ -1583,12 +1614,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                     "ok",
                     f"**{park_name}** is just {int(d)}m away. excellent green space access.",
                     "",
+                    source=_src("council_parks"),
                 ).to_dict())
             elif d <= 800:
                 result["liveability"].append(Insight(
                     "info",
                     f"Nearest park (**{park_name}**) is {int(d)}m away.",
                     "",
+                    source=_src("council_parks"),
                 ).to_dict())
         except (TypeError, ValueError):
             pass
@@ -1609,6 +1642,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"This property sits in a natural low point{depth_str}. water may collect here during heavy rain.",
             "Check for signs of past ponding (staining on foundations, soft ground). Ensure stormwater "
             "drainage is adequate and not relying solely on soakage. Ask the council about overland flow paths.",
+            source=_src("linz_8m_dem"),
         ).to_dict())
 
     # Flat + low elevation → poor drainage (only if no existing flood finding)
@@ -1620,6 +1654,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             f"Flat, low-lying terrain{elev_str} with limited natural drainage. terrain suggests flood susceptibility.",
             "No council flood zone is mapped here, but flat low-lying ground is inherently vulnerable to "
             "surface flooding. Check floor levels relative to surrounding ground and nearest waterways.",
+            source=_src("linz_8m_dem"),
         ).to_dict())
 
     # Wind exposure
@@ -1630,12 +1665,14 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "stronger winds, especially from the prevailing westerly/northwesterly direction.",
             "Check roof fixings and cladding meet wind zone requirements. BRANZ recommends specific "
             "detailing for exposed sites. Budget for higher maintenance on external finishes.",
+            source=_src("linz_8m_dem"),
         ).to_dict())
     elif wind_exp == "exposed":
         result["hazards"].append(Insight(
             "info",
             "Elevated, exposed site. wind speeds are likely above average for this area.",
             "Consider wind when planning outdoor spaces. Check cladding and roof condition during inspection.",
+            source=_src("linz_8m_dem"),
         ).to_dict())
 
     # Sheltered valley (positive)
@@ -1644,6 +1681,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
             "ok",
             f"Naturally sheltered {'valley' if rel_pos == 'valley' else 'low-lying'} position. wind exposure is low.",
             "",
+            source=_src("linz_8m_dem"),
         ).to_dict())
 
     # Aspect / solar orientation. only meaningful when the site has slope.
@@ -1660,6 +1698,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ok",
                 f"{aspect_label.capitalize()}-facing slope. captures winter sun, warmer and drier interiors, solar panels perform well.",
                 "",
+                source=_src("linz_8m_dem"),
             ).to_dict())
         elif aspect_label in ("south", "southeast", "southwest"):
             result["liveability"].append(Insight(
@@ -1667,6 +1706,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 f"{aspect_label.capitalize()}-facing slope. limited winter sun. Heating costs typically 10–20% higher than a north-facing equivalent.",
                 "Confirm heating capacity is adequate for the main living area and that bedrooms have ventilation. "
                 "South-facing sites need good insulation and moisture control to avoid mould in winter.",
+                source=_src("linz_8m_dem"),
             ).to_dict())
 
     # ── Waterway Proximity Rules ─────────────────────────────────────────────
@@ -1792,6 +1832,7 @@ def build_insights(report: dict) -> dict[str, list[dict]]:
                 "ok",
                 f"{noise_db:.0f} dB. quiet. Well below WHO recommended 53 dB outdoor residential limit.",
                 "",
+                source=_src("nzta_noise"),
             ).to_dict())
 
     air_trend = env.get("air_pm10_trend") or env.get("air_pm25_trend")
