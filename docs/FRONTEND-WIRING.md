@@ -251,6 +251,10 @@ All hosted sub-components are now ported to the new design system. Quick* helper
 
 `HostedQuickReportNew` now renders a sticky left TOC (`QuickReportTOCNew`, in `components/new/sections/`) listing every section in the report. The 8 visible (free-tier) rows scroll-anchor to `#sec-*` ids on each `<Section>`; the ~16 Full-only rows render as locked (lock icon, dimmed) and clicking scrolls to `#upgrade-banner`. Layout uses the `.ws-toc-page` 2-col grid (220 px nav + content) defined in `tokens-new.css`; the TOC collapses below 1080 px. When adding a new free-tier section to `HostedQuickReportNew`, add an entry to the `tocItems` array AND set the matching `id="sec-..."` on the `<Section>`. Locked-row labels are hard-coded in the same array — adjust them when the Full report's section list changes.
 
+#### Update 2026-05-10 — A8 hero card on hosted shell
+
+`HostedReportShell` no longer renders the centered text-only cover. Both Quick and Full hosted reports now show `HostedHeroCardNew` (in `components/new/sections/`) which mirrors the A8-real-snapshot design: poster-style 2-col card with eyebrow + title + sub + score ring + persona/coverage line on the left, and an 8-cell stat grid + property image on the right. Property image uses Google Street View Static API (key from `NEXT_PUBLIC_GOOGLE_MAPS_KEY`) with an automatic fallback to Google Static Maps when no Street View imagery exists at the address. Hero collapses to a single column below 800 px via `.ws-hero-grid` rule in `tokens-new.css`. Stat grid pulls Title / Title # / Footprint / Land value / CV / CV date / Council / Multi-unit from `snapshot.report.property` + `report_detection`.
+
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
 | `report.scores.categories` | HostedAtAGlance | Yes. Pills are split into two groups with different vocabularies: Risk group (Hazard Risk, Insurance, Crime, Noise) uses `OK / Watch / Risk`; Lifestyle group (Schools, Neighbourhood, Transport, Rent) uses `Great / Limited / Sparse`. Lifestyle pills must NOT use hazard wording — schools/transport are amenity signals, not risks. |

@@ -460,6 +460,12 @@
   background: var(--ws-surface) !important;
 }
 
+/* ---------- A8 hero card (hosted shell) ---------- */
+@media (max-width: 800px) {
+  .ws-hero-grid { grid-template-columns: 1fr !important; min-height: 0 !important; }
+  .ws-hero-side { border-left: 0 !important; border-top: 1px solid var(--ws-rule); }
+}
+
 /* ---------- TOC sidebar (hosted Quick report) ---------- */
 .ws-toc-page {
   max-width: 1080px;
