@@ -21,7 +21,7 @@ interface Props {
    Hazard Advice Data. NZ-specific, researched
    ──────────────────────────────────────────── */
 
-interface AdviceSection {
+export interface AdviceSection {
   id: string;
   icon: typeof AlertTriangle;
   title: string;
@@ -50,7 +50,7 @@ function isCoastal(hazards: PropertyReport['hazards']): boolean {
   return !!(hazards.tsunami_zone || hazards.coastal_erosion || hazards.coastal_elevation_cm != null);
 }
 
-function buildAdviceSections(report: PropertyReport, ta: string, persona: string, skipCoastal: boolean): AdviceSection[] {
+export function buildAdviceSections(report: PropertyReport, ta: string, persona: string, skipCoastal: boolean): AdviceSection[] {
   const h = report.hazards;
   const env = report.environment;
   const sections: AdviceSection[] = [];

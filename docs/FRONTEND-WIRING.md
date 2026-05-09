@@ -235,9 +235,9 @@ When porting an individual hosted sub-component to the new design, place the new
 
 Ported (`components/new/sections/`): `HostedAtAGlanceNew`, `HostedAISummaryNew`, `HostedRecommendationsNew`, `HostedNextStepsNew`, `HostedSchoolZonesNew`, `HostedSchoolsNew`, `HostedNearbyHighlightsNew`, `HostedInfrastructureNew`, `HostedRoadNoiseNew`, `HostedHPIChartNew`, `HostedRentHistoryNew`, `HostedHealthyHomesNew`, `HostedOutdoorRecNew`, `HostedMethodologyNew`, `HostedRentAdvisorNew`, `HostedPriceAdvisorNew`.
 
-Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew`, `HostedCoastalTimelineNew`, `HostedTerrainNew`, `HostedAreaFeedNew`, `HostedNeighbourhoodStatsNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`.
+Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew`, `HostedCoastalTimelineNew`, `HostedTerrainNew`, `HostedAreaFeedNew`, `HostedNeighbourhoodStatsNew`, `HostedHazardAdviceNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`. `HostedHazardAdviceNew` reuses the classic `buildAdviceSections` data builder (now exported) and only re-skins the wrapper.
 
-Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedHazardAdvice` (992 lines). Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
+All hosted sub-components are now ported to the new design system. Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) remain classic and inherit new tokens via the `.ws-new` scope.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
