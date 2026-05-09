@@ -215,6 +215,16 @@ The classic body's own sticky header and cover are suppressed by scoped CSS in `
 
 When porting an individual hosted sub-component to the new design, place the new file at `frontend/src/components/new/sections/Hosted{Name}New.tsx` and swap the import in `HostedReport.tsx` / `HostedQuickReport.tsx` behind a `usePathname().startsWith('/new')` check, OR fork the parent into `HostedReportNew.tsx` once enough sections are ported.
 
+#### Update 2026-05-09
+
+`/new/report/[token]` now renders **`HostedReportNew`** (Full) or **`HostedQuickReportNew`** (Quick) instead of wrapping the classic Hosted bodies. Both new components re-render the same section list as their classic counterparts but:
+- Drop the cover and sticky header (`HostedReportShell` provides them).
+- Replace `ScoreStrip` with `CategoryScoreboardNew`.
+- Replace classic `KeyFindings` with `KeyFindingsNew` (severity glyph + keyword + colour).
+- Wrap question accordion items in a new `--ws-surface` card frame.
+- Use `--ws-*` token-based spacing/colours instead of Tailwind utilities for the section dividers, expiry warning, and disclaimer.
+- All other `Hosted*` sub-components (HostedAtAGlance, HostedExecutiveSummary, HostedAISummary, HostedAreaFeed, HostedRentAdvisor, HostedPriceAdvisor, HostedHPIChart, HostedHealthyHomes, HostedRecommendations, HostedHazardAdvice, HostedNextSteps, HostedSchools, HostedSchoolZones, HostedNearbyHighlights, HostedNeighbourhoodStats, HostedDemographics, HostedClimate, HostedTerrain, HostedRoadNoise, HostedCoastalTimeline, HostedRentHistory, HostedInfrastructure, HostedOutdoorRec, HostedMethodology) are imported from the classic tree and inherit new tokens via the `.ws-new` scope; port them individually under `components/new/sections/` when the visual register needs to change.
+
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|
 | `report.scores.categories` | HostedAtAGlance | Yes. Pills are split into two groups with different vocabularies: Risk group (Hazard Risk, Insurance, Crime, Noise) uses `OK / Watch / Risk`; Lifestyle group (Schools, Neighbourhood, Transport, Rent) uses `Great / Limited / Sparse`. Lifestyle pills must NOT use hazard wording — schools/transport are amenity signals, not risks. |

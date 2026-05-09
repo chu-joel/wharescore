@@ -4,9 +4,9 @@ import { use } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useReportSnapshot } from '@/hooks/useReportSnapshot';
 import { ErrorState } from '@/components/common/ErrorState';
-import { HostedReport } from '@/components/report/HostedReport';
-import { HostedQuickReport } from '@/components/report/HostedQuickReport';
 import { HostedReportShell } from '@/components/new/HostedReportShell';
+import { HostedReportNew } from '@/components/new/HostedReportNew';
+import { HostedQuickReportNew } from '@/components/new/HostedQuickReportNew';
 
 export default function NewHostedReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -36,8 +36,8 @@ export default function NewHostedReportPage({ params }: { params: Promise<{ toke
   return (
     <HostedReportShell snapshot={snapshot} token={token} variant={variant}>
       {variant === 'quick'
-        ? <HostedQuickReport snapshot={snapshot} token={token} />
-        : <HostedReport snapshot={snapshot} token={token} />}
+        ? <HostedQuickReportNew snapshot={snapshot} token={token} />
+        : <HostedReportNew snapshot={snapshot} token={token} />}
     </HostedReportShell>
   );
 }
