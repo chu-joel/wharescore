@@ -8,8 +8,14 @@ import { PersonaToggle } from '@/components/new/ui/primitives';
 /**
  * Hero block. Address line, name, subtitle (title/lot/CV), score pill,
  * persona toggle. Reads scores.overall (transformed), coverage (top-level).
+ *
+ * `actionSlot` renders inline at the top-right of the hero (above the
+ * score pill), matching the right-aligned action row in
+ * design-experiments/A6-balanced.html. Used for the inline Generate
+ * Report CTA — replaces the bottom-left floating portal that hovered
+ * over the map.
  */
-export function HeroBlockNew({ report }: { report: PropertyReport }) {
+export function HeroBlockNew({ report, actionSlot }: { report: PropertyReport; actionSlot?: React.ReactNode }) {
   const persona = usePersonaStore((s) => s.persona);
   const setPersona = usePersonaStore((s) => s.setPersona);
 
@@ -40,28 +46,35 @@ export function HeroBlockNew({ report }: { report: PropertyReport }) {
       borderBottom: '1px solid var(--ws-rule)',
       padding: '24px 24px 20px',
     }}>
-      {eyebrowParts.length > 0 && (
-        <div style={{
-          fontSize: 11.5, fontWeight: 600,
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: 'var(--ws-piq)', marginBottom: 4,
-        }}>
-          {eyebrowParts.join(' · ')}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: '1 1 240px' }}>
+          {eyebrowParts.length > 0 && (
+            <div style={{
+              fontSize: 11.5, fontWeight: 600,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--ws-piq)', marginBottom: 4,
+            }}>
+              {eyebrowParts.join(' · ')}
+            </div>
+          )}
+
+          <h1 style={{
+            fontSize: 'clamp(22px, 3vw, 26px)', fontWeight: 700,
+            letterSpacing: '-0.01em', color: 'var(--ws-ink)', margin: '0 0 4px',
+          }}>
+            {a.full_address ?? 'Property'}
+          </h1>
+
+          {subParts.length > 0 && (
+            <p style={{ fontSize: 13, color: 'var(--ws-ink-soft)', margin: '0 0 14px' }}>
+              {subParts.join(' · ')}
+            </p>
+          )}
         </div>
-      )}
-
-      <h1 style={{
-        fontSize: 'clamp(22px, 3vw, 26px)', fontWeight: 700,
-        letterSpacing: '-0.01em', color: 'var(--ws-ink)', margin: '0 0 4px',
-      }}>
-        {a.full_address ?? 'Property'}
-      </h1>
-
-      {subParts.length > 0 && (
-        <p style={{ fontSize: 13, color: 'var(--ws-ink-soft)', margin: '0 0 14px' }}>
-          {subParts.join(' · ')}
-        </p>
-      )}
+        {actionSlot && (
+          <div style={{ flex: '0 0 auto' }}>{actionSlot}</div>
+        )}
+      </div>
 
       {hasScore && bin && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>

@@ -84,7 +84,15 @@ Parallel implementation in the new design system at `frontend/src/app/new/`. Sam
 | `FloatingReportButtonNew` | `frontend/src/components/new/sections/FloatingReportButtonNew.tsx` | (Deprecated, no longer mounted) Portal-mounted floating CTA — superseded by `GenerateReportButtonNew` rendered inline in the hero block. |
 | `RentAdvisorCard` (classic) | `frontend/src/components/property/RentAdvisorCard.tsx` | Mounted directly inside `PropertyReportNew` for renters (alongside `RentComparisonFlow`). The classic card carries its own card chrome and design tokens compose with `tokens-new.css`, so a separate "New" port is unnecessary. |
 | `PriceAdvisorCard` (classic) | `frontend/src/components/property/PriceAdvisorCard.tsx` | Mounted directly inside `PropertyReportNew` for buyers — same approach as `RentAdvisorCard`. |
-| `SavePropertyButton` (classic) | `frontend/src/components/property/SavePropertyButton.tsx` | Mounted at top of the report-panel body, right-aligned, in `PropertyReportNew`. |
+| `SavePropertyButton` (classic) | `frontend/src/components/property/SavePropertyButton.tsx` | Mounted at top of the report-panel body in `PropertyReportNew`. Adjacent "Finalising score…" affordance shown while `usePropertyReport().isEnriching` is true. |
+| `RentComparisonFlow` (classic) | `frontend/src/components/property/RentComparisonFlow.tsx` | Renter-only, mounted in `PropertyReportNew` ahead of `RentAdvisorCard`. |
+| `RentHistoryChart` (classic) | `frontend/src/components/property/RentHistoryChart.tsx` | Renter-only, mounted in `PropertyReportNew` after `RentAdvisorCard`. |
+| `HPITrendChart` (classic) | `frontend/src/components/property/HPITrendChart.tsx` | Buyer-only, mounted inside `<PremiumGate trigger="market">` in `PropertyReportNew` (mirrors classic MarketSection — renters never see HPI). |
+| `BuyerDueDiligence` (classic) | `frontend/src/components/property/BuyerDueDiligence.tsx` | Buyer-only "what we covered vs what you still need" tracker, mounted in `PropertyReportNew` after `BuyerSnapshotNew`. |
+| `PropertyDetailsChip` (classic) | `frontend/src/components/property/PropertyDetailsChip.tsx` | Mounted near top of `PropertyReportNew`. Drives bedrooms/bathrooms/dwelling/finish for `RentAdvisorCard` + `PriceAdvisorCard` inputs across the report. |
+| `QuestionAccordion` (classic) | `frontend/src/components/property/QuestionAccordion.tsx` | Deep-dive ("More about this property") in `PropertyReportNew`, persona-filtered via `getQuestionsForPersona` minus the checklist already promoted to the snapshot row. |
+| EPB safety banner (inline) | `PropertyReportNew.tsx` | Hard red banner shown when `report.planning?.epb_listed`. Always shown regardless of persona / gating — mirrors classic PropertyReport. |
+| `AreaEventTeaserNew` gating | `frontend/src/components/new/sections/AreaEventTeaserNew.tsx` | Now only mounted when `areaFeed.summary.total_events > 0`, matching classic `<AreaEventTeaser>`. |
 | `ScrollPromptNew` | `frontend/src/components/new/sections/ScrollPromptNew.tsx` | 90 % scroll + 15 s trigger / 3 min fallback, severity-aware copy |
 | `SignupNudgeNew` | `frontend/src/components/new/sections/SignupNudgeNew.tsx` | 60 s / 30 s anonymous nudge |
 
