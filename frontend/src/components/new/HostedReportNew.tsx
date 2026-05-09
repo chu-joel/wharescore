@@ -10,7 +10,7 @@ import { HostedReportProvider } from '@/components/report/HostedReportContext';
 
 // Classic — not yet ported (heavy / niche)
 import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoodStats';
-import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
+import { HostedAreaFeedNew } from '@/components/new/sections/HostedAreaFeedNew';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrainNew } from '@/components/new/sections/HostedTerrainNew';
 // HostedDemographics + HostedClimate ported below as *New
@@ -160,7 +160,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
                 <Section>
                   <KeyFindingsNew report={report} persona={persona} maxFree={999} />
                 </Section>
-                <Section><HostedAreaFeed feed={areaFeed} snapshot={snapshot} /></Section>
+                <Section><HostedAreaFeedNew feed={areaFeed} snapshot={snapshot} /></Section>
 
                 {/* Mobile sidebar */}
                 <Section className="lg:hidden">
