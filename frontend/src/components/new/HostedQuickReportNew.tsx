@@ -9,7 +9,7 @@ import { QuickHazardSummary } from '@/components/report/QuickHazardSummary';
 import { QuickActions } from '@/components/report/QuickActions';
 import { QuickVerdict } from '@/components/report/QuickVerdict';
 import { QuickUpgradeBanner } from '@/components/report/QuickUpgradeBanner';
-import { HostedDemographics } from '@/components/report/HostedDemographics';
+import { HostedDemographicsNew } from '@/components/new/sections/HostedDemographicsNew';
 
 // Ported sections
 import { HostedAtAGlanceNew } from '@/components/new/sections/HostedAtAGlanceNew';
@@ -123,7 +123,7 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
           <Section><QuickHazardSummary report={report} snapshot={snapshot} /></Section>
           <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
           <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
-          <Section><HostedDemographics snapshot={snapshot} isFull={false} /></Section>
+          <Section><HostedDemographicsNew snapshot={snapshot} isFull={false} /></Section>
           <Section><QuickActions snapshot={snapshot} persona={persona} /></Section>
 
           {/* Expiry warning */}

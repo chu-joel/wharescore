@@ -13,13 +13,13 @@ import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoo
 import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrain } from '@/components/report/HostedTerrain';
-import { HostedDemographics } from '@/components/report/HostedDemographics';
-// HostedClimate ported below as HostedClimateNew
+// HostedDemographics + HostedClimate ported below as *New
 import { HostedCoastalTimeline, MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
 
 // Ported — new design system
 import { HostedExecutiveSummaryNew } from '@/components/new/sections/HostedExecutiveSummaryNew';
 import { HostedClimateNew } from '@/components/new/sections/HostedClimateNew';
+import { HostedDemographicsNew } from '@/components/new/sections/HostedDemographicsNew';
 import { HostedAtAGlanceNew } from '@/components/new/sections/HostedAtAGlanceNew';
 import { HostedAISummaryNew } from '@/components/new/sections/HostedAISummaryNew';
 import { HostedRentAdvisorNew } from '@/components/new/sections/HostedRentAdvisorNew';
@@ -242,7 +242,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
             <TabsContent value="area">
               <PrintHeader title="Part 2: The Area" Icon={MapPin} pageBreak />
               <div style={{ paddingTop: 24 }}>
-                <Section><HostedDemographics snapshot={snapshot} isFull={true} /></Section>
+                <Section><HostedDemographicsNew snapshot={snapshot} isFull={true} /></Section>
                 <Section><HostedClimateNew snapshot={snapshot} /></Section>
                 <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
                 <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
