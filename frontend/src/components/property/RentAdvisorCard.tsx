@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RentBandGauge } from './RentBandGauge';
@@ -178,6 +178,19 @@ export function RentAdvisorCard({ addressId }: RentAdvisorCardProps) {
       setLoading(false);
     }
   }, [addressId, dwellingType, bedrooms, weeklyRent, finishTier, bathroomCount, hasParking, notInsulated, isFurnished, isPartiallyFurnished, hasOutdoorSpace, isCharacterProperty, sharedKitchen, utilitiesIncluded]);
+
+  // Bind the latest handleAnalyse closure to a ref so the
+  // wharescore:run-rent-advisor listener (added by PropertyDetailsChip
+  // when the chip becomes complete) always invokes the freshest values.
+  const handleAnalyseRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    handleAnalyseRef.current = () => { handleAnalyse(); };
+  }, [handleAnalyse]);
+  useEffect(() => {
+    const onRun = () => { handleAnalyseRef.current(); };
+    window.addEventListener('wharescore:run-rent-advisor', onRun);
+    return () => window.removeEventListener('wharescore:run-rent-advisor', onRun);
+  }, []);
 
   // Only show if user has selected dwelling type and bedrooms
   if (!dwellingType || !bedrooms) return null;

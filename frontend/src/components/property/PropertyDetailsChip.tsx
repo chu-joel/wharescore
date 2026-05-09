@@ -172,14 +172,16 @@ export function PropertyDetailsChip({ report }: PropertyDetailsChipProps) {
             ? 'wharescore:highlight-rent-inputs'
             : 'wharescore:highlight-price-inputs',
         ));
-        // Trigger the actual estimate. Renter side already auto-fetches
-        // on dwelling/bedrooms/rent changes inside RentComparisonFlow's
-        // own useEffect (see RentComparisonFlow.tsx:138-164). Buyer side
-        // is button-driven, so we dispatch a run event that
-        // PriceAdvisorCard listens for and turns into handleAnalyse().
-        if (persona === 'buyer') {
-          window.dispatchEvent(new CustomEvent('wharescore:run-price-advisor'));
-        }
+        // Trigger the actual estimate. RentComparisonFlow's auto-fetch
+        // covers the SA2 fairness comparison; the dedicated Analyse My
+        // Rent / Analyse Price buttons need an explicit kick because
+        // they're button-driven. Both cards listen for the matching
+        // run event and ref-bind to the freshest handleAnalyse closure.
+        window.dispatchEvent(new CustomEvent(
+          persona === 'renter'
+            ? 'wharescore:run-rent-advisor'
+            : 'wharescore:run-price-advisor',
+        ));
       }, 500);
     }, 500);
     return () => window.clearTimeout(timer);
