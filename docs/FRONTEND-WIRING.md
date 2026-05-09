@@ -61,7 +61,7 @@ Parallel implementation in the new design system at `frontend/src/app/new/`. Sam
 
 | Component | File | Role |
 |---|---|---|
-| `HeroBlockNew` | `frontend/src/components/new/sections/HeroBlockNew.tsx` | Eyebrow (city/suburb/SA2) + address + property subtitle + score pill (rating bin colour) + persona toggle |
+| `HeroBlockNew` | `frontend/src/components/new/sections/HeroBlockNew.tsx` | Eyebrow (city/suburb/SA2) + address + property subtitle + score pill (rating bin colour) + persona toggle + optional `actionSlot` (used to host `GenerateReportButtonNew`, mirroring the right-aligned action button row in design-experiments/A6-balanced.html) |
 | `BetaBannerNew` | `frontend/src/components/new/sections/BetaBannerNew.tsx` | "Free report. sign in for full" anonymous-only banner |
 | `BuildingInfoBannerNew` | `frontend/src/components/new/sections/BuildingInfoBannerNew.tsx` | Multi-unit caveat with sibling-valuations table (renders only when `property_detection.is_multi_unit`) |
 | `CategoryScoreboardNew` | `frontend/src/components/new/sections/CategoryScoreboardNew.tsx` | 6-cat scoreboard with severity-coloured mini-bars |
@@ -80,7 +80,11 @@ Parallel implementation in the new design system at `frontend/src/app/new/`. Sam
 | `EmailSummaryCaptureNew` | `frontend/src/components/new/sections/EmailSummaryCaptureNew.tsx` | Sign-in-gated email-summary |
 | `ReportCTABannerNew` | `frontend/src/components/new/sections/ReportCTABannerNew.tsx` | Final CTA, dual auth-aware paths, persona-specific subhead |
 | `ReportDisclaimerNew` | `frontend/src/components/new/sections/ReportDisclaimerNew.tsx` | Progressive-disclosure disclaimer |
-| `FloatingReportButtonNew` | `frontend/src/components/new/sections/FloatingReportButtonNew.tsx` | Portal-mounted floating CTA, contextual copy + secondary PDF + credit badge |
+| `GenerateReportButtonNew` | `frontend/src/components/new/sections/GenerateReportButtonNew.tsx` | Inline Generate Report CTA rendered into `HeroBlockNew` actionSlot. Contextual copy by auth state + risk count, secondary PDF when interactive report is the primary action, credit badge for paid users. Replaces the old portal-mounted floating button that hovered over the map (placement now matches design-experiments/A6-balanced.html). |
+| `FloatingReportButtonNew` | `frontend/src/components/new/sections/FloatingReportButtonNew.tsx` | (Deprecated, no longer mounted) Portal-mounted floating CTA — superseded by `GenerateReportButtonNew` rendered inline in the hero block. |
+| `RentAdvisorCard` (classic) | `frontend/src/components/property/RentAdvisorCard.tsx` | Mounted directly inside `PropertyReportNew` for renters (alongside `RentComparisonFlow`). The classic card carries its own card chrome and design tokens compose with `tokens-new.css`, so a separate "New" port is unnecessary. |
+| `PriceAdvisorCard` (classic) | `frontend/src/components/property/PriceAdvisorCard.tsx` | Mounted directly inside `PropertyReportNew` for buyers — same approach as `RentAdvisorCard`. |
+| `SavePropertyButton` (classic) | `frontend/src/components/property/SavePropertyButton.tsx` | Mounted at top of the report-panel body, right-aligned, in `PropertyReportNew`. |
 | `ScrollPromptNew` | `frontend/src/components/new/sections/ScrollPromptNew.tsx` | 90 % scroll + 15 s trigger / 3 min fallback, severity-aware copy |
 | `SignupNudgeNew` | `frontend/src/components/new/sections/SignupNudgeNew.tsx` | 60 s / 30 s anonymous nudge |
 
@@ -231,9 +235,9 @@ When porting an individual hosted sub-component to the new design, place the new
 
 Ported (`components/new/sections/`): `HostedAtAGlanceNew`, `HostedAISummaryNew`, `HostedRecommendationsNew`, `HostedNextStepsNew`, `HostedSchoolZonesNew`, `HostedSchoolsNew`, `HostedNearbyHighlightsNew`, `HostedInfrastructureNew`, `HostedRoadNoiseNew`, `HostedHPIChartNew`, `HostedRentHistoryNew`, `HostedHealthyHomesNew`, `HostedOutdoorRecNew`, `HostedMethodologyNew`, `HostedRentAdvisorNew`, `HostedPriceAdvisorNew`.
 
-Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew`, `HostedCoastalTimelineNew`, `HostedTerrainNew`, `HostedAreaFeedNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`.
+Newly ported (2026-05-10): `HostedExecutiveSummaryNew`, `HostedClimateNew`, `HostedDemographicsNew`, `HostedCoastalTimelineNew`, `HostedTerrainNew`, `HostedAreaFeedNew`, `HostedNeighbourhoodStatsNew` — replace classic counterparts in `HostedReportNew` and (for Demographics) `HostedQuickReportNew`.
 
-Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedNeighbourhoodStats` (715 lines), `HostedHazardAdvice` (992 lines). Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
+Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedHazardAdvice` (992 lines). Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|

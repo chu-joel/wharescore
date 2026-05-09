@@ -9,7 +9,7 @@ import { ReportSidebar } from '@/components/report/ReportSidebar';
 import { HostedReportProvider } from '@/components/report/HostedReportContext';
 
 // Classic — not yet ported (heavy / niche)
-import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoodStats';
+import { HostedNeighbourhoodStatsNew } from '@/components/new/sections/HostedNeighbourhoodStatsNew';
 import { HostedAreaFeedNew } from '@/components/new/sections/HostedAreaFeedNew';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrainNew } from '@/components/new/sections/HostedTerrainNew';
@@ -250,7 +250,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
                 <Section><HostedSchoolsNew rawReport={snapshot.report} /></Section>
                 <Section><HostedRoadNoiseNew snapshot={snapshot} /></Section>
                 <Section><HostedTerrainNew snapshot={snapshot} /></Section>
-                <Section><HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} /></Section>
+                <Section><HostedNeighbourhoodStatsNew rawReport={snapshot.report} snapshot={snapshot} /></Section>
                 <Section><HostedOutdoorRecNew snapshot={snapshot} /></Section>
                 <Section><HostedInfrastructureNew rawReport={snapshot.report} /></Section>
 
