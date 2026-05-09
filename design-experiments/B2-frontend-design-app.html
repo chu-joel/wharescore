@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhareScore — App landing (B · frontend-design)</title>
+<!--
+  Anthropic frontend-design approach (taste-driven)
+  Aesthetic: Editorial map-room — deep ink + paper + a single sharp pohutukawa accent.
+  Differentiator: oversized italic display, ruled metadata bar above map, dossier-style
+  panel with numbered steps and a typographic property report preview.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,200..900,0..100,0..1;1,9..144,200..900,0..100,0..1&family=JetBrains+Mono:wght@400;600&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --paper: #f3ece1;
+    --paper-2: #ece2d2;
+    --ink: #161311;
+    --ink-soft: #4a423a;
+    --rule: #1d1916;
+    --pohutukawa: #c0341d;
+    --pohutukawa-deep: #8a2210;
+    --moss: #2f3a26;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 16px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image:
+      radial-gradient(rgba(22,19,17,.04) 1px, transparent 1px),
+      radial-gradient(rgba(22,19,17,.03) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply; opacity: .55;
+  }
+  a { color: var(--ink); text-decoration-color: var(--pohutukawa); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+  a:hover { color: var(--pohutukawa-deep); }
+
+  /* ---------- HEADER (newspaper masthead) ---------- */
+  header.app {
+    height: 64px;
+    border-bottom: 1.5px solid var(--rule);
+    background: var(--paper);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 28px;
+    position: relative; z-index: 10;
+  }
+  .h-left, .h-right { display: flex; align-items: center; gap: 22px; }
+  .h-right { justify-content: flex-end; }
+  .mast {
+    font-family: 'Fraunces', serif; font-weight: 600; font-style: italic;
+    font-variation-settings: "opsz" 60, "SOFT" 100, "WONK" 1;
+    font-size: 28px; letter-spacing: -0.01em; color: var(--ink);
+  }
+  .mast::after { content: "·"; color: var(--pohutukawa); margin: 0 .25em; }
+  .h-left a, .h-right a {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink);
+    text-decoration: none;
+  }
+  .h-left a:hover, .h-right a:hover { color: var(--pohutukawa-deep); }
+  .h-right .upgrade {
+    background: var(--ink); color: var(--paper);
+    padding: 8px 14px; border-radius: 0;
+    border: 1.5px solid var(--ink);
+  }
+  .h-right .upgrade:hover { background: var(--pohutukawa-deep); border-color: var(--pohutukawa-deep); }
+
+  /* ---------- LAYOUT ---------- */
+  .split { display: grid; grid-template-columns: 1fr 520px; height: calc(100vh - 64px); }
+  @media (max-width: 1100px) { .split { grid-template-columns: 1fr 460px; } }
+
+  /* ---------- MAP ---------- */
+  .map-frame { position: relative; border-right: 1.5px solid var(--rule); }
+  #map { width: 100%; height: 100%; background: #d8c8aa; }
+  /* metadata strip across top of map */
+  .map-strip {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 1000;
+    height: 32px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    display: flex; align-items: center; gap: 18px; padding: 0 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink);
+  }
+  .map-strip .sep { color: var(--pohutukawa); }
+  .map-strip .right { margin-left: auto; color: var(--ink-soft); }
+
+  /* layer chips: ink chips */
+  .layers {
+    position: absolute; left: 16px; top: 50px; z-index: 1000;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .layer {
+    background: var(--paper); color: var(--ink);
+    padding: 7px 14px;
+    border: 1.5px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    cursor: pointer; transition: all 180ms ease;
+  }
+  .layer:hover { background: var(--ink); color: var(--paper); }
+  .layer.on {
+    background: var(--ink); color: var(--paper);
+  }
+  .layer .swatch {
+    display: inline-block; width: 8px; height: 8px; margin-right: 8px;
+    background: var(--pohutukawa); vertical-align: 1px;
+  }
+  .layer.schools .swatch { background: var(--moss); }
+  .layer.transit .swatch { background: var(--ink); }
+  .layer.all { background: var(--pohutukawa); color: var(--paper); border-color: var(--pohutukawa); }
+  .layer.all:hover { background: var(--pohutukawa-deep); border-color: var(--pohutukawa-deep); }
+
+  /* compass mark in corner of map */
+  .compass {
+    position: absolute; right: 24px; bottom: 24px; z-index: 1000;
+    width: 76px; height: 76px;
+    border: 1.5px solid var(--rule);
+    background: var(--paper);
+    display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+    color: var(--ink); pointer-events: none;
+  }
+  .compass .n { font-size: 20px; }
+  .compass .label {
+    position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  /* ---------- DOSSIER PANEL ---------- */
+  .dossier {
+    overflow-y: auto; background: var(--paper);
+    padding: 0 36px 56px;
+  }
+  .dossier::-webkit-scrollbar { width: 8px; }
+  .dossier::-webkit-scrollbar-thumb { background: var(--rule); }
+
+  /* dossier header */
+  .dossier-head {
+    padding: 28px 0 18px;
+    border-bottom: 1.5px solid var(--rule);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink);
+  }
+  .dossier-head .accent { color: var(--pohutukawa); }
+
+  /* hero block */
+  .lede-block { padding: 36px 0 28px; }
+  .kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--pohutukawa); margin-bottom: 18px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 350;
+    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+    font-size: clamp(46px, 6.6vw, 76px);
+    line-height: .92; letter-spacing: -0.025em;
+    margin: 0 0 18px; color: var(--ink);
+  }
+  h1 em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    color: var(--pohutukawa-deep);
+  }
+  h1 .stop {
+    display: inline-block; width: .25em; height: .25em; border-radius: 50%;
+    background: var(--pohutukawa); margin-left: .08em; vertical-align: 0.1em;
+  }
+  .lede {
+    font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.5;
+    color: var(--ink); max-width: 38ch; margin: 0;
+  }
+
+  /* search */
+  .search {
+    margin-top: 26px; position: relative;
+    border-top: 1.5px solid var(--rule);
+    border-bottom: 1.5px solid var(--rule);
+    padding: 8px 0;
+  }
+  .search input {
+    width: 100%; height: 44px;
+    border: 0; background: transparent;
+    font-family: 'Fraunces', serif; font-size: 22px; font-weight: 350;
+    font-variation-settings: "opsz" 60;
+    color: var(--ink); padding: 0 38px 0 4px;
+  }
+  .search input::placeholder {
+    color: var(--ink-soft); font-style: italic;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+  }
+  .search input:focus { outline: none; }
+  .search .icon {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    color: var(--pohutukawa);
+  }
+  .search-hint {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-soft); margin: 10px 0 0;
+  }
+
+  /* demo addresses — table */
+  .demo-table { margin-top: 28px; }
+  .demo-table .hd {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .demo-row {
+    display: grid; grid-template-columns: 24px 1fr auto;
+    align-items: baseline; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dotted rgba(22,19,17,.4);
+    cursor: pointer; transition: background 160ms;
+  }
+  .demo-row:hover { background: rgba(192,52,29,.06); }
+  .demo-row:last-child { border-bottom: 0; }
+  .demo-row .num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--pohutukawa); letter-spacing: 0.1em;
+  }
+  .demo-row .name {
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+    font-size: 18px; color: var(--ink);
+  }
+  .demo-row .meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  /* what we examine */
+  .examine {
+    margin-top: 36px;
+    border-top: 1.5px solid var(--rule);
+    padding-top: 22px;
+  }
+  .examine-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 16px;
+  }
+  .examine-head .lhs {
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+    font-variation-settings: "opsz" 36, "SOFT" 100;
+    font-size: 24px; color: var(--ink);
+  }
+  .examine-head .rhs {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--pohutukawa);
+  }
+  .examine-list { list-style: none; padding: 0; margin: 0; }
+  .examine-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(22,19,17,.12);
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 16px; align-items: baseline;
+  }
+  .examine-list li:last-child { border-bottom: 0; }
+  .examine-list .cat {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--pohutukawa);
+  }
+  .examine-list .desc {
+    font-family: 'Newsreader', serif; font-size: 15.5px; color: var(--ink);
+  }
+  .examine-list .desc em {
+    font-style: italic;
+    font-variation-settings: "opsz" 36, "SOFT" 100;
+    color: var(--ink-soft);
+  }
+
+  /* recent — index style */
+  .index {
+    margin-top: 36px;
+    border-top: 1.5px solid var(--rule);
+    padding-top: 22px;
+  }
+  .index h3 {
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+    font-variation-settings: "opsz" 36, "SOFT" 100;
+    font-size: 22px; margin: 0 0 14px; color: var(--ink);
+  }
+  .index ul { list-style: none; padding: 0; margin: 0; }
+  .index li {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 14px; align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px dotted rgba(22,19,17,.35);
+    cursor: pointer;
+  }
+  .index li:hover { background: rgba(192,52,29,.04); }
+  .index .addr {
+    font-family: 'Newsreader', serif; font-size: 15px; color: var(--ink);
+  }
+  .index .pg {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; color: var(--ink-soft);
+  }
+  .index .score {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-variation-settings: "opsz" 36;
+    font-size: 22px; color: var(--ink);
+    min-width: 36px; text-align: right;
+  }
+  .index .score.warn { color: var(--pohutukawa-deep); }
+
+  /* colophon */
+  .colophon {
+    margin-top: 48px; padding-top: 18px;
+    border-top: 1.5px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-soft); display: flex; justify-content: space-between; gap: 12px;
+  }
+
+  /* leaflet override */
+  .leaflet-control-attribution {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px !important;
+    background: var(--paper) !important; color: var(--ink) !important;
+    border-top: 1px solid var(--rule);
+  }
+  .leaflet-control-zoom a {
+    background: var(--paper) !important; color: var(--ink) !important;
+    border-color: var(--rule) !important; border-radius: 0 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="h-left">
+    <a href="#">Map</a>
+    <a href="#">Compare</a>
+    <a href="#">Suburbs</a>
+    <a href="#">Reports</a>
+  </div>
+  <div class="mast">WhareScore</div>
+  <div class="h-right">
+    <a href="#">Help</a>
+    <a href="#">Sign in</a>
+    <a class="upgrade" href="#">Upgrade · Pro</a>
+  </div>
+</header>
+
+<div class="split">
+
+  <div class="map-frame">
+    <div class="map-strip">
+      <span>Aotearoa · Land of the Long White Cloud</span>
+      <span class="sep">¶</span>
+      <span>Wellington Region</span>
+      <span class="sep">¶</span>
+      <span>Latitude −41.29 · Longitude 174.78</span>
+      <span class="right">Vol. I · Issue 2026.05</span>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="layers">
+      <button class="layer on"><span class="swatch"></span>Hazards</button>
+      <button class="layer schools"><span class="swatch"></span>Schools</button>
+      <button class="layer transit"><span class="swatch"></span>Transit</button>
+      <button class="layer all">＋ All layers</button>
+    </div>
+
+    <div class="compass" aria-hidden="true">
+      <span class="n">N</span>
+      <span class="label">Whakaata</span>
+    </div>
+  </div>
+
+  <aside class="dossier">
+
+    <div class="dossier-head">
+      <span>Dossier · Property intelligence, Aotearoa</span>
+      <span class="accent">No. 001</span>
+    </div>
+
+    <div class="lede-block">
+      <div class="kicker">Begin · find an address</div>
+      <h1>Read every<br/>NZ&nbsp;listing<br/><em>through risk</em><span class="stop"></span></h1>
+      <p class="lede">
+        Type an address, click a property on the map, or open a sample below.
+        Every report draws on forty-plus official datasets — flood, quake,
+        zoning, schools, rent — assembled into one number you can argue with.
+      </p>
+    </div>
+
+    <div class="search">
+      <input type="text" placeholder="Search any NZ address …" />
+      <span class="icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+    </div>
+    <p class="search-hint">↳ Or click any property on the map opposite</p>
+
+    <div class="demo-table">
+      <div class="hd">Three places to start</div>
+      <div class="demo-row">
+        <span class="num">i</span>
+        <span class="name">Ponsonby, Auckland</span>
+        <span class="meta">Heritage · Volcanic</span>
+      </div>
+      <div class="demo-row">
+        <span class="num">ii</span>
+        <span class="name">Wellington CBD</span>
+        <span class="meta">Liquefaction · Transit</span>
+      </div>
+      <div class="demo-row">
+        <span class="num">iii</span>
+        <span class="name">Christchurch CBD</span>
+        <span class="meta">Rebuild · Floodplain</span>
+      </div>
+    </div>
+
+    <section class="examine">
+      <div class="examine-head">
+        <span class="lhs">What we examine</span>
+        <span class="rhs">40+ datasets</span>
+      </div>
+      <ul class="examine-list">
+        <li>
+          <span class="cat">Hazards</span>
+          <span class="desc">Flood, tsunami, liquefaction, quake fault &amp; coastal erosion <em>— official council and GNS layers.</em></span>
+        </li>
+        <li>
+          <span class="cat">Neighbourhood</span>
+          <span class="desc">Schools, crime, amenities, walkability <em>— SA2-relative, not city averages.</em></span>
+        </li>
+        <li>
+          <span class="cat">Money</span>
+          <span class="desc">Rent fairness, price estimate, council rates <em>— renter mode and buyer mode read different numbers.</em></span>
+        </li>
+        <li>
+          <span class="cat">Planning</span>
+          <span class="desc">Zoning, heritage, designations, view corridors <em>— what you can build, what you can&rsquo;t.</em></span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="index">
+      <h3>Recently examined</h3>
+      <ul>
+        <li><span class="addr">14 Aro Street, Wellington</span><span class="pg">Vol I · p. 14</span><span class="score">72</span></li>
+        <li><span class="addr">110 Ponsonby Road, Auckland</span><span class="pg">Vol I · p. 09</span><span class="score warn">61</span></li>
+        <li><span class="addr">22 Cashel Street, Christchurch</span><span class="pg">Vol I · p. 22</span><span class="score">84</span></li>
+      </ul>
+    </section>
+
+    <div class="colophon">
+      <span>Set in Fraunces &amp; Newsreader</span>
+      <span>Data · LINZ · GNS · MfE · councils</span>
+    </div>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // toned, paper-like map
+  const map = L.map('map', { zoomControl: true, attributionControl: true })
+    .setView([-41.29, 174.78], 12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OSM &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+
+  function pin(color, label) {
+    return L.divIcon({
+      className: 'wp',
+      html: `
+        <div style="
+          width:18px;height:18px;border-radius:50%;
+          background:${color};border:2px solid #f3ece1;
+          box-shadow:0 1px 0 #1d1916;
+          display:grid;place-items:center;
+          font-family:'JetBrains Mono',monospace;font-size:9px;color:#f3ece1;font-weight:600;
+        ">${label}</div>`,
+      iconSize: [18,18], iconAnchor: [9,9]
+    });
+  }
+  L.marker([-41.293, 174.776], { icon: pin('#c0341d', 'I')   }).addTo(map);
+  L.marker([-41.288, 174.787], { icon: pin('#161311', 'II')  }).addTo(map);
+  L.marker([-41.296, 174.770], { icon: pin('#2f3a26', 'III') }).addTo(map);
+</script>
+
+</body>
+</html>

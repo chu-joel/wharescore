@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { prefixPath } from '@/lib/routePrefix';
 
 const COLUMN_LETTERS = ['A', 'B', 'C'] as const;
 const COLUMN_ACCENTS = [
@@ -92,7 +93,7 @@ export function CompareTray() {
   const canCompare = items.length >= 2;
   const goToCompare = () => {
     const ids = items.map((i) => i.addressId).join(',');
-    router.push(`/compare?ids=${ids}`);
+    router.push(prefixPath(pathname || '/', `/compare?ids=${ids}`));
   };
 
   const trayLabel = `Comparison tray — ${items.length} of 2 properties`;

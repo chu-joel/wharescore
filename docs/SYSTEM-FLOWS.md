@@ -323,6 +323,8 @@ Quick reports: expires_at = now() + 30 days. Warning shown in last 7 days.
 Full reports: expires_at = NULL (permanent). Upgrading Quick→Full clears expiry.
 ```
 
+**Share URL localisation between classic and `/new/`:** the backend always emits `share_url` of the form `/report/{token}` (or absolute `https://wharescore.co.nz/report/{token}`). When the user generates a report from inside the `/new/` namespace, `pdfExportStore.tsx` rewrites the URL through `lib/routePrefix.ts → localizeShareUrl()` before storing it on the store, so the success toast's "Open report →" action and the persisted `shareUrl` consumed by `FloatingReportButton` / `ReportCTABanner` / `PropertySummaryCard` all open `/new/report/{token}`. `account/page.tsx → handleViewReport()` reads `window.location.pathname` and applies the same prefix when launching from My Reports. Brevo email links remain on the classic `/report/{token}` URL — change in `services/email.py` if `/new/`-aware email links are required.
+
 **Discounts & credits:** Two mechanisms:
 - **Stripe promotion codes** — all checkout sessions have `allow_promotion_codes=True`. Coupons (e.g. WHARE20 = 20% off) created in Stripe dashboard, users enter at checkout.
 - **Admin credits** — `POST /admin/users/{id}/credits` gives free report credits directly. No in-app promo code UI (removed) — admin handles this via the dashboard.

@@ -9,6 +9,7 @@ import { useSearch } from '@/hooks/useSearch';
 import { useSuburbSearch } from '@/hooks/useSuburbReport';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRouter } from 'next/navigation';
+import { usePrefixedPath } from '@/lib/routePrefix';
 
 const MAX_QUERY_LENGTH = 200;
 
@@ -26,6 +27,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
   const setViewport = useMapStore((s) => s.setViewport);
   const bp = useBreakpoint();
   const router = useRouter();
+  const prefix = usePrefixedPath();
 
   // On mobile, suppress the drawer (non-compact) search dropdown because
   // the header search bar always handles the dropdown results.
@@ -74,7 +76,7 @@ export function SearchBar({ compact = false }: SearchBarProps) {
         });
         setViewport({ longitude: result.lng, latitude: result.lat, zoom: 14 });
       } else {
-        router.push(`/suburb/${result.sa2_code}`);
+        router.push(prefix(`/suburb/${result.sa2_code}`));
       }
     },
     [bp, router, selectSuburb, setViewport]

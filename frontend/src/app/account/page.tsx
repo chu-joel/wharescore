@@ -198,9 +198,13 @@ export default function AccountPage() {
   };
 
   const handleViewReport = (shareToken?: string | null) => {
-    if (shareToken) {
-      window.open(`/report/${shareToken}`, '_blank', 'noopener,noreferrer');
-    }
+    if (!shareToken) return;
+    // Stay in the user's current tree (/new vs classic). My Reports under
+    // /new is currently a redirect to classic so this nearly always reads
+    // classic — kept for forward-compat once /new/account is real.
+    const inNew = typeof window !== 'undefined' && window.location.pathname.startsWith('/new');
+    const path = inNew ? `/new/report/${shareToken}` : `/report/${shareToken}`;
+    window.open(path, '_blank', 'noopener,noreferrer');
   };
 
   const [upgrading, setUpgrading] = useState<string | null>(null);

@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhareScore — 110-112 Ponsonby Road, Grey Lynn (real data)</title>
+<!--
+  A4: A3-v2 design carrying real production data.
+  Source: GET /api/v1/property/2312429/report?fast=true (wharescore.co.nz, fetched 2026-05-09).
+  Score 44.6 (Moderate, color #E69F00). Confidence 73%, 23/23 data layers.
+  Address is a Town Centre commercial site (CV $56m, 2,022 m² lot). The mock honours that.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --paper:        oklch(0.975 0.008 180);
+    --paper-2:      oklch(0.955 0.010 180);
+    --surface:      oklch(0.985 0.005 180);
+    --surface-soft: oklch(0.96  0.012 180);
+    --rule:         oklch(0.90  0.012 180);
+    --rule-strong:  oklch(0.78  0.012 180);
+    --ink:          oklch(0.22  0.018 200);
+    --ink-soft:     oklch(0.42  0.014 200);
+    --ink-mute:     oklch(0.60  0.010 200);
+    --teal:         oklch(0.46  0.058 195);
+    --teal-deep:    oklch(0.36  0.062 200);
+    --warn:         oklch(0.58  0.130  55);
+    --crit:         oklch(0.50  0.155  35);
+    --good:         oklch(0.55  0.090 145);
+    --info:         var(--teal);
+    --amber:        oklch(0.68  0.140  75);
+    --radius: 12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  a { color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+
+  /* HEADER */
+  header.app {
+    height: 56px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 16px; gap: 16px;
+    position: relative; z-index: 5;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--teal-deep); color: var(--paper);
+    display: grid; place-items: center;
+  }
+  .brand .word {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;
+    color: var(--ink); letter-spacing: -0.005em;
+  }
+  .brand .word .accent { color: var(--teal); }
+  .crumb {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--ink-soft);
+    overflow: hidden; min-width: 0; white-space: nowrap;
+  }
+  .crumb .back {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--teal-deep); cursor: pointer; font-weight: 500;
+    border-bottom: 0; min-height: 44px; padding: 8px 4px;
+  }
+  .crumb .sep { color: var(--ink-mute); }
+  .actions { display: flex; gap: 6px; align-items: center; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 500;
+    min-height: 36px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+    transition: background-color 200ms cubic-bezier(.2,.8,.2,1), border-color 200ms, color 200ms;
+    border: 1px solid transparent; background: transparent;
+  }
+  .btn-ghost { color: var(--ink-soft); }
+  .btn-ghost:hover { color: var(--ink); background: var(--surface-soft); }
+  .btn-outline { color: var(--teal-deep); border-color: var(--rule); }
+  .btn-outline:hover { border-color: var(--teal); }
+  .btn-primary { background: var(--teal-deep); color: var(--paper); border-color: var(--teal-deep); }
+  .btn-primary:hover { background: var(--ink); border-color: var(--ink); }
+
+  /* LAYOUT */
+  .split { display: grid; grid-template-columns: 1fr 560px; height: calc(100vh - 56px); }
+  @media (max-width: 1180px) { .split { grid-template-columns: 1fr 480px; } }
+
+  /* MAP */
+  #map { width: 100%; height: 100%; background: oklch(0.85 0.015 200); }
+  .map-frame { position: relative; }
+  .map-overlay {
+    position: absolute; left: 12px; top: 12px;
+    display: flex; flex-direction: column; gap: 6px; z-index: 1000;
+  }
+  .layer-pill {
+    background: var(--surface); color: var(--ink);
+    padding: 0 14px; border-radius: 999px; min-height: 36px;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 500;
+    border: 1px solid var(--rule); cursor: pointer;
+    transition: background-color 180ms, border-color 180ms, color 180ms;
+  }
+  .layer-pill:hover { border-color: var(--teal); }
+  .layer-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .65; }
+  .layer-pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* PANEL */
+  .panel {
+    overflow-y: auto; background: var(--paper);
+    border-left: 1px solid var(--rule);
+  }
+  .panel::-webkit-scrollbar { width: 8px; }
+  .panel::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+
+  /* HERO */
+  .hero {
+    padding: 28px 28px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+  }
+  .addr-line {
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .addr-name {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: clamp(28px, 4.4vw, 34px); line-height: 1.05;
+    letter-spacing: -0.005em;
+    margin: 0 0 4px; color: var(--ink);
+  }
+  .addr-sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
+  .verdict {
+    margin: 0 0 14px;
+    font-family: 'Cormorant Garamond', serif; font-weight: 500;
+    font-size: clamp(22px, 3vw, 26px); line-height: 1.25;
+    color: var(--ink);
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+  }
+  .verdict .num {
+    font-family: 'Inter', sans-serif; font-weight: 600;
+    font-size: 13px;
+    background: var(--amber); color: var(--ink);
+    padding: 4px 10px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+    letter-spacing: 0.04em;
+  }
+  .verdict .num small { opacity: 0.7; font-weight: 500; }
+  .summary-row {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    align-items: baseline; justify-content: space-between;
+  }
+  .baseline { font-size: 12.5px; color: var(--ink-soft); }
+  .baseline strong { color: var(--ink); font-weight: 600; }
+
+  .persona-toggle {
+    margin-top: 18px;
+    display: inline-flex;
+    background: var(--paper-2); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 3px;
+  }
+  .persona-toggle button {
+    font: inherit; font-size: 13px; font-weight: 500;
+    min-height: 38px; padding: 0 18px; border-radius: 999px;
+    border: 0; background: transparent; color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .persona-toggle button.active {
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+
+  /* BODY */
+  .body { padding: 24px 28px 56px; display: grid; gap: 28px; }
+
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+  .section-head h2 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; line-height: 1; margin: 0; color: var(--ink);
+  }
+  .section-head .meta {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-mute);
+  }
+  .first-section { padding-top: 0; border-top: 0; }
+
+  /* AI summary */
+  .ai-summary p { margin: 0 0 10px; font-size: 15px; color: var(--ink); line-height: 1.6; max-width: 62ch; }
+  .ai-summary p:last-child { margin: 0; }
+  .lead {
+    font-family: 'Cormorant Garamond', serif; font-weight: 500;
+    font-size: 19px; line-height: 1.4; color: var(--ink);
+    margin-bottom: 12px; max-width: 60ch;
+  }
+  .source-line {
+    margin-top: 10px; font-size: 11.5px; color: var(--ink-mute);
+  }
+
+  /* findings */
+  .lead-finding {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: grid; grid-template-columns: auto 1fr; gap: 14px;
+    align-items: start;
+  }
+  .lead-finding.crit { border-color: oklch(0.50 0.155 35 / 0.35); background: oklch(0.50 0.155 35 / 0.04); }
+  .lead-finding .sev-tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--crit);
+    align-self: start; padding-top: 4px;
+  }
+  .lead-finding .body strong {
+    display: block; font-size: 15.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px;
+  }
+  .lead-finding .body p {
+    margin: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: 56ch;
+  }
+  .lead-finding .body .src {
+    margin-top: 6px; font-size: 11.5px; color: var(--ink-mute);
+  }
+
+  .ledger { list-style: none; padding: 0; margin: 14px 0 0; }
+  .ledger li {
+    display: grid; grid-template-columns: 88px 1fr;
+    gap: 16px; align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .ledger li:first-child { border-top: 0; padding-top: 18px; }
+  .ledger .sev {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .sev.warn { color: var(--warn); }
+  .sev.crit { color: var(--crit); }
+  .sev.info { color: var(--ink-soft); }
+  .sev.good { color: var(--good); }
+  .ledger .desc strong { display: block; font-size: 14.5px; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+  .ledger .desc p { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; max-width: 56ch; }
+  .ledger .desc .src { margin-top: 4px; font-size: 11.5px; color: var(--ink-mute); }
+
+  .findings-gate {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    font-size: 13.5px; color: var(--ink); background: var(--paper-2);
+  }
+  .findings-gate strong { font-weight: 600; }
+  .findings-gate .btn { min-height: 44px; }
+
+  /* Snapshot */
+  .snapshot {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .stat { background: var(--surface); padding: 18px 20px; }
+  .stat .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 6px;
+  }
+  .stat .value {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    line-height: 1.05; color: var(--ink); font-size: 24px;
+  }
+  .stat.primary { grid-column: 1 / 2; grid-row: 1 / 3; padding: 22px 24px; }
+  .stat.primary .value { font-size: 44px; }
+  .stat.primary .delta { font-size: 13px; margin-top: 8px; color: var(--ink-soft); }
+  .stat .value .small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 4px; }
+  .stat .delta { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .stat .delta.pos { color: var(--good); }
+  .stat .delta.neg { color: var(--warn); }
+
+  /* Comparison bars */
+  .bar-row {
+    display: grid; grid-template-columns: 130px 1fr 70px; gap: 14px;
+    align-items: center; padding: 10px 0; font-size: 13.5px;
+  }
+  .bar-row + .bar-row { border-top: 1px solid var(--rule); }
+  .bar-row .l { color: var(--ink); }
+  .bar-row .v { color: var(--ink); font-weight: 600; text-align: right; }
+  .bar { position: relative; height: 4px; border-radius: 2px; background: var(--rule); }
+  .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--teal-deep); border-radius: 2px; }
+  .bar .ref { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--ink); }
+  .bar-legend {
+    display: flex; gap: 18px; margin-top: 10px;
+    font-size: 11.5px; color: var(--ink-soft);
+  }
+  .bar-legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .bar-legend .key::before { content: ""; width: 10px; height: 3px; background: var(--teal-deep); border-radius: 2px; }
+  .bar-legend .key.ref::before { background: var(--ink); width: 1.5px; height: 12px; border-radius: 0; }
+
+  /* Layers ledger */
+  .layer-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 16px; align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+    min-height: 44px;
+  }
+  .layer-row:first-child { border-top: 0; padding-top: 6px; }
+  .layer-row .name { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .layer-row .source { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; font-weight: 400; }
+  .layer-row .pill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .pill.low  { color: var(--good); }
+  .pill.mod  { color: var(--ink-soft); }
+  .pill.high { color: var(--warn); }
+  .pill.crit { color: var(--crit); }
+  .layer-row .chev { color: var(--ink-mute); font-size: 16px; }
+
+  /* schools list */
+  .schools { list-style: none; padding: 0; margin: 0; }
+  .schools li {
+    display: grid; grid-template-columns: 1fr auto auto auto;
+    gap: 14px; align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+  }
+  .schools li:first-child { border-top: 0; }
+  .schools .nm { color: var(--ink); font-weight: 500; }
+  .schools .ty { color: var(--ink-mute); font-size: 12px; }
+  .schools .iz {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--good); color: var(--good);
+  }
+  .schools .iz.no { border-color: var(--rule-strong); color: var(--ink-mute); }
+  .schools .dist { color: var(--ink-soft); font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+
+  /* CTA */
+  .cta {
+    border: 1px solid var(--ink); background: var(--paper);
+    padding: 22px 24px; border-radius: var(--radius);
+    display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end;
+  }
+  .cta .lhs h3 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; line-height: 1.15; margin: 0 0 6px; color: var(--ink);
+  }
+  .cta .lhs p { margin: 0; font-size: 13.5px; color: var(--ink-soft); max-width: 44ch; }
+  .cta .price-line { margin-top: 10px; font-size: 11.5px; color: var(--ink-mute); }
+  .cta .rhs { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .cta .rhs .btn { min-height: 44px; }
+
+  .panel-foot {
+    padding: 0 28px 36px;
+    font-size: 11.5px; color: var(--ink-mute); max-width: 60ch;
+  }
+
+  /* coverage strip */
+  .coverage {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--ink-mute);
+    margin-top: 10px;
+  }
+  .coverage .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+
+  /* TABLET */
+  @media (max-width: 960px) {
+    .split { grid-template-columns: 1fr; grid-template-rows: 280px 1fr; height: auto; min-height: calc(100vh - 56px); }
+    .panel { border-left: 0; border-top: 1px solid var(--rule); }
+    body { overflow: auto; }
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .hero, .body, .panel-foot { padding-left: 18px; padding-right: 18px; }
+    header.app { gap: 12px; padding: 0 12px; }
+    .crumb { font-size: 12px; }
+    .crumb .back span { display: none; }
+    .actions .btn-ghost, .actions .btn-outline { display: none; }
+
+    .split { grid-template-rows: 220px 1fr; }
+    .map-overlay { left: 8px; top: 8px; }
+    .layer-pill { font-size: 12px; }
+
+    .addr-name { font-size: 26px; }
+    .verdict { font-size: 19px; }
+    .snapshot { grid-template-columns: 1fr; }
+    .stat.primary { grid-column: 1; grid-row: auto; padding: 18px 20px; }
+    .stat.primary .value { font-size: 36px; }
+    .bar-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
+    .bar-row .v { text-align: left; }
+    .cta { grid-template-columns: 1fr; gap: 14px; }
+    .cta .rhs { align-items: stretch; }
+    .cta .rhs .btn { width: 100%; }
+    .lead-finding { grid-template-columns: 1fr; }
+    .ledger li { grid-template-columns: 1fr; gap: 4px; }
+    .findings-gate { flex-direction: column; align-items: stretch; gap: 10px; }
+    .findings-gate .btn { width: 100%; }
+    .schools li { grid-template-columns: 1fr auto; gap: 4px; }
+    .schools .ty, .schools .dist { display: none; }
+    .btn, .layer-pill, .persona-toggle button { min-height: 44px; }
+  }
+
+  .selected-pin {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid var(--surface);
+    box-shadow: 0 0 0 0 oklch(0.68 0.140 75 / 0.45), 0 4px 8px rgba(0,0,0,.18);
+    animation: pulse 2.4s cubic-bezier(.22,1,.36,1) infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 oklch(0.68 0.140 75 / 0.45), 0 4px 8px rgba(0,0,0,.18); }
+    100% { box-shadow: 0 0 0 16px oklch(0.68 0.140 75 / 0), 0 4px 8px rgba(0,0,0,.18); }
+  }
+  @media (prefers-reduced-motion: reduce) { .selected-pin { animation: none; } * { transition: none !important; } }
+
+  .leaflet-control-attribution { font-size: 10px !important; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V11z"/></svg>
+    </div>
+    <div class="word">Whare<span class="accent">Score</span></div>
+  </div>
+  <div class="crumb">
+    <a class="back" href="#">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Search another</span>
+    </a>
+    <span class="sep">/</span>
+    <span>Auckland</span>
+    <span class="sep">/</span>
+    <span>Grey Lynn</span>
+  </div>
+  <div class="actions">
+    <button class="btn btn-ghost">Share</button>
+    <button class="btn btn-outline">Save</button>
+    <button class="btn btn-primary">Get full report</button>
+  </div>
+</header>
+
+<div class="split">
+
+  <div class="map-frame">
+    <div id="map" role="img" aria-label="Map showing 110-112 Ponsonby Road and the nearby flood path"></div>
+    <div class="map-overlay">
+      <button class="layer-pill on"><span class="dot"></span> Hazards</button>
+      <button class="layer-pill"><span class="dot"></span> Schools</button>
+      <button class="layer-pill"><span class="dot"></span> Transit</button>
+      <button class="layer-pill"><span class="dot"></span> Heritage</button>
+      <button class="layer-pill" style="background:var(--ink); color:var(--paper); border-color:var(--ink);">+ All layers</button>
+    </div>
+  </div>
+
+  <main class="panel" tabindex="-1">
+
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="addr-name">
+      <div class="addr-line">Auckland · Grey Lynn East · SA2 133500</div>
+      <h1 id="addr-name" class="addr-name">110-112 Ponsonby Road</h1>
+      <p class="addr-sub">Town Centre zone. Freehold, title 959104. 2,022 m² lot, 2,328 m² building footprint. CV $56m as at May 2024.</p>
+
+      <p class="verdict">
+        <span class="num">44.6<small>/100</small></span>
+        Moderate. The town-centre setting drives a critical earthquake-prone-building cluster nearby and a high crime percentile.
+      </p>
+
+      <div class="summary-row">
+        <p class="baseline"><strong>Suburb baseline:</strong> NZDep 3.7 (decile 2 here), 13 schools and 16 transit stops within 1.5 km.</p>
+      </div>
+
+      <div class="persona-toggle" role="tablist" aria-label="Persona">
+        <button class="active" role="tab" aria-selected="true">Buyer</button>
+        <button role="tab" aria-selected="false">Renter</button>
+        <button role="tab" aria-selected="false">Pro</button>
+      </div>
+    </section>
+
+    <div class="body">
+
+      <!-- AI summary -->
+      <section class="first-section" aria-labelledby="sec-summary">
+        <h2 id="sec-summary" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);overflow:hidden;">What we read in the data</h2>
+        <p class="lead">A Town Centre commercial site on the Ponsonby strip with a 2,328 m² building footprint and a $56m capital value, set in one of Auckland&rsquo;s least-deprived deciles but with the highest crime percentile in the country.</p>
+        <div class="ai-summary">
+          <p>The composite score is 44.6 (Moderate). It is dragged down by 12 earthquake-prone buildings within 300 m, an 81-crash record at the surrounding intersections over the last decade, and a crime-victimisation rank in the 92.7th percentile nationally. It is lifted by transit access (33 bus stops within 800 m, 97 peak trips per hour), 14 schools within 1.5 km, and an unusually low NZDep score (decile 2).</p>
+          <p>The site is not in a mapped flood overlay; the nearest flood polygon is 130 m away. Climate projections for this SA2 show +1.1°C mean temperature change and a 1.3% drop in mean annual precipitation.</p>
+          <p class="source-line">Sources: LINZ, Auckland Council, MBIE EPB Register, GNS, MfE, Stats NZ NZDep, Open-Meteo, NZTA CAS. Confidence 73%, all 23 data layers available.</p>
+        </div>
+      </section>
+
+      <!-- Findings -->
+      <section aria-labelledby="sec-findings">
+        <div class="section-head">
+          <h2 id="sec-findings">Key findings</h2>
+          <span class="meta">5 shown. More in full report</span>
+        </div>
+
+        <div class="lead-finding crit">
+          <span class="sev-tag">Critical</span>
+          <div class="body">
+            <strong>12 earthquake-prone buildings within 300 m</strong>
+            <p>Older building stock nearby. Check the MBIE EPB register for this specific property; EPB status affects insurance and can constrain alterations.</p>
+            <div class="src">Source: MBIE Earthquake-Prone Building Register · epbr.building.govt.nz</div>
+          </div>
+        </div>
+
+        <ul class="ledger">
+          <li>
+            <span class="sev warn">Warning</span>
+            <div class="desc">
+              <strong>31 extreme weather events within 50 km in the last 5 years</strong>
+              <p>Includes 18 heavy-rain events. Frequent severe weather raises flood, slip, and damage risk; check the insurance excess and exclusions for weather events.</p>
+              <div class="src">Open-Meteo historical archive (CC BY 4.0)</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev warn">Warning</span>
+            <div class="desc">
+              <strong>Crime victimisation in the 92.7th national percentile</strong>
+              <p>City Centre crime area unit. 81 crashes recorded within 300 m. Common for inner-city town-centre frontage, but worth weighing against alternative sites.</p>
+              <div class="src">NZ Police Victimisation Time Series · NZTA CAS</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev info">Info</span>
+            <div class="desc">
+              <strong>Business · Town Centre Zone with 13 m height limit</strong>
+              <p>Special character status applies; alterations to the street-facing façade need resource consent. Zero resource consents recorded within 500 m in the last 2 years.</p>
+              <div class="src">Auckland Unitary Plan</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev good">Strong</span>
+            <div class="desc">
+              <strong>Transit-rich site</strong>
+              <p>33 bus stops within 800 m and 97 peak trips per hour past the address. Auckland&rsquo;s CBD is 1.7 km away; Western Park is 138 m on foot.</p>
+              <div class="src">Auckland Transport GTFS · LINZ open parks</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="findings-gate">
+          <div><strong>More in the full report.</strong> Liquefaction class, ground-shaking severity, fault-avoidance distance, terrain elevation, and the complete infrastructure-pipeline list (35 projects within 5 km).</div>
+          <button class="btn btn-primary">Unlock</button>
+        </div>
+      </section>
+
+      <!-- Buyer snapshot -->
+      <section aria-labelledby="sec-buyer">
+        <div class="section-head">
+          <h2 id="sec-buyer">Buyer snapshot</h2>
+          <span class="meta">As at May 2024 RV</span>
+        </div>
+        <div class="snapshot">
+          <div class="stat primary">
+            <div class="label">Capital value</div>
+            <div class="value">$56.0m</div>
+            <div class="delta">Land $24.5m · Footprint 2,328 m² · Lot 2,022 m²</div>
+          </div>
+          <div class="stat">
+            <div class="label">Title</div>
+            <div class="value">Freehold <span class="small">· 959104</span></div>
+            <div class="delta">Fee Simple 1/1, Lot 1 DP 242</div>
+          </div>
+          <div class="stat">
+            <div class="label">Council</div>
+            <div class="value">Auckland</div>
+            <div class="delta">Live rates fetched on the full report</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Comparison bars vs Grey Lynn East -->
+      <section aria-labelledby="sec-compare">
+        <div class="section-head">
+          <h2 id="sec-compare">How this site compares</h2>
+          <span class="meta">Grey Lynn East SA2</span>
+        </div>
+        <div class="bars">
+          <div class="bar-row">
+            <div class="l">Schools within 1.5 km</div>
+            <div class="bar"><div class="fill" style="width:88%"></div><div class="ref" style="left:81%"></div></div>
+            <div class="v">14</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">Transit within 400 m</div>
+            <div class="bar"><div class="fill" style="width:0%"></div><div class="ref" style="left:32%"></div></div>
+            <div class="v">0</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">EPBs within 300 m</div>
+            <div class="bar"><div class="fill" style="width:80%; background: oklch(0.50 0.155 35);"></div><div class="ref" style="left:0%"></div></div>
+            <div class="v">12</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">Max road noise (dB)</div>
+            <div class="bar"><div class="fill" style="width:62%"></div><div class="ref" style="left:58%"></div></div>
+            <div class="v">≤58 dB</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">NZDep decile</div>
+            <div class="bar"><div class="fill" style="width:20%; background: var(--good);"></div><div class="ref" style="left:37%"></div></div>
+            <div class="v">2</div>
+          </div>
+          <div class="bar-legend">
+            <span class="key">This site</span>
+            <span class="key ref">Grey Lynn East median</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Schools (real list) -->
+      <section aria-labelledby="sec-schools">
+        <div class="section-head">
+          <h2 id="sec-schools">Schools nearby</h2>
+          <span class="meta">14 within 1.5 km. 4 in-zone</span>
+        </div>
+        <ul class="schools">
+          <li>
+            <span class="nm">Auckland Girls&rsquo; Grammar School</span>
+            <span class="ty">Secondary 9-15 · 1,136 roll</span>
+            <span class="iz">In-zone</span>
+            <span class="dist">510 m</span>
+          </li>
+          <li>
+            <span class="nm">Richmond Road School</span>
+            <span class="ty">Contributing · 299 roll</span>
+            <span class="iz">In-zone</span>
+            <span class="dist">742 m</span>
+          </li>
+          <li>
+            <span class="nm">Ponsonby Intermediate</span>
+            <span class="ty">Intermediate · 548 roll</span>
+            <span class="iz">In-zone</span>
+            <span class="dist">1,267 m</span>
+          </li>
+          <li>
+            <span class="nm">Newton Central School</span>
+            <span class="ty">Contributing · 339 roll</span>
+            <span class="iz no">Out-of-zone</span>
+            <span class="dist">661 m</span>
+          </li>
+          <li>
+            <span class="nm">Freemans Bay School</span>
+            <span class="ty">Contributing · 657 roll</span>
+            <span class="iz no">Out-of-zone</span>
+            <span class="dist">729 m</span>
+          </li>
+          <li>
+            <span class="nm">St Mary&rsquo;s College (Ponsonby)</span>
+            <span class="ty">Secondary 7-15 · 1,001 roll</span>
+            <span class="iz no">Out-of-zone</span>
+            <span class="dist">1,258 m</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Risk and planning ledger -->
+      <section aria-labelledby="sec-layers">
+        <div class="section-head">
+          <h2 id="sec-layers">Risk and planning layers</h2>
+          <span class="meta">23 of 23 available</span>
+        </div>
+        <div class="layer-ledger">
+          <div class="layer-row">
+            <div>
+              <div class="name">Flood overlay</div>
+              <div class="source">Auckland Council Stormwater · nearest mapped flood is 130 m away</div>
+            </div>
+            <span class="pill low">Off-site</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">EPB register, 300 m</div>
+              <div class="source">MBIE Earthquake-Prone Building Register · 12 within 300 m</div>
+            </div>
+            <span class="pill crit">Cluster</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Crime percentile, area unit</div>
+              <div class="source">NZ Police Victimisation Time Series · 92.7th national percentile</div>
+            </div>
+            <span class="pill high">Elevated</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Special Character Areas overlay</div>
+              <div class="source">Auckland Unitary Plan · in special character zone</div>
+            </div>
+            <span class="pill mod">Applies</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Heritage overlays</div>
+              <div class="source">Auckland Council · 7 heritage features within 500 m</div>
+            </div>
+            <span class="pill mod">Nearby</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Climate change projection</div>
+              <div class="source">MfE statistical downscaling · +1.1°C, -1.3% precip change</div>
+            </div>
+            <span class="pill mod">Trending</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Contaminated land register, 2 km</div>
+              <div class="source">Auckland Council HAIL · 0 listed within 2 km</div>
+            </div>
+            <span class="pill low">Clear</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Resource consents, 500 m, last 2 yr</div>
+              <div class="source">Auckland Council consents API · 0 lodged</div>
+            </div>
+            <span class="pill low">Quiet</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Infrastructure pipeline, 5 km</div>
+              <div class="source">National Infrastructure Pipeline · 35 projects, includes Grey Lynn Wastewater Tunnel (1.0 km)</div>
+            </div>
+            <span class="pill mod">Active</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+        <div class="coverage">
+          <span class="dot"></span>
+          <span>Confidence 73% · 23 / 23 data layers · Hazards 6/6, Environment 3/3, Liveability 4/4, Transport 5/5, Market 3/3, Planning 2/2.</span>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta" aria-labelledby="cta-h">
+        <div class="lhs">
+          <h3 id="cta-h">Open the full report.</h3>
+          <p>Adds the rent and price advisor, walk score, transit chart, all twelve findings, and a hosted link you can share with your conveyancer.</p>
+          <div class="price-line">First report free with a Quick Report sign-in. No credit card.</div>
+        </div>
+        <div class="rhs">
+          <button class="btn btn-primary">Get full report. $2.99</button>
+          <button class="btn btn-outline">Or go Pro. $50/mo</button>
+        </div>
+      </section>
+
+    </div>
+
+    <p class="panel-foot">
+      Real data fetched from <code>GET /api/v1/property/2312429/report?fast=true</code> on 2026-05-09. Live council rates and the AI narrative are not present in this fast snapshot. WhareScore is a guidance tool, not a substitute for a LIM or building inspection.
+    </p>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const LAT = -36.8573399215, LNG = 174.7479670888;
+  const map = L.map('map', { zoomControl: true, attributionControl: true })
+    .setView([LAT, LNG], 16);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OSM &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+
+  const selected = L.divIcon({ className: 'sel', html: '<div class="selected-pin"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+  L.marker([LAT, LNG], { icon: selected }).addTo(map).bindPopup('110-112 Ponsonby Road · Score 44.6');
+
+  // real schools (in-zone in green, out in grey)
+  const schools = [
+    { lat: -36.856867, lng: 174.753659, name: "Auckland Girls' Grammar", zone: true },
+    { lat: -36.856164, lng: 174.739777, name: "Richmond Road School", zone: true },
+    { lat: -36.848062, lng: 174.739685, name: "Ponsonby Intermediate", zone: true },
+    { lat: -36.862514, lng: 174.751636, name: "Newton Central", zone: false },
+    { lat: -36.852048, lng: 174.75281,  name: "Freemans Bay", zone: false },
+    { lat: -36.846003, lng: 174.748234, name: "St Mary's College", zone: false }
+  ];
+  for (const s of schools) {
+    const color = s.zone ? 'oklch(0.55 0.090 145)' : 'oklch(0.60 0.010 200)';
+    L.marker([s.lat, s.lng], { icon: L.divIcon({
+      className: 's', iconSize:[10,10], iconAnchor:[5,5],
+      html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></div>`
+    })}).addTo(map).bindTooltip(s.name);
+  }
+
+  // approximate flood overlay 130m to the south
+  const offset = 130 / 111000; // ~degrees
+  L.polygon([
+    [LAT - offset*1.0, LNG - 0.0010],
+    [LAT - offset*0.7, LNG + 0.0010],
+    [LAT - offset*1.4, LNG + 0.0006],
+    [LAT - offset*1.6, LNG - 0.0008]
+  ], { color: 'oklch(0.50 0.155 35)', weight: 1, fillColor: 'oklch(0.50 0.155 35)', fillOpacity: 0.15 })
+   .addTo(map)
+   .bindTooltip('Nearest mapped flood overlay (130 m)');
+</script>
+
+</body>
+</html>

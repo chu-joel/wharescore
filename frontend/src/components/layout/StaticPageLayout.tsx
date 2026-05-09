@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { usePrefixedPath } from '@/lib/routePrefix';
 
 const STATIC_PAGES = [
   { href: '/about', label: 'About' },
@@ -23,6 +24,7 @@ interface StaticPageLayoutProps {
 export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
   const [isDark, setIsDark] = useState(false);
   const pathname = usePathname();
+  const prefix = usePrefixedPath();
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
@@ -40,7 +42,7 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="flex items-center justify-between mb-6 gap-3">
           <Link
-            href="/"
+            href={prefix('/')}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -50,10 +52,10 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
               directly (e.g. from search) can reach the rest of the site
               without bouncing back through the map. */}
           <nav className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground flex-1 justify-center">
-            {STATIC_PAGES.filter((p) => p.href !== pathname).slice(0, 4).map((p) => (
+            {STATIC_PAGES.filter((p) => prefix(p.href) !== pathname).slice(0, 4).map((p) => (
               <Link
                 key={p.href}
-                href={p.href}
+                href={prefix(p.href)}
                 className="hover:text-foreground transition-colors whitespace-nowrap"
               >
                 {p.label}
@@ -76,10 +78,10 @@ export function StaticPageLayout({ title, children }: StaticPageLayoutProps) {
         {/* Cross-linking footer for SEO internal linking */}
         <nav className="mt-12 pt-6 border-t border-border">
           <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {STATIC_PAGES.filter((p) => p.href !== pathname).map((p) => (
+            {STATIC_PAGES.filter((p) => prefix(p.href) !== pathname).map((p) => (
               <Link
                 key={p.href}
-                href={p.href}
+                href={prefix(p.href)}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {p.label}

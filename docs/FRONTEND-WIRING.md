@@ -55,6 +55,37 @@ A compact "About this place" chip at the top of every property report drives the
 
 **Report flow: Verdict → Evidence → Action → Upgrade → Deep Dive.** ScoreGauge and ScoreStrip removed from on-screen report (Snapshots provide the verdict). CategoryRadar removed (visual noise). IndicatorCards no longer show numeric score bars — plain-English descriptions only. Indicator grids hidden for renters (buyers still see them). Deleted orphaned components: HealthyHomesSummary, RentAffordabilitySnap, RentMarketPower, BuyerPropertyInsights (all superseded by Snapshot components).
 
+### New on-screen report (`/new/?address={id}`, component: `PropertyReportNew.tsx`)
+
+Parallel implementation in the new design system at `frontend/src/app/new/`. Same hooks (`usePropertyReport`, `useAISummary`, `useAreaFeed`, `usePersonaStore`, `useDownloadGateStore`, `useReportConfirmStore`, `useRentInputStore`, `useBuyerInputStore`, `useTypologyMedian`), same gating, same conversion stores. Token system in `frontend/src/styles/tokens-new.css` (OKLCH neutrals + production-hex severity, scoped to `.ws-new`). Severity always rendered as glyph + keyword + colour via `<SeverityTag>` (WCAG 1.4.1). Component table:
+
+| Component | File | Role |
+|---|---|---|
+| `HeroBlockNew` | `frontend/src/components/new/sections/HeroBlockNew.tsx` | Eyebrow (city/suburb/SA2) + address + property subtitle + score pill (rating bin colour) + persona toggle |
+| `BetaBannerNew` | `frontend/src/components/new/sections/BetaBannerNew.tsx` | "Free report. sign in for full" anonymous-only banner |
+| `BuildingInfoBannerNew` | `frontend/src/components/new/sections/BuildingInfoBannerNew.tsx` | Multi-unit caveat with sibling-valuations table (renders only when `property_detection.is_multi_unit`) |
+| `CategoryScoreboardNew` | `frontend/src/components/new/sections/CategoryScoreboardNew.tsx` | 6-cat scoreboard with severity-coloured mini-bars |
+| `SocialProofNew` | `frontend/src/components/new/sections/SocialProofNew.tsx` | Deterministic suburb-seeded "X reports this month" |
+| `KeyTakeawaysNew` | `frontend/src/components/new/sections/KeyTakeawaysNew.tsx` | Concerns (≥60) / positives (≤20) derived from `scores.categories[].indicators`, share + search-another actions |
+| `KeyFindingsNew` | `frontend/src/components/new/sections/KeyFindingsNew.tsx` | Persona-aware backend ranking + free/gated split + upgrade modal trigger via `downloadGateStore` |
+| `AreaEventTeaserNew` | `frontend/src/components/new/sections/AreaEventTeaserNew.tsx` | Green all-clear vs amber summary, source breakdown |
+| `AISummaryNew` | `frontend/src/components/new/sections/AISummaryNew.tsx` | Area profile + property summary with progressive disclosure |
+| `BuyerSnapshotNew` | `frontend/src/components/new/sections/BuyerSnapshotNew.tsx` | Insurability / building era / development / market trajectory / multi-unit, finding-row format with overall verdict header |
+| `RenterSnapshotNew` | `frontend/src/components/new/sections/RenterSnapshotNew.tsx` | Rent median / market power / Healthy Homes / mould risk |
+| `LandlordChecklistNew` | `frontend/src/components/new/sections/LandlordChecklistNew.tsx` | Personalised + universal must-ask list |
+| `IndicatorGrid23New` | `frontend/src/components/new/sections/IndicatorGrid23New.tsx` | Every indicator with severity tone (`crime`/`nzdep` invert) |
+| `ComparisonBarsNew` | `frontend/src/components/new/sections/ComparisonBarsNew.tsx` | 5 SA2-median bars; NZDep inversion handled |
+| `DataLayersNew` | `frontend/src/components/new/sections/DataLayersNew.tsx` | 8-14 derived layer rows with source attribution |
+| `CoverageNew` | `frontend/src/components/new/sections/CoverageNew.tsx` | Per-category coverage grid |
+| `EmailSummaryCaptureNew` | `frontend/src/components/new/sections/EmailSummaryCaptureNew.tsx` | Sign-in-gated email-summary |
+| `ReportCTABannerNew` | `frontend/src/components/new/sections/ReportCTABannerNew.tsx` | Final CTA, dual auth-aware paths, persona-specific subhead |
+| `ReportDisclaimerNew` | `frontend/src/components/new/sections/ReportDisclaimerNew.tsx` | Progressive-disclosure disclaimer |
+| `FloatingReportButtonNew` | `frontend/src/components/new/sections/FloatingReportButtonNew.tsx` | Portal-mounted floating CTA, contextual copy + secondary PDF + credit badge |
+| `ScrollPromptNew` | `frontend/src/components/new/sections/ScrollPromptNew.tsx` | 90 % scroll + 15 s trigger / 3 min fallback, severity-aware copy |
+| `SignupNudgeNew` | `frontend/src/components/new/sections/SignupNudgeNew.tsx` | 60 s / 30 s anonymous nudge |
+
+UI primitives in `frontend/src/components/new/ui/primitives.tsx`: `Card`, `CardHead`, `CardBody`, `SeverityTag`, `Pill`, `Badge`, `StatGrid`, `Stat`, `IndicatorChip` + `indToneFor`, `BarRow`, `LayerRow`, `Finding`, `Accordion`, `PersonaToggle`. Hosted reports at `/new/report/[token]` still wrap classic `HostedReport` / `HostedQuickReport` (token-reskinned via `tokens-new.css` scoped overrides) — full visual port deferred.
+
 | Report field path | Component | Section | Gated? |
 |---|---|---|---|
 | `address.full_address, .suburb, .city, .lat, .lng` | PropertySummaryCard | 0. Header — duplicate "suburb, city" subheading is suppressed when `full_address` already contains both (most LINZ addresses). Header action row also renders `<AddToCompareButton variant="primary" />` (Phase A) — see § Property-comparison. | No |

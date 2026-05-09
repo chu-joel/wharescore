@@ -1,0 +1,1342 @@
+{
+  "address": {
+    "lat": -41.2892103743,
+    "lng": 174.7769876301,
+    "city": "Wellington",
+    "suburb": "Wellington Central",
+    "ta_name": "Wellington City",
+    "sa2_code": "251400",
+    "sa2_name": "Wellington Central",
+    "unit_type": null,
+    "address_id": 364032,
+    "full_address": "101 Wakefield Street, Wellington Central, Wellington"
+  },
+  "property": {
+    "cv_date": "2024-09-01",
+    "title_no": "724107",
+    "cv_council": "wcc",
+    "land_value": 42840000,
+    "multi_unit": false,
+    "title_type": "Freehold",
+    "building_use": "Unknown",
+    "cv_land_area": 0,
+    "capital_value": 234240000,
+    "footprint_sqm": 1304.3,
+    "cv_is_per_unit": true,
+    "estate_description": "Fee Simple, 1/1, Lot 1 Deposited Plan 494594, 33,645 m2",
+    "improvements_value": 191400000
+  },
+  "scores": {
+    "rating": {
+      "color": "#E69F00",
+      "label": "Moderate"
+    },
+    "coverage": {
+      "label": "31 data layers",
+      "total": 31,
+      "available": 31,
+      "per_category": {
+        "market": {
+          "total": 3,
+          "available": 3,
+          "indicators": [
+            "rental_fairness",
+            "rental_trend",
+            "market_heat"
+          ]
+        },
+        "hazards": {
+          "total": 9,
+          "available": 9,
+          "indicators": [
+            "flood",
+            "tsunami",
+            "liquefaction",
+            "slope_failure",
+            "earthquake",
+            "wind",
+            "wildfire",
+            "epb",
+            "ground_shaking"
+          ]
+        },
+        "planning": {
+          "total": 5,
+          "available": 5,
+          "indicators": [
+            "zone_permissiveness",
+            "height_limit",
+            "resource_consents",
+            "infrastructure",
+            "school_zone"
+          ]
+        },
+        "transport": {
+          "total": 6,
+          "available": 6,
+          "indicators": [
+            "transit_access",
+            "cbd_proximity",
+            "commute_frequency",
+            "rail_proximity",
+            "bus_density",
+            "road_safety"
+          ]
+        },
+        "environment": {
+          "total": 4,
+          "available": 4,
+          "indicators": [
+            "air_quality",
+            "water_quality",
+            "climate",
+            "contaminated_land"
+          ]
+        },
+        "liveability": {
+          "total": 4,
+          "available": 4,
+          "indicators": [
+            "crime",
+            "nzdep",
+            "schools",
+            "heritage"
+          ]
+        }
+      }
+    },
+    "composite": 55.8,
+    "categories": {
+      "market": 19.3,
+      "hazards": 78.2,
+      "planning": 69.3,
+      "transport": 28.3,
+      "environment": 62.4,
+      "liveability": 45.5
+    },
+    "confidence": 93.6,
+    "indicators": {
+      "epb": 100.0,
+      "wind": 75,
+      "crime": 2.5,
+      "flood": 55,
+      "nzdep": 33,
+      "climate": 35.4,
+      "schools": 69.6,
+      "tsunami": 80,
+      "heritage": 95.2,
+      "wildfire": 40.0,
+      "earthquake": 24.0,
+      "air_quality": 70,
+      "bus_density": 0.0,
+      "market_heat": 27.6,
+      "road_safety": 35.0,
+      "school_zone": 50,
+      "height_limit": 50,
+      "liquefaction": 85,
+      "rental_trend": 0.0,
+      "cbd_proximity": 11.6,
+      "slope_failure": 40,
+      "water_quality": 65,
+      "ground_shaking": 90,
+      "infrastructure": 96.5,
+      "rail_proximity": 24.8,
+      "transit_access": 68.0,
+      "rental_fairness": 31,
+      "commute_frequency": 0.0,
+      "contaminated_land": 78.8,
+      "resource_consents": 100,
+      "zone_permissiveness": 50
+    }
+  },
+  "rec_titles": [
+    [
+      "liquefaction_high",
+      "Liquefaction Risk — Structural Assessment Required",
+      "This property sits on ground with high liquefaction susceptibility. During a significant earthquake, the soil may behave like a liquid, causing ground settlement, lateral spreading, and foundation damage."
+    ],
+    [
+      "contamination_nearby",
+      "Contaminated Land Due Diligence",
+      "A contaminated site (Wellington Civic Centre, category: Chemical manufacture, application and bulk storage, Metal extraction, refining and reprocessing, storage and use) is within 31m of this property."
+    ],
+    [
+      "universal_lim",
+      "Request a LIM Report",
+      "Apply for a Land Information Memorandum (LIM) from the local council — this is your single most important document. Cost: $300-$500, turnaround 10-15 working days."
+    ],
+    [
+      "universal_builders_report",
+      "Get a Builder's Report",
+      "Commission a pre-purchase building inspection from a registered building surveyor. Cost: $400-$800 for a standard home, $800-$1,500 for multi-unit."
+    ],
+    [
+      "wind_extreme",
+      "High Wind Zone — Property Checks",
+      "This property is in a high or very high wind zone under NZS 3604. Wellington's exposed hilltops and coastal areas regularly experience gusts over 120 km/h."
+    ],
+    [
+      "tsunami_zone",
+      "Tsunami Evacuation Planning",
+      "This property is in a mapped tsunami evacuation zone. While major tsunamis are rare, preparation is essential."
+    ],
+    [
+      "crashes_nearby",
+      "Road Safety Concerns",
+      "There have been 7 serious or fatal crashes within 300m in the last 5 years. This indicates a road safety hotspot."
+    ],
+    [
+      "universal_conveyancing",
+      "Conveyancing & Legal Checklist",
+      "Engage a property lawyer or licensed conveyancer before signing the Sale & Purchase Agreement. Budget $1,200-$2,500."
+    ],
+    [
+      "universal_insurance",
+      "Confirm Insurance Availability",
+      "Get insurance quotes BEFORE going unconditional — some properties in hazard zones are uninsurable or carry high premiums/excess."
+    ],
+    [
+      "earthquake_moderate",
+      "Seismic Activity Awareness",
+      "This area has moderate seismic activity (12 M4+ quakes within 30km in the last 10 years)."
+    ],
+    [
+      "epb_nearby",
+      "Earthquake-Prone Buildings Nearby",
+      "There are 33+ earthquake-prone buildings within 300m. While this doesn't directly affect your property's structure, it's worth being aware."
+    ],
+    [
+      "air_degrading",
+      "Air Quality Concerns",
+      "The nearest air quality monitoring site shows a degrading PM10 trend. This typically indicates increasing particulate pollution from wood burners, traffic, or industrial activity."
+    ],
+    [
+      "schools_in_zone_few",
+      "School Zone Options",
+      "This property is in zone for: Mt Cook School (Wellington), Wellington High School and Com Ed Centre. Limited in-zone options mean these schools are your guaranteed pathway."
+    ],
+    [
+      "yield_low",
+      "Low Rental Yield",
+      "Indicative gross yield is 0% — below the 3-4% typical for NZ metros. This means rental income will not cover mortgage costs at current interest rates (~6-7%)."
+    ],
+    [
+      "rents_rising",
+      "Rents Rising in This Area",
+      "Rents in this SA2 area are rising above inflation for some property types. Check the Market section above for specifics by dwelling type and bedrooms."
+    ],
+    [
+      "market_active_development",
+      "Active Development Area",
+      "30 resource consents granted within 500m in the last 2 years — this is a high level of development activity."
+    ]
+  ],
+  "price_advisor": {
+    "cv": 234240000,
+    "method": "ensemble",
+    "cv_date": "2024-09-01",
+    "ta_name": "Wellington City",
+    "band_low": 227419312,
+    "sa2_name": "Wellington Central",
+    "band_high": 263031508,
+    "bond_count": 24,
+    "confidence": 3,
+    "disclaimer": "This estimate is based on publicly available government data including council rating valuations, MBIE bond records, and the RBNZ House Price Index. It is not a registered valuation, appraisal, or market assessment. Individual property values depend on specific features, condition, market timing, and other factors this estimate cannot account for.",
+    "adjustments": [
+      {
+        "label": "Property size",
+        "factor": "size",
+        "reason": "1304m² vs typical 140m²",
+        "pct_low": 10.0,
+        "category": "property",
+        "pct_high": 20.0,
+        "dollar_low": 20473839,
+        "dollar_high": 40947679
+      },
+      {
+        "label": "Likely recent build or renovation",
+        "factor": "age_proxy",
+        "reason": "Improvements 82% of CV (area p75 65%)",
+        "pct_low": 2.0,
+        "category": "property",
+        "pct_high": 6.0,
+        "dollar_low": 4094768,
+        "dollar_high": 12284304
+      }
+    ],
+    "area_context": [
+      {
+        "label": "Deprivation",
+        "value": 6,
+        "factor": "deprivation",
+        "city_avg": 4,
+        "direction": "neutral",
+        "max_scale": 10,
+        "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+      },
+      {
+        "label": "Transit",
+        "value": 42,
+        "factor": "transit",
+        "city_avg": 0,
+        "direction": "up",
+        "max_scale": 42,
+        "description": "Suburb avg 42 stops within 400m — excellent access"
+      },
+      {
+        "label": "Schools",
+        "value": 12,
+        "factor": "schools",
+        "city_avg": 0,
+        "direction": "up",
+        "max_scale": 12,
+        "description": "Suburb avg 12 schools within 1.5km — above average"
+      },
+      {
+        "label": "Noise",
+        "value": "70",
+        "factor": "noise",
+        "city_avg": null,
+        "direction": "down",
+        "max_scale": 80,
+        "description": "Suburb peak 70 dB — noisy area"
+      }
+    ],
+    "asking_price": null,
+    "hazard_count": 4,
+    "hpi_adjusted": 232585568,
+    "cv_age_months": 19,
+    "is_multi_unit": false,
+    "asking_verdict": null,
+    "band_low_outer": 220596733,
+    "asking_diff_pct": null,
+    "band_high_outer": 270922453,
+    "estimated_value": 245225410,
+    "ownership_costs": {
+      "rates_annual": 1288320,
+      "insurance_base": 574200,
+      "body_corp_annual": null,
+      "insurance_annual_low": 717750,
+      "insurance_annual_high": 1062270,
+      "insurance_hazard_uplift_pct": [
+        25,
+        85
+      ]
+    },
+    "yield_inversion": 525778,
+    "factors_analysed": 2,
+    "hazard_cost_flags": [
+      {
+        "label": "Near contaminated site",
+        "action": "Check HAIL list status. Review council LIM report.",
+        "hazard": "contamination",
+        "description": "Proximity to contaminated land. May affect future consent applications.",
+        "insurance_uplift_pct_low": 0,
+        "insurance_uplift_pct_high": 10
+      },
+      {
+        "label": "High liquefaction risk",
+        "action": "Commission a geotechnical report. Check foundation type.",
+        "hazard": "liquefaction",
+        "description": "High liquefaction risk can increase insurance costs and may require geotechnical assessment.",
+        "insurance_uplift_pct_low": 15,
+        "insurance_uplift_pct_high": 40
+      },
+      {
+        "label": "Tsunami zone",
+        "action": "Check council evacuation routes. Consider in your risk tolerance.",
+        "hazard": "tsunami",
+        "description": "Tsunami zone designation. Risk is low-probability but high-impact.",
+        "insurance_uplift_pct_low": 5,
+        "insurance_uplift_pct_high": 20
+      },
+      {
+        "label": "High wind zone",
+        "action": "Check roof condition and cladding. Budget for higher maintenance.",
+        "hazard": "wind_high",
+        "description": "High/extreme wind zone. Higher maintenance costs and insurance.",
+        "insurance_uplift_pct_low": 5,
+        "insurance_uplift_pct_high": 15
+      }
+    ],
+    "methodology_steps": [
+      {
+        "step": 1,
+        "label": "Council Valuation (CV)",
+        "value": 234240000,
+        "detail": "Rated 2024-09-01"
+      },
+      {
+        "step": 2,
+        "label": "HPI-adjusted value",
+        "value": 232585568,
+        "detail": "CV × HPI ratio since 2024-09-01"
+      },
+      {
+        "step": 3,
+        "label": "Yield inversion",
+        "value": 525778,
+        "detail": "$455.0/wk × 52 ÷ 4.5% yield"
+      },
+      {
+        "step": 4,
+        "label": "Blended estimate",
+        "value": 204738393,
+        "detail": "HPI weight 88%, yield weight 12%. Methods diverge (99.8%)"
+      },
+      {
+        "step": 5,
+        "label": "After property adjustments",
+        "value": 245071856,
+        "detail": "2 adjustments applied"
+      }
+    ],
+    "methods_agree_pct": 99.8
+  },
+  "lifestyle_personas": [
+    {
+      "fits": [
+        "1158m to CBD",
+        "8 transit stops nearby",
+        "120 cafes/restaurants within 500m",
+        "low-moderate deprivation area"
+      ],
+      "caveats": [],
+      "persona": "Young Professionals / Couples"
+    },
+    {
+      "fits": [
+        "green space 845m away"
+      ],
+      "caveats": [
+        "7 serious crashes nearby"
+      ],
+      "persona": "Families with Children"
+    },
+    {
+      "fits": [
+        "zone allows intensification"
+      ],
+      "caveats": [
+        "low yield (0.0%)"
+      ],
+      "persona": "Investors / Landlords"
+    },
+    {
+      "fits": [
+        "8 transit stops within 400m"
+      ],
+      "caveats": [],
+      "persona": "Retirees / Downsizers"
+    },
+    {
+      "fits": [
+        "8 transit stops within 400m",
+        "CBD 1158m"
+      ],
+      "caveats": [],
+      "persona": "Car-Free Renters"
+    }
+  ],
+  "lifestyle_tips": [
+    "Being 1158m from the CBD, street parking is limited — if you have a car, factor in a parking space (~$200–350/month in central areas)."
+  ],
+  "hazard_advice_titles": [
+    [
+      "Tsunami Evacuation Zone",
+      "NEMA / Civil Defence",
+      "LONG OR STRONG = GET GONE — if shaking lasts more than a minute, evacuate immediately"
+    ],
+    [
+      "Liquefaction Risk Area",
+      "GNS Science / EQC",
+      "Get a geotechnical report before purchasing — liquefaction can cause severe foundation damage"
+    ],
+    [
+      "High Wind Exposure",
+      "BRANZ / NZS 3604",
+      "Ensure roof fixings meet NZS 3604 for this wind zone — get a building inspection"
+    ],
+    [
+      "Extreme Weather History",
+      "Open-Meteo / NIWA",
+      "15 destructive wind events (120km/h+) recorded nearby — check roof condition and secure loose items"
+    ],
+    [
+      "Contaminated Land Nearby",
+      "MfE NES for Contaminated Soil",
+      "Request a Detailed Site Investigation (DSI) report from the regional council"
+    ]
+  ],
+  "rent_baselines": {
+    "House:1": {
+      "sigma": 0.2782,
+      "period": "2025-10-01",
+      "band_low": 446,
+      "band_high": 502,
+      "bond_count": 24,
+      "raw_median": 455,
+      "adjustments": [
+        {
+          "label": "High liquefaction",
+          "factor": "liquefaction",
+          "reason": "High liquefaction (21% of area)",
+          "pct_low": -2.0,
+          "category": "hazard",
+          "pct_high": -4.0,
+          "dollar_low": -12,
+          "dollar_high": -24,
+          "prevalence_pct": 21
+        },
+        {
+          "label": "Tsunami zone",
+          "factor": "tsunami",
+          "reason": "Tsunami zone (38% of area)",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -3.0,
+          "dollar_low": -6,
+          "dollar_high": -18,
+          "prevalence_pct": 38
+        },
+        {
+          "label": "Near contaminated site",
+          "factor": "contamination",
+          "reason": "Near contaminated site",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -2.0,
+          "dollar_low": -6,
+          "dollar_high": -12,
+          "prevalence_pct": 0
+        },
+        {
+          "label": "High wind zone",
+          "factor": "wind_high",
+          "reason": "High wind zone (24% of area)",
+          "pct_low": -0.5,
+          "category": "hazard",
+          "pct_high": -1.5,
+          "dollar_low": -3,
+          "dollar_high": -9,
+          "prevalence_pct": 24
+        },
+        {
+          "label": "Transit access",
+          "factor": "transit",
+          "reason": "8 stops vs area avg 42",
+          "pct_low": -3.0,
+          "category": "location",
+          "pct_high": -0.5,
+          "dollar_low": -18,
+          "dollar_high": -3
+        },
+        {
+          "label": "School proximity",
+          "factor": "schools",
+          "reason": "9 schools vs area avg 12",
+          "pct_low": -0.8,
+          "category": "location",
+          "pct_high": -0.1,
+          "dollar_low": -5,
+          "dollar_high": -1
+        },
+        {
+          "label": "Property size",
+          "factor": "size",
+          "reason": "1304m² vs typical 140m²",
+          "pct_low": 10.0,
+          "category": "property",
+          "pct_high": 20.0,
+          "dollar_low": 46,
+          "dollar_high": 91
+        }
+      ],
+      "data_source": "sa2",
+      "area_context": [
+        {
+          "label": "Deprivation",
+          "value": 6,
+          "factor": "deprivation",
+          "city_avg": 4,
+          "direction": "neutral",
+          "max_scale": 10,
+          "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+        },
+        {
+          "label": "Transit",
+          "value": 42,
+          "factor": "transit",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 42,
+          "description": "Suburb avg 42 stops within 400m — excellent access"
+        },
+        {
+          "label": "Schools",
+          "value": 12,
+          "factor": "schools",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 12,
+          "description": "Suburb avg 12 schools within 1.5km — above average"
+        },
+        {
+          "label": "Noise",
+          "value": "70",
+          "factor": "noise",
+          "city_avg": null,
+          "direction": "down",
+          "max_scale": 80,
+          "description": "Suburb peak 70 dB — noisy area"
+        }
+      ],
+      "band_low_outer": 433,
+      "band_high_outer": 517,
+      "market_quartiles": {
+        "lower": 439,
+        "upper": 483
+      }
+    },
+    "House:2": {
+      "sigma": 0.1586,
+      "period": "2024-04-01",
+      "band_low": 564,
+      "band_high": 635,
+      "bond_count": 24,
+      "raw_median": 575,
+      "adjustments": [
+        {
+          "label": "High liquefaction",
+          "factor": "liquefaction",
+          "reason": "High liquefaction (21% of area)",
+          "pct_low": -2.0,
+          "category": "hazard",
+          "pct_high": -4.0,
+          "dollar_low": -12,
+          "dollar_high": -24,
+          "prevalence_pct": 21
+        },
+        {
+          "label": "Tsunami zone",
+          "factor": "tsunami",
+          "reason": "Tsunami zone (38% of area)",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -3.0,
+          "dollar_low": -6,
+          "dollar_high": -18,
+          "prevalence_pct": 38
+        },
+        {
+          "label": "Near contaminated site",
+          "factor": "contamination",
+          "reason": "Near contaminated site",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -2.0,
+          "dollar_low": -6,
+          "dollar_high": -12,
+          "prevalence_pct": 0
+        },
+        {
+          "label": "High wind zone",
+          "factor": "wind_high",
+          "reason": "High wind zone (24% of area)",
+          "pct_low": -0.5,
+          "category": "hazard",
+          "pct_high": -1.5,
+          "dollar_low": -3,
+          "dollar_high": -9,
+          "prevalence_pct": 24
+        },
+        {
+          "label": "Transit access",
+          "factor": "transit",
+          "reason": "8 stops vs area avg 42",
+          "pct_low": -3.0,
+          "category": "location",
+          "pct_high": -0.5,
+          "dollar_low": -18,
+          "dollar_high": -3
+        },
+        {
+          "label": "School proximity",
+          "factor": "schools",
+          "reason": "9 schools vs area avg 12",
+          "pct_low": -0.8,
+          "category": "location",
+          "pct_high": -0.1,
+          "dollar_low": -5,
+          "dollar_high": -1
+        },
+        {
+          "label": "Property size",
+          "factor": "size",
+          "reason": "1304m² vs typical 140m²",
+          "pct_low": 10.0,
+          "category": "property",
+          "pct_high": 20.0,
+          "dollar_low": 58,
+          "dollar_high": 115
+        }
+      ],
+      "data_source": "sa2",
+      "area_context": [
+        {
+          "label": "Deprivation",
+          "value": 6,
+          "factor": "deprivation",
+          "city_avg": 4,
+          "direction": "neutral",
+          "max_scale": 10,
+          "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+        },
+        {
+          "label": "Transit",
+          "value": 42,
+          "factor": "transit",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 42,
+          "description": "Suburb avg 42 stops within 400m — excellent access"
+        },
+        {
+          "label": "Schools",
+          "value": 12,
+          "factor": "schools",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 12,
+          "description": "Suburb avg 12 schools within 1.5km — above average"
+        },
+        {
+          "label": "Noise",
+          "value": "70",
+          "factor": "noise",
+          "city_avg": null,
+          "direction": "down",
+          "max_scale": 80,
+          "description": "Suburb peak 70 dB — noisy area"
+        }
+      ],
+      "band_low_outer": 547,
+      "band_high_outer": 654,
+      "market_quartiles": {
+        "lower": 512,
+        "upper": 614
+      }
+    },
+    "House:3": {
+      "sigma": 0.0678,
+      "period": "2023-10-01",
+      "band_low": 849,
+      "band_high": 955,
+      "bond_count": 15,
+      "raw_median": 865,
+      "adjustments": [
+        {
+          "label": "High liquefaction",
+          "factor": "liquefaction",
+          "reason": "High liquefaction (21% of area)",
+          "pct_low": -2.0,
+          "category": "hazard",
+          "pct_high": -4.0,
+          "dollar_low": -12,
+          "dollar_high": -24,
+          "prevalence_pct": 21
+        },
+        {
+          "label": "Tsunami zone",
+          "factor": "tsunami",
+          "reason": "Tsunami zone (38% of area)",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -3.0,
+          "dollar_low": -6,
+          "dollar_high": -18,
+          "prevalence_pct": 38
+        },
+        {
+          "label": "Near contaminated site",
+          "factor": "contamination",
+          "reason": "Near contaminated site",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -2.0,
+          "dollar_low": -6,
+          "dollar_high": -12,
+          "prevalence_pct": 0
+        },
+        {
+          "label": "High wind zone",
+          "factor": "wind_high",
+          "reason": "High wind zone (24% of area)",
+          "pct_low": -0.5,
+          "category": "hazard",
+          "pct_high": -1.5,
+          "dollar_low": -3,
+          "dollar_high": -9,
+          "prevalence_pct": 24
+        },
+        {
+          "label": "Transit access",
+          "factor": "transit",
+          "reason": "8 stops vs area avg 42",
+          "pct_low": -3.0,
+          "category": "location",
+          "pct_high": -0.5,
+          "dollar_low": -18,
+          "dollar_high": -3
+        },
+        {
+          "label": "School proximity",
+          "factor": "schools",
+          "reason": "9 schools vs area avg 12",
+          "pct_low": -0.8,
+          "category": "location",
+          "pct_high": -0.1,
+          "dollar_low": -5,
+          "dollar_high": -1
+        },
+        {
+          "label": "Property size",
+          "factor": "size",
+          "reason": "1304m² vs typical 140m²",
+          "pct_low": 10.0,
+          "category": "property",
+          "pct_high": 20.0,
+          "dollar_low": 86,
+          "dollar_high": 173
+        }
+      ],
+      "data_source": "sa2",
+      "area_context": [
+        {
+          "label": "Deprivation",
+          "value": 6,
+          "factor": "deprivation",
+          "city_avg": 4,
+          "direction": "neutral",
+          "max_scale": 10,
+          "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+        },
+        {
+          "label": "Transit",
+          "value": 42,
+          "factor": "transit",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 42,
+          "description": "Suburb avg 42 stops within 400m — excellent access"
+        },
+        {
+          "label": "Schools",
+          "value": 12,
+          "factor": "schools",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 12,
+          "description": "Suburb avg 12 schools within 1.5km — above average"
+        },
+        {
+          "label": "Noise",
+          "value": "70",
+          "factor": "noise",
+          "city_avg": null,
+          "direction": "down",
+          "max_scale": 80,
+          "description": "Suburb peak 70 dB — noisy area"
+        }
+      ],
+      "band_low_outer": 824,
+      "band_high_outer": 984,
+      "market_quartiles": {
+        "lower": 850,
+        "upper": 900
+      }
+    },
+    "House:4": {
+      "sigma": null,
+      "period": null,
+      "band_low": 601,
+      "band_high": 650,
+      "bond_count": 0,
+      "raw_median": 600,
+      "adjustments": [
+        {
+          "label": "High liquefaction",
+          "factor": "liquefaction",
+          "reason": "High liquefaction (21% of area)",
+          "pct_low": -2.0,
+          "category": "hazard",
+          "pct_high": -4.0,
+          "dollar_low": -12,
+          "dollar_high": -24,
+          "prevalence_pct": 21
+        },
+        {
+          "label": "Tsunami zone",
+          "factor": "tsunami",
+          "reason": "Tsunami zone (38% of area)",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -3.0,
+          "dollar_low": -6,
+          "dollar_high": -18,
+          "prevalence_pct": 38
+        },
+        {
+          "label": "Near contaminated site",
+          "factor": "contamination",
+          "reason": "Near contaminated site",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -2.0,
+          "dollar_low": -6,
+          "dollar_high": -12,
+          "prevalence_pct": 0
+        },
+        {
+          "label": "High wind zone",
+          "factor": "wind_high",
+          "reason": "High wind zone (24% of area)",
+          "pct_low": -0.5,
+          "category": "hazard",
+          "pct_high": -1.5,
+          "dollar_low": -3,
+          "dollar_high": -9,
+          "prevalence_pct": 24
+        },
+        {
+          "label": "Transit access",
+          "factor": "transit",
+          "reason": "8 stops vs area avg 42",
+          "pct_low": -3.0,
+          "category": "location",
+          "pct_high": -0.5,
+          "dollar_low": -18,
+          "dollar_high": -3
+        },
+        {
+          "label": "School proximity",
+          "factor": "schools",
+          "reason": "9 schools vs area avg 12",
+          "pct_low": -0.8,
+          "category": "location",
+          "pct_high": -0.1,
+          "dollar_low": -5,
+          "dollar_high": -1
+        },
+        {
+          "label": "Property size",
+          "factor": "size",
+          "reason": "1304m² vs typical 140m²",
+          "pct_low": 10.0,
+          "category": "property",
+          "pct_high": 20.0,
+          "dollar_low": 60,
+          "dollar_high": 120
+        }
+      ],
+      "data_source": "tla_fallback",
+      "area_context": [
+        {
+          "label": "Deprivation",
+          "value": 6,
+          "factor": "deprivation",
+          "city_avg": 4,
+          "direction": "neutral",
+          "max_scale": 10,
+          "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+        },
+        {
+          "label": "Transit",
+          "value": 42,
+          "factor": "transit",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 42,
+          "description": "Suburb avg 42 stops within 400m — excellent access"
+        },
+        {
+          "label": "Schools",
+          "value": 12,
+          "factor": "schools",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 12,
+          "description": "Suburb avg 12 schools within 1.5km — above average"
+        },
+        {
+          "label": "Noise",
+          "value": "70",
+          "factor": "noise",
+          "city_avg": null,
+          "direction": "down",
+          "max_scale": 80,
+          "description": "Suburb peak 70 dB — noisy area"
+        }
+      ],
+      "band_low_outer": 583,
+      "band_high_outer": 670,
+      "market_quartiles": {
+        "lower": null,
+        "upper": null
+      }
+    },
+    "House:5+": {
+      "sigma": null,
+      "period": null,
+      "band_low": 601,
+      "band_high": 650,
+      "bond_count": 0,
+      "raw_median": 600,
+      "adjustments": [
+        {
+          "label": "High liquefaction",
+          "factor": "liquefaction",
+          "reason": "High liquefaction (21% of area)",
+          "pct_low": -2.0,
+          "category": "hazard",
+          "pct_high": -4.0,
+          "dollar_low": -12,
+          "dollar_high": -24,
+          "prevalence_pct": 21
+        },
+        {
+          "label": "Tsunami zone",
+          "factor": "tsunami",
+          "reason": "Tsunami zone (38% of area)",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -3.0,
+          "dollar_low": -6,
+          "dollar_high": -18,
+          "prevalence_pct": 38
+        },
+        {
+          "label": "Near contaminated site",
+          "factor": "contamination",
+          "reason": "Near contaminated site",
+          "pct_low": -1.0,
+          "category": "hazard",
+          "pct_high": -2.0,
+          "dollar_low": -6,
+          "dollar_high": -12,
+          "prevalence_pct": 0
+        },
+        {
+          "label": "High wind zone",
+          "factor": "wind_high",
+          "reason": "High wind zone (24% of area)",
+          "pct_low": -0.5,
+          "category": "hazard",
+          "pct_high": -1.5,
+          "dollar_low": -3,
+          "dollar_high": -9,
+          "prevalence_pct": 24
+        },
+        {
+          "label": "Transit access",
+          "factor": "transit",
+          "reason": "8 stops vs area avg 42",
+          "pct_low": -3.0,
+          "category": "location",
+          "pct_high": -0.5,
+          "dollar_low": -18,
+          "dollar_high": -3
+        },
+        {
+          "label": "School proximity",
+          "factor": "schools",
+          "reason": "9 schools vs area avg 12",
+          "pct_low": -0.8,
+          "category": "location",
+          "pct_high": -0.1,
+          "dollar_low": -5,
+          "dollar_high": -1
+        },
+        {
+          "label": "Property size",
+          "factor": "size",
+          "reason": "1304m² vs typical 140m²",
+          "pct_low": 10.0,
+          "category": "property",
+          "pct_high": 20.0,
+          "dollar_low": 60,
+          "dollar_high": 120
+        }
+      ],
+      "data_source": "tla_fallback",
+      "area_context": [
+        {
+          "label": "Deprivation",
+          "value": 6,
+          "factor": "deprivation",
+          "city_avg": 4,
+          "direction": "neutral",
+          "max_scale": 10,
+          "description": "Suburb NZDep avg 6 — similar to city avg (4)"
+        },
+        {
+          "label": "Transit",
+          "value": 42,
+          "factor": "transit",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 42,
+          "description": "Suburb avg 42 stops within 400m — excellent access"
+        },
+        {
+          "label": "Schools",
+          "value": 12,
+          "factor": "schools",
+          "city_avg": 0,
+          "direction": "up",
+          "max_scale": 12,
+          "description": "Suburb avg 12 schools within 1.5km — above average"
+        },
+        {
+          "label": "Noise",
+          "value": "70",
+          "factor": "noise",
+          "city_avg": null,
+          "direction": "down",
+          "max_scale": 80,
+          "description": "Suburb peak 70 dB — noisy area"
+        }
+      ],
+      "band_low_outer": 583,
+      "band_high_outer": 670,
+      "market_quartiles": {
+        "lower": null,
+        "upper": null
+      }
+    }
+  },
+  "insights": {
+    "market": [
+      {
+        "text": "Indicative gross yield: 0.0% — below typical NZ metro averages. Elevated price-to-rent ratio.",
+        "level": "info",
+        "action": ""
+      }
+    ],
+    "hazards": [
+      {
+        "text": "Tsunami Zone 2 — low-to-moderate wave inundation risk from distant events.",
+        "level": "info",
+        "action": ""
+      },
+      {
+        "text": "High liquefaction potential — ground likely to deform in a major earthquake.",
+        "level": "warn",
+        "action": "Inspect foundations carefully. Request geotechnical report if available."
+      },
+      {
+        "text": "33 earthquake-prone buildings within 300m — older building stock nearby.",
+        "level": "warn",
+        "action": "Check MBIE EPB register for this specific property. EPB status affects insurance."
+      },
+      {
+        "text": "2 historical landslides recorded within 500m. Check property for signs of ground movement.",
+        "level": "info",
+        "action": "Review retaining wall condition and drainage adequacy during your viewing."
+      },
+      {
+        "text": "High ground shaking amplification zone — earthquake shaking is amplified here. Built on **Antropogenic fill**.",
+        "level": "warn",
+        "action": "Older buildings (pre-1976) are most at risk. Ask about seismic strengthening history. Modern foundations designed for amplification zones perform significantly better."
+      },
+      {
+        "text": "Built on reclaimed/fill land — very high liquefaction and ground deformation risk.",
+        "level": "warn",
+        "action": "Commission geotechnical assessment. Check foundation type — raft/deep pile foundations perform best on fill. Review EQC claim history. Insurance excesses may be higher."
+      },
+      {
+        "text": "District Plan tsunami zone (1:100yr return period).",
+        "level": "warn",
+        "action": "Know your evacuation route to high ground. Long or strong earthquake = move immediately. Zone affects insurance and may restrict future building consent for habitable rooms."
+      },
+      {
+        "text": "District Plan flood overlay: **Overland Flowpath** (Medium ranking).",
+        "level": "warn",
+        "action": "Stream corridor = highest risk. Check floor level relative to estimated flood level. Resource consent may be needed for new buildings/additions in flood overlay areas."
+      },
+      {
+        "text": "Within regional flood extent (Overland Flowpath AEP) — Flood Hazard – Overland Path.",
+        "level": "info",
+        "action": "Annual Exceedance Probability indicates likelihood of flooding in any given year. Check floor levels."
+      }
+    ],
+    "planning": [
+      {
+        "text": "Zoning permits buildings up to 40m (13 storeys) on this site and on neighbouring sites.",
+        "level": "info",
+        "action": "Over a 5-10 year hold, neighbour redevelopment can materially change outlook, sun access, and privacy. Check the district/unitary plan overlays — heritage or character precinct protection will push the realistic limit lower."
+      },
+      {
+        "text": "30 resource consents granted within 500m in 2 years — active development area.",
+        "level": "info",
+        "action": "Check WCC consent portal for project types. Nearby construction may affect short-term liveability."
+      }
+    ],
+    "environment": [
+      {
+        "text": "247 historically contaminated sites within 2km — this is a legacy industrial or commercial area.",
+        "level": "info",
+        "action": "Even if your site is clean, the national NES-CS rules on soil disturbance apply to any earthworks (vegetable gardens, trenching, foundation work). A Preliminary Site Investigation may be required."
+      },
+      {
+        "text": "Regional air quality is degrading.",
+        "level": "warn",
+        "action": "This is regional LAWA data, not a property-specific reading. HEPA filtration effective indoors. Check if wood burners are the dominant source."
+      },
+      {
+        "text": "High-hazard contaminated site 31m away: **Wellington Civic Centre**. 247 contaminated sites within 2km.",
+        "level": "warn",
+        "action": "ANZECC Category A covers former petrol stations, chemical plants, galvanisers. Groundwater plumes can travel 300–2,000m. A Phase-1 Environmental Site Assessment (~$1,500–3,000) should explicitly address the pathway from this site to yours, not just proximity. Lender may require clearance before mortgage."
+      }
+    ],
+    "liveability": [
+      {
+        "text": "Multi-modal transit within 800m: 1 ferry, 4 cable car, 40 bus stops.",
+        "level": "ok",
+        "action": ""
+      },
+      {
+        "text": "7 serious/fatal crashes within 300m in 5 years.",
+        "level": "warn",
+        "action": "Check intersection geometry. If households have children, assess pedestrian crossing availability."
+      }
+    ]
+  },
+  "school_zones": [
+    {
+      "eqi": 414,
+      "city": "Wellington",
+      "roll": 317,
+      "suburb": "",
+      "school_id": 2918,
+      "distance_m": "945",
+      "school_name": "Mt Cook School (Wellington)",
+      "institution_type": "Full Primary"
+    },
+    {
+      "eqi": 401,
+      "city": "Wellington",
+      "roll": 1660,
+      "suburb": "",
+      "school_id": 273,
+      "distance_m": "1293",
+      "school_name": "Wellington High School & Com Ed Centre",
+      "institution_type": "Secondary"
+    },
+    {
+      "eqi": 416,
+      "city": "Wellington",
+      "roll": 1014,
+      "suburb": "Mount Victoria",
+      "school_id": 274,
+      "distance_m": "1607",
+      "school_name": "Wellington East Girls' College",
+      "institution_type": "Secondary"
+    },
+    {
+      "eqi": 383,
+      "city": "Wellington",
+      "roll": 1925,
+      "suburb": "Mount Victoria",
+      "school_id": 275,
+      "distance_m": "1641",
+      "school_name": "Wellington College",
+      "institution_type": "Secondary"
+    },
+    {
+      "eqi": 380,
+      "city": "Lower Hutt",
+      "roll": 507,
+      "suburb": "Boulcott",
+      "school_id": 265,
+      "distance_m": "15017",
+      "school_name": "St Oran's College",
+      "institution_type": "Secondary"
+    },
+    {
+      "eqi": 366,
+      "city": "Upper Hutt",
+      "roll": 655,
+      "suburb": "Trentham",
+      "school_id": 4158,
+      "distance_m": "27336",
+      "school_name": "Hutt International Boys School",
+      "institution_type": "Secondary"
+    }
+  ],
+  "nearby_supermarkets": [
+    {
+      "lat": -41.2904418,
+      "lng": 174.7759924,
+      "name": "Night 'n Day",
+      "brand": "Night 'n Day",
+      "distance_m": "160",
+      "subcategory": "convenience"
+    },
+    {
+      "lat": -41.2891145,
+      "lng": 174.7749228,
+      "name": "Daily Dojo",
+      "brand": null,
+      "distance_m": "173",
+      "subcategory": "general"
+    },
+    {
+      "lat": -41.2878945,
+      "lng": 174.7752506,
+      "name": "New World",
+      "brand": "New World",
+      "distance_m": "206",
+      "subcategory": "supermarket"
+    },
+    {
+      "lat": -41.2890822,
+      "lng": 174.7744859,
+      "name": "Daily Stop",
+      "brand": null,
+      "distance_m": "210",
+      "subcategory": "convenience"
+    },
+    {
+      "lat": -41.2897197,
+      "lng": 174.7745402,
+      "name": "Oriental Pantry",
+      "brand": null,
+      "distance_m": "213",
+      "subcategory": "supermarket"
+    }
+  ],
+  "community_facilities": {
+    "libraries_2km": 6,
+    "fibre_provider": "Chorus",
+    "fibre_sfa_name": "Te Aro, Wellington",
+    "cycleway_km_2km": 38.8,
+    "ev_chargers_5km": 41,
+    "fibre_available": true,
+    "playgrounds_2km": 2,
+    "nearest_hospital": {
+      "name": "Accident and Urgent Medical Centre",
+      "latitude": -41.3019041,
+      "longitude": 174.7798775,
+      "distance_m": "1430",
+      "subcategory": "hospital"
+    },
+    "nearest_ev_charger": {
+      "name": "Bond Street",
+      "distance_m": 79
+    },
+    "community_centres_2km": 6,
+    "sports_facilities_2km": 3,
+    "cycling_facilities_2km": 221
+  }
+}

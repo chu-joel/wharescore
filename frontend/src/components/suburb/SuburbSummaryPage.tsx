@@ -2,6 +2,7 @@
 
 import { useSuburbReport } from '@/hooks/useSuburbReport';
 import { useRouter } from 'next/navigation';
+import { usePrefixedPath } from '@/lib/routePrefix';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ interface Props {
 export function SuburbSummaryPage({ sa2Code }: Props) {
   const { data, isLoading, isError } = useSuburbReport(sa2Code);
   const router = useRouter();
+  const prefix = usePrefixedPath();
   const setViewport = useMapStore((s) => s.setViewport);
 
   if (isLoading) return <SuburbSkeleton />;
@@ -127,7 +129,7 @@ export function SuburbSummaryPage({ sa2Code }: Props) {
           if (data.lat && data.lng) {
             setViewport({ latitude: data.lat, longitude: data.lng, zoom: 15 });
           }
-          router.push('/');
+          router.push(prefix('/'));
         }}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-piq-primary text-white font-semibold hover:bg-piq-primary/90 transition-colors"
       >

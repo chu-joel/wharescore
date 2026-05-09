@@ -1,0 +1,1357 @@
+<!doctype html>
+<html lang="en-NZ" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhareScore · 110-112 Ponsonby Road (A5, full feature mock)</title>
+<!--
+  A5 — comprehensive mock for the on-screen property report surface.
+  Real data: GET /api/v1/property/2312429/report (wharescore.co.nz, 2026-05-09).
+  Every section uses production values; nothing is invented.
+  Hardened: theme toggle (light/dark/auto), severity glyph + keyword + colour,
+  44 px touch targets, OKLCH tokens with hex fallbacks, prefers-reduced-motion,
+  full feature parity (score breakdown, indicators grid, all accordions).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  /* ===================== TOKENS ===================== */
+  :root, [data-theme="light"] {
+    --paper:        oklch(0.975 0.008 180);
+    --paper-2:      oklch(0.955 0.010 180);
+    --surface:      oklch(0.985 0.005 180);
+    --surface-soft: oklch(0.96  0.012 180);
+    --rule:         oklch(0.90  0.012 180);
+    --rule-strong:  oklch(0.78  0.012 180);
+    --ink:          oklch(0.22  0.018 200);
+    --ink-soft:     oklch(0.42  0.014 200);
+    --ink-mute:     oklch(0.60  0.010 200);
+    --teal:         oklch(0.50  0.070 195);
+    --teal-deep:    oklch(0.38  0.074 200);
+    --warn:         oklch(0.58  0.130  55);
+    --crit:         oklch(0.50  0.155  35);
+    --good:         oklch(0.55  0.090 145);
+    --info:         var(--teal);
+    --amber:        oklch(0.72  0.150  75);
+    --map-bg:       oklch(0.85 0.015 200);
+    color-scheme: light;
+    --radius: 12px;
+  }
+  [data-theme="dark"] {
+    --paper:        oklch(0.16  0.014 200);
+    --paper-2:      oklch(0.20  0.014 200);
+    --surface:      oklch(0.22  0.014 200);
+    --surface-soft: oklch(0.26  0.014 200);
+    --rule:         oklch(0.32  0.014 200);
+    --rule-strong:  oklch(0.42  0.014 200);
+    --ink:          oklch(0.96  0.008 180);
+    --ink-soft:     oklch(0.78  0.012 180);
+    --ink-mute:     oklch(0.62  0.012 180);
+    --teal:         oklch(0.78  0.078 195);
+    --teal-deep:    oklch(0.84  0.078 195);
+    --warn:         oklch(0.78  0.130  60);
+    --crit:         oklch(0.74  0.155  35);
+    --good:         oklch(0.78  0.110 145);
+    --amber:        oklch(0.82  0.150  80);
+    --map-bg:       oklch(0.20 0.014 200);
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    transition: background-color 240ms cubic-bezier(.2,.8,.2,1), color 240ms;
+  }
+  a { color: var(--teal-deep); text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+
+  /* ===================== HEADER ===================== */
+  header.app {
+    height: 56px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 16px; gap: 16px;
+    position: relative; z-index: 5;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--teal-deep); color: var(--paper);
+    display: grid; place-items: center;
+  }
+  .brand .word {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;
+    color: var(--ink); letter-spacing: -0.005em;
+  }
+  .brand .word .accent { color: var(--teal); }
+  .crumb {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--ink-soft);
+    overflow: hidden; min-width: 0; white-space: nowrap;
+  }
+  .crumb .back {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--teal-deep); cursor: pointer; font-weight: 500;
+    border-bottom: 0; min-height: 44px; padding: 8px 4px;
+  }
+  .crumb .sep { color: var(--ink-mute); }
+  .actions { display: flex; gap: 6px; align-items: center; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 500;
+    min-height: 36px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+    transition: background-color 200ms cubic-bezier(.2,.8,.2,1), border-color 200ms, color 200ms;
+    border: 1px solid transparent; background: transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-ghost { color: var(--ink-soft); }
+  .btn-ghost:hover { color: var(--ink); background: var(--surface-soft); }
+  .btn-outline { color: var(--teal-deep); border-color: var(--rule); }
+  .btn-outline:hover { border-color: var(--teal); }
+  .btn-primary { background: var(--teal-deep); color: var(--paper); border-color: var(--teal-deep); }
+  .btn-primary:hover { background: var(--ink); border-color: var(--ink); }
+
+  .theme-toggle {
+    display: inline-flex; gap: 0;
+    background: var(--paper-2); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 2px;
+  }
+  .theme-toggle button {
+    border: 0; background: transparent;
+    width: 32px; height: 32px; border-radius: 999px;
+    display: grid; place-items: center;
+    cursor: pointer; color: var(--ink-mute);
+    transition: background-color 180ms, color 180ms;
+  }
+  .theme-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+
+  /* ===================== LAYOUT ===================== */
+  .split { display: grid; grid-template-columns: 1fr 600px; height: calc(100vh - 56px); }
+  @media (max-width: 1280px) { .split { grid-template-columns: 1fr 520px; } }
+  @media (max-width: 1100px) { .split { grid-template-columns: 1fr 460px; } }
+
+  /* MAP */
+  #map { width: 100%; height: 100%; background: var(--map-bg); }
+  .map-frame { position: relative; }
+  .map-overlay {
+    position: absolute; left: 12px; top: 12px;
+    display: flex; flex-direction: column; gap: 6px; z-index: 1000;
+  }
+  .layer-pill {
+    background: var(--surface); color: var(--ink);
+    padding: 0 14px; border-radius: 999px; min-height: 36px;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 500;
+    border: 1px solid var(--rule); cursor: pointer;
+    transition: background-color 180ms, border-color 180ms, color 180ms;
+  }
+  .layer-pill:hover { border-color: var(--teal); }
+  .layer-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .7; }
+  .layer-pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .map-legend {
+    position: absolute; right: 12px; bottom: 12px; z-index: 1000;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 10px 12px; font-size: 11px; color: var(--ink-soft);
+    display: grid; gap: 4px; max-width: 200px;
+  }
+  .map-legend .row { display: flex; align-items: center; gap: 6px; }
+  .map-legend .sw { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* PANEL */
+  .panel {
+    overflow-y: auto; background: var(--paper);
+    border-left: 1px solid var(--rule);
+  }
+  .panel::-webkit-scrollbar { width: 8px; }
+  .panel::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+
+  /* ===================== HERO ===================== */
+  .hero {
+    padding: 28px 28px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+  }
+  .addr-line {
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .addr-name {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: clamp(28px, 4.4vw, 34px); line-height: 1.05;
+    letter-spacing: -0.005em;
+    margin: 0 0 4px; color: var(--ink);
+  }
+  .addr-sub { font-size: 13px; color: var(--ink-soft); margin: 0 0 18px; }
+
+  .verdict {
+    margin: 0 0 14px;
+    font-family: 'Cormorant Garamond', serif; font-weight: 500;
+    font-size: clamp(22px, 3vw, 26px); line-height: 1.25;
+    color: var(--ink);
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+  }
+  .verdict .num {
+    font-family: 'Inter', sans-serif; font-weight: 600;
+    font-size: 13px;
+    background: var(--amber); color: oklch(0.18 0.04 70);
+    padding: 4px 10px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+    letter-spacing: 0.04em;
+  }
+  .verdict .num small { opacity: 0.7; font-weight: 500; }
+  .summary-row {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    align-items: baseline; justify-content: space-between;
+  }
+  .baseline { font-size: 12.5px; color: var(--ink-soft); }
+  .baseline strong { color: var(--ink); font-weight: 600; }
+
+  .persona-toggle {
+    margin-top: 18px;
+    display: inline-flex;
+    background: var(--paper-2); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 3px;
+  }
+  .persona-toggle button {
+    font: inherit; font-size: 13px; font-weight: 500;
+    min-height: 44px; padding: 0 18px; border-radius: 999px;
+    border: 0; background: transparent; color: var(--ink-soft);
+    cursor: pointer; transition: background-color 200ms, color 200ms;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .persona-toggle button.active {
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+
+  /* ===================== BODY ===================== */
+  .body { padding: 24px 28px 56px; display: grid; gap: 28px; }
+
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+  .section-head h2 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; line-height: 1; margin: 0; color: var(--ink);
+  }
+  .section-head .meta {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-mute);
+  }
+  .first-section { padding-top: 0; border-top: 0; }
+
+  /* ===================== SCORE BREAKDOWN ===================== */
+  .scoreboard {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--rule);
+    border: 1px solid var(--rule); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .cat {
+    background: var(--surface); padding: 14px 16px;
+  }
+  .cat .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-mute); margin-bottom: 4px;
+  }
+  .cat .val {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 26px; line-height: 1; color: var(--ink);
+  }
+  .cat .val small {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
+    color: var(--ink-soft); margin-left: 4px;
+  }
+  .cat .meter {
+    margin-top: 8px; height: 3px; background: var(--rule); border-radius: 2px; overflow: hidden;
+  }
+  .cat .meter > span { display: block; height: 100%; background: var(--teal-deep); border-radius: 2px; }
+  .cat.low .meter > span { background: var(--crit); }
+  .cat.mod .meter > span { background: var(--warn); }
+  .cat.ok  .meter > span { background: var(--good); }
+
+  /* ===================== AI SUMMARY ===================== */
+  .ai-empty {
+    padding: 16px 18px;
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--paper-2);
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+    font-size: 13.5px; color: var(--ink-soft);
+  }
+  .ai-empty .icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--rule);
+    display: grid; place-items: center; color: var(--ink-mute);
+  }
+
+  /* ===================== FINDINGS ===================== */
+  .lead-finding {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: grid; grid-template-columns: auto 1fr; gap: 14px;
+    align-items: start;
+  }
+  .lead-finding.crit { border-color: oklch(0.50 0.155 35 / 0.40); background: oklch(0.50 0.155 35 / 0.05); }
+  .sev-tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    align-self: start; padding-top: 4px;
+  }
+  .sev-tag.crit { color: var(--crit); }
+  .sev-tag.warn { color: var(--warn); }
+  .sev-tag.good { color: var(--good); }
+  .sev-tag.info { color: var(--ink-soft); }
+  .sev-tag .glyph {
+    width: 14px; height: 14px; border-radius: 50%; display: inline-grid; place-items: center;
+    font-size: 9px; font-weight: 700;
+    background: currentColor; color: var(--surface);
+    line-height: 1;
+  }
+  [data-theme="dark"] .sev-tag .glyph { color: var(--paper); }
+  .lead-finding .body strong {
+    display: block; font-size: 15.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px;
+  }
+  .lead-finding .body p {
+    margin: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: 56ch;
+  }
+  .lead-finding .body .src {
+    margin-top: 6px; font-size: 11.5px; color: var(--ink-mute);
+  }
+
+  .ledger { list-style: none; padding: 0; margin: 14px 0 0; }
+  .ledger li {
+    display: grid; grid-template-columns: 110px 1fr;
+    gap: 16px; align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .ledger li:first-child { border-top: 0; padding-top: 18px; }
+  .ledger .desc strong { display: block; font-size: 14.5px; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+  .ledger .desc p { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; max-width: 56ch; }
+  .ledger .desc .src { margin-top: 4px; font-size: 11.5px; color: var(--ink-mute); }
+
+  .findings-gate {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    font-size: 13.5px; color: var(--ink); background: var(--paper-2);
+  }
+  .findings-gate .btn { min-height: 44px; }
+
+  /* ===================== INDICATORS GRID (23) ===================== */
+  .ind-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .ind {
+    background: var(--surface); padding: 12px 14px;
+  }
+  .ind .nm { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+  .ind .row {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .ind .v {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; color: var(--ink);
+  }
+  .ind .v small { font-family: 'Inter', sans-serif; font-size: 10.5px; color: var(--ink-mute); }
+  .ind .bar { height: 3px; background: var(--rule); border-radius: 2px; overflow: hidden; }
+  .ind .bar > span { display: block; height: 100%; border-radius: 2px; background: var(--teal-deep); }
+  .ind.low .bar > span  { background: var(--crit); }
+  .ind.mod .bar > span  { background: var(--warn); }
+  .ind.high .bar > span { background: var(--good); }
+
+  /* ===================== SNAPSHOT (asymmetric) ===================== */
+  .snapshot {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1px; background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .stat { background: var(--surface); padding: 18px 20px; }
+  .stat .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 6px;
+  }
+  .stat .value {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    line-height: 1.05; color: var(--ink); font-size: 24px;
+  }
+  .stat.primary { grid-column: 1 / 2; grid-row: 1 / 3; padding: 22px 24px; }
+  .stat.primary .value { font-size: 44px; }
+  .stat.primary .delta { font-size: 13px; margin-top: 8px; color: var(--ink-soft); }
+  .stat .value .small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 4px; }
+  .stat .delta { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ===================== COMPARISON BARS ===================== */
+  .bar-row {
+    display: grid; grid-template-columns: 150px 1fr 70px; gap: 14px;
+    align-items: center; padding: 10px 0; font-size: 13.5px;
+  }
+  .bar-row + .bar-row { border-top: 1px solid var(--rule); }
+  .bar-row .l { color: var(--ink); }
+  .bar-row .v { color: var(--ink); font-weight: 600; text-align: right; }
+  .bar-row .hint { font-size: 11px; color: var(--ink-mute); }
+  .bar { position: relative; height: 4px; border-radius: 2px; background: var(--rule); }
+  .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--teal-deep); border-radius: 2px; }
+  .bar .ref { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--ink); }
+  .bar-legend {
+    display: flex; gap: 18px; margin-top: 10px;
+    font-size: 11.5px; color: var(--ink-soft);
+  }
+  .bar-legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .bar-legend .key::before { content: ""; width: 10px; height: 3px; background: var(--teal-deep); border-radius: 2px; }
+  .bar-legend .key.ref::before { background: var(--ink); width: 1.5px; height: 12px; border-radius: 0; }
+
+  /* ===================== ACCORDION ===================== */
+  details.acc {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: clip;
+  }
+  details.acc + details.acc { margin-top: 8px; }
+  details.acc > summary {
+    list-style: none;
+    padding: 14px 18px;
+    cursor: pointer;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: baseline;
+    min-height: 44px;
+  }
+  details.acc > summary::-webkit-details-marker { display: none; }
+  details.acc > summary .head {
+    font-size: 14.5px; font-weight: 600; color: var(--ink);
+  }
+  details.acc > summary .sub {
+    font-size: 12px; color: var(--ink-mute); margin-top: 2px; font-weight: 400;
+  }
+  details.acc > summary .count {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--ink);
+  }
+  details.acc > summary .chev {
+    color: var(--ink-mute); font-size: 14px; transition: transform 200ms;
+  }
+  details.acc[open] > summary .chev { transform: rotate(90deg); }
+  details.acc .acc-body {
+    padding: 4px 18px 18px;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* schools rows */
+  .schools { list-style: none; padding: 0; margin: 0; }
+  .schools li {
+    display: grid; grid-template-columns: 1fr auto auto auto;
+    gap: 14px; align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+  }
+  .schools li:first-child { border-top: 0; }
+  .schools .nm { color: var(--ink); font-weight: 500; }
+  .schools .ty { color: var(--ink-mute); font-size: 12px; }
+  .schools .iz {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--good); color: var(--good);
+  }
+  .schools .iz.no { border-color: var(--rule-strong); color: var(--ink-mute); }
+  .schools .dist { color: var(--ink-soft); font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+
+  /* Layers ledger */
+  .layer-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 16px; align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+    min-height: 44px;
+  }
+  .layer-row:first-child { border-top: 0; padding-top: 6px; }
+  .layer-row .name { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .layer-row .source { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; font-weight: 400; }
+  .pill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid currentColor;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pill.low  { color: var(--good); }
+  .pill.mod  { color: var(--ink-soft); }
+  .pill.high { color: var(--warn); }
+  .pill.crit { color: var(--crit); }
+  .layer-row .chev { color: var(--ink-mute); font-size: 16px; }
+
+  /* Climate card */
+  .climate {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+  .climate > div { background: var(--surface); padding: 14px 16px; }
+  .climate .label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px; font-weight: 600; }
+  .climate .val { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--ink); }
+  .climate .val small { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--ink-soft); margin-left: 4px; }
+  .climate .note { font-size: 11.5px; color: var(--ink-mute); margin-top: 4px; }
+
+  /* Rental table */
+  table.rental { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  table.rental th, table.rental td {
+    padding: 9px 10px; text-align: right; border-top: 1px solid var(--rule);
+  }
+  table.rental thead th {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-mute); border-top: 0;
+  }
+  table.rental td:first-child, table.rental th:first-child { text-align: left; }
+  table.rental tbody td:first-child { color: var(--ink); font-weight: 600; }
+  table.rental td.pos { color: var(--good); }
+  table.rental td.neg { color: var(--warn); }
+
+  /* Infrastructure projects */
+  .infra-row {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px;
+    align-items: baseline; padding: 11px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+  }
+  .infra-row:first-child { border-top: 0; padding-top: 4px; }
+  .infra-row .nm { color: var(--ink); }
+  .infra-row .sec { color: var(--ink-mute); font-size: 11.5px; min-width: 90px; }
+  .infra-row .stat-pill {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor;
+    color: var(--ink-soft);
+  }
+  .infra-row .stat-pill.uc { color: var(--warn); }
+  .infra-row .stat-pill.pl { color: var(--ink-mute); }
+  .infra-row .stat-pill.po { color: var(--good); }
+  .infra-row .dist { color: var(--ink-soft); min-width: 56px; text-align: right; }
+
+  /* Coverage strip */
+  .coverage-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .coverage-card h3 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    margin: 0 0 4px; font-size: 18px; color: var(--ink);
+  }
+  .coverage-card .sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+  .coverage-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .coverage-cell {
+    border: 1px solid var(--rule); border-radius: 8px;
+    padding: 10px 12px; font-size: 12px;
+  }
+  .coverage-cell .n {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; color: var(--ink); display: block; line-height: 1;
+  }
+  .coverage-cell .l {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-mute); margin-top: 4px;
+  }
+
+  /* CTA tiers */
+  .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+  .tier { background: var(--surface); padding: 18px 20px; display: grid; gap: 8px; }
+  .tier h4 { margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 18px; color: var(--ink); }
+  .tier .price { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 32px; color: var(--ink); line-height: 1; }
+  .tier .price small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 4px; }
+  .tier ul { list-style: none; padding: 0; margin: 4px 0 8px; font-size: 12.5px; color: var(--ink-soft); }
+  .tier li { padding: 3px 0; padding-left: 16px; position: relative; }
+  .tier li::before { content: "·"; position: absolute; left: 4px; color: var(--teal); font-weight: 700; }
+  .tier .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .tier.featured { background: var(--paper-2); }
+
+  /* ===================== EVENT BANNER ===================== */
+  .event-banner {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+    background: var(--surface);
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .event-banner .icon { width: 32px; height: 32px; border-radius: 8px; background: var(--paper-2); display: grid; place-items: center; color: var(--ink-mute); }
+  .event-banner strong { color: var(--ink); }
+
+  /* footer */
+  .panel-foot {
+    padding: 0 28px 36px;
+    font-size: 11.5px; color: var(--ink-mute); max-width: 60ch;
+  }
+
+  /* TABLET */
+  @media (max-width: 1100px) {
+    .scoreboard { grid-template-columns: repeat(3, 1fr); }
+    .pricing { grid-template-columns: 1fr; }
+    .coverage-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 960px) {
+    .split { grid-template-columns: 1fr; grid-template-rows: 280px 1fr; height: auto; min-height: calc(100vh - 56px); }
+    .panel { border-left: 0; border-top: 1px solid var(--rule); }
+    body { overflow: auto; }
+    .climate { grid-template-columns: 1fr; }
+  }
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .hero, .body, .panel-foot { padding-left: 18px; padding-right: 18px; }
+    header.app { gap: 12px; padding: 0 12px; grid-template-columns: auto 1fr auto; }
+    .crumb { font-size: 12px; }
+    .crumb .back span { display: none; }
+    .actions .btn-ghost, .actions .btn-outline { display: none; }
+
+    .split { grid-template-rows: 220px 1fr; }
+    .map-overlay { left: 8px; top: 8px; }
+
+    .addr-name { font-size: 26px; }
+    .verdict { font-size: 19px; }
+    .scoreboard { grid-template-columns: repeat(2, 1fr); }
+    .ind-grid { grid-template-columns: 1fr 1fr; }
+    .snapshot { grid-template-columns: 1fr; }
+    .stat.primary { grid-column: 1; grid-row: auto; padding: 18px 20px; }
+    .stat.primary .value { font-size: 36px; }
+    .bar-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
+    .bar-row .v { text-align: left; }
+    .lead-finding { grid-template-columns: 1fr; }
+    .ledger li { grid-template-columns: 1fr; gap: 4px; }
+    .findings-gate { flex-direction: column; align-items: stretch; gap: 10px; }
+    .findings-gate .btn { width: 100%; }
+    .schools li { grid-template-columns: 1fr auto; gap: 4px; }
+    .schools .ty, .schools .dist { display: none; }
+    .infra-row { grid-template-columns: 1fr auto; }
+    .infra-row .sec, .infra-row .dist { grid-column: 1 / -1; }
+    .coverage-grid { grid-template-columns: 1fr; }
+    .btn, .layer-pill, .persona-toggle button { min-height: 44px; }
+  }
+
+  .selected-pin {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid var(--surface);
+    box-shadow: 0 0 0 0 oklch(0.72 0.150 75 / 0.45), 0 4px 8px rgba(0,0,0,.18);
+    animation: pulse 2.4s cubic-bezier(.22,1,.36,1) infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 oklch(0.72 0.150 75 / 0.45), 0 4px 8px rgba(0,0,0,.18); }
+    100% { box-shadow: 0 0 0 16px oklch(0.72 0.150 75 / 0), 0 4px 8px rgba(0,0,0,.18); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .selected-pin { animation: none; }
+    * { transition: none !important; }
+  }
+
+  .leaflet-control-attribution { font-size: 10px !important; }
+  [data-theme="dark"] .leaflet-control-attribution { background: oklch(0.20 0.014 200) !important; color: var(--ink-soft) !important; }
+  [data-theme="dark"] .leaflet-control-zoom a { background: oklch(0.22 0.014 200) !important; color: var(--ink) !important; border-color: var(--rule) !important; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V11z"/></svg>
+    </div>
+    <div class="word">Whare<span class="accent">Score</span></div>
+  </div>
+  <div class="crumb">
+    <a class="back" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Search another</span></a>
+    <span class="sep">/</span><span>Auckland</span>
+    <span class="sep">/</span><span>Grey Lynn</span>
+  </div>
+  <div class="actions">
+    <div class="theme-toggle" role="group" aria-label="Theme">
+      <button id="theme-light" aria-pressed="true" aria-label="Light theme" title="Light">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button id="theme-dark" aria-pressed="false" aria-label="Dark theme" title="Dark">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+    <button class="btn btn-ghost">Share</button>
+    <button class="btn btn-outline">Save</button>
+    <button class="btn btn-primary">Get full report</button>
+  </div>
+</header>
+
+<div class="split">
+
+  <div class="map-frame">
+    <div id="map" role="img" aria-label="Map showing 110-112 Ponsonby Road and nearby schools, transit, and the closest mapped flood overlay"></div>
+    <div class="map-overlay">
+      <button class="layer-pill on"><span class="dot"></span> Hazards</button>
+      <button class="layer-pill"><span class="dot"></span> Schools</button>
+      <button class="layer-pill"><span class="dot"></span> Transit</button>
+      <button class="layer-pill"><span class="dot"></span> Heritage</button>
+      <button class="layer-pill" style="background:var(--ink); color:var(--paper); border-color:var(--ink);">+ All layers</button>
+    </div>
+    <div class="map-legend" aria-label="Map legend">
+      <div class="row"><span class="sw" style="background:#d4a042"></span>Selected property</div>
+      <div class="row"><span class="sw" style="background:#5a8b54"></span>School in zone</div>
+      <div class="row"><span class="sw" style="background:#909892"></span>School out of zone</div>
+      <div class="row"><span class="sw" style="background:#a83923; opacity:.6"></span>Nearest flood overlay (130 m)</div>
+    </div>
+  </div>
+
+  <main class="panel" tabindex="-1">
+
+    <!-- ===================== HERO ===================== -->
+    <section class="hero" aria-labelledby="addr-name">
+      <div class="addr-line">Auckland · Grey Lynn East · SA2 133500</div>
+      <h1 id="addr-name" class="addr-name">110-112 Ponsonby Road</h1>
+      <p class="addr-sub">Town Centre zone. Freehold, title 959104. 2,022 m² lot, 2,328 m² building footprint. CV $56m as at May 2024.</p>
+
+      <p class="verdict">
+        <span class="num">44.6<small>/100</small></span>
+        Moderate. Town-centre setting drives a critical EPB cluster nearby and a high crime percentile, lifted by transit and schools.
+      </p>
+
+      <div class="summary-row">
+        <p class="baseline"><strong>Suburb baseline:</strong> NZDep 3.7 (decile 2 here, low deprivation), 13 schools within 1.5 km, 16 transit stops within 400 m.</p>
+      </div>
+
+      <div class="persona-toggle" role="tablist" aria-label="Persona">
+        <button class="active" role="tab" aria-selected="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Buyer
+        </button>
+        <button role="tab" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>
+          Renter
+        </button>
+        <button role="tab" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg>
+          Pro
+        </button>
+      </div>
+    </section>
+
+    <div class="body">
+
+      <!-- ===================== SCORE BREAKDOWN ===================== -->
+      <section class="first-section" aria-labelledby="sec-score">
+        <h2 id="sec-score" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);overflow:hidden;">Score breakdown by category</h2>
+        <div class="scoreboard">
+          <div class="cat low"><div class="label">Hazards</div><div class="val">44.0<small>/100</small></div><div class="meter"><span style="width:44%"></span></div></div>
+          <div class="cat low"><div class="label">Environment</div><div class="val">46.1<small>/100</small></div><div class="meter"><span style="width:46.1%"></span></div></div>
+          <div class="cat ok"><div class="label">Liveability</div><div class="val">55.0<small>/100</small></div><div class="meter"><span style="width:55%"></span></div></div>
+          <div class="cat low"><div class="label">Transport</div><div class="val">36.9<small>/100</small></div><div class="meter"><span style="width:36.9%"></span></div></div>
+          <div class="cat low"><div class="label">Market</div><div class="val">40.3<small>/100</small></div><div class="meter"><span style="width:40.3%"></span></div></div>
+          <div class="cat low"><div class="label">Planning</div><div class="val">47.9<small>/100</small></div><div class="meter"><span style="width:47.9%"></span></div></div>
+        </div>
+      </section>
+
+      <!-- ===================== AI SUMMARY (placeholder, real data shows null) ===================== -->
+      <section aria-labelledby="sec-ai">
+        <div class="section-head">
+          <h2 id="sec-ai">What we read in the data</h2>
+          <span class="meta">AI summary</span>
+        </div>
+        <div class="ai-empty">
+          <div class="icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            The Claude narrative is generated when the full report is unlocked. <strong>Open a Quick or Full report</strong> to see a written interpretation of the layers below, written for the Buyer persona by default and rewritten when you toggle to Renter or Pro.
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== KEY FINDINGS ===================== -->
+      <section aria-labelledby="sec-findings">
+        <div class="section-head">
+          <h2 id="sec-findings">Key findings</h2>
+          <span class="meta">2 free · 7 in full report</span>
+        </div>
+
+        <div class="lead-finding crit">
+          <span class="sev-tag crit"><span class="glyph" aria-hidden="true">!</span>Critical</span>
+          <div class="body">
+            <strong>12 earthquake-prone buildings within 300 m</strong>
+            <p>Older building stock nearby. Check the MBIE EPB register for this specific property; EPB status affects insurance and can constrain alterations.</p>
+            <div class="src">Source: MBIE Earthquake-Prone Building Register · epbr.building.govt.nz</div>
+          </div>
+        </div>
+
+        <ul class="ledger">
+          <li>
+            <span class="sev-tag warn"><span class="glyph" aria-hidden="true">△</span>Warning</span>
+            <div class="desc">
+              <strong>31 extreme weather events within 50 km in the last 5 years</strong>
+              <p>Includes 18 heavy-rain events. Frequent severe weather raises flood, slip, and damage risk; check the insurance excess and exclusions for weather events.</p>
+              <div class="src">Open-Meteo historical archive (CC BY 4.0)</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev-tag warn"><span class="glyph" aria-hidden="true">△</span>Warning</span>
+            <div class="desc">
+              <strong>Crime victimisation in the 92.7th national percentile</strong>
+              <p>City Centre crime area unit, 81 crashes recorded within 300 m. Common for inner-city town-centre frontage but worth weighing against alternative sites.</p>
+              <div class="src">NZ Police Victimisation Time Series · NZTA CAS</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev-tag info"><span class="glyph" aria-hidden="true">i</span>Info</span>
+            <div class="desc">
+              <strong>Business · Town Centre Zone with 13 m height limit</strong>
+              <p>Special character status applies. Alterations to the street-facing façade need resource consent. Zero resource consents recorded within 500 m in the last 2 years.</p>
+              <div class="src">Auckland Unitary Plan</div>
+            </div>
+          </li>
+          <li>
+            <span class="sev-tag good"><span class="glyph" aria-hidden="true">✓</span>Strong</span>
+            <div class="desc">
+              <strong>Transit-rich site</strong>
+              <p>33 bus stops within 800 m, 97 peak trips per hour past the address. CBD is 1.7 km away. Western Park is 138 m on foot.</p>
+              <div class="src">Auckland Transport GTFS · LINZ open parks</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="findings-gate">
+          <div><strong>Plus seven more</strong> in the full report. Liquefaction class, ground-shaking severity, fault-avoidance distance, terrain elevation, and the complete infrastructure pipeline.</div>
+          <button class="btn btn-primary">Unlock</button>
+        </div>
+      </section>
+
+      <!-- ===================== INDICATORS GRID (23) ===================== -->
+      <section aria-labelledby="sec-ind">
+        <div class="section-head">
+          <h2 id="sec-ind">All 23 indicators</h2>
+          <span class="meta">Higher = better</span>
+        </div>
+        <div class="ind-grid">
+          <div class="ind low"><div class="nm">Earthquake</div><div class="row"><span class="v">0<small>/100</small></span></div><div class="bar"><span style="width:0%"></span></div></div>
+          <div class="ind low"><div class="nm">Wildfire</div><div class="row"><span class="v">16.7<small>/100</small></span></div><div class="bar"><span style="width:16.7%"></span></div></div>
+          <div class="ind high"><div class="nm">EPB cluster</div><div class="row"><span class="v">80<small>/100</small></span></div><div class="bar"><span style="width:80%"></span></div></div>
+          <div class="ind low"><div class="nm">Liquefaction</div><div class="row"><span class="v">5<small>/100</small></span></div><div class="bar"><span style="width:5%"></span></div></div>
+          <div class="ind mod"><div class="nm">Flood</div><div class="row"><span class="v">33<small>/100</small></span></div><div class="bar"><span style="width:33%"></span></div></div>
+          <div class="ind mod"><div class="nm">Wind</div><div class="row"><span class="v">35<small>/100</small></span></div><div class="bar"><span style="width:35%"></span></div></div>
+          <div class="ind high"><div class="nm">Air quality</div><div class="row"><span class="v">70<small>/100</small></span></div><div class="bar"><span style="width:70%"></span></div></div>
+          <div class="ind mod"><div class="nm">Climate</div><div class="row"><span class="v">37.1<small>/100</small></span></div><div class="bar"><span style="width:37.1%"></span></div></div>
+          <div class="ind low"><div class="nm">Contam. land</div><div class="row"><span class="v">0<small>/100</small></span></div><div class="bar"><span style="width:0%"></span></div></div>
+          <div class="ind high"><div class="nm">Crime (lower = safer)</div><div class="row"><span class="v">92.7<small>%ile</small></span></div><div class="bar"><span style="width:92.7%; background: var(--crit);"></span></div></div>
+          <div class="ind low"><div class="nm">NZDep</div><div class="row"><span class="v">12<small>/100</small></span></div><div class="bar"><span style="width:12%"></span></div></div>
+          <div class="ind ok"><div class="nm">Schools</div><div class="row"><span class="v">60.6<small>/100</small></span></div><div class="bar"><span style="width:60.6%"></span></div></div>
+          <div class="ind mod"><div class="nm">Heritage</div><div class="row"><span class="v">45.1<small>/100</small></span></div><div class="bar"><span style="width:45.1%"></span></div></div>
+          <div class="ind high"><div class="nm">Transit access</div><div class="row"><span class="v">100<small>/100</small></span></div><div class="bar"><span style="width:100%"></span></div></div>
+          <div class="ind low"><div class="nm">CBD proximity</div><div class="row"><span class="v">16.8<small>/100</small></span></div><div class="bar"><span style="width:16.8%"></span></div></div>
+          <div class="ind low"><div class="nm">Commute freq</div><div class="row"><span class="v">0<small>/100</small></span></div><div class="bar"><span style="width:0%"></span></div></div>
+          <div class="ind low"><div class="nm">Bus density</div><div class="row"><span class="v">0<small>/100</small></span></div><div class="bar"><span style="width:0%"></span></div></div>
+          <div class="ind low"><div class="nm">Road safety</div><div class="row"><span class="v">20<small>/100</small></span></div><div class="bar"><span style="width:20%"></span></div></div>
+          <div class="ind low"><div class="nm">Resource consents</div><div class="row"><span class="v">0<small>/100</small></span></div><div class="bar"><span style="width:0%"></span></div></div>
+          <div class="ind high"><div class="nm">Infrastructure</div><div class="row"><span class="v">95.7<small>/100</small></span></div><div class="bar"><span style="width:95.7%"></span></div></div>
+          <div class="ind high"><div class="nm">Rental fairness</div><div class="row"><span class="v">76<small>/100</small></span></div><div class="bar"><span style="width:76%"></span></div></div>
+          <div class="ind low"><div class="nm">Rental trend</div><div class="row"><span class="v">21.5<small>/100</small></span></div><div class="bar"><span style="width:21.5%"></span></div></div>
+          <div class="ind low"><div class="nm">Market heat</div><div class="row"><span class="v">9.6<small>/100</small></span></div><div class="bar"><span style="width:9.6%"></span></div></div>
+        </div>
+      </section>
+
+      <!-- ===================== BUYER SNAPSHOT ===================== -->
+      <section aria-labelledby="sec-buyer">
+        <div class="section-head">
+          <h2 id="sec-buyer">Buyer snapshot</h2>
+          <span class="meta">As at May 2024 RV</span>
+        </div>
+        <div class="snapshot">
+          <div class="stat primary">
+            <div class="label">Capital value</div>
+            <div class="value">$56.0m</div>
+            <div class="delta">Land $24.5m · Footprint 2,328 m² · Lot 2,022 m²</div>
+          </div>
+          <div class="stat">
+            <div class="label">Title</div>
+            <div class="value">Freehold <span class="small">· 959104</span></div>
+            <div class="delta">Fee Simple 1/1, Lot 1 DP 242</div>
+          </div>
+          <div class="stat">
+            <div class="label">Council</div>
+            <div class="value">Auckland</div>
+            <div class="delta">Live rates fetched on the full report</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== COMPARISON ===================== -->
+      <section aria-labelledby="sec-compare">
+        <div class="section-head">
+          <h2 id="sec-compare">How this site compares</h2>
+          <span class="meta">Grey Lynn East SA2</span>
+        </div>
+        <div class="bars">
+          <div class="bar-row">
+            <div class="l">Schools within 1.5 km</div>
+            <div class="bar"><div class="fill" style="width:88%"></div><div class="ref" style="left:81%"></div></div>
+            <div class="v">14</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">Transit within 400 m</div>
+            <div class="bar"><div class="fill" style="width:0%"></div><div class="ref" style="left:32%"></div></div>
+            <div class="v">0</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">EPBs within 300 m</div>
+            <div class="bar"><div class="fill" style="width:80%; background: var(--crit);"></div><div class="ref" style="left:0%"></div></div>
+            <div class="v">12</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">Max road noise (dB)</div>
+            <div class="bar"><div class="fill" style="width:62%"></div><div class="ref" style="left:58%"></div></div>
+            <div class="v">≤58 dB</div>
+          </div>
+          <div class="bar-row">
+            <div class="l">NZDep <span class="hint">(lower = less deprived)</span></div>
+            <div class="bar"><div class="fill" style="width:80%; background: var(--good);"></div><div class="ref" style="left:63%"></div></div>
+            <div class="v">decile 2</div>
+          </div>
+          <div class="bar-legend">
+            <span class="key">This site</span>
+            <span class="key ref">Grey Lynn East median</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== TRANSIT + AMENITIES ===================== -->
+      <section aria-labelledby="sec-transit">
+        <div class="section-head">
+          <h2 id="sec-transit">Transit and amenities</h2>
+          <span class="meta">From the address centroid</span>
+        </div>
+        <div class="snapshot" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto;">
+          <div class="stat"><div class="label">Bus stops within 800 m</div><div class="value">33</div><div class="delta">97 peak trips per hour</div></div>
+          <div class="stat"><div class="label">Train stops within 800 m</div><div class="value">0</div><div class="delta">Closest rail: 1.7 km (CBD link)</div></div>
+          <div class="stat"><div class="label">Distance to CBD</div><div class="value">1.7 <span class="small">km</span></div><div class="delta">Walkable in 22 min</div></div>
+          <div class="stat"><div class="label">Nearest supermarket</div><div class="value">Woolworths</div><div class="delta">147 m on foot</div></div>
+          <div class="stat"><div class="label">Nearest GP</div><div class="value">laserclinics</div><div class="delta">161 m</div></div>
+          <div class="stat"><div class="label">Nearest park</div><div class="value">Western Park</div><div class="delta">138 m · 6 parks within 500 m</div></div>
+        </div>
+      </section>
+
+      <!-- ===================== SCHOOLS ACCORDION ===================== -->
+      <section aria-labelledby="sec-schools">
+        <div class="section-head">
+          <h2 id="sec-schools">Schools nearby</h2>
+          <span class="meta">14 within 1.5 km · 4 in zone</span>
+        </div>
+        <details class="acc">
+          <summary>
+            <div><div class="head">All 14 schools within 1.5 km</div><div class="sub">Sourced from MoE school directory · in-zone confirmed against 2026 boundaries</div></div>
+            <span class="count">14</span>
+            <span class="chev">›</span>
+          </summary>
+          <div class="acc-body">
+            <ul class="schools">
+              <li><span class="nm">Auckland Girls&rsquo; Grammar School</span><span class="ty">Secondary 9-15 · 1,136 roll · EQI 485</span><span class="iz">In zone</span><span class="dist">510 m</span></li>
+              <li><span class="nm">Newton Central School</span><span class="ty">Contributing · 339 roll · EQI 391</span><span class="iz no">Out of zone</span><span class="dist">661 m</span></li>
+              <li><span class="nm">Freemans Bay School</span><span class="ty">Contributing · 657 roll · EQI 408</span><span class="iz no">Out of zone</span><span class="dist">729 m</span></li>
+              <li><span class="nm">Richmond Road School</span><span class="ty">Contributing · 299 roll · EQI 403</span><span class="iz">In zone</span><span class="dist">742 m</span></li>
+              <li><span class="nm">St Paul&rsquo;s College (Ponsonby)</span><span class="ty">Secondary 7-15 · 399 roll · EQI 480</span><span class="iz no">Out of zone</span><span class="dist">962 m</span></li>
+              <li><span class="nm">City 0-10</span><span class="ty">Composite · roll n/a</span><span class="iz no">Out of zone</span><span class="dist">1,075 m</span></li>
+              <li><span class="nm">St Mary&rsquo;s College (Ponsonby)</span><span class="ty">Secondary 7-15 · 1,001 roll · EQI 388</span><span class="iz no">Out of zone</span><span class="dist">1,258 m</span></li>
+              <li><span class="nm">Ponsonby Intermediate</span><span class="ty">Intermediate · 548 roll · EQI 380</span><span class="iz">In zone</span><span class="dist">1,267 m</span></li>
+              <li><span class="nm">Marist Catholic School (Herne Bay)</span><span class="ty">Contributing · 140 roll · EQI 380</span><span class="iz no">Out of zone</span><span class="dist">1,288 m</span></li>
+              <li><span class="nm">St Joseph&rsquo;s School (Grey Lynn)</span><span class="ty">Full Primary · 71 roll · EQI 447</span><span class="iz no">Out of zone</span><span class="dist">1,299 m</span></li>
+              <li><span class="nm">The BUSY School NZ</span><span class="ty">Secondary 9-15 · roll n/a · EQI 445</span><span class="iz no">Out of zone</span><span class="dist">1,302 m</span></li>
+              <li><span class="nm">Grey Lynn School</span><span class="ty">Contributing · 270 roll · EQI 379</span><span class="iz no">Out of zone</span><span class="dist">1,285 m</span></li>
+              <li><span class="nm">UP International College NZ</span><span class="ty">Secondary 9-15 · 338 roll</span><span class="iz no">Out of zone</span><span class="dist">1,331 m</span></li>
+              <li><span class="nm">Northern Health School</span><span class="ty">Specialist · 5 roll · EQI 569</span><span class="iz no">Out of zone</span><span class="dist">1,493 m</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <!-- ===================== RISK + PLANNING LEDGER ===================== -->
+      <section aria-labelledby="sec-layers">
+        <div class="section-head">
+          <h2 id="sec-layers">Risk and planning layers</h2>
+          <span class="meta">23 of 23 available</span>
+        </div>
+        <div class="layer-ledger">
+          <div class="layer-row">
+            <div>
+              <div class="name">EPB register, 300 m</div>
+              <div class="source">MBIE Earthquake-Prone Building Register · 12 within 300 m</div>
+            </div>
+            <span class="pill crit">Cluster</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Flood overlay</div>
+              <div class="source">Auckland Council Stormwater · nearest mapped flood is 130 m away</div>
+            </div>
+            <span class="pill low">Off-site</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Crime percentile, area unit</div>
+              <div class="source">NZ Police Victimisation Time Series · 92.7th national percentile</div>
+            </div>
+            <span class="pill high">Elevated</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Special Character Areas overlay</div>
+              <div class="source">Auckland Unitary Plan · in special character zone</div>
+            </div>
+            <span class="pill mod">Applies</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Heritage overlays, 500 m</div>
+              <div class="source">Auckland Council · 7 heritage features within 500 m</div>
+            </div>
+            <span class="pill mod">Nearby</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Climate projection</div>
+              <div class="source">MfE statistical downscaling · +1.1°C, -1.3% precip change</div>
+            </div>
+            <span class="pill mod">Trending</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Contaminated land register, 2 km</div>
+              <div class="source">Auckland Council HAIL · 0 listed</div>
+            </div>
+            <span class="pill low">Clear</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Resource consents, 500 m, last 2 yr</div>
+              <div class="source">Auckland Council consents API · 0 lodged</div>
+            </div>
+            <span class="pill low">Quiet</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Mana Whenua / cultural overlay</div>
+              <div class="source">Auckland Council · not in mana whenua interest area</div>
+            </div>
+            <span class="pill low">Off-site</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Viewshaft</div>
+              <div class="source">Auckland Council viewshafts · not within a viewshaft</div>
+            </div>
+            <span class="pill low">Off-site</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Notable trees, 50 m</div>
+              <div class="source">AUP notable tree schedule · 0 within 50 m</div>
+            </div>
+            <span class="pill low">Clear</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="layer-row">
+            <div>
+              <div class="name">Ecological area</div>
+              <div class="source">AUP overlay · not in an ecological area</div>
+            </div>
+            <span class="pill low">Off-site</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== CLIMATE CARD ===================== -->
+      <section aria-labelledby="sec-clim">
+        <div class="section-head">
+          <h2 id="sec-clim">Climate projection</h2>
+          <span class="meta">SA2 downscaling, RCP 8.5 mid-century</span>
+        </div>
+        <div class="climate">
+          <div>
+            <div class="label">Mean temperature change</div>
+            <div class="val">+1.11<small>°C</small></div>
+            <div class="note">Annual mean, vs 1981-2010 baseline</div>
+          </div>
+          <div>
+            <div class="label">Mean annual precipitation</div>
+            <div class="val">−1.25<small>%</small></div>
+            <div class="note">Slightly drier; expect storm-rain volatility above the mean</div>
+          </div>
+          <div>
+            <div class="label">Extreme weather events / 50 km / 5 yr</div>
+            <div class="val">31</div>
+            <div class="note">Including 18 heavy-rain events. Open-Meteo</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RENTAL MARKET ACCORDION ===================== -->
+      <section aria-labelledby="sec-rent">
+        <div class="section-head">
+          <h2 id="sec-rent">Rental market</h2>
+          <span class="meta">Grey Lynn East · MBIE bond data</span>
+        </div>
+        <details class="acc" open>
+          <summary>
+            <div><div class="head">Median weekly rent by bedroom count</div><div class="sub">Last quarter median, with year-on-year change and 3 / 5 / 10 yr CAGR</div></div>
+            <span class="count">29</span>
+            <span class="chev">›</span>
+          </summary>
+          <div class="acc-body">
+            <table class="rental">
+              <thead><tr><th>Beds</th><th>Median</th><th>YoY</th><th>3 yr CAGR</th><th>5 yr CAGR</th><th>10 yr CAGR</th></tr></thead>
+              <tbody>
+                <tr><td>1 bed</td><td>$575</td><td class="pos">+0.9%</td><td>1.5%</td><td>13.9%</td><td>7.9%</td></tr>
+                <tr><td>2 bed</td><td>$745</td><td class="neg">−12.4%</td><td>2.6%</td><td>1.5%</td><td>2.2%</td></tr>
+                <tr><td>3 bed</td><td>$1,175</td><td class="pos">+48.7%</td><td>13.4%</td><td>8.5%</td><td>5.6%</td></tr>
+                <tr><td>4 bed</td><td>$1,165</td><td class="pos">+62.3%</td><td>24.8%</td><td>63.4%</td><td>n/a</td></tr>
+                <tr><td>5+ bed</td><td>n/a</td><td class="pos">+152.0%</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:12px;font-size:12px;color:var(--ink-mute)">3-bed YoY of +48.7% is a small-sample artefact (low bond count); the 5-yr CAGR is the more reliable signal.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ===================== INFRASTRUCTURE PIPELINE ACCORDION ===================== -->
+      <section aria-labelledby="sec-infra">
+        <div class="section-head">
+          <h2 id="sec-infra">Infrastructure pipeline</h2>
+          <span class="meta">Within 5 km · National Infrastructure Pipeline</span>
+        </div>
+        <details class="acc">
+          <summary>
+            <div>
+              <div class="head">35 projects within 5 km</div>
+              <div class="sub">Mostly water infrastructure. Closest active site: Grey Lynn Wastewater Tunnel, 1.0 km.</div>
+            </div>
+            <span class="count">35</span>
+            <span class="chev">›</span>
+          </summary>
+          <div class="acc-body">
+            <div class="infra-row"><span class="nm">Upgrades of Separation and Wastewater Pipes (Motions)</span><span class="sec">Water</span><span class="stat-pill pl">Early planning</span><span class="dist">818 m</span></div>
+            <div class="infra-row"><span class="nm">Grey Lynn Wastewater Tunnel</span><span class="sec">Water</span><span class="stat-pill uc">Under construction</span><span class="dist">1,044 m</span></div>
+            <div class="infra-row"><span class="nm">Wastewater Diversion Pipeline (Queen St)</span><span class="sec">Water</span><span class="stat-pill uc">Under construction</span><span class="dist">1,277 m</span></div>
+            <div class="infra-row"><span class="nm">Auckland District Court · Cladding Remediation</span><span class="sec">Justice</span><span class="stat-pill po">Post implementation</span><span class="dist">1,347 m</span></div>
+            <div class="infra-row"><span class="nm">New Auckland CBD Police Base</span><span class="sec">Justice</span><span class="stat-pill po">Post implementation</span><span class="dist">1,435 m</span></div>
+            <div class="infra-row"><span class="nm">Kowhai Intermediate Roll Growth</span><span class="sec">Education</span><span class="stat-pill pl">On hold</span><span class="dist">1,649 m</span></div>
+            <div class="infra-row"><span class="nm">Western Isthmus Grey Lynn Park Stage 1</span><span class="sec">Water</span><span class="stat-pill pl">Early planning</span><span class="dist">1,739 m</span></div>
+            <div class="infra-row"><span class="nm">Western Isthmus Point Erin Tunnel</span><span class="sec">Water</span><span class="stat-pill uc">Under construction</span><span class="dist">2,101 m</span></div>
+            <div class="infra-row"><span class="nm">Upgrades of Separation Pipes (Herne Bay)</span><span class="sec">Water</span><span class="stat-pill pl">In planning</span><span class="dist">2,134 m</span></div>
+            <div class="infra-row"><span class="nm">Mt Eden Normal School Roll Growth</span><span class="sec">Education</span><span class="stat-pill pl">On hold</span><span class="dist">2,309 m</span></div>
+            <div class="infra-row"><span class="nm">Pasadena Intermediate Redevelopment</span><span class="sec">Education</span><span class="stat-pill uc">Under construction</span><span class="dist">2,836 m</span></div>
+            <div class="infra-row"><span class="nm">Western Springs College Roll Growth</span><span class="sec">Education</span><span class="stat-pill pl">On hold</span><span class="dist">2,762 m</span></div>
+            <div class="infra-row"><span class="nm">Central Interceptor Programme</span><span class="sec">Water</span><span class="stat-pill uc">Under construction</span><span class="dist">3,474 m</span></div>
+            <div class="infra-row"><span class="nm">Construction of Pipe Tunnel · Newmarket</span><span class="sec">Water</span><span class="stat-pill pl">Early planning</span><span class="dist">3,642 m</span></div>
+            <div class="infra-row"><span class="nm">Mt Albert Grammar School Redevelopment</span><span class="sec">Education</span><span class="stat-pill uc">Under construction</span><span class="dist">3,646 m</span></div>
+            <div class="infra-row"><span class="nm">Mt Hobson Reservoir</span><span class="sec">Water</span><span class="stat-pill pl">Early planning</span><span class="dist">4,050 m</span></div>
+            <div class="infra-row"><span class="nm">Gladstone School Roll Growth</span><span class="sec">Education</span><span class="stat-pill uc">Under construction</span><span class="dist">4,055 m</span></div>
+            <div class="infra-row"><span class="nm">SH1 Additional Waitemata Harbour Connection</span><span class="sec">Transport</span><span class="stat-pill pl">Early planning</span><span class="dist">4,743 m</span></div>
+            <p style="margin-top:12px;font-size:12px;color:var(--ink-mute)">Showing 18 of 35. Remaining 17 projects (mostly water-network renewals at 3.2 km) hidden for brevity.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ===================== EVENT HISTORY ===================== -->
+      <section aria-labelledby="sec-events">
+        <div class="section-head">
+          <h2 id="sec-events">Event history</h2>
+          <span class="meta">Seismic, weather, emergency · 5 km / 10 yr</span>
+        </div>
+        <div class="event-banner">
+          <div class="icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <strong>Event feed loads with the full report.</strong> The free preview shows aggregate counts only (31 weather events / 50 km / 5 yr). The full report draws individual events from GeoNet, NZ Civil Defence, and Open-Meteo with a timeline.
+          </div>
+          <button class="btn btn-outline">See full timeline</button>
+        </div>
+      </section>
+
+      <!-- ===================== COVERAGE TRANSPARENCY ===================== -->
+      <section aria-labelledby="sec-cov">
+        <div class="section-head">
+          <h2 id="sec-cov">Data coverage and confidence</h2>
+          <span class="meta">What we knew when we wrote this</span>
+        </div>
+        <div class="coverage-card">
+          <h3>Confidence 73%, all 23 layers available.</h3>
+          <p class="sub">No data layer is dark for this address. Confidence drops below 100% because some indicators are weak signals (e.g. resource consents within 500 m, last 2 yr) and weight less in the composite.</p>
+          <div class="coverage-grid">
+            <div class="coverage-cell"><span class="n">6/6</span><div class="l">Hazards</div></div>
+            <div class="coverage-cell"><span class="n">3/3</span><div class="l">Environment</div></div>
+            <div class="coverage-cell"><span class="n">4/4</span><div class="l">Liveability</div></div>
+            <div class="coverage-cell"><span class="n">5/5</span><div class="l">Transport</div></div>
+            <div class="coverage-cell"><span class="n">3/3</span><div class="l">Market</div></div>
+            <div class="coverage-cell"><span class="n">2/2</span><div class="l">Planning</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PRICING (3 tiers) ===================== -->
+      <section aria-labelledby="sec-price">
+        <div class="section-head">
+          <h2 id="sec-price">Open the full report</h2>
+          <span class="meta">Three tiers</span>
+        </div>
+        <div class="pricing">
+          <div class="tier">
+            <h4>Quick Report</h4>
+            <div class="price">Free<small> · sign-in</small></div>
+            <ul>
+              <li>8 sections</li>
+              <li>Hosted link, 30-day expiry</li>
+              <li>Email summary</li>
+            </ul>
+            <button class="btn btn-outline">Sign in</button>
+          </div>
+          <div class="tier featured">
+            <h4>Full Report</h4>
+            <div class="price">$2.99<small> · one-off</small></div>
+            <ul>
+              <li>All 25+ sections</li>
+              <li>Permanent hosted link</li>
+              <li>Rent &amp; price advisor</li>
+              <li>PDF export</li>
+              <li>Walk score &amp; transit chart</li>
+            </ul>
+            <button class="btn btn-primary">Get full report</button>
+          </div>
+          <div class="tier">
+            <h4>Pro</h4>
+            <div class="price">$50<small> /month</small></div>
+            <ul>
+              <li>Unlimited Full reports</li>
+              <li>Compare and watchlist</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <button class="btn btn-outline">Go Pro</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <p class="panel-foot">
+      Real data fetched from <code>GET /api/v1/property/2312429/report</code> on 2026-05-09. Sources: LINZ, Auckland Council, MBIE EPB Register, GNS Science, MfE, NZ Police, NZTA CAS, Stats NZ NZDep, MoE, Auckland Transport GTFS, Open-Meteo, National Infrastructure Pipeline. WhareScore is a guidance tool, not a substitute for a LIM or building inspection.
+    </p>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  /* ----------- THEME ----------- */
+  const root = document.documentElement;
+  const stored = localStorage.getItem('ws-theme');
+  if (stored === 'dark' || stored === 'light') root.setAttribute('data-theme', stored);
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    localStorage.setItem('ws-theme', t);
+    document.getElementById('theme-light').setAttribute('aria-pressed', t === 'light');
+    document.getElementById('theme-dark').setAttribute('aria-pressed', t === 'dark');
+    refreshTiles();
+  }
+  document.getElementById('theme-light').addEventListener('click', () => setTheme('light'));
+  document.getElementById('theme-dark').addEventListener('click',  () => setTheme('dark'));
+  // initial sync
+  document.getElementById('theme-light').setAttribute('aria-pressed', root.getAttribute('data-theme') === 'light');
+  document.getElementById('theme-dark').setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark');
+
+  /* ----------- MAP ----------- */
+  const LAT = -36.8573399215, LNG = 174.7479670888;
+  const map = L.map('map', { zoomControl: true, attributionControl: true }).setView([LAT, LNG], 16);
+
+  let tileLayer;
+  function refreshTiles() {
+    if (tileLayer) map.removeLayer(tileLayer);
+    const dark = root.getAttribute('data-theme') === 'dark';
+    const url = dark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    tileLayer = L.tileLayer(url, { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+  }
+  refreshTiles();
+
+  // Selected pin
+  const selected = L.divIcon({ className: 'sel', html: '<div class="selected-pin"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+  L.marker([LAT, LNG], { icon: selected }).addTo(map).bindPopup('110-112 Ponsonby Road · Score 44.6');
+
+  // Real schools
+  const schools = [
+    { lat: -36.856867, lng: 174.753659, name: "Auckland Girls' Grammar", zone: true },
+    { lat: -36.856164, lng: 174.739777, name: "Richmond Road School", zone: true },
+    { lat: -36.848062, lng: 174.739685, name: "Ponsonby Intermediate", zone: true },
+    { lat: -36.862514, lng: 174.751636, name: "Newton Central", zone: false },
+    { lat: -36.852048, lng: 174.75281,  name: "Freemans Bay", zone: false },
+    { lat: -36.846003, lng: 174.748234, name: "St Mary's College", zone: false },
+    { lat: -36.854456, lng: 174.73779,  name: "St Paul's College", zone: false },
+    { lat: -36.863128, lng: 174.735488, name: "Grey Lynn School", zone: false }
+  ];
+  for (const s of schools) {
+    const colorHex = s.zone ? '#5a8b54' : '#909892';
+    L.marker([s.lat, s.lng], { icon: L.divIcon({
+      className: 's', iconSize:[10,10], iconAnchor:[5,5],
+      html: `<div style="width:10px;height:10px;border-radius:50%;background:${colorHex};border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></div>`
+    })}).addTo(map).bindTooltip(s.name);
+  }
+
+  // Approximate flood overlay 130 m to the south
+  const offset = 130 / 111000;
+  L.polygon([
+    [LAT - offset*1.0, LNG - 0.0010],
+    [LAT - offset*0.7, LNG + 0.0010],
+    [LAT - offset*1.4, LNG + 0.0006],
+    [LAT - offset*1.6, LNG - 0.0008]
+  ], { color: '#a83923', weight: 1, fillColor: '#a83923', fillOpacity: 0.15 })
+    .addTo(map).bindTooltip('Nearest mapped flood overlay (130 m)');
+</script>
+
+</body>
+</html>

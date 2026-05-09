@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
+import { usePrefixedPath } from '@/lib/routePrefix';
 import { X, ExternalLink, ArrowLeftRight, Plus, EyeOff, Eye, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PropertyReport } from '@/lib/types';
@@ -50,16 +51,17 @@ export function CompareHeader({
   const persona = usePersonaStore((s) => s.persona);
   const setPersona = usePersonaStore((s) => s.setPersona);
   const router = useRouter();
+  const prefix = usePrefixedPath();
 
   const removeColumn = (id: number) => {
     remove(id);
-    router.push('/');
+    router.push(prefix('/'));
   };
 
   const swapAB = () => {
     if (addressIds.length < 2) return;
     const swapped = [addressIds[1], addressIds[0], ...addressIds.slice(2)];
-    router.replace(`/compare?ids=${swapped.join(',')}`);
+    router.replace(prefix(`/compare?ids=${swapped.join(',')}`));
   };
 
   const handlePersonaChange = (p: Persona) => {
@@ -243,7 +245,7 @@ export function CompareHeader({
           {/* "+ Add" placeholder column — only when there's room */}
           {canAddThird && (
             <Link
-              href="/"
+              href={prefix('/')}
               className={cn(
                 'flex items-center justify-center min-h-[68px] sm:min-h-[78px] rounded-md',
                 'border border-dashed border-piq-primary/40 bg-piq-primary/5',

@@ -1,0 +1,456 @@
+/*
+ * tokens-new.css — design system tokens for the new UI (route group `(new)`).
+ * Loaded by app/(new)/layout.tsx. Scoped with .ws-new wrapper so it never
+ * leaks into the existing app. Source of truth: docs/DESIGN.md.
+ */
+
+.ws-new,
+.ws-new[data-theme="light"] {
+  --ws-piq:           #0D7377;
+  --ws-piq-dark:      #0A5C5F;
+  --ws-piq-light:     #B2DFDB;
+  --ws-warm:          #D4863B;
+  --ws-success:       #2D6A4F;
+
+  --ws-r-vlow:        #0D7377;
+  --ws-r-low:         #56B4E9;
+  --ws-r-mod:         #E69F00;
+  --ws-r-high:        #D55E00;
+  --ws-r-vhigh:       #C42D2D;
+
+  --ws-bg:            oklch(0.985 0.005 195);
+  --ws-bg-2:          oklch(0.965 0.008 195);
+  --ws-surface:       #ffffff;
+  --ws-surface-soft:  oklch(0.96  0.012 195);
+  --ws-rule:          oklch(0.91  0.010 195);
+  --ws-rule-strong:   oklch(0.80  0.012 195);
+  --ws-ink:           oklch(0.20  0.020 220);
+  --ws-ink-soft:      oklch(0.42  0.015 220);
+  --ws-ink-mute:      oklch(0.60  0.010 220);
+
+  --ws-shadow-sm:     0 1px 2px rgba(13,115,119,.06);
+  --ws-shadow:        0 1px 3px rgba(13,115,119,.08), 0 4px 12px rgba(13,115,119,.05);
+  --ws-shadow-lg:     0 4px 12px rgba(13,115,119,.08), 0 24px 60px rgba(13,115,119,.10);
+
+  --ws-map-bg:        oklch(0.88 0.012 200);
+
+  --ws-radius-sm:     8px;
+  --ws-radius:        12px;
+  --ws-radius-lg:     16px;
+
+  color-scheme: light;
+}
+
+.ws-new[data-theme="dark"] {
+  --ws-piq:           #2BA9AE;
+  --ws-piq-dark:      #4ec3c7;
+  --ws-piq-light:     #134f53;
+  --ws-warm:          #E8A158;
+  --ws-success:       #4FAF7E;
+
+  --ws-r-vlow:        #2BA9AE;
+  --ws-r-low:         #7AC4ED;
+  --ws-r-mod:         #F0B146;
+  --ws-r-high:        #E37B40;
+  --ws-r-vhigh:       #E5524F;
+
+  --ws-bg:            oklch(0.13  0.014 220);
+  --ws-bg-2:          oklch(0.18  0.014 220);
+  --ws-surface:       oklch(0.20  0.014 220);
+  --ws-surface-soft:  oklch(0.24  0.014 220);
+  --ws-rule:          oklch(0.30  0.014 220);
+  --ws-rule-strong:   oklch(0.42  0.014 220);
+  --ws-ink:           oklch(0.96  0.008 195);
+  --ws-ink-soft:      oklch(0.78  0.012 195);
+  --ws-ink-mute:      oklch(0.62  0.012 195);
+
+  --ws-shadow-sm:     0 1px 2px rgba(0,0,0,.4);
+  --ws-shadow:        0 1px 3px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
+  --ws-shadow-lg:     0 4px 12px rgba(0,0,0,.4), 0 24px 60px rgba(0,0,0,.5);
+
+  --ws-map-bg:        oklch(0.18 0.014 220);
+
+  color-scheme: dark;
+}
+
+/* ---------- BASE ---------- */
+.ws-new {
+  background: var(--ws-bg);
+  color: var(--ws-ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+.ws-new a { color: var(--ws-piq); text-decoration: none; font-weight: 500; }
+.ws-new a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ws-new :focus-visible { outline: 2px solid var(--ws-piq); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- LAYOUT ---------- */
+.ws-new .ws-page { min-height: 100vh; }
+
+/* ---------- HEADER ---------- */
+.ws-new header.ws-app-header {
+  height: 56px;
+  border-bottom: 1px solid var(--ws-rule);
+  background: var(--ws-surface);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 0 16px; gap: 16px;
+  position: sticky; top: 0; z-index: 30;
+}
+.ws-new .ws-brand { display: flex; align-items: center; gap: 10px; }
+.ws-new .ws-brand-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--ws-piq); color: #fff;
+  display: grid; place-items: center;
+}
+.ws-new .ws-brand-word {
+  font-size: 17px; font-weight: 700; color: var(--ws-ink); letter-spacing: -0.01em;
+}
+.ws-new .ws-brand-word .accent { color: var(--ws-piq); }
+
+/* ---------- BUTTONS ---------- */
+.ws-new .ws-btn {
+  font: inherit; font-size: 13px; font-weight: 500;
+  min-height: 36px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+  transition: background-color 180ms cubic-bezier(.2,.8,.2,1), border-color 180ms, color 180ms, box-shadow 180ms;
+  border: 1px solid transparent; background: transparent;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ws-new .ws-btn-ghost { color: var(--ws-ink-soft); }
+.ws-new .ws-btn-ghost:hover { color: var(--ws-ink); background: var(--ws-bg-2); }
+.ws-new .ws-btn-outline { color: var(--ws-ink); border-color: var(--ws-rule); background: var(--ws-surface); }
+.ws-new .ws-btn-outline:hover { border-color: var(--ws-piq); color: var(--ws-piq); }
+.ws-new .ws-btn-primary { background: var(--ws-piq); color: #fff; box-shadow: 0 1px 2px rgba(13,115,119,.2); }
+.ws-new .ws-btn-primary:hover { background: var(--ws-piq-dark); }
+.ws-new .ws-btn-warm { background: var(--ws-warm); color: #fff; }
+
+/* ---------- TOGGLES ---------- */
+.ws-new .ws-pill-toggle {
+  display: inline-flex;
+  background: var(--ws-bg-2); border: 1px solid var(--ws-rule);
+  border-radius: 999px; padding: 2px;
+}
+.ws-new .ws-pill-toggle button {
+  border: 0; background: transparent;
+  height: 32px; min-width: 32px; padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; color: var(--ws-ink-mute);
+  font: inherit; font-size: 13px; font-weight: 500;
+  transition: background-color 180ms, color 180ms;
+}
+.ws-new .ws-pill-toggle button[aria-pressed="true"],
+.ws-new .ws-pill-toggle button.active {
+  background: var(--ws-surface); color: var(--ws-ink); box-shadow: var(--ws-shadow-sm);
+}
+
+/* ---------- CARD ---------- */
+.ws-new .ws-card {
+  background: var(--ws-surface);
+  border: 1px solid var(--ws-rule);
+  border-radius: var(--ws-radius-lg);
+  box-shadow: var(--ws-shadow-sm);
+  overflow: hidden;
+}
+.ws-new .ws-card-head {
+  padding: 14px 18px 10px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  border-bottom: 1px solid var(--ws-rule);
+}
+.ws-new .ws-card-head h2 {
+  font-size: 16px; font-weight: 700; line-height: 1.1; margin: 0; letter-spacing: -0.005em;
+  color: var(--ws-ink);
+}
+.ws-new .ws-card-head .meta { font-size: 11.5px; color: var(--ws-ink-mute); }
+.ws-new .ws-card-body { padding: 16px 18px 18px; }
+
+/* ---------- BADGES + PILLS ---------- */
+.ws-new .ws-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+  background: var(--ws-bg-2); color: var(--ws-ink-soft);
+}
+.ws-new .ws-badge.crit { background: rgba(196,45,45,.12);  color: var(--ws-r-vhigh); }
+.ws-new .ws-badge.warn { background: rgba(213,94,0,.12);   color: var(--ws-r-high); }
+.ws-new .ws-badge.good { background: rgba(45,106,79,.12);  color: var(--ws-success); }
+.ws-new .ws-badge.info { background: rgba(13,115,119,.10); color: var(--ws-piq); }
+
+.ws-new .ws-pill {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 8px; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.ws-new .ws-pill.low  { background: rgba(45,106,79,.12);  color: var(--ws-success); }
+.ws-new .ws-pill.mod  { background: var(--ws-bg-2); color: var(--ws-ink-soft); }
+.ws-new .ws-pill.high { background: rgba(213,94,0,.12);   color: var(--ws-r-high); }
+.ws-new .ws-pill.crit { background: rgba(196,45,45,.12);  color: var(--ws-r-vhigh); }
+
+/* ---------- SEVERITY TAG (glyph + keyword + colour) ---------- */
+.ws-new .ws-sev {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 4px;
+}
+.ws-new .ws-sev .glyph {
+  width: 14px; height: 14px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  font-size: 9px; font-weight: 700; line-height: 1;
+  background: currentColor; color: var(--ws-surface);
+}
+.ws-new[data-theme="dark"] .ws-sev .glyph { color: var(--ws-bg); }
+.ws-new .ws-sev.crit { background: rgba(196,45,45,.12);  color: var(--ws-r-vhigh); }
+.ws-new .ws-sev.warn { background: rgba(213,94,0,.12);   color: var(--ws-r-high); }
+.ws-new .ws-sev.good { background: rgba(45,106,79,.12);  color: var(--ws-success); }
+.ws-new .ws-sev.info { background: rgba(13,115,119,.10); color: var(--ws-piq); }
+
+/* ---------- INDICATOR CHIP ---------- */
+.ws-new .ws-ind {
+  background: var(--ws-bg-2); border: 1px solid var(--ws-rule);
+  border-radius: var(--ws-radius-sm); padding: 10px 12px;
+}
+.ws-new .ws-ind .nm { font-size: 11px; color: var(--ws-ink-soft); font-weight: 500; margin-bottom: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-new .ws-ind .v { font-size: 18px; font-weight: 700; color: var(--ws-ink); line-height: 1; letter-spacing: -0.01em; }
+.ws-new .ws-ind .v small { font-size: 10px; font-weight: 500; color: var(--ws-ink-mute); margin-left: 2px; }
+.ws-new .ws-ind .bar { margin-top: 8px; height: 3px; background: var(--ws-rule); border-radius: 2px; overflow: hidden; }
+.ws-new .ws-ind .bar > span { display: block; height: 100%; border-radius: 2px; background: var(--ws-piq); }
+.ws-new .ws-ind.r-vlow .bar > span  { background: var(--ws-r-vlow); }
+.ws-new .ws-ind.r-low  .bar > span  { background: var(--ws-r-low); }
+.ws-new .ws-ind.r-mod  .bar > span  { background: var(--ws-r-mod); }
+.ws-new .ws-ind.r-high .bar > span  { background: var(--ws-r-high); }
+.ws-new .ws-ind.r-vhigh .bar > span { background: var(--ws-r-vhigh); }
+
+/* ---------- STAT GRID ---------- */
+.ws-new .ws-stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--ws-rule);
+  border-top: 1px solid var(--ws-rule);
+  border-bottom: 1px solid var(--ws-rule);
+}
+.ws-new .ws-stat { background: var(--ws-surface); padding: 14px 16px; }
+.ws-new .ws-stat .lbl {
+  font-size: 11px; font-weight: 500; color: var(--ws-ink-mute);
+  margin-bottom: 4px; letter-spacing: 0.05em;
+}
+.ws-new .ws-stat .val {
+  font-size: 20px; font-weight: 700; color: var(--ws-ink); line-height: 1.1; letter-spacing: -0.01em;
+}
+.ws-new .ws-stat .val small { font-size: 12px; font-weight: 500; color: var(--ws-ink-soft); }
+.ws-new .ws-stat .delta { font-size: 12px; color: var(--ws-ink-soft); margin-top: 4px; }
+.ws-new .ws-stat .delta.pos { color: var(--ws-success); }
+.ws-new .ws-stat .delta.neg { color: var(--ws-r-high); }
+
+/* ---------- ACCORDION ---------- */
+.ws-new details.ws-acc { background: transparent; }
+.ws-new details.ws-acc + details.ws-acc { border-top: 1px solid var(--ws-rule); }
+.ws-new details.ws-acc > summary {
+  list-style: none; cursor: pointer; padding: 14px 0;
+  display: grid; grid-template-columns: 32px 1fr auto auto; gap: 12px; align-items: center;
+  min-height: 44px;
+}
+.ws-new details.ws-acc > summary::-webkit-details-marker { display: none; }
+.ws-new details.ws-acc > summary .ico {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--ws-piq-light); color: var(--ws-piq-dark);
+  display: grid; place-items: center;
+}
+.ws-new[data-theme="dark"] details.ws-acc > summary .ico { background: var(--ws-piq-light); color: var(--ws-piq-dark); }
+.ws-new details.ws-acc > summary .head { font-size: 14px; font-weight: 600; color: var(--ws-ink); }
+.ws-new details.ws-acc > summary .sub { font-size: 12px; color: var(--ws-ink-mute); margin-top: 1px; font-weight: 400; }
+.ws-new details.ws-acc > summary .count {
+  font-size: 12px; font-weight: 600; color: var(--ws-ink-soft);
+  background: var(--ws-bg-2); padding: 3px 8px; border-radius: 999px;
+  border: 1px solid var(--ws-rule);
+}
+.ws-new details.ws-acc > summary .chev { color: var(--ws-ink-mute); transition: transform 200ms; }
+.ws-new details.ws-acc[open] > summary .chev { transform: rotate(90deg); }
+.ws-new details.ws-acc .acc-body { padding: 4px 0 16px 44px; }
+
+/* ---------- LAYER ROW ---------- */
+.ws-new .ws-layer-row {
+  display: grid; grid-template-columns: 28px 1fr auto auto;
+  gap: 12px; align-items: center;
+  padding: 11px 0; min-height: 44px;
+  border-top: 1px solid var(--ws-rule);
+}
+.ws-new .ws-layer-row:first-child { border-top: 0; }
+.ws-new .ws-layer-row .ico {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--ws-bg-2); color: var(--ws-ink-soft);
+  display: grid; place-items: center;
+}
+.ws-new .ws-layer-row .name { font-size: 13.5px; color: var(--ws-ink); font-weight: 500; }
+.ws-new .ws-layer-row .source { font-size: 11.5px; color: var(--ws-ink-mute); margin-top: 1px; }
+
+/* ---------- BAR ROW (comparison) ---------- */
+.ws-new .ws-bar-row {
+  display: grid; grid-template-columns: 160px 1fr 70px;
+  gap: 12px; align-items: center; padding: 9px 0;
+  font-size: 13px;
+}
+.ws-new .ws-bar-row + .ws-bar-row { border-top: 1px solid var(--ws-rule); }
+.ws-new .ws-bar-row .l { color: var(--ws-ink); }
+.ws-new .ws-bar-row .v { color: var(--ws-ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.ws-new .ws-bar { position: relative; height: 5px; border-radius: 3px; background: var(--ws-rule); }
+.ws-new .ws-bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ws-piq); border-radius: 3px; }
+.ws-new .ws-bar .ref { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ws-ink); }
+
+/* ---------- FINDING ---------- */
+.ws-new .ws-finding {
+  display: grid; grid-template-columns: 36px 1fr;
+  gap: 14px; padding: 14px;
+  border-radius: var(--ws-radius); background: var(--ws-bg-2); border: 1px solid var(--ws-rule);
+}
+.ws-new .ws-finding.crit { border-color: rgba(196,45,45,.35); background: rgba(196,45,45,.04); }
+.ws-new .ws-finding.warn { border-color: rgba(213,94,0,.30);  background: rgba(213,94,0,.04); }
+.ws-new .ws-finding.good { border-color: rgba(45,106,79,.30); background: rgba(45,106,79,.04); }
+.ws-new[data-theme="dark"] .ws-finding.crit { background: rgba(229,82,79,.10); border-color: rgba(229,82,79,.40); }
+.ws-new[data-theme="dark"] .ws-finding.warn { background: rgba(227,123,64,.10); border-color: rgba(227,123,64,.40); }
+.ws-new[data-theme="dark"] .ws-finding.good { background: rgba(79,175,126,.10); border-color: rgba(79,175,126,.40); }
+.ws-new .ws-finding .ico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
+.ws-new .ws-finding.crit .ico { background: var(--ws-r-vhigh); }
+.ws-new .ws-finding.warn .ico { background: var(--ws-r-high); }
+.ws-new .ws-finding.good .ico { background: var(--ws-success); }
+.ws-new .ws-finding.info .ico { background: var(--ws-piq); }
+.ws-new .ws-finding strong { font-size: 14.5px; font-weight: 600; color: var(--ws-ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.ws-new .ws-finding p { margin: 0; font-size: 13.5px; color: var(--ws-ink-soft); line-height: 1.5; }
+.ws-new .ws-finding .src { margin-top: 6px; font-size: 11.5px; color: var(--ws-ink-mute); }
+
+/* ----------------------------------------------------------------
+ * SHADCN TOKEN REMAPPING — scoped to .ws-new only.
+ * Existing shadcn primitives read --background, --foreground, --card,
+ * --primary, --border, --muted, --muted-foreground from globals.css.
+ * Inside the new UI tree we redirect those to our OKLCH tokens so the
+ * Tailwind classes that reference them automatically get the new look.
+ * --------------------------------------------------------------- */
+.ws-new {
+  --background:        var(--ws-bg) !important;
+  --foreground:        var(--ws-ink) !important;
+  --card:              var(--ws-surface) !important;
+  --card-foreground:   var(--ws-ink) !important;
+  --popover:           var(--ws-surface) !important;
+  --popover-foreground:var(--ws-ink) !important;
+  --primary:           var(--ws-piq) !important;
+  --primary-foreground:#ffffff !important;
+  --secondary:         var(--ws-bg-2) !important;
+  --secondary-foreground: var(--ws-ink) !important;
+  --muted:             var(--ws-bg-2) !important;
+  --muted-foreground:  var(--ws-ink-soft) !important;
+  --accent:            var(--ws-bg-2) !important;
+  --accent-foreground: var(--ws-ink) !important;
+  --border:            var(--ws-rule) !important;
+  --input:             var(--ws-rule) !important;
+  --ring:              var(--ws-piq) !important;
+  --destructive:       var(--ws-r-vhigh) !important;
+  --destructive-foreground: #ffffff !important;
+}
+
+/* ----------------------------------------------------------------
+ * TAILWIND SEVERITY-COLOUR OVERRIDES (scoped to .ws-new).
+ * The classic FindingCard, advisors, and friends use direct Tailwind
+ * colour utilities (red-500, amber-600, green-600, blue-500). Remap
+ * those to our severity palette so they visually match the new design
+ * even before the section is ported.
+ * --------------------------------------------------------------- */
+.ws-new [data-ws-new-wrapper] [class*="text-red-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-red-600"]   { color: var(--ws-r-vhigh) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-red-500"],
+.ws-new [data-ws-new-wrapper] [class*="bg-red-600"]     { background-color: var(--ws-r-vhigh) !important; color: #fff !important; }
+.ws-new [data-ws-new-wrapper] [class*="border-red-500"],
+.ws-new [data-ws-new-wrapper] [class*="border-red-600"] { border-color: var(--ws-r-vhigh) !important; }
+
+.ws-new [data-ws-new-wrapper] [class*="text-amber-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-amber-600"],
+.ws-new [data-ws-new-wrapper] [class*="text-orange-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-orange-600"] { color: var(--ws-r-high) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-amber-500"],
+.ws-new [data-ws-new-wrapper] [class*="bg-amber-600"],
+.ws-new [data-ws-new-wrapper] [class*="bg-orange-500"],
+.ws-new [data-ws-new-wrapper] [class*="bg-orange-600"]  { background-color: var(--ws-r-high) !important; color: #fff !important; }
+.ws-new [data-ws-new-wrapper] [class*="border-amber-500"],
+.ws-new [data-ws-new-wrapper] [class*="border-amber-600"],
+.ws-new [data-ws-new-wrapper] [class*="border-orange-500"] { border-color: var(--ws-r-high) !important; }
+
+.ws-new [data-ws-new-wrapper] [class*="text-green-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-green-600"],
+.ws-new [data-ws-new-wrapper] [class*="text-emerald-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-emerald-600"] { color: var(--ws-success) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-green-500"],
+.ws-new [data-ws-new-wrapper] [class*="bg-green-600"],
+.ws-new [data-ws-new-wrapper] [class*="bg-emerald-500"]   { background-color: var(--ws-success) !important; color: #fff !important; }
+.ws-new [data-ws-new-wrapper] [class*="border-green-500"],
+.ws-new [data-ws-new-wrapper] [class*="border-green-600"] { border-color: var(--ws-success) !important; }
+
+.ws-new [data-ws-new-wrapper] [class*="text-blue-500"],
+.ws-new [data-ws-new-wrapper] [class*="text-blue-600"]   { color: var(--ws-piq) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-blue-500"],
+.ws-new [data-ws-new-wrapper] [class*="bg-blue-600"]     { background-color: var(--ws-piq) !important; color: #fff !important; }
+.ws-new [data-ws-new-wrapper] [class*="border-blue-500"] { border-color: var(--ws-piq) !important; }
+
+/* Tailwind tinted backgrounds (red-50/100, amber-50/100) — soften to bg-2 to
+   avoid clashing with our restrained palette. */
+.ws-new [data-ws-new-wrapper] [class*="bg-red-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-red-100"]      { background-color: rgba(196,45,45,.06) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-amber-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-amber-100"],
+.ws-new [data-ws-new-wrapper] [class*="bg-orange-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-orange-100"]   { background-color: rgba(213,94,0,.06) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-green-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-green-100"],
+.ws-new [data-ws-new-wrapper] [class*="bg-emerald-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-emerald-100"]  { background-color: rgba(45,106,79,.06) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-blue-50"],
+.ws-new [data-ws-new-wrapper] [class*="bg-blue-100"]     { background-color: rgba(13,115,119,.06) !important; }
+
+/* ----------------------------------------------------------------
+ * SCOPED OVERRIDES for wrapped existing components.
+ * The classic PropertyReport, HostedReport, CompareView use Tailwind
+ * via shadcn primitives. While we progressively port each section,
+ * these overrides remap the Tailwind tokens in use so wrapped
+ * components blend with the new chrome.
+ * ---------------------------------------------------------------- */
+
+.ws-new[data-ws-new-wrapper], .ws-new [data-ws-new-wrapper] { background: var(--ws-bg); }
+.ws-new[data-theme="dark"][data-ws-new-wrapper], .ws-new[data-theme="dark"] [data-ws-new-wrapper] { background: var(--ws-bg); color: var(--ws-ink); }
+
+/* shadcn card -> match new card */
+.ws-new [data-ws-new-wrapper] [class*="bg-card"],
+.ws-new [data-ws-new-wrapper] [class*="bg-background"] {
+  background: var(--ws-surface) !important;
+  color: var(--ws-ink) !important;
+}
+.ws-new [data-ws-new-wrapper] [class*="border-border"],
+.ws-new [data-ws-new-wrapper] [class*="border-input"] {
+  border-color: var(--ws-rule) !important;
+}
+.ws-new [data-ws-new-wrapper] [class*="text-muted-foreground"] { color: var(--ws-ink-soft) !important; }
+.ws-new [data-ws-new-wrapper] [class*="text-foreground"] { color: var(--ws-ink) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-muted"] { background: var(--ws-bg-2) !important; }
+.ws-new [data-ws-new-wrapper] [class*="bg-piq-primary"] { background: var(--ws-piq) !important; color: #fff !important; }
+.ws-new [data-ws-new-wrapper] [class*="text-piq-primary"] { color: var(--ws-piq) !important; }
+.ws-new [data-ws-new-wrapper] [class*="border-piq-primary"] { border-color: var(--ws-piq) !important; }
+
+/* dark-mode shadcn surfaces */
+.ws-new[data-theme="dark"] [data-ws-new-wrapper] [class*="bg-card"],
+.ws-new[data-theme="dark"] [data-ws-new-wrapper] [class*="bg-background"] {
+  background: var(--ws-surface) !important;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 960px) {
+  .ws-new .ws-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .ws-new .ws-btn,
+  .ws-new .ws-pill-toggle button { min-height: 44px; }
+  .ws-new .ws-stat-grid { grid-template-columns: 1fr; }
+  .ws-new .ws-bar-row { grid-template-columns: 1fr; gap: 4px; }
+  .ws-new .ws-bar-row .v { text-align: left; }
+  .ws-new .ws-finding { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .ws-new * { transition: none !important; animation: none !important; } }

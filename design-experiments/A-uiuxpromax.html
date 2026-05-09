@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhareScore Badge — Welcome (A · ui-ux-pro-max)</title>
+<!--
+  Generator: ui-ux-pro-max approach
+  Style: "Soft Premium / Bento"
+  Palette: Deep Teal + Warm Sand + Gold accent (catalogue pick)
+  Typography: Cormorant Garamond (display) + Inter (body) — preset pairing
+  Notes: WCAG AA targeted, 200–300ms transitions, generous whitespace.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1f2d2c;
+    --ink-soft: #4b5a59;
+    --paper: #fbf7f1;
+    --paper-card: #ffffff;
+    --teal: #1f5f5b;
+    --teal-deep: #143f3d;
+    --sand: #ead7b8;
+    --gold: #c79a3c;
+    --rule: #e8e1d4;
+    --shadow: 0 1px 2px rgba(20,40,40,.04), 0 8px 24px rgba(20,40,40,.06);
+    --radius: 14px;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
+  a:hover { color: var(--teal-deep); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; background: var(--sand); padding: 1px 6px; border-radius: 4px; color: var(--teal-deep); }
+
+  .frame { max-width: 980px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  /* hero */
+  .hero {
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+    color: var(--paper);
+    border-radius: 24px;
+    padding: 56px 48px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
+    background: radial-gradient(circle at center, rgba(199,154,60,.35), transparent 70%);
+    pointer-events: none;
+  }
+  .eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--sand);
+    font-weight: 500;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: clamp(40px, 5.6vw, 64px);
+    line-height: 1.05;
+    margin: 14px 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .lede { font-size: 17px; max-width: 60ch; color: rgba(251,247,241,.88); margin: 0; }
+  .lede a { color: var(--gold); }
+
+  /* sections */
+  section { margin-top: 56px; }
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0 0 24px;
+    color: var(--teal-deep);
+    letter-spacing: -0.005em;
+  }
+  h2 .num {
+    display: inline-block; width: 28px; height: 28px; line-height: 28px;
+    text-align: center; border: 1px solid var(--teal); border-radius: 50%;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--teal); margin-right: 12px; vertical-align: 2px;
+  }
+
+  /* steps grid (bento) */
+  .steps {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    cursor: default;
+  }
+  .step:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--teal); }
+  .step .icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--sand); color: var(--teal-deep);
+    display: grid; place-items: center; margin-bottom: 14px;
+  }
+  .step .step-num {
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--gold); font-weight: 600;
+  }
+  .step h3 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    font-size: 22px; margin: 4px 0 8px; color: var(--ink);
+  }
+  .step p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+
+  /* lists */
+  .checklist { list-style: none; padding: 0; margin: 0; }
+  .checklist li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid; grid-template-columns: 22px 1fr; gap: 12px;
+    color: var(--ink-soft); font-size: 15px;
+  }
+  .checklist li:last-child { border-bottom: 0; }
+  .checklist li::before {
+    content: ""; width: 8px; height: 8px; margin-top: 9px; border-radius: 50%;
+    background: var(--gold); display: block;
+  }
+  .checklist strong { color: var(--ink); font-weight: 600; }
+
+  .sites li::before { background: var(--teal); }
+
+  /* fine print card */
+  .fineprint {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+  .fineprint p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-soft); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* focus */
+  a:focus-visible, .step:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) { .step { transition: none; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="hero">
+    <div class="eyebrow">WhareScore Badge · Chrome extension</div>
+    <h1>You&rsquo;re ready to read every NZ&nbsp;listing through a risk lens.</h1>
+    <p class="lede">
+      The badge annotates listings on homes.co.nz, OneRoof, and realestate.co.nz with the same risk analysis that powers
+      <a href="https://wharescore.co.nz">wharescore.co.nz</a>. Nothing from the listing page is copied or stored — only the address is sent to WhareScore.
+    </p>
+  </header>
+
+  <section>
+    <h2><span class="num">1</span>Getting started</h2>
+    <ol class="steps">
+      <li class="step" tabindex="0">
+        <div class="icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+        </div>
+        <div class="step-num">Step 01</div>
+        <h3>Pin the badge</h3>
+        <p>Open Chrome&rsquo;s puzzle-piece menu and pin <em>WhareScore Badge</em>. The popup gives you per-site toggles and a 24-hour pause.</p>
+      </li>
+      <li class="step" tabindex="0">
+        <div class="icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="step-num">Step 02</div>
+        <h3>Visit a supported listing</h3>
+        <p>Open any address page on homes.co.nz, OneRoof, or realestate.co.nz. A floating badge slides in at the bottom-right with that property&rsquo;s WhareScore.</p>
+      </li>
+      <li class="step" tabindex="0">
+        <div class="icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="step-num">Step 03</div>
+        <h3>Dig deeper</h3>
+        <p>Click <strong>View full report</strong> for the complete risk analysis. Sign in to save the property; upgrade to Pro for price + rent estimates, walk score, and PDF export.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>Supported sites</h2>
+    <ul class="checklist sites">
+      <li><span><strong>homes.co.nz</strong> — listing pages under <code>/address/*</code></span></li>
+      <li><span><strong>OneRoof</strong> — listing pages under <code>/property/*</code></span></li>
+      <li><span><strong>realestate.co.nz</strong> — listing pages under <code>/residential/sale/*</code></span></li>
+      <li><span><strong>Trade Me</strong> — <em>temporarily disabled</em> while we verify the badge mounts correctly against the Angular-rendered page.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>Your controls</h2>
+    <ul class="checklist">
+      <li><span>Click the toolbar icon to <strong>pause the badge for 24 hours</strong>.</span></li>
+      <li><span>Toggle any site off in the popup — the badge stops appearing there.</span></li>
+      <li><span>Click <strong>×</strong> on the badge to dismiss it for that specific address (remembered for 7 days).</span></li>
+      <li><span>Drag the badge by its header to reposition it — we remember where you put it per site.</span></li>
+      <li><span>Uninstall via Chrome&rsquo;s standard extension manager. All extension state is discarded on uninstall.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>What we do not collect</h2>
+    <div class="fineprint">
+      <p>We do not collect listing content (bedrooms, photos, descriptions, prices, agent info), host-site cookies, browsing history, or device fingerprints. See the <a href="/extension/privacy">Privacy Policy</a> and <a href="/extension/transparency">Transparency page</a> for the full data-practices rundown.</p>
+    </div>
+  </section>
+
+  <footer>WhareScore · Aotearoa New Zealand</footer>
+</div>
+</body>
+</html>

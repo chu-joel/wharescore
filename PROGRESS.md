@@ -1,6 +1,75 @@
 # WhareScore POC — Progress & Continuation Guide
 
-**Last Updated:** 2026-05-07 (Pricing dropped: Full Report $9.99→$2.99, Pro $140/mo→$50/mo, Pro per-report discount removed)
+**Last Updated:** 2026-05-09 (New UI route group `/new/` scaffolded with full feature parity via wrapping; design system docs landed)
+
+## 2026-05-09 — New UI design system + `/new/` route group
+
+**Why:** classic UI works but feels SaaS-generic. Goal: an alternative UI at `/new/` with editorial/data-dense register, dark mode, severity-as-glyph+keyword+colour, OKLCH neutrals — toggleable from the existing app via a header button. No regressions; every existing feature still reachable.
+
+**Design exploration produced:**
+- `design-experiments/A1` … `A8-real-snapshot.html` — 8 static HTML probes auditing two skill systems (`ui-ux-pro-max`, Anthropic `frontend-design`, `impeccable`). Final picks: A6 (on-screen) and A7-A8 (hosted Full). A8 carries real production data from `report_snapshots` row 130 (101 Wakefield Street, Wellington).
+- impeccable framework audit moved A4 from 9/20 → 17/20 across distill + colorize + adapt + harden iterations.
+
+**Design-system docs (single source of truth):**
+- `docs/PRODUCT.md` — audience, brand voice, anti-references, register rules. Loaded by impeccable's `load-context.mjs`.
+- `docs/DESIGN.md` — tokens (OKLCH neutrals + production hex severity), components, surface rules, absolute bans.
+- `docs/DESIGN-SYSTEM.md` — implementation state, file map, section porting plan.
+
+**`/new/` namespace implemented (real path segment, not a `(new)` route group — parens collide with sibling routes; build error):**
+- `frontend/src/styles/tokens-new.css` — OKLCH tokens + light/dark + scoped shadcn token remap.
+- `frontend/src/app/new/layout.tsx` — wraps in `.ws-new`, sets `data-theme`, loads tokens.
+- `frontend/src/app/new/page.tsx` — landing + map split.
+- `frontend/src/app/new/report/[token]/page.tsx` — hosted Quick / Full inside new chrome.
+- `frontend/src/app/new/compare/page.tsx` — new chrome around existing CompareView.
+- `frontend/src/app/new/{property/[id], suburb/[code], suburbs, account, signin, about, help, privacy, terms, contact, changelog}/page.tsx` — redirects to classic for now.
+- `frontend/src/components/new/AppHeaderNew.tsx` — brand + theme toggle + UI toggle + sign-in.
+- `frontend/src/components/new/UIToggle.tsx` — flips between `/` and `/new/`, persisted in localStorage. Mounted in classic `AppHeader.tsx` so existing users can flip in.
+- `frontend/src/components/new/LandingPanelNew.tsx` — landing right-panel content.
+- `frontend/src/components/new/PropertyReportNew.tsx` — composition of new sections (HeroBlockNew, CategoryScoreboardNew, KeyFindingsNew, IndicatorGrid23New, ComparisonBarsNew, DataLayersNew, CoverageNew) plus classic AISummaryCard, BuyerSnapshot/RenterSnapshot/LandlordChecklist, ReportCTABanner, ReportDisclaimer (wrapped in `data-ws-new-wrapper` for token reskin). Conversion chrome carried over from classic: SocialProof, EmailSummaryCapture, FloatingReportButton, ScrollPrompt, SignupNudge — same `findings` + `riskCount` memoisation as classic; `trackVisit` + `markVisitedEver` fired on report load. `app/new/page.tsx` mounts UpgradeModal + ReportConfirmModal + OnboardingTour at page level (mirrors classic root).
+- `frontend/src/components/new/sections/HeroBlockNew.tsx` — eyebrow + address + score pill + persona toggle.
+- `frontend/src/components/new/sections/CategoryScoreboardNew.tsx` — 6-cat scoreboard, severity-coloured mini-bars.
+- `frontend/src/components/new/sections/KeyFindingsNew.tsx` — finding cards with severity-glyph + keyword + colour, persona-aware backend ranking, free/gated split, upgrade modal trigger.
+- `frontend/src/components/new/sections/IndicatorGrid23New.tsx` — every indicator from `scores.categories[].indicators`, severity-aware tone (`crime`/`nzdep` invert).
+- `frontend/src/components/new/sections/ComparisonBarsNew.tsx` — 5 rows vs SA2 median (schools, transit, EPB, noise, NZDep), NZDep-inversion handled.
+- `frontend/src/components/new/sections/DataLayersNew.tsx` — 8-14 layer rows derived from hazards/planning/liveability with source attribution.
+- `frontend/src/components/new/sections/CoverageNew.tsx` — per-category coverage grid.
+- `frontend/src/components/new/sections/AISummaryNew.tsx` — area profile + property summary, expandable, lead pull-quote, source attribution.
+- `frontend/src/components/new/sections/BuyerSnapshotNew.tsx` — derived insurability / building era / development / market trajectory / multi-unit title sections, finding-row format with overall verdict header.
+- `frontend/src/components/new/sections/RenterSnapshotNew.tsx` — rent median / market power / Healthy Homes / mould risk sections, finding-row format.
+- `frontend/src/components/new/sections/LandlordChecklistNew.tsx` — must-ask vs good-to-ask, personalised + universal sections.
+- `frontend/src/components/new/sections/SocialProofNew.tsx` — deterministic suburb-seeded report-count line.
+- `frontend/src/components/new/sections/EmailSummaryCaptureNew.tsx` — registration-gated email summary.
+- `frontend/src/components/new/sections/ReportCTABannerNew.tsx` — final CTA, dual auth-aware paths, persona-specific subhead, `pdf.startExport(tier)`.
+- `frontend/src/components/new/sections/ReportDisclaimerNew.tsx` — progressive-disclosure disclaimer footer.
+- `frontend/src/components/new/sections/FloatingReportButtonNew.tsx` — portal-mounted floating CTA, contextual copy, secondary PDF button, credit badge.
+- `frontend/src/components/new/sections/ScrollPromptNew.tsx` — 90 % scroll + 15 s trigger, fallback at 3 min, severity-aware copy.
+- `frontend/src/components/new/sections/SignupNudgeNew.tsx` — 60 s/30 s trigger, anonymous-only, value-prop list.
+- `frontend/src/components/new/sections/BetaBannerNew.tsx` — anonymous-only "free report" nudge.
+- `frontend/src/components/new/sections/BuildingInfoBannerNew.tsx` — multi-unit caveat with sibling valuations.
+- `frontend/src/components/new/sections/KeyTakeawaysNew.tsx` — concerns / positives derived from indicators, share + search-another actions.
+- `frontend/src/components/new/sections/AreaEventTeaserNew.tsx` — green all-clear vs amber summary, source breakdown.
+- **PropertyReportNew now composes 14 ported sections** with zero classic property components — pure new design system.
+- `frontend/src/components/layout/StaticPageLayout.tsx` — patched to be `/new`-aware via `usePrefixedPath()`. Static pages stay in their tree.
+- `frontend/src/lib/routePrefix.ts` — `usePrefixedPath()` + `prefixPath()` + `localizeShareUrl()`. Used by MapContainer, SearchBar, SuburbSummaryPage, CompareHeader, CompareEmptyState, CompareTray, StaticPageLayout to keep `/new` users in `/new`. `localizeShareUrl()` rewrites backend-emitted `/report/{token}` URLs to `/new/report/{token}` when triggered from `/new` (consumed by `pdfExportStore`, `account/page.tsx`).
+- All `/new/*` redirect stubs (about, help, privacy, terms, contact, changelog, account, signin, suburbs, suburbs/[slug], guest/download, account/payment-{cancelled,success}, dev/coastal-preview, extension/{welcome,transparency,privacy}) now `export { default }` from their classic counterparts so the page renders in the user's current tree without losing /new context.
+- `frontend/src/components/new/ui/primitives.tsx` — Card, SeverityTag, Pill, Badge, Stat, IndicatorChip, BarRow, LayerRow, Finding, Accordion, PersonaToggle.
+
+**How the wrapping works:** `.ws-new` scope remaps shadcn tokens (`--background`, `--card`, `--primary`) to the new OKLCH palette via `!important`. Wrapped components (`<div data-ws-new-wrapper>`) automatically pick up the new look without code changes. Severity colours stay intact because they don't use those token names.
+
+**Skills installed under `~/.claude/skills/`:** `ui-ux-pro-max`, `frontend-design`, `impeccable` (the last has `/impeccable audit`, `distill`, `colorize`, `harden` etc.).
+
+**Next session priorities:**
+1. **Verify build** — `cd frontend && npm run dev`, walk through `/new`, `/new?address=2312429`, `/new/report/{token}`, `/new/compare`. Fix any TypeScript or import errors.
+2. **Port sections incrementally** under `frontend/src/components/new/sections/*.tsx`. Order: HeroBlock → CategoryScoreboard → KeyFindings → IndicatorGrid23 → BuyerSnapshot/RenterSnapshot → ComparisonBars → DataLayersAccordion. Each replacement removes its parent's wrapper override for that subtree.
+3. **Audit live**: `/impeccable audit frontend/src/app/new/page.tsx` once dev server runs.
+4. **Decision in ~1 month** based on conversion rate: keep both, or migrate classic into new.
+
+**Don't break:**
+- Wrapping pattern: `<div data-ws-new-wrapper="...">` triggers shadcn overrides. Strip it and the wrapped component reverts.
+- Severity = glyph + keyword + colour. Always `<SeverityTag />`, never colour-only.
+- localStorage keys: `ws-ui-version` (toggle), `ws-theme-new` (theme).
+
+---
 
 ## Latest session (2026-05-07) — Pricing reset
 
@@ -716,9 +785,9 @@ This was a massive session covering: Price Advisor (buyer-persona value estimato
 
 - `backend/app/services/price_advisor.py` (new, 400+ lines): CV + HPI + yield ensemble, property adjustments, hazard cost flags (NOT % discounts — avoids double-counting), ownership costs, asking price verdict, methodology steps
 - `backend/app/routers/market.py`: `POST /api/v1/property/{address_id}/price-advisor` endpoint
-- `frontend/src/components/property/PriceAdvisorCard.tsx` (new): Asking price input, bedrooms, finish, bathrooms, parking, band gauge, verdict, methodology steps, hazard cost flags, ownership costs, premium CTA
-- `frontend/src/components/property/PriceBandGauge.tsx` (new): Band gauge for property values ($850K format)
-- `frontend/src/stores/buyerInputStore.ts` (new): Zustand store for buyer inputs
+- `frontend/src/components/property/PriceAdvisorCard.tsx` new: Asking price input, bedrooms, finish, bathrooms, parking, band gauge, verdict, methodology steps, hazard cost flags, ownership costs, premium CTA
+- `frontend/src/components/property/PriceBandGauge.tsx` new: Band gauge for property values ($850K format)
+- `frontend/src/stores/buyerInputStore.ts` new: Zustand store for buyer inputs
 - Types: `PriceAdvisorResult`, `PriceMethodologyStep`, `PriceAdjustment`, `HazardCostFlag`, `OwnershipCosts`
 - MarketSection: persona-aware — PriceAdvisorCard for buyer, RentComparisonFlow + RentAdvisorCard for renter
 - RentComparisonFlow hidden for buyer persona
@@ -738,7 +807,7 @@ This was a massive session covering: Price Advisor (buyer-persona value estimato
 Backend:
 - `backend/migrations/0014_report_snapshots.sql` — new table, migrated
 - `backend/app/services/snapshot_generator.py` (new, 650 lines): `prefetch_property_data()` runs 10 property-level queries once. `compute_rent_baselines()` runs 5 baseline queries per dwelling type. `compute_price_snapshot()` runs price advisor once. `build_delta_tables()` exports constants for client-side recalculation. Total: ~85 queries, ~3 seconds.
-- `backend/app/routers/reports.py` (new): `GET /api/v1/report/{share_token}` public endpoint, no auth, Redis-cached
+- `backend/app/routers/reports.py` new: `GET /api/v1/report/{share_token}` public endpoint, no auth, Redis-cached
 - `backend/app/services/pdf_jobs.py`: share_token in job status response
 - `backend/app/routers/property.py`: `_generate_pdf_background` now generates snapshot alongside PDF
 
@@ -1519,7 +1588,7 @@ Recommended: Option 1 (OpenFreeMap) or Option 2 (Protomaps) as new basemap choic
 - `backend/app/services/admin_auth.py`, `backend/app/services/auth.py`, `backend/app/services/credit_check.py`, `backend/app/services/data_loader.py`
 - `frontend/next.config.ts`, `frontend/src/stores/downloadGateStore.ts`, `frontend/src/components/map/PropertyPin.tsx`
 - `frontend/src/components/property/UpgradeModal.tsx` (async handler update)
-- `backend/migrations/0012_promo_redemptions.sql` (new)
+- `backend/migrations/0012_promo_redemptions.sql` new
 
 **Out of scope (documented for future):** Row-Level Security, nonce-based CSP, JWT revocation list, WAF, dependency audit CI.
 

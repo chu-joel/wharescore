@@ -27,6 +27,7 @@ import { MapStylePicker } from './MapStylePicker';
 import { MapControls } from './MapControls';
 import { MapPin } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { prefixPath } from '@/lib/routePrefix';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { usePersonaStore } from '@/stores/personaStore';
 import { usePdfExportStore } from '@/stores/pdfExportStore';
@@ -381,18 +382,23 @@ export function MapContainer() {
 
   const handleViewReport = useCallback(
     (addressId: number) => {
-      // popup removed
+      // popup removed. /new tree navigates within /new (selectAddress already
+      // updated the store, the page-level URL effect will sync ?address).
+      // Only push when we're on the classic /property/[id] page or desktop
+      // landing where there's no in-place panel to update.
+      const target = prefixPath(pathname || '/', `/property/${addressId}`);
       if (isOnPropertyPage) {
-        // Different property on property page. navigate to it
-        router.push(`/property/${addressId}`);
+        router.push(target);
       } else if (window.innerWidth < 640) {
         // On mobile, report is already in the drawer. snap it to full
         window.dispatchEvent(new Event('drawer:snap-full'));
-      } else {
-        router.push(`/property/${addressId}`);
+      } else if (!pathname?.startsWith('/new')) {
+        // On classic, push to /property; on /new, the panel updates in place
+        // via the searchStore selection — no nav needed.
+        router.push(target);
       }
     },
-    [router, isOnPropertyPage, currentPageAddressId, setShowUpgradeModal, persona],
+    [router, pathname, isOnPropertyPage, currentPageAddressId, setShowUpgradeModal, persona],
   );
 
 

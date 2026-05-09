@@ -7,6 +7,7 @@ import { useBuyerInputStore } from './buyerInputStore';
 import { showPaymentToast } from '@/components/common/PaymentToast';
 import { useReportConfirmStore } from '@/components/property/ReportConfirmModal';
 import { toast } from 'sonner';
+import { localizeShareUrl } from '@/lib/routePrefix';
 
 interface PdfExportState {
   addressId: number | null;
@@ -232,7 +233,10 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
           } else {
             gateState.deductCredit(tier);
           }
-          set({ downloadUrl: download_url, shareUrl: status.share_url, isGenerating: false });
+          // When the user is currently inside the /new tree, rewrite share
+          // URLs so the report opens in the new chrome (/new/report/{token}).
+          const localShareUrl = localizeShareUrl(status.share_url);
+          set({ downloadUrl: download_url, shareUrl: localShareUrl, isGenerating: false });
           // Dismiss the generating toast
           toast.dismiss(generatingToastId);
           // Show completion toast with link to the report
@@ -242,12 +246,14 @@ export const usePdfExportStore = create<PdfExportState>((set, get) => ({
               ? 'Also emailed to you. Available anytime in My Reports.'
               : 'Available anytime in My Reports.',
             duration: 15000,
-            action: status.share_url ? {
+            action: localShareUrl ? {
               label: 'Open report →',
-              onClick: () => { window.open(status.share_url, '_blank', 'noopener,noreferrer'); },
+              onClick: () => { window.open(localShareUrl, '_blank', 'noopener,noreferrer'); },
             } : {
               label: 'Go to My Reports →',
-              onClick: () => { window.location.href = '/account'; },
+              onClick: () => {
+                window.location.href = window.location.pathname.startsWith('/new') ? '/new/account' : '/account';
+              },
             },
           });
           return;

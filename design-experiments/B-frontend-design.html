@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WhareScore Badge — Welcome (B · frontend-design)</title>
+<!--
+  Generator: Anthropic frontend-design approach
+  Aesthetic direction: Editorial / NZ-pohutukawa — magazine-brutalist, asymmetric, high-craft.
+  Differentiator: oversized index numerals overlapping serif headings on a paper-grain canvas,
+  with a single sharp pohutukawa-red accent. No purple gradients, no Inter, no card grid.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,200..900,0..100,0..1;1,9..144,200..900,0..100,0..1&family=JetBrains+Mono:wght@400;600&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3ece1;
+    --paper-2: #ece2d2;
+    --ink: #161311;
+    --ink-soft: #4a423a;
+    --rule: #1d1916;
+    --pohutukawa: #c0341d;
+    --pohutukawa-deep: #8a2210;
+    --moss: #2f3a26;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    font-feature-settings: "ss01","liga";
+    -webkit-font-smoothing: antialiased;
+  }
+  /* paper grain */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image:
+      radial-gradient(rgba(22,19,17,.05) 1px, transparent 1px),
+      radial-gradient(rgba(22,19,17,.04) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    opacity: .55;
+  }
+  /* faint ruled lines like a notebook */
+  .frame { position: relative; max-width: 1180px; margin: 0 auto; padding: 0 32px 120px; }
+
+  /* masthead */
+  .masthead {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: end;
+    border-bottom: 1.5px solid var(--rule);
+    padding: 28px 0 18px; margin-bottom: 56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink);
+  }
+  .masthead .l, .masthead .r { display: flex; gap: 18px; }
+  .masthead .r { justify-content: flex-end; }
+  .mast-mark {
+    font-family: 'Fraunces', serif; font-weight: 600; font-style: italic;
+    font-variation-settings: "SOFT" 100, "WONK" 1;
+    font-size: 26px; letter-spacing: -0.01em; text-transform: none; color: var(--ink);
+  }
+  .mast-mark::after {
+    content: "·"; color: var(--pohutukawa); margin: 0 .25em;
+  }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 7fr 4fr; gap: 56px; align-items: end; padding: 18px 0 64px; }
+  @media (max-width: 880px) { .hero { grid-template-columns: 1fr; gap: 24px; } }
+  .kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--pohutukawa); margin-bottom: 18px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 350;
+    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+    font-size: clamp(54px, 8.4vw, 132px);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    margin: 0;
+    color: var(--ink);
+  }
+  h1 em {
+    font-style: italic; font-weight: 350;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    color: var(--pohutukawa-deep);
+  }
+  h1 .ink-stop {
+    display: inline-block; width: .35em; height: .35em; border-radius: 50%;
+    background: var(--pohutukawa); margin-left: .08em; vertical-align: 0.05em;
+  }
+  .lede {
+    font-family: 'Newsreader', serif; font-size: 19px; line-height: 1.5;
+    color: var(--ink); max-width: 38ch; margin: 0;
+  }
+  .lede a { color: var(--ink); text-decoration-color: var(--pohutukawa); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .lede a:hover { color: var(--pohutukawa-deep); }
+
+  /* article body */
+  section { padding: 56px 0; border-top: 1px solid var(--rule); }
+  .sec-head {
+    display: grid; grid-template-columns: 140px 1fr; gap: 24px; align-items: baseline;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 720px) { .sec-head { grid-template-columns: 1fr; gap: 4px; } }
+  .sec-num {
+    font-family: 'Fraunces', serif; font-weight: 200;
+    font-variation-settings: "opsz" 144;
+    font-size: 88px; line-height: 1; color: var(--pohutukawa);
+    letter-spacing: -0.04em;
+  }
+  .sec-title {
+    font-family: 'Fraunces', serif; font-weight: 400; font-style: italic;
+    font-variation-settings: "opsz" 24, "SOFT" 100;
+    font-size: clamp(28px, 3.4vw, 40px);
+    line-height: 1.05; margin: 0; color: var(--ink); letter-spacing: -0.01em;
+  }
+
+  /* steps — magazine columns */
+  .steps {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    column-gap: 32px;
+    counter-reset: step;
+  }
+  @media (max-width: 880px) { .steps { grid-template-columns: 1fr; row-gap: 32px; } }
+  .step { position: relative; padding: 0 0 4px; }
+  .step + .step { border-left: 1px solid var(--rule); padding-left: 32px; }
+  @media (max-width: 880px) { .step + .step { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 32px; } }
+  .step .marker {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--pohutukawa); display: block; margin-bottom: 16px;
+  }
+  .step h3 {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-variation-settings: "opsz" 60, "SOFT" 20;
+    font-size: 26px; line-height: 1.1; letter-spacing: -0.01em;
+    margin: 0 0 12px; color: var(--ink);
+  }
+  .step p { font-family: 'Newsreader', serif; font-size: 16.5px; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  .step p::first-letter {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-size: 1.35em; padding-right: 1px; color: var(--ink);
+  }
+
+  /* sites — newspaper-style ledger */
+  .ledger { list-style: none; padding: 0; margin: 0; max-width: 720px; }
+  .ledger li {
+    display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px dotted rgba(22,19,17,.35);
+  }
+  .ledger li:last-child { border-bottom: 0; }
+  .ledger .name {
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+    font-size: 22px; letter-spacing: -0.005em;
+  }
+  .ledger .meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    letter-spacing: 0.1em; color: var(--ink-soft);
+  }
+  .ledger .meta code { background: transparent; color: var(--pohutukawa-deep); }
+  .ledger .meta.disabled { color: var(--pohutukawa); }
+
+  /* controls — annotated list */
+  .controls { list-style: none; padding: 0; margin: 0; max-width: 720px; }
+  .controls li {
+    padding: 12px 0 12px 40px; position: relative;
+    font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.5; color: var(--ink);
+    border-bottom: 1px solid rgba(22,19,17,.12);
+  }
+  .controls li::before {
+    counter-increment: ctrl;
+    content: "§ " counter(ctrl);
+    position: absolute; left: 0; top: 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+    color: var(--pohutukawa); font-weight: 600;
+  }
+  .controls { counter-reset: ctrl; }
+  .controls strong { font-weight: 600; color: var(--ink); }
+
+  /* fine print as pull-quote */
+  .pullquote {
+    border-left: 3px solid var(--pohutukawa);
+    padding: 8px 0 8px 28px; margin: 0;
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 350;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+    font-size: clamp(22px, 2.6vw, 30px); line-height: 1.25; color: var(--ink);
+    max-width: 30ch;
+  }
+  .pullquote a { color: var(--pohutukawa-deep); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+  .footnote {
+    margin-top: 24px; max-width: 60ch;
+    font-family: 'Newsreader', serif; font-size: 15px; line-height: 1.55; color: var(--ink-soft);
+  }
+
+  /* colophon */
+  .colophon {
+    margin-top: 80px; padding-top: 18px;
+    border-top: 1.5px solid var(--rule);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  /* entrance: staggered reveal */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(8px); animation: rise .9s cubic-bezier(.2,.8,.2,1) forwards; }
+    .reveal:nth-child(1) { animation-delay: .05s; }
+    .reveal:nth-child(2) { animation-delay: .15s; }
+    .reveal:nth-child(3) { animation-delay: .25s; }
+    .reveal:nth-child(4) { animation-delay: .35s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+
+  a:focus-visible { outline: 2px solid var(--pohutukawa); outline-offset: 4px; border-radius: 2px; }
+  code { font-family: 'JetBrains Mono', monospace; font-size: .82em; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="masthead">
+    <div class="l">No. 001 / Welcome edition</div>
+    <div class="mast-mark">WhareScore</div>
+    <div class="r">Aotearoa · Issued on install</div>
+  </header>
+
+  <div class="hero reveal">
+    <div>
+      <div class="kicker">A field guide to the badge</div>
+      <h1>Read every<br/>NZ&nbsp;listing<br/><em>through risk</em><span class="ink-stop"></span></h1>
+    </div>
+    <p class="lede">
+      You&rsquo;ve installed the WhareScore Badge. From now on, listings on
+      homes.co.nz, OneRoof and realestate.co.nz are annotated with the same
+      analysis that powers <a href="https://wharescore.co.nz">wharescore.co.nz</a>.
+      Nothing on the page is copied or stored — only the address is sent.
+    </p>
+  </div>
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">01</div>
+      <h2 class="sec-title">How to begin, in three small motions</h2>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="marker">i. Pin</span>
+        <h3>Hang it on the toolbar</h3>
+        <p>Open Chrome&rsquo;s puzzle-piece menu and pin <em>WhareScore Badge</em>. The popup is where per-site toggles and the 24-hour pause live. Pin it; never hunt for it again.</p>
+      </li>
+      <li class="step">
+        <span class="marker">ii. Visit</span>
+        <h3>Open any supported listing</h3>
+        <p>Pull up an address on homes.co.nz, OneRoof, or realestate.co.nz. A small badge slides in at the bottom-right of the page carrying that address&rsquo;s WhareScore — the headline number, in context.</p>
+      </li>
+      <li class="step">
+        <span class="marker">iii. Read on</span>
+        <h3>Then dig deeper</h3>
+        <p>Click <em>View full report</em> for the complete risk analysis. Sign in to save the property to your watchlist; upgrade to Pro for price &amp; rent estimates, walk score and PDF export.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">02</div>
+      <h2 class="sec-title">Where it appears</h2>
+    </div>
+    <ul class="ledger">
+      <li><span class="name">homes.co.nz</span><span class="meta"><code>/address/*</code></span></li>
+      <li><span class="name">OneRoof</span><span class="meta"><code>/property/*</code></span></li>
+      <li><span class="name">realestate.co.nz</span><span class="meta"><code>/residential/sale/*</code></span></li>
+      <li><span class="name">Trade Me</span><span class="meta disabled">Temporarily disabled — Angular mount under review</span></li>
+    </ul>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">03</div>
+      <h2 class="sec-title">What you control</h2>
+    </div>
+    <ul class="controls">
+      <li>Click the toolbar icon to <strong>pause the badge for 24 hours</strong>.</li>
+      <li>Toggle any site off in the popup — the badge stops appearing there.</li>
+      <li>Click <strong>×</strong> on the badge to dismiss it for a specific address (we remember that decision for 7 days).</li>
+      <li>Drag the badge by its header to move it; the position is remembered per site.</li>
+      <li>Uninstall through Chrome&rsquo;s standard extension manager. All extension state is discarded on uninstall.</li>
+    </ul>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head">
+      <div class="sec-num">04</div>
+      <h2 class="sec-title">What we do not collect</h2>
+    </div>
+    <p class="pullquote">
+      No listing content. No host-site cookies. No browsing history. No device fingerprints.
+    </p>
+    <p class="footnote">
+      We don&rsquo;t copy bedrooms, photos, descriptions, prices, or agent details. The address is the entire payload. See the <a href="/extension/privacy">Privacy Policy</a> and the <a href="/extension/transparency">Transparency page</a> for the full data-practices rundown.
+    </p>
+  </section>
+
+  <div class="colophon">
+    <div>WhareScore · Property intelligence for Aotearoa</div>
+    <div>Set in Fraunces &amp; Newsreader</div>
+  </div>
+</div>
+</body>
+</html>

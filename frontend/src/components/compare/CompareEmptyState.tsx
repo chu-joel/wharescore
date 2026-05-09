@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { GitCompare, Search } from 'lucide-react';
 import type { ComparisonItem } from '@/stores/comparisonStore';
+import { usePrefixedPath } from '@/lib/routePrefix';
 
 export function CompareEmptyState({
   staged,
@@ -11,6 +12,7 @@ export function CompareEmptyState({
   staged: ComparisonItem[];
   reason: 'none' | 'one' | 'invalid';
 }) {
+  const prefix = usePrefixedPath();
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 sm:py-20 text-center">
       <div className="inline-flex items-center justify-center size-14 rounded-full bg-piq-primary/10 text-piq-primary mb-4">
@@ -31,7 +33,7 @@ export function CompareEmptyState({
             : 'The properties in this link are no longer available. Try comparing two new ones.'}
       </p>
       <Link
-        href="/"
+        href={prefix('/')}
         className="inline-flex items-center gap-2 h-10 px-5 rounded-md bg-piq-primary text-white text-sm font-medium hover:bg-piq-primary-dark transition-colors"
       >
         <Search className="size-4" />
