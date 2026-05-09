@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useSearchStore } from '@/stores/searchStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -20,11 +19,15 @@ export default function NewHome() {
   const selectAddress = useSearchStore((s) => s.selectAddress);
   const selectProperty = useMapStore((s) => s.selectProperty);
   const bp = useBreakpoint();
-  const params = useSearchParams();
 
   // 1) Restore selection from URL on first mount (deep links / share / refresh).
+  // Read from window.location instead of useSearchParams() to avoid the
+  // Next.js requirement that useSearchParams() must be inside a <Suspense>
+  // boundary during static export. Matches the pattern in classic app/page.tsx.
   useEffect(() => {
-    const id = Number(params?.get('address') ?? 0);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get('address') ?? 0);
     if (id > 0 && !selectedAddress) {
       apiFetch<{ address_id: number; full_address: string }>(`/api/v1/property/${id}/summary`)
         .then((s) =>
