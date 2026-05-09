@@ -5,14 +5,16 @@ import { Sparkles, Clock } from 'lucide-react';
 import { useDownloadGateStore } from '@/stores/downloadGateStore';
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
-import { HostedAtAGlance } from '@/components/report/HostedAtAGlance';
-import { HostedSchoolZones } from '@/components/report/HostedSchoolZones';
-import { HostedNearbyHighlights } from '@/components/report/HostedNearbyHighlights';
 import { QuickHazardSummary } from '@/components/report/QuickHazardSummary';
 import { QuickActions } from '@/components/report/QuickActions';
 import { QuickVerdict } from '@/components/report/QuickVerdict';
 import { QuickUpgradeBanner } from '@/components/report/QuickUpgradeBanner';
 import { HostedDemographics } from '@/components/report/HostedDemographics';
+
+// Ported sections
+import { HostedAtAGlanceNew } from '@/components/new/sections/HostedAtAGlanceNew';
+import { HostedSchoolZonesNew } from '@/components/new/sections/HostedSchoolZonesNew';
+import { HostedNearbyHighlightsNew } from '@/components/new/sections/HostedNearbyHighlightsNew';
 import { LandlordChecklist } from '@/components/property/LandlordChecklist';
 import { MouldDampnessRisk } from '@/components/property/MouldDampnessRisk';
 import { KnowYourRights } from '@/components/property/KnowYourRights';
@@ -104,7 +106,7 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
             </Section>
           )}
 
-          <Section><HostedAtAGlance report={report} /></Section>
+          <Section><HostedAtAGlanceNew report={report} /></Section>
           <Section><KeyFindingsNew report={report} persona={persona} maxFree={3} /></Section>
           <Section>
             <QuickVerdict snapshot={snapshot} persona={persona} rentBand={rentBand} userRent={store.weeklyRent} />
@@ -119,8 +121,8 @@ export function HostedQuickReportNew({ snapshot, token }: Props) {
           )}
 
           <Section><QuickHazardSummary report={report} snapshot={snapshot} /></Section>
-          <Section><HostedSchoolZones snapshot={snapshot} /></Section>
-          <Section><HostedNearbyHighlights snapshot={snapshot} /></Section>
+          <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
+          <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
           <Section><HostedDemographics snapshot={snapshot} isFull={false} /></Section>
           <Section><QuickActions snapshot={snapshot} persona={persona} /></Section>
 

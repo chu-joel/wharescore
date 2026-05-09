@@ -223,7 +223,15 @@ When porting an individual hosted sub-component to the new design, place the new
 - Replace classic `KeyFindings` with `KeyFindingsNew` (severity glyph + keyword + colour).
 - Wrap question accordion items in a new `--ws-surface` card frame.
 - Use `--ws-*` token-based spacing/colours instead of Tailwind utilities for the section dividers, expiry warning, and disclaimer.
-- All other `Hosted*` sub-components (HostedAtAGlance, HostedExecutiveSummary, HostedAISummary, HostedAreaFeed, HostedRentAdvisor, HostedPriceAdvisor, HostedHPIChart, HostedHealthyHomes, HostedRecommendations, HostedHazardAdvice, HostedNextSteps, HostedSchools, HostedSchoolZones, HostedNearbyHighlights, HostedNeighbourhoodStats, HostedDemographics, HostedClimate, HostedTerrain, HostedRoadNoise, HostedCoastalTimeline, HostedRentHistory, HostedInfrastructure, HostedOutdoorRec, HostedMethodology) are imported from the classic tree and inherit new tokens via the `.ws-new` scope; port them individually under `components/new/sections/` when the visual register needs to change.
+- All other `Hosted*` sub-components are imported from the classic tree and inherit new tokens via the `.ws-new` scope; port them individually under `components/new/sections/` when the visual register needs to change.
+
+#### Update 2026-05-10 — 16 hosted sub-components ported
+
+`HostedReportNew` and `HostedQuickReportNew` now import 16 hosted sub-components from `components/new/sections/Hosted*New.tsx` instead of the classic tree. Each ported component uses `Card`/`CardHead` primitives, `--ws-*` tokens, and severity glyph + keyword + colour where applicable.
+
+Ported (`components/new/sections/`): `HostedAtAGlanceNew`, `HostedAISummaryNew`, `HostedRecommendationsNew`, `HostedNextStepsNew`, `HostedSchoolZonesNew`, `HostedSchoolsNew`, `HostedNearbyHighlightsNew`, `HostedInfrastructureNew`, `HostedRoadNoiseNew`, `HostedHPIChartNew`, `HostedRentHistoryNew`, `HostedHealthyHomesNew`, `HostedOutdoorRecNew`, `HostedMethodologyNew`, `HostedRentAdvisorNew`, `HostedPriceAdvisorNew`.
+
+Still classic (render through the classic tree, retinted by the `.ws-new` scope): `HostedExecutiveSummary`, `HostedDemographics`, `HostedClimate`, `HostedTerrain`, `HostedNeighbourhoodStats`, `HostedAreaFeed`, `HostedHazardAdvice`, `HostedCoastalTimeline`. Quick* helpers (`QuickVerdict`, `QuickHazardSummary`, `QuickActions`, `QuickUpgradeBanner`) and renter-only helpers (`LandlordChecklist`, `MouldDampnessRisk`, `KnowYourRights`, `SunAspectCard`, `CategoryRadar`, `QuestionContent`, `RentBandGauge`, `PriceBandGauge`) also still classic.
 
 | Snapshot field | Component | Hosted-only? |
 |---|---|---|

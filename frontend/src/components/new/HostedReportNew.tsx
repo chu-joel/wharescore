@@ -6,31 +6,35 @@ import { Tabs, TabsList, TabsTrigger, TabsContent, useTabs } from '@/components/
 import { transformReport } from '@/lib/transformReport';
 import { useHostedReportStore, computeRentBand } from '@/stores/hostedReportStore';
 import { ReportSidebar } from '@/components/report/ReportSidebar';
-import { HostedRentAdvisor } from '@/components/report/HostedRentAdvisor';
-import { HostedPriceAdvisor } from '@/components/report/HostedPriceAdvisor';
 import { HostedReportProvider } from '@/components/report/HostedReportContext';
-import { HostedRentHistory } from '@/components/report/HostedRentHistory';
-import { HostedHPIChart } from '@/components/report/HostedHPIChart';
-import { HostedHealthyHomes } from '@/components/report/HostedHealthyHomes';
-import { HostedNextSteps } from '@/components/report/HostedNextSteps';
-import { HostedMethodology } from '@/components/report/HostedMethodology';
+
+// Classic — not yet ported (heavy / niche)
 import { HostedExecutiveSummary } from '@/components/report/HostedExecutiveSummary';
-import { HostedSchools } from '@/components/report/HostedSchools';
-import { HostedInfrastructure } from '@/components/report/HostedInfrastructure';
 import { HostedNeighbourhoodStats } from '@/components/report/HostedNeighbourhoodStats';
-import { HostedAtAGlance } from '@/components/report/HostedAtAGlance';
-import { HostedRecommendations } from '@/components/report/HostedRecommendations';
-import { HostedNearbyHighlights } from '@/components/report/HostedNearbyHighlights';
-import { HostedAISummary } from '@/components/report/HostedAISummary';
-import { HostedOutdoorRec } from '@/components/report/HostedOutdoorRec';
-import { HostedSchoolZones } from '@/components/report/HostedSchoolZones';
-import { HostedRoadNoise } from '@/components/report/HostedRoadNoise';
 import { HostedAreaFeed } from '@/components/report/HostedAreaFeed';
 import { HostedHazardAdvice } from '@/components/report/HostedHazardAdvice';
 import { HostedTerrain } from '@/components/report/HostedTerrain';
 import { HostedDemographics } from '@/components/report/HostedDemographics';
 import { HostedClimate } from '@/components/report/HostedClimate';
 import { HostedCoastalTimeline, MOCK_COASTAL_SEVERE } from '@/components/report/HostedCoastalTimeline';
+
+// Ported — new design system
+import { HostedAtAGlanceNew } from '@/components/new/sections/HostedAtAGlanceNew';
+import { HostedAISummaryNew } from '@/components/new/sections/HostedAISummaryNew';
+import { HostedRentAdvisorNew } from '@/components/new/sections/HostedRentAdvisorNew';
+import { HostedPriceAdvisorNew } from '@/components/new/sections/HostedPriceAdvisorNew';
+import { HostedHPIChartNew } from '@/components/new/sections/HostedHPIChartNew';
+import { HostedHealthyHomesNew } from '@/components/new/sections/HostedHealthyHomesNew';
+import { HostedRentHistoryNew } from '@/components/new/sections/HostedRentHistoryNew';
+import { HostedRecommendationsNew } from '@/components/new/sections/HostedRecommendationsNew';
+import { HostedNextStepsNew } from '@/components/new/sections/HostedNextStepsNew';
+import { HostedSchoolsNew } from '@/components/new/sections/HostedSchoolsNew';
+import { HostedSchoolZonesNew } from '@/components/new/sections/HostedSchoolZonesNew';
+import { HostedNearbyHighlightsNew } from '@/components/new/sections/HostedNearbyHighlightsNew';
+import { HostedInfrastructureNew } from '@/components/new/sections/HostedInfrastructureNew';
+import { HostedRoadNoiseNew } from '@/components/new/sections/HostedRoadNoiseNew';
+import { HostedOutdoorRecNew } from '@/components/new/sections/HostedOutdoorRecNew';
+import { HostedMethodologyNew } from '@/components/new/sections/HostedMethodologyNew';
 
 import { LandlordChecklist } from '@/components/property/LandlordChecklist';
 import { KnowYourRights } from '@/components/property/KnowYourRights';
@@ -145,9 +149,9 @@ export function HostedReportNew({ snapshot, token }: Props) {
             <TabsContent value="property">
               <PrintHeader title="Part 1: Your Property" Icon={Building2} />
               <div style={{ paddingTop: 24 }}>
-                <Section><HostedAtAGlance report={report} /></Section>
+                <Section><HostedAtAGlanceNew report={report} /></Section>
                 <Section><HostedExecutiveSummary report={report} snapshot={snapshot} persona={persona} rentBand={rentBand} storeBedrooms={store.bedrooms} /></Section>
-                <Section><HostedAISummary snapshot={snapshot} /></Section>
+                <Section><HostedAISummaryNew snapshot={snapshot} /></Section>
                 {hasScores && report.scores.categories && (
                   <Section><CategoryRadar categories={report.scores.categories} /></Section>
                 )}
@@ -163,24 +167,24 @@ export function HostedReportNew({ snapshot, token }: Props) {
                   </div>
                 </Section>
 
-                <Section><HostedRentAdvisor snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} /></Section>
+                <Section><HostedRentAdvisorNew snapshot={snapshot} rentBand={rentBand} persona={persona} userRent={store.weeklyRent} /></Section>
 
                 {persona === 'renter' && (
                   <>
-                    <Section><HostedHealthyHomes report={report} /></Section>
+                    <Section><HostedHealthyHomesNew report={report} /></Section>
                     <Section><MouldDampnessRisk report={report} /></Section>
                     <Section><SunAspectCard report={report} /></Section>
                   </>
                 )}
 
                 {snapshot.rent_history?.length > 0 && (
-                  <Section><HostedRentHistory snapshot={snapshot} /></Section>
+                  <Section><HostedRentHistoryNew snapshot={snapshot} /></Section>
                 )}
 
-                <Section><HostedPriceAdvisor snapshot={snapshot} persona={persona} /></Section>
+                <Section><HostedPriceAdvisorNew snapshot={snapshot} persona={persona} /></Section>
 
                 {persona === 'buyer' && snapshot.hpi_data?.length > 0 && (
-                  <Section><HostedHPIChart snapshot={snapshot} /></Section>
+                  <Section><HostedHPIChartNew snapshot={snapshot} /></Section>
                 )}
 
                 <HostedReportProvider snapshot={snapshot}>
@@ -226,8 +230,8 @@ export function HostedReportNew({ snapshot, token }: Props) {
                 })()}
 
                 <Section><HostedHazardAdvice report={report} snapshot={snapshot} persona={persona} /></Section>
-                <Section><HostedRecommendations snapshot={snapshot} persona={persona} /></Section>
-                <Section><HostedNextSteps persona={persona} report={report} /></Section>
+                <Section><HostedRecommendationsNew snapshot={snapshot} persona={persona} /></Section>
+                <Section><HostedNextStepsNew persona={persona} report={report} /></Section>
 
                 <TabNavFooter direction="next" targetTab="area" label="The Area" />
               </div>
@@ -239,14 +243,14 @@ export function HostedReportNew({ snapshot, token }: Props) {
               <div style={{ paddingTop: 24 }}>
                 <Section><HostedDemographics snapshot={snapshot} isFull={true} /></Section>
                 <Section><HostedClimate snapshot={snapshot} /></Section>
-                <Section><HostedNearbyHighlights snapshot={snapshot} /></Section>
-                <Section><HostedSchoolZones snapshot={snapshot} /></Section>
-                <Section><HostedSchools rawReport={snapshot.report} /></Section>
-                <Section><HostedRoadNoise snapshot={snapshot} /></Section>
+                <Section><HostedNearbyHighlightsNew snapshot={snapshot} /></Section>
+                <Section><HostedSchoolZonesNew snapshot={snapshot} /></Section>
+                <Section><HostedSchoolsNew rawReport={snapshot.report} /></Section>
+                <Section><HostedRoadNoiseNew snapshot={snapshot} /></Section>
                 <Section><HostedTerrain snapshot={snapshot} /></Section>
                 <Section><HostedNeighbourhoodStats rawReport={snapshot.report} snapshot={snapshot} /></Section>
-                <Section><HostedOutdoorRec snapshot={snapshot} /></Section>
-                <Section><HostedInfrastructure rawReport={snapshot.report} /></Section>
+                <Section><HostedOutdoorRecNew snapshot={snapshot} /></Section>
+                <Section><HostedInfrastructureNew rawReport={snapshot.report} /></Section>
 
                 <TabNavFooter direction="prev" targetTab="property" label="Your Property" />
               </div>
@@ -254,7 +258,7 @@ export function HostedReportNew({ snapshot, token }: Props) {
           </Tabs>
 
           {/* Methodology + Disclaimer (shared) */}
-          <Section><HostedMethodology /></Section>
+          <Section><HostedMethodologyNew /></Section>
 
           <div style={{
             border: '1px solid var(--ws-rule)',
