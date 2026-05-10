@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Calendar, Home, TrendingUp, MapPin } from 'lucide-react';
 import type { ReportSnapshot } from '@/lib/types';
 import { Card } from '@/components/new/ui/primitives';
@@ -13,7 +12,7 @@ interface Props {
   variant: 'quick' | 'full';
 }
 
-const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+const LINZ_API_KEY = process.env.NEXT_PUBLIC_LINZ_API_KEY;
 
 /**
  * A8-style hero card for the hosted report shell.
@@ -222,9 +221,10 @@ export function HostedHeroCardNew({ snapshot, variant }: Props) {
 }
 
 function PropertyImage({ lat, lng, address }: { lat?: number | null; lng?: number | null; address: string }) {
-  const [streetViewFailed, setStreetViewFailed] = useState(false);
-
-  if (!lat || !lng) {
+  // Renders a 2x2 grid of LINZ aerial tiles centered on the property. Free
+  // (NZ basemap service), aerial imagery is more useful than streetview for
+  // lot boundaries / footprint, and the key is already wired through prod.
+  if (!lat || !lng || (lat === 0 && lng === 0) || !LINZ_API_KEY) {
     return (
       <div style={fallbackStyle}>
         <MapPin size={24} style={{ color: 'var(--ws-ink-mute)', opacity: 0.5 }} />
@@ -232,33 +232,87 @@ function PropertyImage({ lat, lng, address }: { lat?: number | null; lng?: numbe
     );
   }
 
-  if (!GOOGLE_MAPS_KEY) {
-    return (
-      <div style={fallbackStyle}>
-        <MapPin size={24} style={{ color: 'var(--ws-ink-mute)', opacity: 0.5 }} />
-      </div>
-    );
-  }
+  const z = 17;
+  const n = 2 ** z;
+  const fracX = ((lng + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const fracY = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tileX = Math.floor(fracX);
+  const tileY = Math.floor(fracY);
+  const fx = fracX - tileX;
+  const fy = fracY - tileY;
+  // Pick the 2x2 grid origin so the property sits closest to centre.
+  const ox = fx < 0.5 ? tileX - 1 : tileX;
+  const oy = fy < 0.5 ? tileY - 1 : tileY;
+  // Property's fractional position within the 2x2 group (0..1)
+  const propX = (fracX - ox) / 2;
+  const propY = (fracY - oy) / 2;
+  // Translate the 200%-sized group so the property lands at viewport centre.
+  const shiftX = 50 - propX * 200;
+  const shiftY = 50 - propY * 200;
 
-  // Street View at typical eye level pointing toward the property
-  const streetViewSrc = `https://maps.googleapis.com/maps/api/streetview?size=640x320&location=${lat},${lng}&fov=80&pitch=0&key=${GOOGLE_MAPS_KEY}`;
-  const staticMapSrc = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=640x320&maptype=roadmap&markers=color:0x0d7377%7C${lat},${lng}&key=${GOOGLE_MAPS_KEY}`;
+  const tileUrl = (x: number, y: number) =>
+    `https://basemaps.linz.govt.nz/v1/tiles/aerial/EPSG:3857/${z}/${x}/${y}.webp?api=${LINZ_API_KEY}`;
 
   return (
-    <div style={{ position: 'relative', minHeight: 200, background: 'var(--ws-bg-2)' }}>
-      <img
-        src={streetViewFailed ? staticMapSrc : streetViewSrc}
-        alt={`${streetViewFailed ? 'Map' : 'Street view'} of ${address}`}
-        onError={() => setStreetViewFailed(true)}
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      aspectRatio: '4 / 3',
+      overflow: 'hidden',
+      background: 'var(--ws-bg-2)',
+    }}>
+      <div style={{
+        position: 'absolute',
+        width: '200%',
+        height: '200%',
+        left: `${shiftX}%`,
+        top: `${shiftY}%`,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '1fr 1fr',
+      }}>
+        <img src={tileUrl(ox, oy)} alt="" style={tileImg} loading="lazy" />
+        <img src={tileUrl(ox + 1, oy)} alt="" style={tileImg} loading="lazy" />
+        <img src={tileUrl(ox, oy + 1)} alt="" style={tileImg} loading="lazy" />
+        <img src={tileUrl(ox + 1, oy + 1)} alt="" style={tileImg} loading="lazy" />
+      </div>
+      {/* Property pin at viewport centre */}
+      <span
+        aria-label={`Pin at ${address}`}
         style={{
-          width: '100%', height: '100%', minHeight: 200,
-          objectFit: 'cover', display: 'block',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -100%)',
+          pointerEvents: 'none',
+          filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.3))',
         }}
-        loading="lazy"
-      />
+      >
+        <MapPin size={32} fill="#c42d2d" stroke="#fff" strokeWidth={2} />
+      </span>
+      <span style={{
+        position: 'absolute',
+        bottom: 6, right: 8,
+        fontSize: 10,
+        color: '#fff',
+        background: 'rgba(0,0,0,.45)',
+        padding: '2px 6px',
+        borderRadius: 3,
+        letterSpacing: '0.02em',
+      }}>
+        © LINZ
+      </span>
     </div>
   );
 }
+
+const tileImg: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+  objectFit: 'cover',
+};
 
 const fallbackStyle: React.CSSProperties = {
   display: 'grid', placeItems: 'center', minHeight: 200,
