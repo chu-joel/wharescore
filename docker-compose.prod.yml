@@ -147,6 +147,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_LINZ_API_KEY: ${NEXT_PUBLIC_LINZ_API_KEY:-}
+        NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_KEY:-}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     mem_limit: 512m
     memswap_limit: 768m
     environment:

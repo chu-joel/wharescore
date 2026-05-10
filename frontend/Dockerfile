@@ -10,9 +10,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build args become env vars for the build
+# Build args become env vars for the build (NEXT_PUBLIC_* must be present at build time)
 ARG NEXT_PUBLIC_LINZ_API_KEY=""
 ENV NEXT_PUBLIC_LINZ_API_KEY=$NEXT_PUBLIC_LINZ_API_KEY
+ARG NEXT_PUBLIC_GOOGLE_MAPS_KEY=""
+ENV NEXT_PUBLIC_GOOGLE_MAPS_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_KEY
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 # In Docker, nginx handles routing — disable Next.js rewrites
 ENV NEXT_PUBLIC_USE_PROXY=false
